@@ -11,7 +11,7 @@ export function CrmClientsWorkspace() {
   const [sort, setSort] = useState<ClientDirectorySort>("highest-spend");
 
   const { data, error, isError, isLoading, refetch } = useGetCrmClientsWorkspaceQuery({
-    filter,
+    filter: filter === "leads" ? "requests" : filter,
     sort,
   });
 

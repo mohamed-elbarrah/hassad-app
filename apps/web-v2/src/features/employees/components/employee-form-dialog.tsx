@@ -44,6 +44,7 @@ import {
   getEmployeeFormDefaults,
   getRoleLabel,
 } from "@/features/employees/lib/employee-admin";
+import { translateEmployeeLabel, useTranslations } from "@/lib/i18n";
 
 type EmployeeFormDialogProps = {
   employee?: EmployeeAdminRecord;
@@ -60,6 +61,7 @@ export function EmployeeFormDialog({
   onOpenChange,
   onSubmit,
 }: EmployeeFormDialogProps) {
+  const { locale, t } = useTranslations();
   const schema = useMemo(() => buildEmployeeFormSchema(mode), [mode]);
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(schema),
@@ -94,10 +96,10 @@ export function EmployeeFormDialog({
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {mode === "create" ? "Add employee" : "Edit employee"}
+            {mode === "create" ? t("addEmployee") : t("editEmployee")}
           </DialogTitle>
           <DialogDescription>
-            Set the employee identity and access role. Team employees require a department assignment.
+            {t("employeeFormDescription")}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -107,7 +109,7 @@ export function EmployeeFormDialog({
           <FieldGroup>
             <div className="grid gap-4 md:grid-cols-2">
               <Field data-invalid={!!form.formState.errors.name || undefined}>
-                <FieldLabel htmlFor="employee-name">Full name</FieldLabel>
+                <FieldLabel htmlFor="employee-name">{t("fullName")}</FieldLabel>
                 <FieldContent>
                   <Input
                     id="employee-name"
@@ -119,7 +121,7 @@ export function EmployeeFormDialog({
               </Field>
 
               <Field data-invalid={!!form.formState.errors.email || undefined}>
-                <FieldLabel htmlFor="employee-email">Email</FieldLabel>
+                <FieldLabel htmlFor="employee-email">{t("email")}</FieldLabel>
                 <FieldContent>
                   <Input
                     id="employee-email"
@@ -135,16 +137,14 @@ export function EmployeeFormDialog({
             <div className="grid gap-4 md:grid-cols-2">
               <Field data-invalid={!!form.formState.errors.password || undefined}>
                 <FieldLabel htmlFor="employee-password">
-                  {mode === "create" ? "Password" : "Password reset"}
+                  {mode === "create" ? t("password") : t("passwordReset")}
                 </FieldLabel>
                 <FieldContent>
                   <Input
                     id="employee-password"
                     type="password"
                     aria-invalid={!!form.formState.errors.password}
-                    placeholder={
-                      mode === "edit" ? "Leave blank to keep current password" : ""
-                    }
+                    placeholder={mode === "edit" ? t("leavePassword") : ""}
                     {...form.register("password")}
                   />
                   <FieldError errors={[form.formState.errors.password]} />
@@ -152,7 +152,7 @@ export function EmployeeFormDialog({
               </Field>
 
               <Field data-invalid={!!form.formState.errors.phoneWhatsapp || undefined}>
-                <FieldLabel htmlFor="employee-phone">Phone / WhatsApp</FieldLabel>
+                <FieldLabel htmlFor="employee-phone">{t("phoneWhatsapp")}</FieldLabel>
                 <FieldContent>
                   <Input
                     id="employee-phone"
@@ -166,7 +166,7 @@ export function EmployeeFormDialog({
 
             <div className="grid gap-4 md:grid-cols-2">
               <Field data-invalid={!!form.formState.errors.role || undefined}>
-                <FieldLabel htmlFor="employee-role">Role</FieldLabel>
+                <FieldLabel htmlFor="employee-role">{t("role")}</FieldLabel>
                 <FieldContent>
                   <Controller
                     control={form.control}
@@ -177,13 +177,13 @@ export function EmployeeFormDialog({
                           id="employee-role"
                           aria-invalid={!!form.formState.errors.role}
                         >
-                          <SelectValue placeholder="Select role" />
+                          <SelectValue placeholder={t("selectRole")} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
                             {employeeRoleOptions.map((role) => (
                               <SelectItem key={role} value={role}>
-                                {getRoleLabel(role)}
+                                {translateEmployeeLabel(locale, getRoleLabel(role))}
                               </SelectItem>
                             ))}
                           </SelectGroup>
@@ -197,7 +197,7 @@ export function EmployeeFormDialog({
 
               {selectedRole === UserRole.TEAM ? (
                 <Field data-invalid={!!form.formState.errors.department || undefined}>
-                  <FieldLabel htmlFor="employee-department">Department</FieldLabel>
+                  <FieldLabel htmlFor="employee-department">{t("department")}</FieldLabel>
                   <FieldContent>
                     <Controller
                       control={form.control}
@@ -211,13 +211,13 @@ export function EmployeeFormDialog({
                             id="employee-department"
                             aria-invalid={!!form.formState.errors.department}
                           >
-                            <SelectValue placeholder="Select department" />
+                            <SelectValue placeholder={t("selectDepartment")} />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
                               {departmentOptions.map((department) => (
                                 <SelectItem key={department} value={department}>
-                                  {getDepartmentLabel(department)}
+                                  {translateEmployeeLabel(locale, getDepartmentLabel(department))}
                                 </SelectItem>
                               ))}
                             </SelectGroup>
@@ -226,16 +226,16 @@ export function EmployeeFormDialog({
                       )}
                     />
                     <FieldDescription>
-                      Team employees are assigned to one delivery department.
+                      {t("teamDepartmentDescription")}
                     </FieldDescription>
                     <FieldError errors={[form.formState.errors.department]} />
                   </FieldContent>
                 </Field>
               ) : (
                 <Field>
-                  <FieldLabel>Department</FieldLabel>
+                  <FieldLabel>{t("department")}</FieldLabel>
                   <FieldContent>
-                    <Input value="Not applicable for this role" disabled />
+                    <Input value={t("notApplicable")} disabled />
                   </FieldContent>
                 </Field>
               )}
@@ -253,9 +253,9 @@ export function EmployeeFormDialog({
                 )}
               />
               <FieldContent>
-                <FieldLabel>Active account</FieldLabel>
+                <FieldLabel>{t("activeAccount")}</FieldLabel>
                 <FieldDescription>
-                  Suspended employees remain in the directory but lose access.
+                  {t("suspendedDescription")}
                 </FieldDescription>
               </FieldContent>
             </Field>
@@ -267,10 +267,10 @@ export function EmployeeFormDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit">
-              {mode === "create" ? "Create employee" : "Save changes"}
+              {mode === "create" ? t("createEmployee") : t("saveChanges")}
             </Button>
           </DialogFooter>
         </form>

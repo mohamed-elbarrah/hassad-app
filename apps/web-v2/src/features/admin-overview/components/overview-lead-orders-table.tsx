@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { OverviewAmount } from "@/features/admin-overview/components/overview-amount";
 import { formatOrderStage } from "@/features/crm-orders/lib/order-directory";
 import {
   Card,
@@ -78,7 +79,9 @@ export function OverviewLeadOrdersTable({
                 <TableCell>{row.meetings}</TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    <StatusBadge tone={row.projectsTone}>{row.projects}</StatusBadge>
+                    <StatusBadge tone={row.projectsTone}>
+                      {translateAdminOverviewText(locale, row.projects)}
+                    </StatusBadge>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -94,7 +97,7 @@ export function OverviewLeadOrdersTable({
                     {translateAdminOverviewText(locale, row.nextAction)}
                   </span>
                 </TableCell>
-                <TableCell className="text-right font-medium">{row.value}</TableCell>
+                <TableCell className="text-right font-medium"><OverviewAmount value={row.value} locale={locale} /></TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -18,6 +18,7 @@ import {
   useReportingPeriod,
 } from "@/features/reporting/reporting-period-context";
 import { OverviewChartCard } from "@/features/admin-overview/components/overview-chart-card";
+import { OverviewAmount } from "@/features/admin-overview/components/overview-amount";
 import { OverviewActiveProjectsTable } from "@/features/admin-overview/components/overview-active-projects-table";
 import { OverviewClientsTable } from "@/features/admin-overview/components/overview-clients-table";
 import { OverviewLeadOrdersTable } from "@/features/admin-overview/components/overview-lead-orders-table";
@@ -81,6 +82,9 @@ function AdminOverviewContent() {
         <WorkspaceQueryState
           kind="error"
           error={error}
+          errorTitle={t("overviewErrorTitle")}
+          errorDescription={t("overviewErrorDescription")}
+          retryLabel={t("retry")}
           onRetry={() => {
             void refetch();
           }}
@@ -99,6 +103,9 @@ function AdminOverviewContent() {
         <WorkspaceQueryState
           kind="error"
           error={undefined}
+          errorTitle={t("overviewErrorTitle")}
+          errorDescription={t("overviewErrorDescription")}
+          retryLabel={t("retry")}
           onRetry={() => {
             void refetch();
           }}
@@ -118,7 +125,7 @@ function AdminOverviewContent() {
           <MetricTile
             key={kpi.label}
             label={translateAdminOverviewText(locale, kpi.label)}
-            value={kpi.value}
+            value={<OverviewAmount value={kpi.value} locale={locale} />}
             description={translateAdminOverviewText(locale, kpi.description)}
             trend={kpi.trend}
           />
@@ -134,7 +141,7 @@ function AdminOverviewContent() {
             <div className="flex items-end justify-between gap-3">
               <div className="flex flex-col gap-1">
                 <span className="text-3xl font-semibold tracking-tight">
-                  {snapshot.summaries.projectAmount}
+                  <OverviewAmount value={snapshot.summaries.projectAmount} locale={locale} />
                 </span>
                 <span className="text-sm text-muted-foreground">
                   {t("currentActiveProjectAmount")}
@@ -179,13 +186,13 @@ function AdminOverviewContent() {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <span className="text-2xl font-semibold tracking-tight">
-                  {snapshot.summaries.paidInvoices}
+                  <OverviewAmount value={snapshot.summaries.paidInvoices} locale={locale} />
                 </span>
                 <span className="text-sm text-muted-foreground">{t("paidInvoices")}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-2xl font-semibold tracking-tight">
-                  {snapshot.summaries.unpaidInvoices}
+                  <OverviewAmount value={snapshot.summaries.unpaidInvoices} locale={locale} />
                 </span>
                 <span className="text-sm text-muted-foreground">{t("unpaidInvoices")}</span>
               </div>

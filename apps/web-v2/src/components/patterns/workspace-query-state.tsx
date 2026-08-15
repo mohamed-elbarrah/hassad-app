@@ -10,6 +10,9 @@ type WorkspaceQueryStateProps = {
   onRetry?: () => void;
   loadingTitle?: string;
   loadingDescription?: string;
+  retryLabel?: string;
+  errorTitle?: string;
+  errorDescription?: string;
 };
 
 export function WorkspaceQueryState({
@@ -18,6 +21,9 @@ export function WorkspaceQueryState({
   onRetry,
   loadingTitle = "Loading workspace",
   loadingDescription = "Waiting for the latest API response before rendering this page.",
+  retryLabel = "Retry request",
+  errorTitle,
+  errorDescription,
 }: WorkspaceQueryStateProps) {
   if (kind === "loading") {
     return (
@@ -33,13 +39,13 @@ export function WorkspaceQueryState({
 
   return (
     <StateBlock
-      title={details.title}
-      description={details.description}
+      title={errorTitle ?? details.title}
+      description={errorDescription ?? details.description}
       action={
         onRetry ? (
           <Button onClick={onRetry}>
             <RotateCcwIcon data-icon="inline-start" />
-            Retry request
+            {retryLabel}
           </Button>
         ) : undefined
       }

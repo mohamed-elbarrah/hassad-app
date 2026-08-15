@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import {
   Card,
   CardContent,
@@ -9,7 +11,7 @@ import { StatusBadge, type StatusTone } from "@/components/patterns/status-badge
 
 type MetricTileProps = {
   label: string;
-  value: string;
+  value: ReactNode;
   description: string;
   trend?: {
     label: string;

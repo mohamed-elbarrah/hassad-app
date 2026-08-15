@@ -1,3 +1,4 @@
+import { OverviewAmount } from "@/features/admin-overview/components/overview-amount";
 import {
   Card,
   CardContent,
@@ -66,7 +67,7 @@ export function OverviewClientsTable({
                 <TableCell>
                   <StatusBadge tone={row.onlineTone}>{translateAdminOverviewText(locale, row.lastSeen)}</StatusBadge>
                 </TableCell>
-                <TableCell className="text-right font-medium">{row.balance}</TableCell>
+                <TableCell className="text-right font-medium"><OverviewAmount value={row.balance} locale={locale} /></TableCell>
               </TableRow>
             ))}
           </TableBody>

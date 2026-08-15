@@ -1,7 +1,7 @@
 import type { ClientWorkspaceRecord } from "@hassad/shared";
 
 export type ClientDirectoryStage = "lead" | "active" | "completed";
-export type ClientDirectoryFilter = "all" | "clients" | "requests";
+export type ClientDirectoryFilter = "all" | "clients" | "leads";
 export type ClientDirectorySort = "highest-spend" | "lowest-spend";
 
 export type ClientDirectoryRecord = ClientWorkspaceRecord;
@@ -133,7 +133,7 @@ export function getFilteredSortedClients(
       return client.totalProjects > 0;
     }
 
-    if (filter === "requests") {
+    if (filter === "leads") {
       return client.totalProjects === 0 && client.openOrders > 0;
     }
 

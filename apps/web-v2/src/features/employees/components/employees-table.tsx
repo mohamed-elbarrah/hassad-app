@@ -16,6 +16,7 @@ import {
   getDepartmentLabel,
   getRoleLabel,
 } from "@/features/employees/lib/employee-admin";
+import { translateEmployeeLabel, useTranslations } from "@/lib/i18n";
 
 type EmployeesTableProps = {
   rows: EmployeeAdminRecord[];
@@ -28,16 +29,17 @@ export function EmployeesTable({
   onEdit,
   onToggleSuspend,
 }: EmployeesTableProps) {
+  const { locale, t } = useTranslations();
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Profile</TableHead>
-          <TableHead>Role</TableHead>
-          <TableHead>Department</TableHead>
-          <TableHead>Last seen</TableHead>
-          <TableHead>State</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
+          <TableHead>{t("profile")}</TableHead>
+          <TableHead>{t("role")}</TableHead>
+          <TableHead>{t("department")}</TableHead>
+          <TableHead>{t("lastSeen")}</TableHead>
+          <TableHead>{t("state")}</TableHead>
+          <TableHead className="text-right">{t("actions")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -61,27 +63,27 @@ export function EmployeesTable({
                 </div>
               </Link>
             </TableCell>
-            <TableCell>{getRoleLabel(employee.role)}</TableCell>
-            <TableCell>{getDepartmentLabel(employee.department)}</TableCell>
+            <TableCell>{translateEmployeeLabel(locale, getRoleLabel(employee.role))}</TableCell>
+            <TableCell>{translateEmployeeLabel(locale, getDepartmentLabel(employee.department))}</TableCell>
             <TableCell className="text-sm text-muted-foreground">
-              {employee.lastSeen}
+              {translateEmployeeLabel(locale, employee.lastSeen)}
             </TableCell>
             <TableCell>
               <StatusBadge tone={employee.isActive ? "success" : "destructive"}>
-                {employee.isActive ? "Active" : "Suspended"}
+                {employee.isActive ? t("activeStatus") : t("suspendedStatus")}
               </StatusBadge>
             </TableCell>
             <TableCell>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => onEdit(employee)}>
-                  Edit
+                  {t("edit")}
                 </Button>
                 <Button
                   variant={employee.isActive ? "destructive" : "secondary"}
                   size="sm"
                   onClick={() => onToggleSuspend(employee.id)}
                 >
-                  {employee.isActive ? "Suspend" : "Reactivate"}
+                  {employee.isActive ? t("suspend") : t("reactivate")}
                 </Button>
               </div>
             </TableCell>

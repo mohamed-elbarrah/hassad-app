@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { OverviewAmount } from "@/features/admin-overview/components/overview-amount";
 import {
   Card,
   CardContent,
@@ -26,7 +27,7 @@ export function OverviewSalesLeaderboard({
   rows,
   periodLabel,
 }: OverviewSalesLeaderboardProps) {
-  const { t } = useTranslations();
+  const { locale, t } = useTranslations();
   return (
     <Card>
       <CardHeader>
@@ -60,7 +61,7 @@ export function OverviewSalesLeaderboard({
                 </TableCell>
                 <TableCell className="text-right font-medium">{row.deals}</TableCell>
                 <TableCell className="text-right font-medium">{row.contracts}</TableCell>
-                <TableCell className="text-right font-medium">{row.revenue}</TableCell>
+                <TableCell className="text-right font-medium"><OverviewAmount value={row.revenue} locale={locale} /></TableCell>
               </TableRow>
             ))}
           </TableBody>

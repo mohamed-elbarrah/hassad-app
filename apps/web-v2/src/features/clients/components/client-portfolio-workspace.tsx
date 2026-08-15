@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Building2Icon } from "lucide-react";
+import { LocalizedCurrency } from "@/components/patterns/localized-currency";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
 import { StatusBadge } from "@/components/patterns/status-badge";
@@ -11,7 +12,8 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { formatClientStage, formatMoney, type ClientDirectoryFilter, type ClientDirectorySort } from "@/features/clients/lib/client-directory";
+import { formatClientStage, type ClientDirectoryFilter, type ClientDirectorySort } from "@/features/clients/lib/client-directory";
+import { translateClientLabel, useTranslations } from "@/lib/i18n";
 
 export type ClientPortfolioRow = {
   id: string;
@@ -60,6 +62,7 @@ export function ClientPortfolioWorkspace({
   basePath: string;
   showOwner: boolean;
 }) {
+  const { locale, t } = useTranslations();
   return (
     <PageScaffold
       title={title}
@@ -71,7 +74,7 @@ export function ClientPortfolioWorkspace({
             onValueChange={(value) => {
               const nextValue = value[0];
 
-              if (nextValue === "all" || nextValue === "clients" || nextValue === "requests") {
+              if (nextValue === "all" || nextValue === "clients" || nextValue === "leads") {
                 onFilterChange(nextValue);
               }
             }}
@@ -79,9 +82,9 @@ export function ClientPortfolioWorkspace({
             size="sm"
             spacing={0}
           >
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="clients">Clients</ToggleGroupItem>
-            <ToggleGroupItem value="requests">Requests</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t("all")}</ToggleGroupItem>
+            <ToggleGroupItem value="clients">{t("clients")}</ToggleGroupItem>
+            <ToggleGroupItem value="leads">{t("leads")}</ToggleGroupItem>
           </ToggleGroup>
 
           <Select
@@ -92,13 +95,13 @@ export function ClientPortfolioWorkspace({
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Sort clients">
+            <SelectTrigger size="sm" aria-label={t("sortClients")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="highest-spend">Highest spend</SelectItem>
-                <SelectItem value="lowest-spend">Lowest spend</SelectItem>
+                <SelectItem value="highest-spend">{t("highestSpend")}</SelectItem>
+                <SelectItem value="lowest-spend">{t("lowestSpend")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -107,17 +110,15 @@ export function ClientPortfolioWorkspace({
     >
       <div className="rounded-lg border bg-card">
         <div className="border-b p-6">
-          <h2 className="text-lg font-semibold">Client portfolio</h2>
-          <p className="text-sm text-muted-foreground">
-            Revenue-bearing clients and pipeline-only leads, ordered by spend.
-          </p>
+          <h2 className="text-lg font-semibold">{t("clientPortfolio")}</h2>
+          <p className="text-sm text-muted-foreground">{t("clientPortfolioDescription")}</p>
         </div>
         <div className="p-6">
           {isLoading && !rows.length ? (
             <WorkspaceQueryState
               kind="loading"
-              loadingTitle={`Loading ${title.toLowerCase()}`}
-              loadingDescription="Retrieving client portfolio health and spend data from the workspace API."
+              loadingTitle={t("loadingClients")}
+              loadingDescription={t("loadingClientsDescription")}
             />
           ) : isError && !rows.length ? (
             <WorkspaceQueryState kind="error" error={error} onRetry={onRetry} />
@@ -127,9 +128,9 @@ export function ClientPortfolioWorkspace({
                 <EmptyMedia variant="icon">
                   <Building2Icon />
                 </EmptyMedia>
-                <EmptyTitle>No clients in this segment</EmptyTitle>
+                <EmptyTitle>{t("noClientsSegment")}</EmptyTitle>
                 <EmptyDescription>
-                  Adjust the filter or sort to inspect another client segment.
+                  {t("adjustClientFilter")}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
@@ -137,17 +138,17 @@ export function ClientPortfolioWorkspace({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Total projects</TableHead>
-                  <TableHead className="text-right">Active</TableHead>
-                  <TableHead className="text-right">Open orders</TableHead>
-                  <TableHead className="text-right">Pending offers</TableHead>
-                  <TableHead className="text-right">Signed contracts</TableHead>
-                  <TableHead className="text-right">Total spend</TableHead>
-                  <TableHead className="text-right">Outstanding</TableHead>
-                  <TableHead>Last seen</TableHead>
-                  {showOwner ? <TableHead>Owner</TableHead> : null}
+                  <TableHead>{t("client")}</TableHead>
+                  <TableHead>{t("type")}</TableHead>
+                  <TableHead className="text-right">{t("totalProjects")}</TableHead>
+                  <TableHead className="text-right">{t("active")}</TableHead>
+                  <TableHead className="text-right">{t("openOrders")}</TableHead>
+                  <TableHead className="text-right">{t("pendingOffers")}</TableHead>
+                  <TableHead className="text-right">{t("signedContracts")}</TableHead>
+                  <TableHead className="text-right">{t("value")}</TableHead>
+                  <TableHead className="text-right">{t("outstanding")}</TableHead>
+                  <TableHead>{t("lastSeen")}</TableHead>
+                  {showOwner ? <TableHead>{t("owner")}</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -167,7 +168,7 @@ export function ClientPortfolioWorkspace({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge tone={row.stageTone}>{formatClientStage(row.stage)}</StatusBadge>
+                      <StatusBadge tone={row.stageTone}>{translateClientLabel(locale, formatClientStage(row.stage))}</StatusBadge>
                     </TableCell>
                     <TableCell className="text-right font-medium">{row.totalProjects}</TableCell>
                     <TableCell className="text-right font-medium">{row.activeProjects}</TableCell>
@@ -175,12 +176,12 @@ export function ClientPortfolioWorkspace({
                     <TableCell className="text-right font-medium">{row.pendingOffers}</TableCell>
                     <TableCell className="text-right font-medium">{row.signedContracts}</TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatMoney(row.totalSpend)}
+                      <LocalizedCurrency amount={row.totalSpend} />
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatMoney(row.outstandingAmount)}
+                      <LocalizedCurrency amount={row.outstandingAmount} />
                     </TableCell>
-                    <TableCell>{row.lastSeen}</TableCell>
+                    <TableCell>{translateClientLabel(locale, row.lastSeen)}</TableCell>
                     {showOwner ? <TableCell>{row.owner ?? "—"}</TableCell> : null}
                   </TableRow>
                 ))}

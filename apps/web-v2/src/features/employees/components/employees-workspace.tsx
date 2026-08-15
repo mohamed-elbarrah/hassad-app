@@ -26,6 +26,7 @@ import {
   useSuspendEmployeeMutation,
   useUpdateEmployeeMutation,
 } from "@/lib/api/admin-employees-api";
+import { useTranslations } from "@/lib/i18n";
 
 type DialogState =
   | { open: false; mode: "create"; employee?: undefined }
@@ -34,6 +35,7 @@ type DialogState =
   | { open: false; mode: "edit"; employee?: EmployeeAdminRecord };
 
 export function EmployeesWorkspace() {
+  const { t } = useTranslations();
   const [dialogState, setDialogState] = useState<DialogState>({
     open: false,
     mode: "create",
@@ -79,28 +81,26 @@ export function EmployeesWorkspace() {
   return (
     <>
       <PageScaffold
-        title="Employees"
-        description="Manage staff profiles, department assignment, and account state from one operational table."
+        title={t("employees")}
+        description={t("employeesDescription")}
         actions={
           <Button onClick={() => setDialogState({ open: true, mode: "create" })}>
             <PlusIcon data-icon="inline-start" />
-            Add employee
+            {t("addEmployee")}
           </Button>
         }
       >
         <Card>
           <CardHeader>
-            <CardTitle>Employee directory</CardTitle>
-            <CardDescription>
-              Admin-owned employee records with role, department, and access state.
-            </CardDescription>
+            <CardTitle>{t("employeeDirectory")}</CardTitle>
+            <CardDescription>{t("employeeDirectoryDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading && !data ? (
               <WorkspaceQueryState
                 kind="loading"
-                loadingTitle="Loading employees"
-                loadingDescription="Retrieving the staff directory, roles, and account state from the admin API."
+                loadingTitle={t("loadingEmployees")}
+                loadingDescription={t("loadingEmployeesDescription")}
               />
             ) : isError && !data ? (
               <WorkspaceQueryState

@@ -255,7 +255,10 @@ function ChartTooltipContent({
                       {item.value != null && (
                         <span className="font-mono font-medium text-foreground tabular-nums">
                           {typeof item.value === "number"
-                            ? item.value.toLocaleString()
+                            ? new Intl.NumberFormat(
+                                document.documentElement.lang === "ar" ? "ar-SA" : "en-US",
+                                { numberingSystem: "latn", maximumFractionDigits: 0 },
+                              ).format(item.value)
                             : String(item.value)}
                         </span>
                       )}

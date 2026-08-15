@@ -16,11 +16,11 @@ import {
 } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useReportingPeriod } from "@/features/reporting/reporting-period-context";
-import { useTranslations } from "@/lib/i18n";
+import { formatLocalizedDateRange, useTranslations } from "@/lib/i18n";
 
 export function ReportingPeriodToolbar() {
-  const { preset, range, rangeLabel, setPreset, setRange } = useReportingPeriod();
-  const { t } = useTranslations();
+  const { preset, range, setPreset, setRange } = useReportingPeriod();
+  const { locale, t } = useTranslations();
   const localizedRangeLabel =
     preset === "30d"
       ? t("last30Days")
@@ -28,7 +28,7 @@ export function ReportingPeriodToolbar() {
         ? t("last6Months")
         : preset === "12m"
           ? t("last12Months")
-          : rangeLabel;
+          : formatLocalizedDateRange(range.from, range.to, locale);
 
   function handlePresetChange(value: string[]) {
     const nextPreset = value[0];

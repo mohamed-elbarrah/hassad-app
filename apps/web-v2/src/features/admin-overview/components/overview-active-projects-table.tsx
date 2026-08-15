@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { OverviewAmount } from "@/features/admin-overview/components/overview-amount";
 import {
   Card,
   CardContent,
@@ -54,7 +55,7 @@ export function OverviewActiveProjectsTable({
                   <div className="flex min-w-0 flex-col gap-1">
                     <span className="font-medium">{row.name}</span>
                     <span className="truncate text-sm text-muted-foreground">
-                      {row.clientName} • {row.value}
+                      {row.clientName} • <OverviewAmount value={row.value} locale={locale} />
                     </span>
                   </div>
                 </TableCell>

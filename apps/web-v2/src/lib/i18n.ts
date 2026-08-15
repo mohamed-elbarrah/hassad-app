@@ -71,6 +71,9 @@ const commonMessages = {
     dateRange: "Date range",
     dateRangeDescription: "Select the reporting window for every overview card.",
     range: "Range",
+    retry: "Retry request",
+    overviewErrorTitle: "Unable to load admin overview",
+    overviewErrorDescription: "The admin overview could not be loaded. Please try again.",
     last30Days: "Last 30 days",
     last6Months: "Last 6 months",
     last12Months: "Last 12 months",
@@ -84,6 +87,46 @@ const commonMessages = {
     stateCancelled: "Cancelled",
     online: "Online",
     noSession: "No session yet",
+    employees: "Employees",
+    employeesDescription: "Manage staff profiles, department assignment, and account state from one operational table.",
+    addEmployee: "Add employee",
+    employeeDirectory: "Employee directory",
+    employeeDirectoryDescription: "Admin-owned employee records with role, department, and access state.",
+    loadingEmployees: "Loading employees",
+    loadingEmployeesDescription: "Retrieving the staff directory, roles, and account state from the admin API.",
+    profile: "Profile",
+    role: "Role",
+    department: "Department",
+    actions: "Actions",
+    edit: "Edit",
+    suspend: "Suspend",
+    reactivate: "Reactivate",
+    activeStatus: "Active",
+    suspendedStatus: "Suspended",
+    employeeDetail: "Employee detail",
+    employeeDetailDescription: "Performance, workload, risk, and activity for admin decisions.",
+    editEmployee: "Edit employee",
+    messageEmployee: "Message employee",
+    about: "About",
+    aboutDescription: "Identity, team, and admin details that stay stable across tabs.",
+    team: "Team",
+    startDate: "Start date",
+    salary: "Salary",
+    lastActivity: "Last activity",
+    clientPortfolio: "Client portfolio",
+    clientPortfolioDescription: "Revenue-bearing clients and pipeline-only leads, ordered by spend.",
+    all: "All", leads: "Leads", highestSpend: "Highest spend", lowestSpend: "Lowest spend",
+    sortClients: "Sort clients", totalProjects: "Total projects", openOrders: "Open orders", pendingOffers: "Pending offers",
+    signedContracts: "Signed contracts", outstanding: "Outstanding", noClientsSegment: "No clients in this segment",
+    adjustClientFilter: "Adjust the filter or sort to inspect another client segment.",
+    loadingClients: "Loading clients", loadingClientsDescription: "Retrieving client portfolio health and spend data from the workspace API.",
+    clientDetail: "Client detail", clientDetailDescription: "Account identity, collected business context, and operational relationship signals.",
+    employeeFormDescription: "Set employee identity and access. Team employees require a department.",
+    fullName: "Full name", email: "Email", password: "Password", passwordReset: "Password reset",
+    leavePassword: "Leave blank to keep current password", phoneWhatsapp: "Phone / WhatsApp",
+    selectRole: "Select role", selectDepartment: "Select department", teamDepartmentDescription: "Team employees are assigned to one delivery department.",
+    notApplicable: "Not applicable for this role", activeAccount: "Active account", suspendedDescription: "Suspended employees remain in the directory but lose access.",
+    cancel: "Cancel", createEmployee: "Create employee", saveChanges: "Save changes",
   },
   ar: {
     adminOverview: "نظرة عامة على الإدارة",
@@ -141,6 +184,9 @@ const commonMessages = {
     dateRange: "النطاق الزمني",
     dateRangeDescription: "حدد الفترة الزمنية لجميع بطاقات النظرة العامة.",
     range: "نطاق مخصص",
+    retry: "إعادة المحاولة",
+    overviewErrorTitle: "تعذر تحميل نظرة الإدارة",
+    overviewErrorDescription: "تعذر تحميل بيانات نظرة الإدارة. يرجى المحاولة مرة أخرى.",
     last30Days: "آخر 30 يومًا",
     last6Months: "آخر 6 أشهر",
     last12Months: "آخر 12 شهرًا",
@@ -154,6 +200,46 @@ const commonMessages = {
     stateCancelled: "ملغى",
     online: "متصل",
     noSession: "لا توجد جلسة بعد",
+    employees: "الموظفون",
+    employeesDescription: "إدارة ملفات الموظفين وتوزيع الأقسام وحالة الحساب من جدول تشغيلي واحد.",
+    addEmployee: "إضافة موظف",
+    employeeDirectory: "دليل الموظفين",
+    employeeDirectoryDescription: "سجلات الموظفين مع الأدوار والأقسام وحالة الوصول.",
+    loadingEmployees: "جارٍ تحميل الموظفين",
+    loadingEmployeesDescription: "جارٍ جلب دليل الموظفين والأدوار وحالة الحساب من واجهة الإدارة.",
+    profile: "الملف الشخصي",
+    role: "الدور",
+    department: "القسم",
+    actions: "الإجراءات",
+    edit: "تعديل",
+    suspend: "إيقاف",
+    reactivate: "إعادة تفعيل",
+    activeStatus: "نشط",
+    suspendedStatus: "موقوف",
+    employeeDetail: "تفاصيل الموظف",
+    employeeDetailDescription: "الأداء وحجم العمل والمخاطر والنشاط المهم لقرارات الإدارة.",
+    editEmployee: "تعديل الموظف",
+    messageEmployee: "مراسلة الموظف",
+    about: "حول الموظف",
+    aboutDescription: "بيانات الهوية والفريق والإدارة الثابتة عبر علامات التبويب.",
+    team: "الفريق",
+    startDate: "تاريخ البدء",
+    salary: "الراتب",
+    lastActivity: "آخر نشاط",
+    clientPortfolio: "محفظة العملاء",
+    clientPortfolioDescription: "العملاء ذوو الإيرادات والعملاء المحتملون مرتبين حسب الإنفاق.",
+    all: "الكل", leads: "عملاء محتملون", highestSpend: "الأعلى إنفاقًا", lowestSpend: "الأقل إنفاقًا",
+    sortClients: "ترتيب العملاء", totalProjects: "إجمالي المشاريع", openOrders: "الطلبات المفتوحة", pendingOffers: "العروض المعلقة",
+    signedContracts: "العقود الموقعة", outstanding: "المستحقات", noClientsSegment: "لا يوجد عملاء في هذا التصنيف",
+    adjustClientFilter: "عدّل الفلتر أو الترتيب لاستعراض تصنيف آخر من العملاء.",
+    loadingClients: "جارٍ تحميل العملاء", loadingClientsDescription: "جارٍ جلب حالة محفظة العملاء وبيانات الإنفاق من واجهة مساحة العمل.",
+    clientDetail: "تفاصيل العميل", clientDetailDescription: "هوية الحساب وبيانات العمل وإشارات العلاقة التشغيلية.",
+    employeeFormDescription: "حدد هوية الموظف وصلاحياته. يجب تعيين قسم لموظفي الفريق.",
+    fullName: "الاسم الكامل", email: "البريد الإلكتروني", password: "كلمة المرور", passwordReset: "إعادة تعيين كلمة المرور",
+    leavePassword: "اتركه فارغًا للإبقاء على كلمة المرور الحالية", phoneWhatsapp: "الهاتف / واتساب",
+    selectRole: "اختر الدور", selectDepartment: "اختر القسم", teamDepartmentDescription: "يتم تعيين موظفي الفريق إلى قسم تنفيذ واحد.",
+    notApplicable: "غير متاح لهذا الدور", activeAccount: "حساب نشط", suspendedDescription: "يبقى الموظفون الموقوفون في الدليل لكن يفقدون صلاحية الوصول.",
+    cancel: "إلغاء", createEmployee: "إنشاء موظف", saveChanges: "حفظ التغييرات",
   },
 } as const;
 
@@ -214,8 +300,16 @@ export function translateAdminOverviewText(
   locale: Locale,
   value: string,
 ): string {
-  if (locale === "ar" && adminOverviewArabicOverrides[value]) {
-    return adminOverviewArabicOverrides[value];
+  if (locale === "ar") {
+    const activeProjectsMatch = value.match(/^(\d+) active projects$/);
+    if (activeProjectsMatch) {
+      const count = Number(activeProjectsMatch[1]);
+      return `${activeProjectsMatch[1]} ${count === 1 ? "مشروع نشط" : "مشاريع نشطة"}`;
+    }
+    if (value === "No project yet") return "لا يوجد مشروع بعد";
+    if (adminOverviewArabicOverrides[value]) {
+      return adminOverviewArabicOverrides[value];
+    }
   }
   const key = adminOverviewText[value];
   return key ? commonMessages[locale][key] ?? commonMessages.en[key] : value;
@@ -236,9 +330,62 @@ const chartMonthsAr: Record<string, string> = {
   Dec: "ديسمبر",
 };
 
+const employeeArabicLabels: Record<string, string> = {
+  Admin: "مدير النظام",
+  "Project Manager": "مدير مشاريع",
+  Sales: "مبيعات",
+  Team: "فريق",
+  Marketing: "تسويق",
+  Accountant: "محاسب",
+  Client: "عميل",
+  Design: "تصميم",
+  Content: "محتوى",
+  Development: "تطوير",
+  Production: "إنتاج",
+  Active: "نشط",
+  Suspended: "موقوف",
+  "No session yet": "لا توجد جلسة بعد",
+};
+
+export function translateEmployeeLabel(locale: Locale, value: string) {
+  return locale === "ar" ? employeeArabicLabels[value] ?? value : value;
+}
+
+const clientArabicLabels: Record<string, string> = {
+  Client: "عميل",
+  Lead: "عميل محتمل",
+  Online: "متصل",
+  "No client": "لا يوجد عميل",
+};
+
+export function translateClientLabel(locale: Locale, value: string) {
+  return locale === "ar" ? clientArabicLabels[value] ?? value : value;
+}
+
 export function localizeOverviewChartLabel(locale: Locale, label: string) {
   if (locale !== "ar") return label;
   return label.replace(/\\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\b/g, (month) => chartMonthsAr[month] ?? month);
+}
+
+export function formatLocalizedDateRange(
+  from: Date,
+  to: Date,
+  locale: Locale,
+): string {
+  const formatter = new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    numberingSystem: "latn",
+  });
+  return `${formatter.format(from)} ${locale === "ar" ? "إلى" : "to"} ${formatter.format(to)}`;
+}
+
+export function formatLocalizedNumber(value: number, locale: Locale): string {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-SA" : "en-US", {
+    numberingSystem: "latn",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 export function useTranslations() {

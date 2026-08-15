@@ -5,6 +5,7 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { ChevronDownIcon, ChevronRightIcon, Plus, Send, Trash2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LocalizedCurrency } from "@/components/patterns/localized-currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet, FieldLegend } from "@/components/ui/field";
@@ -555,7 +556,7 @@ export function CreateContractDialog({ open, mode, onOpenChange, record, contrac
 
                           <div className="flex items-center gap-2 text-sm">
                             <span className="text-muted-foreground">Planned rows total</span>
-                            <span className="font-semibold">SAR {Number.isFinite(totalPaymentPlan) ? totalPaymentPlan.toLocaleString() : 0}</span>
+                            <span className="font-semibold"><LocalizedCurrency amount={Number.isFinite(totalPaymentPlan) ? totalPaymentPlan : 0} /></span>
                           </div>
                         </div>
                       ) : null}

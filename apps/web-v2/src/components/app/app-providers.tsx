@@ -5,6 +5,7 @@ import { Provider } from "react-redux";
 
 import { ApiRefreshIndicator } from "@/components/app/api-refresh-indicator";
 import { LocaleProvider } from "@/components/app/locale-provider";
+import { CurrencyProvider } from "@/components/app/currency-provider";
 import type { Locale } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/app/theme-provider";
 import { Toaster } from "@/components/ui/toast";
@@ -21,13 +22,15 @@ export function AppProviders({
   return (
     <Provider store={store}>
       <LocaleProvider initialLocale={locale}>
-        <ThemeProvider>
+        <CurrencyProvider>
+          <ThemeProvider>
           <TooltipProvider>
             {children}
             <ApiRefreshIndicator />
             <Toaster />
           </TooltipProvider>
-        </ThemeProvider>
+          </ThemeProvider>
+        </CurrencyProvider>
       </LocaleProvider>
     </Provider>
   );

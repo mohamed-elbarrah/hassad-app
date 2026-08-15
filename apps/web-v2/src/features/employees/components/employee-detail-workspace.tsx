@@ -9,6 +9,7 @@ import { PageScaffold } from "@/components/patterns/page-scaffold";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { LocalizedCurrency } from "@/components/patterns/localized-currency";
 import {
   Card,
   CardContent,
@@ -19,13 +20,13 @@ import {
 import type { EmployeeFixture } from "@/lib/fixtures/first-slice";
 import type { EmployeeAdminRecord, EmployeeFormValues } from "@/features/employees/lib/employee-admin";
 import {
-  formatEmployeeSalary,
   getRoleLabel,
   toEmployeeAdminRecord,
 } from "@/features/employees/lib/employee-admin";
 import { EmployeeFormDialog } from "@/features/employees/components/employee-form-dialog";
 import { EmployeeOperationalProfile } from "@/features/employees/components/employee-operational-profile";
 import { getEmployeeDetailInsights } from "@/features/employees/lib/employee-detail-insights";
+import { translateEmployeeLabel, useTranslations } from "@/lib/i18n";
 
 type EmployeeDetailWorkspaceProps = {
   employee: EmployeeFixture;
@@ -67,6 +68,7 @@ export function EmployeeDetailWorkspace({
   employee,
   adminRecord,
 }: EmployeeDetailWorkspaceProps) {
+  const { locale, t } = useTranslations();
   const [record, setRecord] = useState(adminRecord);
   const [dialogOpen, setDialogOpen] = useState(false);
   const insights = getEmployeeDetailInsights(employee);
@@ -79,8 +81,8 @@ export function EmployeeDetailWorkspace({
   return (
     <>
       <PageScaffold
-        title="Employee detail"
-        description="Performance, workload, risk, and the activity that matters for admin decisions."
+        title={t("employeeDetail")}
+        description={t("employeeDetailDescription")}
         actions={
           <Button
             variant="outline"
@@ -88,7 +90,7 @@ export function EmployeeDetailWorkspace({
             render={<Link href="/admin/employees" />}
           >
             <ArrowLeftIcon data-icon="inline-start" />
-            Employees
+            {t("employees")}
           </Button>
         }
       >
@@ -104,12 +106,12 @@ export function EmployeeDetailWorkspace({
                     <div className="flex min-w-0 flex-1 flex-col gap-2">
                       <div className="flex flex-col gap-1">
                         <CardTitle className="truncate text-2xl">{record.name}</CardTitle>
-                        <CardDescription>{getRoleLabel(record.role)}</CardDescription>
+                        <CardDescription>{translateEmployeeLabel(locale, getRoleLabel(record.role))}</CardDescription>
                         <p className="text-sm text-muted-foreground">{record.email}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <StatusBadge tone={record.isActive ? "success" : "destructive"}>
-                          {record.isActive ? "Active" : "Suspended"}
+                          {record.isActive ? t("activeStatus") : t("suspendedStatus")}
                         </StatusBadge>
                         <StatusBadge tone={employee.riskTone}>{employee.riskLabel}</StatusBadge>
                       </div>
@@ -119,7 +121,7 @@ export function EmployeeDetailWorkspace({
                 <CardContent className="flex flex-col gap-3">
                   <Button onClick={() => setDialogOpen(true)}>
                     <PencilIcon data-icon="inline-start" />
-                    Edit employee
+                    {t("editEmployee")}
                   </Button>
                   <Button
                     variant="outline"
@@ -135,36 +137,34 @@ export function EmployeeDetailWorkspace({
                     }
                   >
                     <MessageSquareIcon data-icon="inline-start" />
-                    Message employee
+                    {t("messageEmployee")}
                   </Button>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>About</CardTitle>
-                  <CardDescription>
-                    Identity, team, and admin details that stay stable across tabs.
-                  </CardDescription>
+                  <CardTitle>{t("about")}</CardTitle>
+                  <CardDescription>{t("aboutDescription")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <dl className="flex flex-col gap-4 text-sm">
                     <div className="flex items-start justify-between gap-4">
-                      <dt className="text-muted-foreground">Team</dt>
+                      <dt className="text-muted-foreground">{t("team")}</dt>
                       <dd className="text-right font-medium">{employee.department}</dd>
                     </div>
                     <div className="flex items-start justify-between gap-4">
-                      <dt className="text-muted-foreground">Start date</dt>
+                      <dt className="text-muted-foreground">{t("startDate")}</dt>
                       <dd className="text-right font-medium">{record.startDate}</dd>
                     </div>
                     <div className="flex items-start justify-between gap-4">
-                      <dt className="text-muted-foreground">Salary</dt>
+                      <dt className="text-muted-foreground">{t("salary")}</dt>
                       <dd className="text-right font-medium">
-                        {formatEmployeeSalary(record.salary)}
+                        <LocalizedCurrency amount={record.salary ?? 0} />
                       </dd>
                     </div>
                     <div className="flex items-start justify-between gap-4">
-                      <dt className="text-muted-foreground">Last activity</dt>
+                      <dt className="text-muted-foreground">{t("lastActivity")}</dt>
                       <dd className="text-right font-medium">{employee.lastActivity}</dd>
                     </div>
                   </dl>
