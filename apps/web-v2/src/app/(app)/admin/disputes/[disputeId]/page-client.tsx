@@ -5,22 +5,24 @@ import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state
 import { mapDisputeDetailFromApi } from "@/features/admin-details/lib/detail-workspace-mappers";
 import { DisputeDetailWorkspace } from "@/features/disputes/components/dispute-detail-workspace";
 import { useGetDisputeDetailQuery } from "@/lib/api/admin-details-api";
+import { useTranslations } from "@/lib/i18n";
 
 export function DisputeDetailPageClient({
   disputeId,
 }: {
   disputeId: string;
 }) {
+  const { t } = useTranslations();
   const { data, error, isError, isLoading, refetch } =
     useGetDisputeDetailQuery(disputeId);
 
   if (isLoading && !data) {
     return (
       <PageScaffold
-        title="Dispute detail"
-        description="Loading dispute approval state, messages, and evidence."
+        title={t("disputeDetail")}
+        description={t("disputeDetailLoadingDescription")}
       >
-        <WorkspaceQueryState kind="loading" loadingTitle="Loading dispute detail" />
+        <WorkspaceQueryState kind="loading" loadingTitle={t("disputeDetailLoading")} />
       </PageScaffold>
     );
   }
@@ -28,8 +30,8 @@ export function DisputeDetailPageClient({
   if ((isError || !data) && !data) {
     return (
       <PageScaffold
-        title="Dispute detail"
-        description="This workspace now reads directly from the backend."
+        title={t("disputeDetail")}
+        description={t("projectDetailErrorDescription")}
       >
         <WorkspaceQueryState kind="error" error={error} onRetry={refetch} />
       </PageScaffold>

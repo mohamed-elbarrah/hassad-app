@@ -49,8 +49,10 @@ import {
 import { mapDisputeIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
 import { useGetAdminDisputesQuery } from "@/lib/api/admin-disputes-api";
 import { useAppSelector } from "@/lib/store";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 
 export function DisputesWorkspace() {
+  const { locale, t } = useTranslations();
   const authStatus = useAppSelector((state) => state.auth.status);
   const [search, setSearch] = useState("");
   const [queue, setQueue] = useState<DisputeQueueFilter>("all");
@@ -134,15 +136,15 @@ export function DisputesWorkspace() {
 
   return (
     <PageScaffold
-      title="Disputes"
-      description="Delivery-risk queue for complaint approval, escalation handling, PM ownership issues, and client-facing resolution follow-up."
+      title={t("disputes")}
+      description={t("resolutionQueueDescription")}
       actions={
         <>
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search ticket, client, project, PM, or category"
-            aria-label="Search disputes"
+            placeholder={t("searchDisputes")}
+            aria-label={t("searchDisputesLabel")}
             className="sm:w-80"
           />
 
@@ -165,11 +167,11 @@ export function DisputesWorkspace() {
             size="sm"
             spacing={0}
           >
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="pending-approval">Pending approval</ToggleGroupItem>
-            <ToggleGroupItem value="escalated">Escalated</ToggleGroupItem>
-            <ToggleGroupItem value="active">Active</ToggleGroupItem>
-            <ToggleGroupItem value="resolved">Resolved</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t("all")}</ToggleGroupItem>
+            <ToggleGroupItem value="pending-approval">{t("pendingApproval")}</ToggleGroupItem>
+            <ToggleGroupItem value="escalated">{t("escalated")}</ToggleGroupItem>
+            <ToggleGroupItem value="active">{t("active")}</ToggleGroupItem>
+            <ToggleGroupItem value="resolved">{t("resolved")}</ToggleGroupItem>
           </ToggleGroup>
 
           <Select<string>
@@ -187,15 +189,15 @@ export function DisputesWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter disputes by status">
+            <SelectTrigger size="sm" aria-label={t("status")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-statuses">All statuses</SelectItem>
+                <SelectItem value="all-statuses">{t("allStatuses")}</SelectItem>
                 {Object.values(DisputeStatus).map((value) => (
                   <SelectItem key={value} value={value}>
-                    {formatDisputeStatus(value)}
+                    {translateRequestLabel(locale, formatDisputeStatus(value))}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -217,15 +219,15 @@ export function DisputesWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter disputes by category">
+            <SelectTrigger size="sm" aria-label={t("category")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-categories">All categories</SelectItem>
+                <SelectItem value="all-categories">{t("allCategories")}</SelectItem>
                 {Object.values(DisputeCategory).map((value) => (
                   <SelectItem key={value} value={value}>
-                    {formatDisputeCategory(value)}
+                    {translateRequestLabel(locale, formatDisputeCategory(value))}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -247,15 +249,15 @@ export function DisputesWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter disputes by priority">
+            <SelectTrigger size="sm" aria-label={t("priority")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-priorities">All priorities</SelectItem>
+                <SelectItem value="all-priorities">{t("allPriorities")}</SelectItem>
                 {Object.values(DisputePriority).map((value) => (
                   <SelectItem key={value} value={value}>
-                    {formatDisputePriority(value)}
+                    {translateRequestLabel(locale, formatDisputePriority(value))}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -274,12 +276,12 @@ export function DisputesWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter disputes by PM">
+            <SelectTrigger size="sm" aria-label={t("projectManager")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-pms">All PMs</SelectItem>
+                <SelectItem value="all-pms">{t("allPms")}</SelectItem>
                 {pmOptions.map((value) => (
                   <SelectItem key={value} value={value}>
                     {value}
@@ -305,14 +307,14 @@ export function DisputesWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter disputes by staleness">
+            <SelectTrigger size="sm" aria-label={t("lastActivity")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-activity">All activity</SelectItem>
-                <SelectItem value="stale-3-days">Stale 3d+</SelectItem>
-                <SelectItem value="stale-7-days">Stale 7d+</SelectItem>
+                <SelectItem value="all-activity">{t("allActivity")}</SelectItem>
+                <SelectItem value="stale-3-days">{t("stale3")}</SelectItem>
+                <SelectItem value="stale-7-days">{t("stale7")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -321,17 +323,17 @@ export function DisputesWorkspace() {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Resolution queue</CardTitle>
+          <CardTitle>{t("resolutionQueue")}</CardTitle>
           <CardDescription>
-            Each row shows complaint ownership, current dispute state, and whether admin action is needed before the case ages further.
+            {t("resolutionQueueDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {authStatus !== "authenticated" || (isLoading && !data) ? (
             <WorkspaceQueryState
               kind="loading"
-              loadingTitle="Loading disputes"
-              loadingDescription="Retrieving the current dispute queue from the admin API."
+              loadingTitle={t("loadingDisputes")}
+              loadingDescription={t("loadingDisputesDescription")}
             />
           ) : isError && !data ? (
             <WorkspaceQueryState
@@ -347,9 +349,9 @@ export function DisputesWorkspace() {
                 <EmptyMedia variant="icon">
                   <ShieldAlertIcon />
                 </EmptyMedia>
-                <EmptyTitle>No disputes match these filters</EmptyTitle>
+                <EmptyTitle>{t("noDisputes")}</EmptyTitle>
                 <EmptyDescription>
-                  Change the queue, status, PM, or stale-activity filters to inspect another dispute segment.
+                  {t("adjustDisputeFilters")}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

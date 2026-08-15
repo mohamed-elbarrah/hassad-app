@@ -113,7 +113,7 @@ export function ProjectsTable({ rows }: ProjectsTableProps) {
             <TableCell>
               <div className="flex min-w-0 flex-col gap-1">
                 <span>
-                  {row.startDate} to {row.endDate}
+                  {translateRequestLabel(locale, row.startDate)} {locale === "ar" ? "إلى" : "to"} {translateRequestLabel(locale, row.endDate)}
                 </span>
                 <span className="text-sm text-muted-foreground">
                   {translateRequestLabel(locale, formatTimeline(row.daysToEnd, row.endDate))}

@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TaskDetailRecord } from "@/features/tasks/lib/task-detail";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 
 type TaskDetailWorkspaceProps = {
   task: TaskDetailRecord;
@@ -61,20 +62,21 @@ export function TaskDetailWorkspace({
   clientHref = "/admin/clients",
   actions,
 }: TaskDetailWorkspaceProps) {
+  const { locale, t } = useTranslations();
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const selectedCampaign =
     task.marketing?.campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
 
   return (
     <PageScaffold
-      title="Task detail"
-      description="Workflow progress, internal discussion, files, and department-specific execution context."
+      title={t("taskDetail")}
+      description={t("taskDetailDescription")}
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {actions}
           <Button variant="outline" nativeButton={false} render={<Link href={backHref} />}>
             <ArrowLeftIcon data-icon="inline-start" />
-            {backLabel}
+            {backLabel === "Tasks" ? t("tasks") : backLabel}
           </Button>
         </div>
       }
@@ -91,12 +93,12 @@ export function TaskDetailWorkspace({
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="flex flex-col gap-1">
                       <CardTitle className="text-2xl">{task.title}</CardTitle>
-                      <CardDescription>{task.departmentLabel}</CardDescription>
+                      <CardDescription>{translateRequestLabel(locale, task.departmentLabel)}</CardDescription>
                       <p className="text-sm text-muted-foreground">{task.projectName}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <StatusBadge tone={task.statusTone}>{task.statusLabel}</StatusBadge>
-                      <StatusBadge tone={task.priorityTone}>{task.priorityLabel}</StatusBadge>
+                      <StatusBadge tone={task.statusTone}>{translateRequestLabel(locale, task.statusLabel)}</StatusBadge>
+                      <StatusBadge tone={task.priorityTone}>{translateRequestLabel(locale, task.priorityLabel)}</StatusBadge>
                     </div>
                   </div>
                 </div>
@@ -110,7 +112,7 @@ export function TaskDetailWorkspace({
                     render={<Link href={`${projectHref}/${task.projectId}`} />}
                   >
                     <Building2Icon data-icon="inline-start" />
-                    Open project
+                    {t("openProject")}
                   </Button>
                 ) : null}
                 {task.clientId && clientHref ? (
@@ -120,7 +122,7 @@ export function TaskDetailWorkspace({
                     render={<Link href={`${clientHref}/${task.clientId}`} />}
                   >
                     <UserIcon data-icon="inline-start" />
-                    Open client
+                    {t("openClient")}
                   </Button>
                 ) : null}
               </CardContent>
@@ -128,7 +130,7 @@ export function TaskDetailWorkspace({
 
             <Card>
               <CardHeader>
-                <CardTitle>Task info</CardTitle>
+                <CardTitle>{t("taskInfo")}</CardTitle>
                 <CardDescription>
                   Stable ownership and scheduling data for this task.
                 </CardDescription>
@@ -136,43 +138,43 @@ export function TaskDetailWorkspace({
               <CardContent>
                 <dl className="flex flex-col gap-4 text-sm">
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Status</dt>
-                    <dd><StatusBadge tone={task.statusTone}>{task.statusLabel}</StatusBadge></dd>
+                    <dt className="text-muted-foreground">{t("status")}</dt>
+                    <dd><StatusBadge tone={task.statusTone}>{translateRequestLabel(locale, task.statusLabel)}</StatusBadge></dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Priority</dt>
-                    <dd className="font-medium">{task.priorityLabel}</dd>
+                    <dt className="text-muted-foreground">{t("priority")}</dt>
+                    <dd className="font-medium">{translateRequestLabel(locale, task.priorityLabel)}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Department</dt>
-                    <dd className="font-medium">{task.departmentLabel}</dd>
+                    <dt className="text-muted-foreground">{t("department")}</dt>
+                    <dd className="font-medium">{translateRequestLabel(locale, task.departmentLabel)}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Assignee</dt>
-                    <dd className="font-medium">{task.assigneeName ?? "Unassigned"}</dd>
+                    <dt className="text-muted-foreground">{t("assignee")}</dt>
+                    <dd className="font-medium">{task.assigneeName ?? t("noAssignee")}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Project</dt>
+                    <dt className="text-muted-foreground">{t("project")}</dt>
                     <dd className="text-right font-medium">
                       <div className="flex flex-col">
                         <span>{task.projectName}</span>
-                        <span className="text-xs text-muted-foreground">{task.projectStatusLabel}</span>
+                        <span className="text-xs text-muted-foreground">{translateRequestLabel(locale, task.projectStatusLabel)}</span>
                       </div>
                     </dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
                     <dt className="text-muted-foreground">Due</dt>
-                    <dd className="font-medium">{task.dueDateValue}</dd>
+                    <dd className="font-medium">{translateRequestLabel(locale, task.dueDateValue)}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
                     <dt className="text-muted-foreground">Period</dt>
-                    <dd className="font-medium">{task.periodLabel}</dd>
+                    <dd className="font-medium">{translateRequestLabel(locale, task.periodLabel)}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Client visibility</dt>
+                    <dt className="text-muted-foreground">{t("clientVisibility")}</dt>
                     <dd>
                       <StatusBadge tone={task.isClientVisible ? "active" : "neutral"}>
-                        {task.isClientVisible ? "Visible" : "Internal"}
+                        {task.isClientVisible ? t("visible") : t("internal")}
                       </StatusBadge>
                     </dd>
                   </div>
@@ -182,17 +184,17 @@ export function TaskDetailWorkspace({
 
             <Card>
               <CardHeader>
-                <CardTitle>Task signal</CardTitle>
+                <CardTitle>{t("taskSignal")}</CardTitle>
                 <CardDescription>
                   The main reason this task may need PM or admin attention.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <div className="flex flex-wrap gap-2">
-                  <StatusBadge tone={task.signalTone}>{task.signalLabel}</StatusBadge>
-                  {task.isArchived ? <StatusBadge tone="neutral">Archived</StatusBadge> : null}
+                  <StatusBadge tone={task.signalTone}>{translateRequestLabel(locale, task.signalLabel)}</StatusBadge>
+                  {task.isArchived ? <StatusBadge tone="neutral">{t("archived")}</StatusBadge> : null}
                 </div>
-                <p className="text-sm text-muted-foreground">{task.signalSummary}</p>
+                <p className="text-sm text-muted-foreground">{translateRequestLabel(locale, task.signalSummary)}</p>
               </CardContent>
             </Card>
           </>

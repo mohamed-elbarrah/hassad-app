@@ -46,8 +46,10 @@ import {
 import { mapTaskIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
 import { useGetAdminTasksQuery } from "@/lib/api/admin-tasks-api";
 import { useAppSelector } from "@/lib/store";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 
 export function TasksWorkspace() {
+  const { locale, t } = useTranslations();
   const authStatus = useAppSelector((state) => state.auth.status);
   const [search, setSearch] = useState("");
   const [queue, setQueue] = useState<TaskDirectoryQueueFilter>("all");
@@ -108,15 +110,15 @@ export function TasksWorkspace() {
 
   return (
     <PageScaffold
-      title="Tasks"
-      description="Organization-wide task queue for reassignment, delivery exceptions, and workflow intervention across every active project."
+      title={t("tasks")}
+      description={t("taskQueueDescription")}
       actions={
         <>
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search task, project, client, assignee, or period"
-            aria-label="Search tasks"
+            placeholder={t("searchTasks")}
+            aria-label={t("searchTasksLabel")}
             className="sm:w-80"
           />
 
@@ -138,10 +140,10 @@ export function TasksWorkspace() {
             size="sm"
             spacing={0}
           >
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="attention">Needs attention</ToggleGroupItem>
-            <ToggleGroupItem value="in-review">In review</ToggleGroupItem>
-            <ToggleGroupItem value="unassigned">Unassigned</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t("all")}</ToggleGroupItem>
+            <ToggleGroupItem value="attention">{t("needsAttention")}</ToggleGroupItem>
+            <ToggleGroupItem value="in-review">{t("stateAwaitingReview")}</ToggleGroupItem>
+            <ToggleGroupItem value="unassigned">{t("noAssignee")}</ToggleGroupItem>
           </ToggleGroup>
 
           <Select<string>
@@ -159,15 +161,15 @@ export function TasksWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter tasks by department">
+            <SelectTrigger size="sm" aria-label={t("department")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-departments">All departments</SelectItem>
+                <SelectItem value="all-departments">{t("allDepartments")}</SelectItem>
                 {Object.values(TaskDepartment).map((value) => (
                   <SelectItem key={value} value={value}>
-                    {formatTaskDepartment(value)}
+                    {translateRequestLabel(locale, formatTaskDepartment(value))}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -189,15 +191,15 @@ export function TasksWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter tasks by status">
+            <SelectTrigger size="sm" aria-label={t("status")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-statuses">All statuses</SelectItem>
+                <SelectItem value="all-statuses">{t("allStatuses")}</SelectItem>
                 {Object.values(TaskStatus).map((value) => (
                   <SelectItem key={value} value={value}>
-                    {formatTaskStatus(value)}
+                    {translateRequestLabel(locale, formatTaskStatus(value))}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -219,15 +221,15 @@ export function TasksWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter tasks by priority">
+            <SelectTrigger size="sm" aria-label={t("priority")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-priorities">All priorities</SelectItem>
+                <SelectItem value="all-priorities">{t("allPriorities")}</SelectItem>
                 {Object.values(TaskPriority).map((value) => (
                   <SelectItem key={value} value={value}>
-                    {formatTaskPriority(value)}
+                    {translateRequestLabel(locale, formatTaskPriority(value))}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -247,15 +249,15 @@ export function TasksWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter tasks by due date">
+            <SelectTrigger size="sm" aria-label={t("due")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-dates">All due dates</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-                <SelectItem value="today">Due today</SelectItem>
-                <SelectItem value="next-7-days">Next 7 days</SelectItem>
+                <SelectItem value="all-dates">{t("allDueDates")}</SelectItem>
+                <SelectItem value="overdue">{t("overdue")}</SelectItem>
+                <SelectItem value="today">{t("dueToday")}</SelectItem>
+                <SelectItem value="next-7-days">{t("next7Days")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -272,14 +274,14 @@ export function TasksWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter tasks by client visibility">
+            <SelectTrigger size="sm" aria-label={t("allVisibility")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-visibility">All visibility</SelectItem>
-                <SelectItem value="client-visible">Client visible</SelectItem>
-                <SelectItem value="internal-only">Internal only</SelectItem>
+                <SelectItem value="all-visibility">{t("allVisibility")}</SelectItem>
+                <SelectItem value="client-visible">{t("clientVisible")}</SelectItem>
+                <SelectItem value="internal-only">{t("internalOnly")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -288,18 +290,17 @@ export function TasksWorkspace() {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Task queue</CardTitle>
+          <CardTitle>{t("taskQueue")}</CardTitle>
           <CardDescription>
-            Every row shows the workflow state, due risk, project period, and
-            intervention signal that matters before opening task detail.
+            {t("taskQueueDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {authStatus !== "authenticated" || (isLoading && !data) ? (
             <WorkspaceQueryState
               kind="loading"
-              loadingTitle="Loading tasks"
-              loadingDescription="Retrieving the latest task queue from the admin API."
+              loadingTitle={t("loadingTasks")}
+              loadingDescription={t("loadingTasksDescription")}
             />
           ) : isError && !data ? (
             <WorkspaceQueryState
@@ -315,9 +316,9 @@ export function TasksWorkspace() {
                 <EmptyMedia variant="icon">
                   <CheckSquare2Icon />
                 </EmptyMedia>
-                <EmptyTitle>No tasks match these filters</EmptyTitle>
+                <EmptyTitle>{t("noTasks")}</EmptyTitle>
                 <EmptyDescription>
-                  Change the queue, department, due date, or visibility filters to inspect another operational segment.
+                  {t("adjustTaskFilters")}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

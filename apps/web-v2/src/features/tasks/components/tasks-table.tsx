@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 
 import { StatusBadge } from "@/components/patterns/status-badge";
 import {
@@ -26,20 +27,21 @@ type TasksTableProps = {
 };
 
 export function TasksTable({ rows, hrefBase = "/admin/tasks" }: TasksTableProps) {
+  const { locale, t } = useTranslations();
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Task</TableHead>
-          <TableHead>Project</TableHead>
-          <TableHead>Department</TableHead>
-          <TableHead>Assignee</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Priority</TableHead>
-          <TableHead>Due</TableHead>
-          <TableHead>Period</TableHead>
-          <TableHead>Client</TableHead>
-          <TableHead>Signal</TableHead>
+          <TableHead>{t("task")}</TableHead>
+          <TableHead>{t("project")}</TableHead>
+          <TableHead>{t("department")}</TableHead>
+          <TableHead>{t("assignee")}</TableHead>
+          <TableHead>{t("status")}</TableHead>
+          <TableHead>{t("priority")}</TableHead>
+          <TableHead>{t("due")}</TableHead>
+          <TableHead>{t("period")}</TableHead>
+          <TableHead>{t("client")}</TableHead>
+          <TableHead>{t("signal")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -66,40 +68,40 @@ export function TasksTable({ rows, hrefBase = "/admin/tasks" }: TasksTableProps)
                 </span>
               </div>
             </TableCell>
-            <TableCell>{formatTaskDepartment(row.department)}</TableCell>
+            <TableCell>{translateRequestLabel(locale, formatTaskDepartment(row.department))}</TableCell>
             <TableCell>
               <span
                 className={
                   row.assigneeName ? "font-medium" : "text-muted-foreground"
                 }
               >
-                {row.assigneeName ?? "No assignee"}
+                {row.assigneeName ?? t("noAssignee")}
               </span>
             </TableCell>
             <TableCell>
               <StatusBadge tone={getTaskStatusTone(row.status)}>
-                {formatTaskStatus(row.status)}
+                {translateRequestLabel(locale, formatTaskStatus(row.status))}
               </StatusBadge>
             </TableCell>
             <TableCell>
               <StatusBadge tone={getTaskPriorityTone(row.priority)}>
-                {formatTaskPriority(row.priority)}
+                {translateRequestLabel(locale, formatTaskPriority(row.priority))}
               </StatusBadge>
             </TableCell>
-            <TableCell>{row.dueDateLabel}</TableCell>
+            <TableCell>{translateRequestLabel(locale, row.dueDateLabel)}</TableCell>
             <TableCell>{row.periodLabel}</TableCell>
             <TableCell>
               <StatusBadge tone={row.isClientVisible ? "active" : "neutral"}>
-                {row.isClientVisible ? "Visible" : "Internal"}
+                {row.isClientVisible ? t("visible") : t("internal")}
               </StatusBadge>
             </TableCell>
             <TableCell>
               <div className="flex min-w-0 flex-col gap-1">
                 <div>
-                  <StatusBadge tone={row.signalTone}>{row.signalLabel}</StatusBadge>
+                  <StatusBadge tone={row.signalTone}>{translateRequestLabel(locale, row.signalLabel)}</StatusBadge>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {row.signalSummary}
+                  {translateRequestLabel(locale, row.signalSummary)}
                 </span>
               </div>
             </TableCell>

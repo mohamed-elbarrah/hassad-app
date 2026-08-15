@@ -39,16 +39,18 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminDisputeThreadPanel } from "@/features/disputes/components/admin-dispute-thread-panel";
 import type { DisputeDetailRecord } from "@/features/disputes/lib/dispute-detail";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 
 export function DisputeDetailWorkspace({
   dispute,
 }: {
   dispute: DisputeDetailRecord;
 }) {
+  const { locale, t } = useTranslations();
   return (
     <PageScaffold
-      title="Dispute detail"
-      description="Approval state, evidence, PM handling, and the client context needed to resolve the case cleanly."
+      title={t("disputeDetail")}
+      description={t("disputeDetailDescription")}
       actions={
         <>
           <Button
@@ -57,7 +59,7 @@ export function DisputeDetailWorkspace({
             render={<Link href="/admin/disputes" />}
           >
             <ArrowLeftIcon data-icon="inline-start" />
-            Disputes
+            {t("disputes")}
           </Button>
           <Button
             variant="outline"
@@ -65,7 +67,7 @@ export function DisputeDetailWorkspace({
             render={<Link href={`/admin/clients/${dispute.clientId}`} />}
           >
             <Building2Icon data-icon="inline-start" />
-            Open client
+            {t("openClient")}
           </Button>
           <Button
             variant="outline"
@@ -73,7 +75,7 @@ export function DisputeDetailWorkspace({
             render={<Link href={`/admin/projects/${dispute.projectId}`} />}
           >
             <FolderKanbanIcon data-icon="inline-start" />
-            Open project
+            {t("openProject")}
           </Button>
         </>
       }
@@ -91,15 +93,15 @@ export function DisputeDetailWorkspace({
                     <div className="flex flex-col gap-1">
                       <CardTitle className="text-2xl">{dispute.title}</CardTitle>
                       <CardDescription>
-                        {dispute.ticketNumber} · {dispute.categoryLabel}
+                        {dispute.ticketNumber} · {translateRequestLabel(locale, dispute.categoryLabel)}
                       </CardDescription>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <StatusBadge tone={dispute.statusTone}>
-                        {dispute.statusLabel}
+                        {translateRequestLabel(locale, dispute.statusLabel)}
                       </StatusBadge>
                       <StatusBadge tone={dispute.priorityTone}>
-                        {dispute.priorityLabel}
+                        {translateRequestLabel(locale, dispute.priorityLabel)}
                       </StatusBadge>
                     </div>
                   </div>
@@ -107,52 +109,52 @@ export function DisputeDetailWorkspace({
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <div className="flex flex-wrap gap-2">
-                  <StatusBadge tone={dispute.statusTone}>{dispute.signalLabel}</StatusBadge>
+                  <StatusBadge tone={dispute.statusTone}>{translateRequestLabel(locale, dispute.signalLabel)}</StatusBadge>
                 </div>
-                <p className="text-sm text-muted-foreground">{dispute.signalSummary}</p>
+                <p className="text-sm text-muted-foreground">{translateRequestLabel(locale, dispute.signalSummary)}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Case details</CardTitle>
+                <CardTitle>{t("caseDetails")}</CardTitle>
                 <CardDescription>
-                  Stable facts the admin needs while reviewing the dispute.
+                  {t("stableFactsReview")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <dl className="flex flex-col gap-4 text-sm">
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Opened</dt>
-                    <dd className="text-right font-medium">{dispute.openedAt}</dd>
+                    <dt className="text-muted-foreground">{t("opened")}</dt>
+                    <dd className="text-right font-medium">{translateRequestLabel(locale, dispute.openedAt)}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Last activity</dt>
-                    <dd className="text-right font-medium">{dispute.lastActivity}</dd>
+                    <dt className="text-muted-foreground">{t("lastActivity")}</dt>
+                    <dd className="text-right font-medium">{translateRequestLabel(locale, dispute.lastActivity)}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">SLA</dt>
-                    <dd className="text-right font-medium">{dispute.deadlineLabel}</dd>
+                    <dt className="text-muted-foreground">{t("sla")}</dt>
+                    <dd className="text-right font-medium">{translateRequestLabel(locale, dispute.deadlineLabel)}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Current PM</dt>
+                    <dt className="text-muted-foreground">{t("currentPm")}</dt>
                     <dd className="text-right font-medium">{dispute.currentPmName}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Reviewed by</dt>
+                    <dt className="text-muted-foreground">{t("reviewedBy")}</dt>
                     <dd className="text-right font-medium">
-                      {dispute.reviewerName ?? "Waiting review"}
+                      {dispute.reviewerName ?? t("waitingReview")}
                     </dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-muted-foreground">Resolved by</dt>
+                    <dt className="text-muted-foreground">{t("resolvedBy")}</dt>
                     <dd className="text-right font-medium">
-                      {dispute.resolverName ?? "Not resolved"}
+                      {dispute.resolverName ?? t("notResolved")}
                     </dd>
                   </div>
                   {dispute.newPmName ? (
                     <div className="flex items-start justify-between gap-4">
-                      <dt className="text-muted-foreground">New PM</dt>
+                      <dt className="text-muted-foreground">{t("newPm")}</dt>
                       <dd className="text-right font-medium">{dispute.newPmName}</dd>
                     </div>
                   ) : null}
@@ -162,14 +164,14 @@ export function DisputeDetailWorkspace({
 
             <Card>
               <CardHeader>
-                <CardTitle>Linked records</CardTitle>
+                <CardTitle>{t("linkedRecords")}</CardTitle>
                 <CardDescription>
-                  Jump directly to the client or project when deeper context is needed.
+                  {t("linkedRecordsDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4 text-sm">
                 <div className="flex items-start justify-between gap-4">
-                  <span className="text-muted-foreground">Client</span>
+                  <span className="text-muted-foreground">{t("client")}</span>
                   <Link
                     href={`/admin/clients/${dispute.clientId}`}
                     className="text-right font-medium hover:underline"
@@ -178,7 +180,7 @@ export function DisputeDetailWorkspace({
                   </Link>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <span className="text-muted-foreground">Project</span>
+                  <span className="text-muted-foreground">{t("project")}</span>
                   <Link
                     href={`/admin/projects/${dispute.projectId}`}
                     className="text-right font-medium hover:underline"
@@ -191,9 +193,9 @@ export function DisputeDetailWorkspace({
 
             <Card>
               <CardHeader>
-                <CardTitle>PM dispute profile</CardTitle>
+                <CardTitle>{t("pmDisputeProfile")}</CardTitle>
                 <CardDescription>
-                  Admin context from this PM&apos;s historical dispute performance.
+                  {t("pmProfileDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3">
@@ -226,9 +228,9 @@ export function DisputeDetailWorkspace({
 
         <Card>
           <CardHeader>
-            <CardTitle>Case workflow</CardTitle>
+            <CardTitle>{t("caseWorkflow")}</CardTitle>
             <CardDescription>
-              The actual dispute path from approval through client confirmation and closure.
+              {t("workflowDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -239,11 +241,11 @@ export function DisputeDetailWorkspace({
         <Tabs defaultValue="overview">
           <div className="overflow-x-auto pb-1">
             <TabsList className="min-w-max">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="messages">Messages</TabsTrigger>
-              <TabsTrigger value="attachments">Attachments</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-              <TabsTrigger value="context">Context</TabsTrigger>
+              <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
+              <TabsTrigger value="messages">{t("messages")}</TabsTrigger>
+              <TabsTrigger value="attachments">{t("attachments")}</TabsTrigger>
+              <TabsTrigger value="history">{t("history")}</TabsTrigger>
+              <TabsTrigger value="context">{t("context")}</TabsTrigger>
             </TabsList>
           </div>
 
@@ -251,7 +253,7 @@ export function DisputeDetailWorkspace({
             <div className="grid gap-4 xl:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Client complaint</CardTitle>
+                  <CardTitle>{t("clientComplaint")}</CardTitle>
                   <CardDescription>
                     What the client is actually contesting.
                   </CardDescription>
@@ -263,7 +265,7 @@ export function DisputeDetailWorkspace({
 
               <Card>
                 <CardHeader>
-                  <CardTitle>PM handling</CardTitle>
+                  <CardTitle>{t("pmHandling")}</CardTitle>
                   <CardDescription>
                     The current owner response and where it stands.
                   </CardDescription>
@@ -275,7 +277,7 @@ export function DisputeDetailWorkspace({
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Current blocker</CardTitle>
+                  <CardTitle>{t("currentBlocker")}</CardTitle>
                   <CardDescription>
                     The one thing stopping clean resolution right now.
                   </CardDescription>
@@ -287,7 +289,7 @@ export function DisputeDetailWorkspace({
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Recommended admin action</CardTitle>
+                  <CardTitle>{t("recommendedAdminAction")}</CardTitle>
                   <CardDescription>
                     The clearest next move based on the case state.
                   </CardDescription>
@@ -300,7 +302,7 @@ export function DisputeDetailWorkspace({
 
             <Card>
               <CardHeader>
-                <CardTitle>Admin actions</CardTitle>
+                <CardTitle>{t("adminActions")}</CardTitle>
                 <CardDescription>
                   Actions allowed by the dispute state machine for this case.
                 </CardDescription>
@@ -329,7 +331,7 @@ export function DisputeDetailWorkspace({
           <TabsContent value="messages">
             <Card>
               <CardHeader>
-                <CardTitle>Dispute threads</CardTitle>
+                <CardTitle>{t("disputeThreads")}</CardTitle>
                 <CardDescription>
                   Private lanes for client ↔ PM monitoring and admin direct outreach.
                 </CardDescription>
@@ -343,7 +345,7 @@ export function DisputeDetailWorkspace({
           <TabsContent value="attachments">
             <Card>
               <CardHeader>
-                <CardTitle>Evidence and files</CardTitle>
+                <CardTitle>{t("evidenceFiles")}</CardTitle>
                 <CardDescription>
                   Supporting proof, response files, and resolution documents.
                 </CardDescription>
@@ -352,12 +354,12 @@ export function DisputeDetailWorkspace({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>File</TableHead>
-                      <TableHead>Source</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Linked to</TableHead>
-                      <TableHead>Uploaded</TableHead>
-                      <TableHead>By</TableHead>
+                      <TableHead>{t("files")}</TableHead>
+                      <TableHead>{t("source")}</TableHead>
+                      <TableHead>{t("type")}</TableHead>
+                      <TableHead>{t("linkedTo")}</TableHead>
+                      <TableHead>{t("uploaded")}</TableHead>
+                      <TableHead>{t("by")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -380,7 +382,7 @@ export function DisputeDetailWorkspace({
           <TabsContent value="history">
             <Card>
               <CardHeader>
-                <CardTitle>Status history</CardTitle>
+                <CardTitle>{t("statusHistory")}</CardTitle>
                 <CardDescription>
                   The lifecycle trail recorded as the case moved between states.
                 </CardDescription>
@@ -405,7 +407,7 @@ export function DisputeDetailWorkspace({
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.38fr)]">
               <Card>
                 <CardHeader>
-                  <CardTitle>Project and client context</CardTitle>
+                  <CardTitle>{t("clientContext")}</CardTitle>
                   <CardDescription>
                     Business context that explains why this dispute matters.
                   </CardDescription>
@@ -414,7 +416,7 @@ export function DisputeDetailWorkspace({
                   <div className="rounded-lg border p-4">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Building2Icon className="size-4 text-muted-foreground" />
-                      Client expectation
+                      {t("clientExpectation")}
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                       {dispute.clientExpectation}
@@ -423,7 +425,7 @@ export function DisputeDetailWorkspace({
                   <div className="rounded-lg border p-4">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <FolderKanbanIcon className="size-4 text-muted-foreground" />
-                      Commercial impact
+                      {t("commercialImpact")}
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                       {dispute.projectCommercialState}
@@ -432,7 +434,7 @@ export function DisputeDetailWorkspace({
                   <div className="rounded-lg border p-4">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <MessageSquareIcon className="size-4 text-muted-foreground" />
-                      Resolution summary
+                      {t("resolutionSummary")}
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                       {dispute.resolutionSummary}
@@ -441,7 +443,7 @@ export function DisputeDetailWorkspace({
                   <div className="rounded-lg border p-4">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <PaperclipIcon className="size-4 text-muted-foreground" />
-                      Evidence position
+                      {t("evidencePosition")}
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                       {dispute.attachments.length > 0
@@ -459,9 +461,9 @@ export function DisputeDetailWorkspace({
                       <ShieldAlertIcon className="size-4" />
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <CardTitle>Admin readout</CardTitle>
+                      <CardTitle>{t("adminReadout")}</CardTitle>
                       <CardDescription>
-                        The shortest summary of risk, owner, and action.
+                        {t("adminReadoutDescription")}
                       </CardDescription>
                     </div>
                   </div>
@@ -475,21 +477,21 @@ export function DisputeDetailWorkspace({
                   <div className="rounded-lg border p-4">
                     <div className="flex items-center gap-2 font-medium">
                       <ScaleIcon className="size-4 text-muted-foreground" />
-                      Ticket
+                      {t("ticket")}
                     </div>
                     <p className="mt-2 text-muted-foreground">
-                      {dispute.ticketNumber} · {dispute.categoryLabel} · {dispute.priorityLabel}
+                      {dispute.ticketNumber} · {translateRequestLabel(locale, dispute.categoryLabel)} · {translateRequestLabel(locale, dispute.priorityLabel)}
                     </p>
                   </div>
                   <div className="rounded-lg border p-4">
                     <div className="flex items-center gap-2 font-medium">
                       <UserCogIcon className="size-4 text-muted-foreground" />
-                      Owner
+                      {t("owner")}
                     </div>
                     <p className="mt-2 text-muted-foreground">{dispute.currentPmName}</p>
                   </div>
                   <div className="rounded-lg border p-4">
-                    <div className="font-medium">Best next move</div>
+                    <div className="font-medium">{t("bestNextMove")}</div>
                     <p className="mt-2 text-muted-foreground">
                       {dispute.recommendedAction}
                     </p>
