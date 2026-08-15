@@ -6,6 +6,7 @@ import { ChevronRightIcon, LogOutIcon, SettingsIcon, UserRoundIcon } from "lucid
 import type { AuthSession } from "@/lib/auth/auth-types";
 import { getInitials } from "@/lib/auth/auth-utils";
 import { clearSession } from "@/lib/auth/auth-slice";
+import { useLocale } from "@/components/app/locale-provider";
 import { useLogoutMutation } from "@/lib/api/auth-api";
 import { baseApi } from "@/lib/api/base-api";
 import { useAppDispatch } from "@/lib/store";
@@ -24,6 +25,7 @@ import {
 export function AccountMenu({ session }: { session: AuthSession }) {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const { locale } = useLocale();
   const [logout] = useLogoutMutation();
 
   async function handleSignOut() {
@@ -43,7 +45,7 @@ export function AccountMenu({ session }: { session: AuthSession }) {
           <Button
             variant="ghost"
             size="lg"
-            className="h-12 w-full justify-start px-2 text-left group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+            className="h-12 w-full justify-start px-2 text-start group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
             aria-label="Open account menu"
           />
         }
@@ -57,10 +59,10 @@ export function AccountMenu({ session }: { session: AuthSession }) {
             {session.email}
           </span>
         </span>
-        <ChevronRightIcon className="ml-auto group-data-[collapsible=icon]:hidden" />
+        <ChevronRightIcon className="ms-auto group-data-[collapsible=icon]:hidden rtl:rotate-180" />
         <span className="sr-only">Open account menu</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" align="end" className="w-64">
+      <DropdownMenuContent side={locale === "ar" ? "left" : "right"} align="end" className="w-64">
         <DropdownMenuGroup>
           <DropdownMenuLabel>
             <span className="block text-foreground">{session.name}</span>

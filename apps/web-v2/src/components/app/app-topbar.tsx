@@ -1,8 +1,8 @@
 import type { WorkspaceDefinition } from "@/lib/auth/workspaces";
 import { AppBreadcrumbs } from "@/components/app/app-breadcrumbs";
-import { CommandMenu } from "@/components/app/command-menu";
 import { NotificationMenu } from "@/components/app/notification-menu";
 import { ThemeToggle } from "@/components/app/theme-toggle";
+import { LanguageSwitcher } from "@/components/app/language-switcher";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function AppTopbar({
@@ -17,7 +17,7 @@ export function AppTopbar({
         <AppBreadcrumbs />
       </div>
       <div className="flex items-center gap-2">
-        <CommandMenu commands={workspace.commands} workspaceLabel={workspace.label} />
+        <LanguageSwitcher />
         <ThemeToggle />
         <NotificationMenu workspaceKey={workspace.key} workspaceLabel={workspace.label} />
       </div>

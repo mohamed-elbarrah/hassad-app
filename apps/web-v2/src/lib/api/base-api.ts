@@ -9,6 +9,7 @@ import {
 } from "@reduxjs/toolkit/query/react";
 
 import { sessionExpired } from "@/lib/auth/auth-slice";
+import { LOCALE_COOKIE } from "@/lib/i18n";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/v1";
 
@@ -17,6 +18,14 @@ let refreshPromise: Promise<boolean> | null = null;
 const rawBaseQuery = fetchBaseQuery({
   baseUrl,
   credentials: "include",
+  prepareHeaders: (headers) => {
+    const locale = document.cookie
+      .split("; ")
+      .find((entry) => entry.startsWith(`${LOCALE_COOKIE}=`))
+      ?.split("=")[1];
+    headers.set("Accept-Language", locale === "en" ? "en" : "ar");
+    return headers;
+  },
 });
 
 type Envelope<T> = {

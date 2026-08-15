@@ -19,6 +19,7 @@ import {
 import type { AuthSession } from "@/lib/auth/auth-types";
 import type { WorkspaceDefinition } from "@/lib/auth/workspaces";
 import { AccountMenu } from "@/components/app/account-menu";
+import { useLocale } from "@/components/app/locale-provider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
@@ -58,9 +59,14 @@ export function WorkspaceSidebar({
   workspace: WorkspaceDefinition;
 }) {
   const pathname = usePathname();
+  const { locale } = useLocale();
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar
+      side={locale === "ar" ? "right" : "left"}
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      collapsible="icon"
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -123,7 +129,7 @@ export function WorkspaceSidebar({
                         >
                           <Icon />
                           <span>{item.label}</span>
-                          <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[panel-open]/collapsible:rotate-90" />
+                          <ChevronRightIcon className="ms-auto transition-transform duration-200 group-data-[panel-open]/collapsible:rotate-90 rtl:rotate-180 rtl:group-data-[panel-open]/collapsible:rotate-90" />
                         </SidebarMenuButton>
                         <CollapsibleContent>
                           <SidebarMenuSub>
