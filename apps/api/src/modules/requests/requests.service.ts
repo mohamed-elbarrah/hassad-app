@@ -442,8 +442,8 @@ export class RequestsService {
       await this.notificationsService
         .notifyUsers({
           userIds: [createdRequest.assignee.id],
-          title: "طلب جديد",
-          message: `تم استلام طلب جديد من ${createdRequest.contactName} - ${createdRequest.companyName}`,
+          title: "New request",
+          message: `A new request was received from ${createdRequest.contactName} - ${createdRequest.companyName}`,
           entityId: createdRequest.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",
@@ -560,8 +560,8 @@ export class RequestsService {
       await this.notificationsService
         .notifyUsers({
           userIds: [request.assignee.id],
-          title: "طلب جديد",
-          message: `تم استلام طلب جديد من ${request.contactName} - ${request.companyName}`,
+          title: "New request",
+          message: `A new request was received from ${request.contactName} - ${request.companyName}`,
           entityId: request.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",

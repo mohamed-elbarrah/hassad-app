@@ -42,19 +42,19 @@ export class CampaignsService {
     });
 
     if (!task) {
-      throw new NotFoundException("المهمة غير موجودة");
+      throw new NotFoundException("Task not found");
     }
 
     if (task.department?.name !== "MARKETING") {
-      throw new BadRequestException("يجب أن تكون المهمة من نوع تسويق");
+      throw new BadRequestException("Task must be a marketing task");
     }
 
     if (!task.assignedTo) {
-      throw new BadRequestException("يجب إسناد المهمة لمسوق أولاً");
+      throw new BadRequestException("The task must be assigned to a marketer first");
     }
 
     if (!task.project?.clientId) {
-      throw new BadRequestException("المهمة غير مرتبطة بمشروع أو عميل");
+      throw new BadRequestException("Task is not linked to a project or client");
     }
 
     // Enforce: marketing strategy must be APPROVED before creating campaigns
@@ -67,7 +67,7 @@ export class CampaignsService {
 
     if (!approvedStrategy) {
       throw new BadRequestException(
-        "يجب الموافقة على الدراسة التسويقية أولاً قبل إنشاء الحملات",
+        "The marketing strategy must be approved before campaigns can be created",
       );
     }
 
@@ -92,8 +92,8 @@ export class CampaignsService {
     await this.notifications.notifyUsers({
       userIds: [pmId, marketerId],
       excludeUserIds: [creatorId],
-      title: "حملة جديدة",
-      message: `تم إنشاء حملة جديدة "${campaign.name}" للمهمة "${task.title}"`,
+      title: "New campaign",
+      message: `New campaign "${campaign.name}" was created for task "${task.title}"`,
       entityId: campaign.id,
       entityType: "CAMPAIGN",
       eventType: "MARKETING_CAMPAIGN_CREATED",
@@ -102,8 +102,8 @@ export class CampaignsService {
     this.notifyClientAboutCampaign(
       campaign.id,
       "MARKETING_CAMPAIGN_CREATED",
-      "تم إطلاق حملة جديدة",
-      `تم إطلاق حملة "${campaign.name}" لمشروعك`,
+      "New campaign launched",
+      `Campaign "${campaign.name}" was launched for your project`,
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about campaign creation: campaignId=${campaign.id}, eventType=MARKETING_CAMPAIGN_CREATED`,
@@ -157,21 +157,21 @@ export class CampaignsService {
   async update(id: string, dto: UpdateCampaignDto) {
     const campaign = await this.prisma.campaign.findUnique({ where: { id } });
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException("Campaign not found");
     }
 
     if (
       campaign.status === CampaignStatus.STOPPED ||
       campaign.status === CampaignStatus.COMPLETED
     ) {
-      throw new BadRequestException("لا يمكن تعديل حملة منتهية أو مكتملة");
+      throw new BadRequestException("Completed or stopped campaigns cannot be edited");
     }
 
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.platform !== undefined) {
       if (campaign.status !== CampaignStatus.PLANNING) {
-        throw new BadRequestException("لا يمكن تغيير منصة الحملة بعد تفعيلها");
+        throw new BadRequestException("The campaign platform cannot be changed after activation");
       }
       data.platform = dto.platform;
     }
@@ -210,7 +210,7 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException("Campaign not found");
     }
 
     const analytics = await this.getLatestAnalytics(id);
@@ -277,11 +277,11 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException("Campaign not found");
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException("لا يمكن تحديث بيانات حملة مؤرشفة");
+      throw new BadRequestException("Archived campaign data cannot be updated");
     }
 
     const latest: any = campaign.kpiSnapshots[0] ?? {};
@@ -363,8 +363,8 @@ export class CampaignsService {
       await this.notifications.notifyUsers({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: "تحديث أداء الحملة",
-        message: `تم تحديث نتائج الحملة "${campaign.name}"`,
+        title: "Campaign performance updated",
+        message: `Campaign results for "${campaign.name}" were updated`,
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_METRICS_UPDATED",
@@ -374,8 +374,8 @@ export class CampaignsService {
     this.notifyClientAboutCampaign(
       campaign.id,
       "MARKETING_METRICS_UPDATED",
-      "تحديث أداء الحملة",
-      `تم تحديث نتائج الحملة "${campaign.name}"`,
+      "Campaign performance updated",
+      `Campaign results for "${campaign.name}" were updated`,
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about metrics update: campaignId=${campaign.id}, eventType=MARKETING_METRICS_UPDATED`,
@@ -410,11 +410,11 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException("Campaign not found");
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException("لا يمكن تغيير حالة حملة مؤرشفة");
+      throw new BadRequestException("The status of an archived campaign cannot be changed");
     }
 
     this.validateStatusTransition(
@@ -437,12 +437,12 @@ export class CampaignsService {
       },
     });
 
-    const STATUS_AR: Record<string, string> = {
-      PLANNING: "تخطيط",
-      ACTIVE: "نشطة",
-      PAUSED: "متوقفة",
-      STOPPED: "منتهية",
-      COMPLETED: "مكتملة",
+    const STATUS_LABELS: Record<string, string> = {
+      PLANNING: "Planning",
+      ACTIVE: "Active",
+      PAUSED: "Paused",
+      STOPPED: "Stopped",
+      COMPLETED: "Completed",
     };
 
     const pmId = campaign.task?.createdBy;
@@ -450,8 +450,8 @@ export class CampaignsService {
       await this.notifications.notifyUsers({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: "تحديث حالة الحملة",
-        message: `تم تغيير حالة الحملة "${campaign.name}" إلى ${STATUS_AR[status] ?? status}`,
+        title: "Campaign status updated",
+        message: `Campaign "${campaign.name}" status changed to ${STATUS_LABELS[status] ?? status}`,
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_CAMPAIGN_STATUS_CHANGED",
@@ -461,8 +461,8 @@ export class CampaignsService {
     this.notifyClientAboutCampaign(
       id,
       "MARKETING_CAMPAIGN_STATUS_CHANGED",
-      "تحديث حالة الحملة",
-      `تم تغيير حالة حملة "${campaign.name}" إلى ${STATUS_AR[status] ?? status}`,
+      "Campaign status updated",
+      `Campaign "${campaign.name}" status changed to ${STATUS_LABELS[status] ?? status}`,
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about status change: campaignId=${id}, eventType=MARKETING_CAMPAIGN_STATUS_CHANGED`,
@@ -484,7 +484,7 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException("Campaign not found");
     }
 
     const updated = await this.prisma.campaign.update({
@@ -497,8 +497,8 @@ export class CampaignsService {
       await this.notifications.notifyUsers({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: "حملة تحتاج تحسين",
-        message: `تم وضع علامة "تحتاج تحسين" على الحملة "${campaign.name}"`,
+        title: "Campaign needs optimization",
+        message: `Campaign "${campaign.name}" was flagged for optimization`,
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_OPTIMIZATION_REQUIRED",
@@ -507,8 +507,8 @@ export class CampaignsService {
       this.notifyClientAboutCampaign(
         id,
         "MARKETING_OPTIMIZATION_REQUIRED",
-        "حملة تحتاج تحسين",
-        `تم وضع علامة "تحتاج تحسين" على الحملة "${campaign.name}"`,
+        "Campaign needs optimization",
+        `Campaign was flagged for optimization "${campaign.name}"`,
       ).catch((error) => {
         this.logger.error(
           `Failed to notify client about optimization flag: campaignId=${id}, eventType=MARKETING_OPTIMIZATION_REQUIRED`,
@@ -526,11 +526,11 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException("Campaign not found");
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException("الحملة مؤرشفة بالفعل");
+      throw new BadRequestException("Campaign is already archived");
     }
 
     return this.prisma.campaign.update({
@@ -545,11 +545,11 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException("Campaign not found");
     }
 
     if (!campaign.isArchived) {
-      throw new BadRequestException("الحملة غير مؤرشفة");
+      throw new BadRequestException("Campaign is not archived");
     }
 
     return this.prisma.campaign.update({
@@ -564,7 +564,7 @@ export class CampaignsService {
     });
 
     if (!original) {
-      throw new NotFoundException("الحملة الأصلية غير موجودة");
+      throw new NotFoundException("Original campaign not found");
     }
 
     const {
@@ -579,7 +579,7 @@ export class CampaignsService {
     return this.prisma.campaign.create({
       data: {
         ...data,
-        name: `${original.name} (نسخة)`,
+        name: `${original.name} (copy)`,
         status: CampaignStatus.PLANNING,
         budgetSpent: 0,
         needsOptimization: false,
@@ -656,7 +656,7 @@ export class CampaignsService {
 
     if (!allowed[current].includes(next)) {
       throw new BadRequestException(
-        `لا يمكن الانتقال من حالة ${current} إلى ${next}`,
+        `Cannot transition from ${current} to ${next}`,
       );
     }
   }

@@ -171,7 +171,7 @@ export class AdminUsersService {
 
   async getPerformance(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!user) throw new NotFoundException("User not found");
 
     const workload = await this.prisma.staffWorkload.findUnique({
       where: { userId },
@@ -187,7 +187,7 @@ export class AdminUsersService {
 
   async getWork(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!user) throw new NotFoundException("User not found");
 
     const [projects, tasks, disputes] = await Promise.all([
       this.prisma.project.findMany({
@@ -246,14 +246,14 @@ export class AdminUsersService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
+      throw new BadRequestException("Email is already in use");
     }
 
     const role = await this.prisma.role.findFirst({
       where: { name: dto.role },
     });
     if (!role) {
-      throw new BadRequestException("الدور غير موجود");
+      throw new BadRequestException("Role not found");
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -294,14 +294,14 @@ export class AdminUsersService {
 
   async update(id: string, dto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!user) throw new NotFoundException("User not found");
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.prisma.user.findUnique({
         where: { email: dto.email },
       });
       if (existing)
-        throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
+        throw new BadRequestException("Email is already in use");
     }
 
     const data: any = {};
@@ -313,7 +313,7 @@ export class AdminUsersService {
         where: { name: dto.role },
       });
       if (!role) {
-        throw new BadRequestException("الدور غير موجود");
+        throw new BadRequestException("Role not found");
       }
       data.roleId = role.id;
     }
@@ -669,12 +669,12 @@ export class AdminUsersService {
     suspendedUntil?: string,
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!user) throw new NotFoundException("User not found");
     if (
       user.suspendedAt &&
       (!user.suspendedUntil || user.suspendedUntil > new Date())
     )
-      throw new BadRequestException("المستخدم موقوف بالفعل");
+      throw new BadRequestException("User is already suspended");
 
     const before = { isActive: user.isActive, suspendedAt: user.suspendedAt };
     const after = { reason, suspendedUntil: suspendedUntil ?? null };
@@ -723,8 +723,8 @@ export class AdminUsersService {
 
   async reactivate(userId: string, reason: string, adminId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
-    if (!user.suspendedAt) throw new BadRequestException("المستخدم غير موقوف");
+    if (!user) throw new NotFoundException("User not found");
+    if (!user.suspendedAt) throw new BadRequestException("User is not suspended");
 
     const before = {
       suspendedAt: user.suspendedAt,

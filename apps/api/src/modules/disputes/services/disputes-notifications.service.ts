@@ -137,8 +137,8 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: adminIds,
-      title: "تذكرة نزاع جديدة",
-      message: `تذكرة جديدة رقم #${payload.ticketNumber} تحتاج مراجعة`,
+      title: "New dispute ticket",
+      message: `New dispute ticket #${payload.ticketNumber} needs review`,
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_OPENED",
@@ -155,8 +155,8 @@ export class DisputesNotificationsService {
     // Notify PM
     await this.notificationsService.notifyUsers({
       userIds: [payload.pmId],
-      title: "تمت الموافقة على تذكرة نزاع",
-      message: `تمت الموافقة على تذكرة "${dispute.title}" - لديك 3 أيام للحل`,
+      title: "Dispute ticket approved",
+      message: `Dispute "${dispute.title}" was approved. You have 3 days to resolve it`,
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_APPROVED",
@@ -168,7 +168,7 @@ export class DisputesNotificationsService {
         ticketId: payload.disputeId,
         toStatus: "APPROVED" as any,
         changedBy: payload.pmId,
-        note: "تم إرسال إشعار لمدير المشروع",
+        note: "The project manager was notified",
       },
     });
   }
@@ -189,8 +189,8 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: [client.userId],
-      title: "تم رفض تذكرتك",
-      message: `تم رفض تذكرتك. السبب: ${payload.reason}`,
+      title: "Your dispute ticket was rejected",
+      message: `Your dispute ticket was rejected. Reason: ${payload.reason}`,
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_REJECTED",
@@ -253,8 +253,8 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: Array.from(recipients),
-      title: "رسالة جديدة في التذكرة",
-      message: `لديك رسالة جديدة في التذكرة #${dispute.ticketNumber}`,
+      title: "New dispute message",
+      message: `You have a new message in dispute ticket #${dispute.ticketNumber}`,
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_NEW_MESSAGE",
@@ -277,8 +277,8 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: [client.userId],
-      title: "تحديث على تذكرتك",
-      message: `مدير المشروع أشار إلى حل المشكلة. يرجى تأكيد الحل أو التصعيد.`,
+      title: "Dispute ticket update",
+      message: `The project manager marked the issue as resolved. Please confirm the resolution or escalate it.`,
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_PM_RESOLVED",
@@ -295,8 +295,8 @@ export class DisputesNotificationsService {
     // Notify PM
     await this.notificationsService.notifyUsers({
       userIds: [payload.pmId],
-      title: "تم حل التذكرة",
-      message: `العميل أكد حل التذكرة #${dispute.ticketNumber}`,
+      title: "Dispute resolved",
+      message: `The client confirmed resolution of dispute ticket #${dispute.ticketNumber}`,
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_CLIENT_CONFIRM",
@@ -307,8 +307,8 @@ export class DisputesNotificationsService {
     if (adminIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: adminIds,
-        title: "تم حل تذكرة نزاع",
-        message: `تم حل التذكرة #${dispute.ticketNumber} - العميل أكد الحل`,
+        title: "Dispute ticket resolved",
+        message: `Dispute ticket #${dispute.ticketNumber} was resolved; the client confirmed the resolution`,
         entityId: payload.disputeId,
         entityType: "DISPUTE",
         eventType: "DISPUTE_CLIENT_CONFIRM",
@@ -328,8 +328,8 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: adminIds,
-      title: "تم تصعيد تذكرة نزاع",
-      message: `العميل صرح بعدم حل المشكلة في التذكرة #${dispute.ticketNumber}`,
+      title: "Dispute ticket escalated",
+      message: `The client reported that dispute ticket #${dispute.ticketNumber} was not resolved`,
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_CLIENT_ESCALATE",
@@ -348,8 +348,8 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: adminIds,
-      title: "تصعيد تلقائي لتذكرة",
-      message: `التذكرة #${dispute.ticketNumber} تم تصعيدها تلقائياً لانتهاء المهلة`,
+      title: "Dispute ticket automatically escalated",
+      message: `Dispute ticket #${dispute.ticketNumber} was automatically escalated because the response deadline expired`,
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_AUTO_ESCALATED",
@@ -381,8 +381,8 @@ export class DisputesNotificationsService {
         this.notificationsService
           .notifyUsers({
             userIds: [client.userId],
-            title: "تغيير مدير المشروع",
-            message: `تم تغيير مدير المشروع لحل التذكرة #${dispute.ticketNumber}`,
+            title: "Project manager changed",
+            message: `The project manager was changed to resolve dispute ticket #${dispute.ticketNumber}`,
             entityId: payload.disputeId,
             entityType: "DISPUTE",
             eventType: "DISPUTE_PM_CHANGED",
@@ -396,8 +396,8 @@ export class DisputesNotificationsService {
       this.notificationsService
         .notifyUsers({
           userIds: [payload.oldPmId],
-          title: "تم تغييرك من مشروع",
-          message: `تم تغييرك كمدير لمشروع "${dispute.project.name}" بسبب نزاع`,
+          title: "Removed as project manager",
+          message: `You were removed as project manager of "${dispute.project.name}" because of a dispute`,
           entityId: payload.disputeId,
           entityType: "DISPUTE",
           eventType: "DISPUTE_PM_CHANGED",
@@ -410,8 +410,8 @@ export class DisputesNotificationsService {
       this.notificationsService
         .notifyUsers({
           userIds: [payload.newPmId],
-          title: "تعيينك كمدير مشروع جديد",
-          message: `تم تعيينك كمدير لمشروع "${dispute.project.name}"`,
+          title: "Assigned as new project manager",
+          message: `You were assigned as project manager of "${dispute.project.name}"`,
           entityId: payload.disputeId,
           entityType: "DISPUTE",
           eventType: "DISPUTE_PM_CHANGED",
@@ -442,8 +442,8 @@ export class DisputesNotificationsService {
         this.notificationsService
           .notifyUsers({
             userIds: [client.userId],
-            title: "تم إغلاق التذكرة",
-            message: `تم إغلاق تذكرتك #${dispute.ticketNumber}`,
+            title: "Dispute ticket closed",
+            message: `Your dispute ticket #${dispute.ticketNumber} was closed`,
             entityId: payload.disputeId,
             entityType: "DISPUTE",
             eventType: "DISPUTE_CLOSED",
@@ -457,8 +457,8 @@ export class DisputesNotificationsService {
       this.notificationsService
         .notifyUsers({
           userIds: [payload.pmId],
-          title: "تم إغلاق التذكرة",
-          message: `تم إغلاق التذكرة #${dispute.ticketNumber}`,
+          title: "Dispute ticket closed",
+          message: `Dispute ticket #${dispute.ticketNumber} was closed`,
           entityId: payload.disputeId,
           entityType: "DISPUTE",
           eventType: "DISPUTE_CLOSED",
@@ -487,14 +487,14 @@ export class DisputesNotificationsService {
     if (!client?.userId) return false;
 
     const reminderMessages: Record<number, string> = {
-      1: `تذكير: يرجى تأكيد حل المشكلة في التذكرة #${payload.ticketNumber}`,
-      2: `تذكير ثاني: لم يتم تأكيد حل المشكلة في التذكرة #${payload.ticketNumber}`,
-      3: `تذكير نهائي: سيتم تصعيد التذكرة #${payload.ticketNumber} تلقائياً في حال عدم الرد`,
+      1: `Reminder: please confirm resolution of dispute ticket #${payload.ticketNumber}`,
+      2: `Second reminder: resolution of dispute ticket #${payload.ticketNumber} has not been confirmed`,
+      3: `Final reminder: dispute ticket #${payload.ticketNumber} will be escalated automatically if there is no response`,
     };
 
     await this.notificationsService.notifyUsers({
       userIds: [client.userId],
-      title: `تذكير ${payload.reminderNumber}`,
+      title: `Reminder ${payload.reminderNumber}`,
       message: reminderMessages[payload.reminderNumber],
       entityId: payload.disputeId,
       entityType: "DISPUTE",

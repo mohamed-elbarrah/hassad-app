@@ -10,12 +10,12 @@ import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { MarketingStrategyStatus, TaskDepartment } from "@hassad/shared";
 
-const STRATEGY_STATUS_AR: Record<string, string> = {
-  DRAFT: "مسودة",
-  SENT: "تم الإرسال",
-  APPROVED: "تمت الموافقة",
-  REVISION_REQUESTED: "مطلوب تعديل",
-  REJECTED: "مرفوض",
+const STRATEGY_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  SENT: "Sent",
+  APPROVED: "Approved",
+  REVISION_REQUESTED: "Revision requested",
+  REJECTED: "Rejected",
 };
 
 @Injectable()
@@ -42,16 +42,16 @@ export class MarketingStrategyService {
     });
 
     if (!task) {
-      throw new NotFoundException("المهمة غير موجودة");
+      throw new NotFoundException("Task not found");
     }
 
     if (task.department?.name !== TaskDepartment.MARKETING) {
-      throw new BadRequestException("يجب أن تكون المهمة من نوع تسويق");
+      throw new BadRequestException("Task must be a marketing task");
     }
 
     if (task.assignedTo !== userId) {
       throw new BadRequestException(
-        "يجب أن تكون المسوق المسند إليه المهمة لإنشاء دراسة تسويقية",
+        "A marketing assignee is required to create a marketing strategy",
       );
     }
 
@@ -71,12 +71,12 @@ export class MarketingStrategyService {
 
     if (existingActive) {
       throw new BadRequestException(
-        "يوجد دراسة تسويقية نشطة لهذه المهمة بالفعل",
+        "An active marketing strategy already exists for this task",
       );
     }
 
     if (!task.project?.clientId) {
-      throw new BadRequestException("المهمة غير مرتبطة بمشروع أو عميل");
+      throw new BadRequestException("Task is not linked to a project or client");
     }
 
     const strategy = await this.prisma.marketingStrategy.create({
@@ -105,11 +105,11 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     if (strategy.createdBy !== userId) {
-      throw new BadRequestException("يمكن فقط لمنشئ الدراسة إرسالها");
+      throw new BadRequestException("Only the strategy creator can send it");
     }
 
     if (
@@ -117,7 +117,7 @@ export class MarketingStrategyService {
       strategy.status !== MarketingStrategyStatus.REVISION_REQUESTED
     ) {
       throw new BadRequestException(
-        `لا يمكن إرسال الدراسة في الحالة الحالية: ${STRATEGY_STATUS_AR[strategy.status] ?? strategy.status}`,
+        `The strategy cannot be sent in its current state: ${STRATEGY_STATUS_LABELS[strategy.status] ?? strategy.status}`,
       );
     }
 
@@ -142,8 +142,8 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",
           userId: client.userId,
-          title: "دراسة تسويقية جديدة",
-          body: `تم إرسال دراسة تسويقية جديدة للمهمة "${strategy.task.title}" بانتظار مراجعتك`,
+          title: "New marketing strategy",
+          body: `A new marketing strategy was submitted for task "${strategy.task.title}" and is awaiting your review`
         })
         .catch((err) =>
           this.logger.error(
@@ -161,8 +161,8 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",
           userId: strategy.task.createdBy,
-          title: "تم إرسال الدراسة التسويقية",
-          body: `تم إرسال الدراسة التسويقية للمهمة "${strategy.task.title}" إلى العميل`,
+          title: "Marketing strategy sent",
+          body: `The marketing strategy for task "${strategy.task.title}" was sent to the client`
         })
         .catch((err) =>
           this.logger.error(`Failed to notify PM about strategy ${id}`, err),
@@ -181,14 +181,14 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
     if (strategy.status !== MarketingStrategyStatus.SENT) {
       throw new BadRequestException(
-        "يمكن الموافقة على الدراسة فقط عندما تكون في حالة الإرسال",
+        "The strategy can only be approved when it is in the sent state",
       );
     }
 
@@ -214,8 +214,8 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_APPROVED",
           userId: recipientId,
-          title: "تمت الموافقة على الدراسة التسويقية",
-          body: `تمت الموافقة على الدراسة التسويقية للمهمة "${strategy.task.title}" — يمكن الآن إنشاء الحملات`,
+          title: "Marketing strategy approved",
+          body: `The marketing strategy for task "${strategy.task.title}" was approved; campaigns can now be created`
         })
         .catch((err) =>
           this.logger.error(
@@ -237,14 +237,14 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
     if (strategy.status !== MarketingStrategyStatus.SENT) {
       throw new BadRequestException(
-        "يمكن طلب تعديل على الدراسة فقط عندما تكون في حالة الإرسال",
+        "A revision can only be requested when the strategy is in the sent state",
       );
     }
 
@@ -269,8 +269,8 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_REVISION_REQUESTED",
           userId: recipientId,
-          title: "طلب تعديل على الدراسة التسويقية",
-          body: `طلب العميل تعديل الدراسة التسويقية للمهمة "${strategy.task.title}": ${comment}`,
+          title: "Marketing strategy revision requested",
+          body: `The client requested a revision to the marketing strategy for task "${strategy.task.title}": ${comment}`
         })
         .catch((err) =>
           this.logger.error(
@@ -292,14 +292,14 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
     if (strategy.status !== MarketingStrategyStatus.SENT) {
       throw new BadRequestException(
-        "يمكن رفض الدراسة فقط عندما تكون في حالة الإرسال",
+        "The strategy can only be rejected when it is in the sent state",
       );
     }
 
@@ -324,8 +324,8 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_REJECTED",
           userId: recipientId,
-          title: "تم رفض الدراسة التسويقية",
-          body: `رفض العميل الدراسة التسويقية للمهمة "${strategy.task.title}"`,
+          title: "Marketing strategy rejected",
+          body: `The client rejected the marketing strategy for task "${strategy.task.title}"`
         })
         .catch((err) =>
           this.logger.error(
@@ -349,16 +349,16 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     if (strategy.createdBy !== userId) {
-      throw new BadRequestException("يمكن فقط لمنشئ الدراسة إعادة إرسالها");
+      throw new BadRequestException("Only the strategy creator can resubmit it");
     }
 
     if (strategy.status !== MarketingStrategyStatus.REVISION_REQUESTED) {
       throw new BadRequestException(
-        "يمكن إعادة إرسال الدراسة فقط عندما تكون في حالة طلب تعديل",
+        "The strategy can only be resubmitted when revision was requested",
       );
     }
 
@@ -388,8 +388,8 @@ export class MarketingStrategyService {
       await this.notifications
         .notifyUsers({
           userIds: resubmitRecipients,
-          title: "دراسة تسويقية مُعدّلة",
-          message: "تم إعادة إرسال الدراسة التسويقية المُعدّلة بانتظار مراجعتك",
+          title: "Marketing strategy revised",
+          message: "The revised marketing strategy was resubmitted and is awaiting your review",
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",
@@ -453,7 +453,7 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     return strategy;
@@ -466,7 +466,7 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     return this.storageService.getPresignedUrl(strategy.filePath);
@@ -512,7 +512,7 @@ export class MarketingStrategyService {
     });
 
     if (!client?.userId || client.userId !== clientUserId) {
-      throw new BadRequestException("غير مصرح بهذا الإجراء");
+      throw new BadRequestException("This action is not authorized");
     }
   }
 }

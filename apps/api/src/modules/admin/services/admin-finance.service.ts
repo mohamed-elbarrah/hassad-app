@@ -221,7 +221,7 @@ export class AdminFinanceService {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
-    if (!invoice) throw new NotFoundException("الفاتورة غير موجودة");
+    if (!invoice) throw new NotFoundException("Invoice not found");
 
     const before = { status: invoice.status, reason };
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -259,7 +259,7 @@ export class AdminFinanceService {
 
   // ── D2. Invoices — Write-off ──────────────────────────────────────────────────
   async writeOffInvoice(invoiceId: string, reason: string, userId: string) {
-    return this.forceInvoiceStatus(invoiceId, "VOID", `شطب: ${reason}`, userId);
+    return this.forceInvoiceStatus(invoiceId, "VOID", `Voided: ${reason}`, userId);
   }
 
   // ── D2. Invoices — Refund trigger ─────────────────────────────────────────────
@@ -273,9 +273,9 @@ export class AdminFinanceService {
       where: { id: invoiceId },
       include: { payments: { where: { status: "SUCCESS" } } },
     });
-    if (!invoice) throw new NotFoundException("الفاتورة غير موجودة");
+    if (!invoice) throw new NotFoundException("Invoice not found");
     if (invoice.status !== "PAID" && invoice.status !== "PARTIAL") {
-      throw new BadRequestException("يمكن استرداد الفواتير المدفوعة فقط");
+      throw new BadRequestException("Only paid invoices can be refunded");
     }
 
     const refundAmount = amount ?? invoice.amount;
@@ -288,7 +288,7 @@ export class AdminFinanceService {
           amount: -refundAmount,
           method: "BANK_TRANSFER",
           status: "REFUNDED",
-          notes: `استرداد: ${reason}`,
+          notes: `Refund: ${reason}`,
         },
       });
 
@@ -367,9 +367,9 @@ export class AdminFinanceService {
     const log = await this.prisma.webhookLog.findUnique({
       where: { id: webhookId },
     });
-    if (!log) throw new NotFoundException("سجل الويب هوك غير موجود");
+    if (!log) throw new NotFoundException("Webhook log not found");
     if (log.processed)
-      throw new BadRequestException("تمت معالجة هذا الويب هوك بالفعل");
+      throw new BadRequestException("This webhook has already been processed");
 
     const before = {
       provider: log.provider,
@@ -446,7 +446,7 @@ export class AdminFinanceService {
         afterState: after,
       });
 
-      throw new BadRequestException(`فشلت إعادة المحاولة: ${error.message}`);
+      throw new BadRequestException(`Retry failed: ${error.message}`);
     }
   }
 

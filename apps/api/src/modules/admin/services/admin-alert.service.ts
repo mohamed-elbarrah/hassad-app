@@ -57,8 +57,9 @@ export class AdminAlertService {
 
       await this.notificationsService.notifyUsers({
         userIds: recipientIds,
-        title: "مشروع متعثر",
-        message: `المشروع "${project.name}" متعثر (الحالة: ${project.status}). يرجى المراجعة.`,
+        title: "Stalled project",
+        message: `Project "${project.name}" is stalled (status: ${project.status}). Please review it.`,
+
         entityId: project.id,
         entityType: "PROJECT",
         eventType: "PROJECT_STALLED",
@@ -99,8 +100,8 @@ export class AdminAlertService {
     const managerIds = salesManagers.map((u) => u.id);
     await this.notificationsService.notifyUsers({
       userIds: managerIds,
-      title: "طلبات غير معينة",
-      message: `يوجد ${unassigned.length} طلب غير معين. يرجى توزيعهم على فريق المبيعات.`,
+      title: "Unassigned requests",
+      message: `${unassigned.length} request(s) are unassigned. Please distribute them to the sales team.`,
       entityId: "unassigned-requests",
       entityType: "REQUEST",
       eventType: "UNASSIGNED_REQUEST",
@@ -160,8 +161,8 @@ export class AdminAlertService {
 
     await this.notificationsService.notifyUsers({
       userIds: adminIds,
-      title: "أخطاء نظام",
-      message: `يوجد ${webhookCount} خطأ ويب هوك و ${gatewayCount} خطأ بوابة دفع بحاجة للمراجعة.`,
+      title: "System failures",
+      message: `${webhookCount} webhook failure(s) and ${gatewayCount} payment gateway failure(s) need review.`,
       entityId: "system-failures",
       entityType: "system",
       eventType: "SYSTEM_FAILURE",
@@ -214,8 +215,8 @@ export class AdminAlertService {
 
       await this.notificationsService.notifyUsers({
         userIds: recipients,
-        title: "عميل غير نشط",
-        message: `العميل "${client.companyName}" غير نشط منذ أكثر من 30 يوماً. يرجى التواصل معهم.`,
+        title: "Inactive client",
+        message: `Client "${client.companyName}" has been inactive for more than 30 days. Please contact them.`,
         entityId: client.id,
         entityType: "CLIENT",
         eventType: "CLIENT_INACTIVE",
@@ -265,8 +266,8 @@ export class AdminAlertService {
 
       await this.notificationsService.createNotification({
         userId: w.userId,
-        title: "حمل عمل مرتفع",
-        body: `لديك ${w.activeTasksCount} مهمة نشطة (المعدل: ${Math.round(avgTasks)}). يرجى مراجعة أولوياتك.`,
+        title: "High workload",
+        body: `You have ${w.activeTasksCount} active task(s) (average: ${Math.round(avgTasks)}). Please review your priorities.`,
         entityId: w.userId,
         entityType: "USER",
         eventType: "WORKLOAD_WARNING",
@@ -287,11 +288,11 @@ export class AdminAlertService {
         const names = underloaded
           .map((w) => w.user?.name)
           .filter(Boolean)
-          .join("، ");
+          .join(", ");
         await this.notificationsService.notifyUsers({
           userIds: managers.map((m) => m.id),
-          title: "أعضاء فريق بحمل عمل منخفض",
-          message: `الأعضاء التاليون لديهم حمل عمل منخفض: ${names}. يرجى إعادة توزيع المهام.`,
+          title: "Underloaded team members",
+          message: `The following members have a low workload: ${names}. Please redistribute tasks.`,
           entityId: "workload",
           entityType: "system",
           eventType: "WORKLOAD_WARNING",
@@ -344,8 +345,8 @@ export class AdminAlertService {
       if (task.assignee?.id) {
         await this.notificationsService.createNotification({
           userId: task.assignee.id,
-          title: "مهمة متأخرة",
-          body: `المهمة "${task.title}" ${daysOverdue > 0 ? `متأخرة ${daysOverdue} يوماً` : "مستحقة اليوم"}.`,
+          title: "Overdue task",
+          body: `Task "${task.title}" ${daysOverdue > 0 ? `is ${daysOverdue} day(s) overdue` : "is due today"}.`,
           entityId: task.id,
           entityType: "TASK",
           eventType: "TASK_DELAYED",
@@ -386,8 +387,8 @@ export class AdminAlertService {
       if (req.assignedSalesId) {
         await this.notificationsService.createNotification({
           userId: req.assignedSalesId,
-          title: "طلب بحاجة للمتابعة",
-          body: `طلب "${req.contactName}" (${req.companyName}) لم يتم تحديثه منذ 14 يوماً.`,
+          title: "Request needs follow-up",
+          body: `Request "${req.contactName}" (${req.companyName}) has not been updated for 14 days.`,
           entityId: req.id,
           entityType: "REQUEST",
           eventType: "STALE_REQUEST",

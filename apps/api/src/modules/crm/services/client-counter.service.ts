@@ -6,7 +6,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
  *
  * Why denormalized counters:
  *   The portal profile page (`/portal/profile`) renders a KPI grid that
- *   shows "إجمالي المشاريع", "قيمة العقود", etc. Counting these on every
+ *   shows "total projects", "contract value", etc. Counting these on every
  *   page load by joining 5 tables would be wasteful for a panel that
  *   never reflects live mutations within a single session. We materialize
  *   the aggregates on the `Client` row and refresh them lazily on every

@@ -264,7 +264,7 @@ export class AdminContractsService {
     });
     if (!contract) throw new NotFoundException("Contract not found");
     if (contract.status !== ContractStatus.ACTIVE) {
-      throw new BadRequestException("يمكن تحويل العقود النشطة فقط إلى مشاريع");
+      throw new BadRequestException("Only active contracts can be converted to projects");
     }
 
     const existingProject = await this.prisma.project.findFirst({
@@ -272,7 +272,7 @@ export class AdminContractsService {
       select: { id: true },
     });
     if (existingProject) {
-      throw new BadRequestException("تم تحويل هذا العقد إلى مشروع مسبقاً");
+      throw new BadRequestException("This contract has already been converted to a project");
     }
 
     const projectName =
@@ -319,7 +319,7 @@ export class AdminContractsService {
             clientId: contract.clientId,
             userId,
             eventType: "CONTRACT_CONVERTED_TO_PROJECT",
-            description: `تم تحويل العقد "${contract.title}" إلى مشروع "${projectName}"`,
+            description: `Contract "${contract.title}" was converted to project "${projectName}"`,
             metadata: { contractId: id, projectId: created.id },
           },
         });

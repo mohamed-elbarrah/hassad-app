@@ -2,12 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { BaseTool, ToolDefinition, ToolResult } from "./tool.interface";
 import { AiAssistantArea } from "@hassad/shared";
+import { formatPlainNumber } from "../../../common/presentation/plain-number";
 
 @Injectable()
 export class GetCampaignSummaryTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getCampaignSummary",
-    description: "ملخص الحملات الإعلانية حسب الحالة",
+    description: "Campaign summary by status",
     category: AiAssistantArea.MARKETING,
     parameters: {
       type: "object",
@@ -31,7 +32,7 @@ export class GetCampaignSummaryTool extends BaseTool {
     ]);
 
     return {
-      summary: `إجمالي الحملات: ${total}`,
+      summary: `Total campaigns: ${formatPlainNumber(total)}`,
       data: {
         total,
         byStatus: byStatus.map((s) => ({ status: s.status, count: s._count })),
@@ -44,7 +45,7 @@ export class GetCampaignSummaryTool extends BaseTool {
 export class GetCampaignPerformanceTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getCampaignPerformance",
-    description: "أداء الحملات (إجمالي الإنفاق، مرات الظهور، النقرات)",
+    description: "Campaign performance (total spend, impressions, and clicks)",
     category: AiAssistantArea.MARKETING,
     parameters: {
       type: "object",
@@ -67,7 +68,7 @@ export class GetCampaignPerformanceTool extends BaseTool {
     const totalSpent = campaigns.reduce((s, c) => s + Number(c.budgetSpent), 0);
 
     return {
-      summary: `إجمالي ميزانية الحملات: ${totalBudget.toLocaleString("ar-SA")}، المصروف: ${totalSpent.toLocaleString("ar-SA")}`,
+      summary: `Total campaign budget: ${formatPlainNumber(totalBudget)}; spent: ${formatPlainNumber(totalSpent)}`,
       data: { totalBudget, totalSpent, campaignCount: campaigns.length },
     };
   }

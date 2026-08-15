@@ -97,15 +97,15 @@ export class BillingCronService {
         const recipientId = invoice.client?.userId;
         if (!recipientId) continue;
 
-        const dayLabel = offsetDay === 0 ? "اليوم" : `خلال ${offsetDay} أيام`;
+        const dayLabel = offsetDay === 0 ? "today" : `in ${offsetDay} day(s)`;
         await this.notificationsService
           .createNotification({
             entityId: invoice.id,
             entityType: "INVOICE",
             eventType: "INVOICE_REMINDER",
             userId: recipientId,
-            title: "تذكير بدفع الفاتورة",
-            body: `الفاتورة "${invoice.contract?.title ?? invoice.invoiceNumber}" مستحقة ${dayLabel}. يرجى سداد المبلغ ${invoice.amount} ر.س`,
+            title: "Invoice payment reminder",
+            body: `Invoice "${invoice.contract?.title ?? invoice.invoiceNumber}" is due ${dayLabel}. Please pay the amount ${invoice.amount} SAR`,
           })
           .catch(() => undefined);
       }
@@ -218,8 +218,8 @@ export class BillingCronService {
           await this.notificationsService
             .notifyUsers({
               userIds: recipientIds,
-              title: "تم تعليق المشروع",
-              message: `تم تعليق المشروع بسبب عدم سداد الفاتورة "${invoice.contract?.title ?? invoice.invoiceNumber}". يرجى متابعة السداد لاستئناف العمل.`,
+              title: "Project suspended",
+              message: `The project was suspended because invoice "${invoice.contract?.title ?? invoice.invoiceNumber}" was not paid. Please follow up on payment to resume work.`,
               entityId: project.id,
               entityType: "PROJECT",
               eventType: "PROJECT_SUSPENDED",
@@ -306,8 +306,8 @@ export class BillingCronService {
         if (recipientIds.length > 0) {
           await this.notificationsService.notifyUsers({
             userIds: recipientIds,
-            title: "تم إلغاء العقد تلقائياً",
-            message: `تم إلغاء العقد "${invoice.contract.title}" لعدم سداد الدفعة المقدمة خلال ${graceDays} أيام`,
+            title: "Contract automatically cancelled",
+            message: `Contract "${invoice.contract.title}" was automatically cancelled because the down payment was not paid within ${graceDays} day(s)`,
             entityId: invoice.contract.id,
             entityType: "CONTRACT",
             eventType: "CONTRACT_CANCELLED",
@@ -355,8 +355,8 @@ export class BillingCronService {
 
     await this.notificationsService.notifyUsers({
       userIds: financeUsers.map((u) => u.id),
-      title: "فواتير متأخرة +30 يوماً",
-      message: `يوجد ${overdue.length} فاتورة متأخرة منذ أكثر من 30 يوماً بحاجة للمتابعة.`,
+      title: "Invoices overdue by more than 30 days",
+      message: `${overdue.length} invoice(s) have been overdue for more than 30 days and need follow-up.`,
       entityId: "overdue-escalation",
       entityType: "INVOICE",
       eventType: "INVOICE_ESCALATED",

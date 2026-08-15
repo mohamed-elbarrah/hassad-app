@@ -565,7 +565,7 @@ export class AdminService {
     return {
       overdueTasks: {
         count: overdueTasks,
-        label: "مهام متأخرة",
+        label: "Overdue tasks",
         link: "/dashboard/admin/tasks?status=OVERDUE",
         items: overdueTaskItems.map((t) => ({
           id: t.id,
@@ -576,7 +576,7 @@ export class AdminService {
       },
       agedInvoices: {
         count: agedInvoices,
-        label: "فواتير غير مسددة (+60 يوم)",
+        label: "Unpaid invoices (+60 days)",
         link: "/dashboard/admin/finance/invoices?aging=60",
         items: agedInvoiceItems.map((inv) => ({
           id: inv.id,
@@ -588,7 +588,7 @@ export class AdminService {
       },
       escalatedDisputes: {
         count: escalatedDisputes,
-        label: "نزاعات تم تصعيدها",
+        label: "Escalated disputes",
         link: "/dashboard/admin/disputes?status=ESCALATED",
         items: escalatedDisputeItems.map((d) => ({
           id: d.id,
@@ -599,13 +599,13 @@ export class AdminService {
       },
       failedWebhooks: {
         count: failedWebhooks,
-        label: "Webhooks فاشلة",
+        label: "Failed webhooks",
         link: "/dashboard/admin/integrations?status=failed",
         items: [],
       },
       expiringContracts: {
         count: expiringContracts,
-        label: "عقود تنتهي قريباً",
+        label: "Contracts expiring soon",
         link: "/dashboard/admin/contracts?expiring=30",
         items: expiringContractItems.map((c) => ({
           id: c.id,
@@ -616,7 +616,7 @@ export class AdminService {
       },
       pendingRequests: {
         count: pendingRequests,
-        label: "طلبات معلقة",
+        label: "Pending requests",
         link: "/dashboard/admin/requests?status=PENDING",
         items: pendingRequestItems.map((r) => ({
           id: r.id,
@@ -695,7 +695,7 @@ export class AdminService {
         id: h.id,
         entityType: "task",
         eventType: `TASK_${h.toStatus}`,
-        description: `تغيير حالة المهمة من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`,
+        description: `Task status changed from ${h.fromStatus ?? "—"} to ${h.toStatus}`,
         occurredAt: h.changedAt.toISOString(),
         actorName: h.changer?.name ?? null,
       });
@@ -706,8 +706,8 @@ export class AdminService {
         entityType: "contract",
         eventType: `CONTRACT_${h.toStatus}`,
         description: h.reason
-          ? `تغيير حالة العقد: ${h.reason}`
-          : `تغيير حالة العقد من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`,
+          ? `Contract status changed: ${h.reason}`
+          : `Contract status changed from ${h.fromStatus ?? "—"} to ${h.toStatus}`,
         occurredAt: h.changedAt.toISOString(),
         actorName: h.changedByUser?.name ?? null,
       });
@@ -717,7 +717,7 @@ export class AdminService {
         id: h.id,
         entityType: "dispute",
         eventType: `DISPUTE_${h.toStatus}`,
-        description: h.note ?? `تغيير حالة النزاع إلى ${h.toStatus}`,
+        description: h.note ?? `Dispute status changed to ${h.toStatus}`,
         occurredAt: h.changedAt.toISOString(),
         actorName: h.changer?.name ?? null,
       });
@@ -727,7 +727,7 @@ export class AdminService {
         id: h.id,
         entityType: "request",
         eventType: `REQUEST_${h.toStatus}`,
-        description: h.note ?? `تغيير حالة الطلب إلى ${h.toStatus}`,
+        description: h.note ?? `Request status changed to ${h.toStatus}`,
         occurredAt: h.changedAt.toISOString(),
         actorName: h.changer?.name ?? null,
       });

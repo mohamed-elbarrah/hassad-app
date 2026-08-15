@@ -5,6 +5,10 @@ import {
 } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
+import {
+  formatMonth,
+  formatMonthDay,
+} from "../../../common/presentation/english-date";
 
 /** Shape of `getContractById` — derived from Prisma's generated types so it
  *  stays in sync with the actual `include` inside the method. (Audit #14) */
@@ -32,18 +36,18 @@ import {
   ProposalStatus,
   ProjectStatus,
   CampaignStatus,
-  PROJECT_STATUS_AR,
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
 import { StorageService } from "../../../common/storage/storage.service";
+import { formatPlainNumber } from "../../../common/presentation/plain-number";
 import { MarketingStrategyService } from "../../marketing/services/marketing-strategy.service";
 
-const TASK_STATUS_AR_MAP: Record<string, string> = {
-  TODO: "لم يبدأ",
-  IN_PROGRESS: "جاري العمل",
-  IN_REVIEW: "قيد المراجعة",
-  DONE: "مكتمل",
-  REVISION: "تعديل مطلوب",
+const TASK_STATUS_LABELS: Record<string, string> = {
+  TODO: "Not started",
+  IN_PROGRESS: "In progress",
+  IN_REVIEW: "In review",
+  DONE: "Completed",
+  REVISION: "Revision requested",
 };
 
 @Injectable()
@@ -67,20 +71,20 @@ export class PortalService {
   private getPendingRequestStageLabel(status: string) {
     switch (status) {
       case "PROPOSAL_IN_PROGRESS":
-        return "يتم إعداد العرض الفني لطلبك.";
+        return "Your proposal is being prepared.";
       case "PROPOSAL_SENT":
       case "NEGOTIATION":
-        return "العرض الفني متاح الآن للمراجعة والمتابعة.";
+        return "Your proposal is ready for review.";
       case "CONTRACT_PREPARATION":
-        return "يتم تجهيز العقد والملف المالي.";
+        return "Your contract and billing documents are being prepared.";
       case "CONTRACT_SENT":
-        return "العقد جاهز للتوقيع من خلال البوابة.";
+        return "Your contract is ready to sign through the portal.";
       case "SIGNED":
-        return "تم توقيع العقد وجارٍ تحويل الطلب إلى مشروع.";
+        return "The contract was signed and the request is being converted into a project.";
       case "QUALIFYING":
       case "SUBMITTED":
       default:
-        return "طلبك قيد المراجعة من فريق المبيعات.";
+        return "Your request is being reviewed by the sales team.";
     }
   }
 
@@ -224,7 +228,7 @@ export class PortalService {
         members.push({
           id: request.assignee.id,
           name: request.assignee.name,
-          role: "المشرف",
+          role: "Sales representative",
           roleType: "SALES",
           isOnline: request.assignee.isActive ?? false,
           avatarUrl: request.assignee.avatarUrl,
@@ -253,7 +257,7 @@ export class PortalService {
         members.push({
           id: accountManagerUser.id,
           name: accountManagerUser.name,
-          role: "مدير الحساب",
+          role: "Account manager",
           roleType: "ACCOUNT_MANAGER",
           isOnline: accountManagerUser.isActive ?? false,
           avatarUrl: accountManagerUser.avatarUrl,
@@ -292,7 +296,7 @@ export class PortalService {
           members.push({
             id: project.manager.id,
             name: project.manager.name,
-            role: "مدير المشروع",
+            role: "Project manager",
             roleType: "PM",
             isOnline: project.manager.isActive ?? false,
             avatarUrl: project.manager.avatarUrl,
@@ -329,9 +333,7 @@ export class PortalService {
         id: p.id,
         name: p.name,
         status: p.status,
-        statusAr:
-          PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ??
-          p.status,
+        statusAr: p.status,
         progress: p.completionPercentage,
         startDate: p.startDate,
         endDate: p.endDate,
@@ -399,9 +401,7 @@ export class PortalService {
         id: p.id,
         name: p.name,
         status: p.status,
-        statusAr:
-          PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ??
-          p.status,
+        statusAr: p.status,
         progress: p.completionPercentage,
         startDate: p.startDate,
         endDate: p.endDate,
@@ -623,9 +623,7 @@ export class PortalService {
       name: project.name,
       description: project.description,
       status: project.status,
-      statusAr:
-        PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] ??
-        project.status,
+      statusAr: project.status,
       priority: project.priority,
       startDate: project.startDate,
       endDate: project.endDate,
@@ -791,7 +789,7 @@ export class PortalService {
         contactName: request.contactName,
         notes: request.notes,
         status: request.status,
-        statusLabel: "طلب قيد الانتظار",
+        statusLabel: "Request pending",
         stageLabel: this.getPendingRequestStageLabel(request.status),
         createdAt: request.createdAt,
         updatedAt: request.updatedAt,
@@ -878,7 +876,7 @@ export class PortalService {
           id: `del-${d.id}`,
           type: "DELIVERABLE_APPROVAL",
           title: d.title,
-          subtitle: `مشروع: ${d.project.name}`,
+          subtitle: `Project: ${d.project.name}`,
           actionUrl: `/portal/deliverables/${d.id}`,
           priority: "high",
           createdAt: d.createdAt,
@@ -918,8 +916,8 @@ export class PortalService {
         items.push({
           id: `inv-${inv.id}`,
           type: "INVOICE_PAYMENT",
-          title: `فاتورة ${inv.invoiceNumber}`,
-          subtitle: `المبلغ: ${inv.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س${daysUntilDue <= 3 ? " — مستحقة قريباً" : ""}`,
+          title: `Invoice ${inv.invoiceNumber}`,
+          subtitle: `Amount: ${formatPlainNumber(inv.amount)} SAR${daysUntilDue <= 3 ? " — due soon" : ""}`,
           actionUrl: `/portal/invoices/${inv.id}`,
           dueDate: inv.dueDate,
           priority,
@@ -939,7 +937,7 @@ export class PortalService {
           id: `con-${c.id}`,
           type: "CONTRACT_SIGN",
           title: c.title,
-          subtitle: "عقد بانتظار توقيعك",
+          subtitle: "Contract awaiting your signature",
           actionUrl: c.shareLinkToken
             ? `/portal/contracts/${c.shareLinkToken}`
             : "/portal/contracts",
@@ -963,7 +961,7 @@ export class PortalService {
           id: `prop-${p.id}`,
           type: "PROPOSAL_REVIEW",
           title: p.title,
-          subtitle: "عرض فني بانتظار مراجعتك",
+          subtitle: "Proposal awaiting your review",
           actionUrl: p.shareLinkToken
             ? `/portal/proposals/${p.shareLinkToken}`
             : "/portal/proposals",
@@ -995,8 +993,8 @@ export class PortalService {
         items.push({
           id: `strat-${s.id}`,
           type: "STRATEGY_REVIEW",
-          title: `دراسة تسويقية — ${s.task?.project?.name ?? ""}`,
-          subtitle: `دراسة تسويقية للمهمة "${s.task?.title ?? ""}" بانتظار مراجعتك`,
+          title: `Marketing strategy — ${s.task?.project?.name ?? ""}`,
+          subtitle: `Marketing strategy for task "${s.task?.title ?? ""}" awaiting your review`,
           actionUrl: `/portal/marketing-strategies/${s.id}`,
           priority: "high",
           createdAt: s.sentAt ?? s.createdAt,
@@ -1124,7 +1122,7 @@ export class PortalService {
           id: `del-${d.id}`,
           type: "DELIVERABLE_APPROVAL",
           title: d.title,
-          subtitle: `مشروع: ${d.project.name}`,
+          subtitle: `Project: ${d.project.name}`,
           actionUrl: `/portal/deliverables/${d.id}`,
           priority: d.status === "IN_REVIEW" ? "high" : "normal",
           createdAt: d.createdAt,
@@ -1147,8 +1145,8 @@ export class PortalService {
         return {
           id: `inv-${inv.id}`,
           type: "INVOICE_PAYMENT",
-          title: `فاتورة ${inv.invoiceNumber}`,
-          subtitle: `المبلغ: ${inv.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س${daysUntilDue <= 3 ? " — مستحقة قريباً" : ""}`,
+          title: `Invoice ${inv.invoiceNumber}`,
+          subtitle: `Amount: ${formatPlainNumber(inv.amount)} SAR${daysUntilDue <= 3 ? " — due soon" : ""}`,
           actionUrl: `/portal/invoices/${inv.id}`,
           priority,
           createdAt: inv.createdAt,
@@ -1163,7 +1161,7 @@ export class PortalService {
           id: `con-${c.id}`,
           type: "CONTRACT_SIGN",
           title: c.title,
-          subtitle: "عقد بانتظار توقيعك",
+          subtitle: "Contract awaiting your signature",
           actionUrl: c.shareLinkToken
             ? `/portal/contracts/${c.shareLinkToken}`
             : "/portal/contracts",
@@ -1183,7 +1181,7 @@ export class PortalService {
           id: `prop-${p.id}`,
           type: "PROPOSAL_REVIEW",
           title: p.title,
-          subtitle: "عرض فني بانتظار مراجعتك",
+          subtitle: "Proposal awaiting your review",
           actionUrl: p.shareLinkToken
             ? `/portal/proposals/${p.shareLinkToken}`
             : "/portal/proposals",
@@ -1207,8 +1205,8 @@ export class PortalService {
         return {
           id: `strat-${s.id}`,
           type: "STRATEGY_REVIEW",
-          title: `دراسة تسويقية — ${s.task?.project?.name ?? ""}`,
-          subtitle: `دراسة تسويقية للمهمة "${s.task?.title ?? ""}" بانتظار مراجعتك`,
+          title: `Marketing strategy — ${s.task?.project?.name ?? ""}`,
+          subtitle: `Marketing strategy for task "${s.task?.title ?? ""}" awaiting your review`,
           actionUrl: `/portal/marketing-strategies/${s.id}`,
           priority: "high",
           createdAt: s.sentAt ?? s.createdAt,
@@ -1251,7 +1249,7 @@ export class PortalService {
             clientId,
             userId: client.userId,
             eventType: "ACTION_ITEM_SNOOZED",
-            description: `العميل أخفى إجراءً من النوع ${itemType} لمدة ${hours} ساعة (${this.itemTypeAr(itemType)}).`,
+            description: `The client snoozed an action of type ${itemType} for ${hours} hour(s) (${this.itemTypeLabel(itemType)}).`,
             metadata: {
               itemType,
               itemId,
@@ -1272,18 +1270,18 @@ export class PortalService {
    * Map the internal `itemType` enum to its Arabic display label so the
    * `ClientHistoryLog.description` is human-readable on the PM/admin side.
    */
-  private itemTypeAr(itemType: string): string {
+  private itemTypeLabel(itemType: string): string {
     switch (itemType) {
       case "DELIVERABLE_APPROVAL":
-        return "مراجعة تسليم";
+        return "Review deliverable";
       case "INVOICE_PAYMENT":
-        return "دفع فاتورة";
+        return "Pay invoice";
       case "PROPOSAL_REVIEW":
-        return "مراجعة عرض";
+        return "Review proposal";
       case "CONTRACT_SIGN":
-        return "توقيع عقد";
+        return "Sign contract";
       case "STRATEGY_REVIEW":
-        return "مراجعة دراسة تسويقية";
+        return "Review marketing strategy";
       default:
         return itemType;
     }
@@ -1336,7 +1334,7 @@ export class PortalService {
         items.push({
           id: `del-approve-${d.id}`,
           date: d.approvedAt,
-          text: `تم اعتماد "${d.title}"`,
+          text: `Approved "${d.title}"`,
           icon: "check",
         });
       }
@@ -1344,14 +1342,14 @@ export class PortalService {
         items.push({
           id: `del-revision-${d.id}`,
           date: d.createdAt,
-          text: `طلب تعديل على "${d.title}"`,
+          text: `Revision requested for "${d.title}"`,
           icon: "palette",
         });
       }
       items.push({
         id: `del-upload-${d.id}`,
         date: d.createdAt,
-        text: `تم رفع "${d.title}"`,
+        text: `Uploaded "${d.title}"`,
         icon: "file",
       });
     }
@@ -1367,7 +1365,7 @@ export class PortalService {
       items.push({
         id: `camp-${c.id}`,
         date: c.createdAt,
-        text: `تم إطلاق حملة "${c.name}"`,
+        text: `Campaign "${c.name}" launched`,
         icon: "trending",
       });
     }
@@ -1383,7 +1381,7 @@ export class PortalService {
       items.push({
         id: `pay-${p.id}`,
         date: p.date,
-        text: `تم دفع ${p.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س`,
+        text: `Paid ${formatPlainNumber(p.amount)} SAR`,
         icon: "dollar",
       });
     }
@@ -1528,7 +1526,7 @@ export class PortalService {
     });
 
     if (!contract) {
-      throw new NotFoundException("العقد غير موجود");
+      throw new NotFoundException("Contract not found");
     }
 
     return contract;
@@ -1732,8 +1730,8 @@ export class PortalService {
             entityType: "deliverable",
             eventType: "DELIVERABLE_APPROVED",
             userId: clientUser.userId,
-            title: "تم اعتماد التسليمة",
-            body: `تم اعتماد التسليمة "${deliverable.title}" في مشروع ${deliverable.project.name}`,
+            title: "Deliverable approved",
+            body: `Deliverable "${deliverable.title}" was approved in project ${deliverable.project.name}`,
           })
           .catch(() => undefined);
       }
@@ -1765,8 +1763,8 @@ export class PortalService {
             entityType: "deliverable",
             eventType: "DELIVERABLE_REVISION",
             userId: clientUser.userId,
-            title: "تم طلب تعديل على التسليمة",
-            body: `تم طلب تعديلات على التسليمة "${deliverable.title}" في مشروع ${deliverable.project.name}`,
+            title: "Deliverable revision requested",
+            body: `Revisions were requested for deliverable "${deliverable.title}" in project ${deliverable.project.name}`,
           })
           .catch(() => undefined);
       }
@@ -2109,7 +2107,7 @@ export class PortalService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException("Campaign not found");
     }
 
     const analytics = this.kpiSnapshotsToAnalytics(campaign.kpiSnapshots);
@@ -2208,28 +2206,28 @@ export class PortalService {
     const kpiCards = [
       {
         metric: "conversionRate",
-        label: "معدل التحويل",
+        label: "Conversion rate",
         value: aggregates.current.conversionRate,
         previousValue: aggregates.previous?.conversionRate ?? 0,
         trendPercent: aggregates.trends.conversionRate,
       },
       {
         metric: "clicks",
-        label: "عدد النقرات",
+        label: "Clicks",
         value: aggregates.current.clicks,
         previousValue: aggregates.previous?.clicks ?? 0,
         trendPercent: aggregates.trends.clicks,
       },
       {
         metric: "impressions",
-        label: "عدد مرات الظهور",
+        label: "Impressions",
         value: aggregates.current.impressions,
         previousValue: aggregates.previous?.impressions ?? 0,
         trendPercent: aggregates.trends.impressions,
       },
       {
         metric: "spend",
-        label: "إجمالي الإنفاق",
+        label: "Total spend",
         value: aggregates.current.spend,
         previousValue: aggregates.previous?.spend ?? 0,
         trendPercent: aggregates.trends.spend,
@@ -2327,24 +2325,18 @@ export class PortalService {
       case "day": {
         const [y, m, d] = key.split("-");
         const date = new Date(Number(y), Number(m) - 1, Number(d));
-        return new Intl.DateTimeFormat("ar-SA", {
-          day: "numeric",
-          month: "short",
-        }).format(date);
+        return formatMonthDay(date);
       }
       case "month": {
         const [y, m] = key.split("-");
         const d = new Date(Number(y), Number(m) - 1, 1);
-        return new Intl.DateTimeFormat("ar-SA", { month: "short" }).format(d);
+        return formatMonth(d);
       }
       case "week":
       default: {
         const [y, m, d] = key.split("-");
         const date = new Date(Number(y), Number(m) - 1, Number(d));
-        return new Intl.DateTimeFormat("ar-SA", {
-          day: "numeric",
-          month: "short",
-        }).format(date);
+        return formatMonthDay(date);
       }
     }
   }
@@ -2431,22 +2423,22 @@ export class PortalService {
       labels,
       datasets: [
         {
-          label: "عدد مرات الظهور",
+          label: "Impressions",
           data: allKeys.map((k) => buckets[k].impressions),
           metric: "impressions",
         },
         {
-          label: "عدد النقرات",
+          label: "Clicks",
           data: allKeys.map((k) => buckets[k].clicks),
           metric: "clicks",
         },
         {
-          label: "عدد التحويلات",
+          label: "Conversions",
           data: allKeys.map((k) => buckets[k].conversions),
           metric: "conversions",
         },
         {
-          label: "إجمالي الإنفاق",
+          label: "Total spend",
           data: allKeys.map((k) => buckets[k].spend),
           metric: "spend",
         },
@@ -2673,10 +2665,10 @@ export class PortalService {
     );
 
     const platformAr: Record<string, string> = {
-      GOOGLE: "جوجل",
-      META: "ميتا",
-      TIKTOK: "تيكتوك",
-      SNAPCHAT: "سناب شات",
+      GOOGLE: "Google",
+      META: "Meta",
+      TIKTOK: "TikTok",
+      SNAPCHAT: "Snapchat",
     };
 
     return Object.entries(byPlatform)
@@ -2699,32 +2691,32 @@ export class PortalService {
     if (current.conversionRate > 5) {
       tips.push({
         type: "budget",
-        title: "الميزانية",
-        description: "زيادة الميزانية على ميتا بنسبة 20%",
+        title: "Budget",
+        description: "Increase the Meta budget by 20%",
       });
     }
 
     if (trends.conversionRate != null && trends.conversionRate < 0) {
       tips.push({
         type: "warning",
-        title: "تنبيه",
-        description: "تقليل الإنفاق على تيكتوك",
+        title: "Alert",
+        description: "Reduce TikTok spend",
       });
     }
 
     if (current.clicks < 100) {
       tips.push({
         type: "insight",
-        title: "نصيحة",
-        description: "الاستثمار أكثر في محتوى الفيديو",
+        title: "Recommendation",
+        description: "Invest more in video content",
       });
     }
 
     if (current.ctr < 1) {
       tips.push({
         type: "insight",
-        title: "تحذير",
-        description: "الاستثمار أكثر في محتوى الفيديو",
+        title: "Warning",
+        description: "Invest more in video content",
       });
     }
 
@@ -2773,9 +2765,7 @@ export class PortalService {
 
     return projects.map((p) => ({
       ...p,
-      statusAr:
-        PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ??
-        p.status,
+      statusAr: p.status,
       taskCount: p._count.tasks,
       deliverableCount: p._count.deliverables,
       _count: undefined,
@@ -2837,7 +2827,7 @@ export class PortalService {
     }
 
     if (project.status !== ProjectStatus.AWAITING_REVIEW) {
-      throw new BadRequestException("المشروع ليس بحالة انتظار المراجعة");
+      throw new BadRequestException("Project is not awaiting review");
     }
 
     const updated = await this.prisma.project.update({
@@ -2860,8 +2850,8 @@ export class PortalService {
           entityType: "project",
           eventType: "PROJECT_APPROVED",
           userId: project.projectManagerId,
-          title: "تمت الموافقة على المشروع",
-          body: `تمت الموافقة على المشروع "${project.name}" من قبل العميل.`,
+          title: "Project approved",
+          body: `Project "${project.name}" was approved by the client.`,
         })
         .catch(() => undefined);
     }
@@ -2892,7 +2882,7 @@ export class PortalService {
     }
 
     if (project.status !== ProjectStatus.AWAITING_REVIEW) {
-      throw new BadRequestException("المشروع ليس بحالة انتظار المراجعة");
+      throw new BadRequestException("Project is not awaiting review");
     }
 
     const [updated] = await this.prisma.$transaction([
@@ -2916,8 +2906,8 @@ export class PortalService {
           entityType: "project",
           eventType: "PROJECT_REVISION_REQUESTED",
           userId: project.projectManagerId,
-          title: "طلب العميل تعديلات على المشروع",
-          body: `طلب العميل تعديلات على المشروع "${project.name}": ${dto.comment}`,
+          title: "Client requested project revisions",
+          body: `The client requested revisions to project "${project.name}": ${dto.comment}`
         })
         .catch(() => undefined);
     }
@@ -2979,7 +2969,7 @@ export class PortalService {
     });
 
     if (!strategy || strategy.clientId !== clientId) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     return strategy;
@@ -2994,7 +2984,7 @@ export class PortalService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     // Verify client owns this strategy
@@ -3004,7 +2994,7 @@ export class PortalService {
     });
 
     if (!client?.userId || client.userId !== clientUserId) {
-      throw new BadRequestException("غير مصرح بهذا الإجراء");
+      throw new BadRequestException("This action is not authorized");
     }
 
     return this.marketingStrategyService.approve(id, clientUserId);
@@ -3020,7 +3010,7 @@ export class PortalService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     // Verify client owns this strategy
@@ -3030,7 +3020,7 @@ export class PortalService {
     });
 
     if (!client?.userId || client.userId !== clientUserId) {
-      throw new BadRequestException("غير مصرح بهذا الإجراء");
+      throw new BadRequestException("This action is not authorized");
     }
 
     return this.marketingStrategyService.requestRevision(

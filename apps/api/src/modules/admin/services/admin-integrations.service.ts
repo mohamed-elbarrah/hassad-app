@@ -71,9 +71,9 @@ export class AdminIntegrationsService {
 
   async retryWebhook(id: string, userId?: string) {
     const log = await this.prisma.webhookLog.findUnique({ where: { id } });
-    if (!log) throw new NotFoundException("سجل الويب هوك غير موجود");
+    if (!log) throw new NotFoundException("Webhook log not found");
     if (log.processed)
-      throw new BadRequestException("تمت معالجة هذا الويب هوك بالفعل");
+      throw new BadRequestException("This webhook has already been processed");
 
     // Mark as WEBHOOK_FAILURE in SystemEventLog when retry is triggered
     // (actual reprocessing is handled by admin-finance's retry which has PaymentsService)

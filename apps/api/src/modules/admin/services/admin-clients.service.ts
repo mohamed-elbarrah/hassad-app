@@ -273,7 +273,7 @@ export class AdminClientsService {
         },
       },
     });
-    if (!user) throw new NotFoundException("العميل غير موجود");
+    if (!user) throw new NotFoundException("Client not found");
 
     return {
       id: user.id,
@@ -332,7 +332,7 @@ export class AdminClientsService {
       },
     });
 
-    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (!client) throw new NotFoundException("Client not found");
 
     const [
       contracts,
@@ -512,7 +512,7 @@ export class AdminClientsService {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
     });
-    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (!client) throw new NotFoundException("Client not found");
 
     const skip = (page - 1) * limit;
 
@@ -556,9 +556,9 @@ export class AdminClientsService {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
     });
-    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (!client) throw new NotFoundException("Client not found");
     if (client.status === "STOPPED")
-      throw new BadRequestException("العميل موقوف بالفعل");
+      throw new BadRequestException("Client is already suspended");
 
     const before = { status: client.status, suspendedAt: client.suspendedAt };
     const after = {
@@ -583,7 +583,7 @@ export class AdminClientsService {
           clientId,
           userId: adminId,
           eventType: "suspended",
-          description: `تم إيقاف العميل - ${reason}`,
+          description: `Client suspended - ${reason}`,
           metadata: { reason, suspendedUntil: suspendedUntil ?? null },
         },
       }),
@@ -616,9 +616,9 @@ export class AdminClientsService {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
     });
-    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (!client) throw new NotFoundException("Client not found");
     if (client.status !== "STOPPED")
-      throw new BadRequestException("العميل غير موقوف");
+      throw new BadRequestException("Client is not suspended");
 
     const before = { status: client.status, suspendedAt: client.suspendedAt };
     const after = { status: "ACTIVE" };
@@ -639,7 +639,7 @@ export class AdminClientsService {
           clientId,
           userId: adminId,
           eventType: "reactivated",
-          description: `تم إعادة تفعيل العميل - ${reason}`,
+          description: `Client reactivated - ${reason}`,
           metadata: { reason },
         },
       }),
@@ -678,8 +678,8 @@ export class AdminClientsService {
       this.prisma.client.findUnique({ where: { id: clientId } }),
       this.prisma.user.findUnique({ where: { id: accountManagerId } }),
     ]);
-    if (!client) throw new NotFoundException("العميل غير موجود");
-    if (!manager) throw new NotFoundException("المستخدم غير موجود");
+    if (!client) throw new NotFoundException("Client not found");
+    if (!manager) throw new NotFoundException("User not found");
 
     const before = { accountManager: client.accountManager };
     const after = {
@@ -697,7 +697,7 @@ export class AdminClientsService {
           clientId,
           userId: adminId,
           eventType: "manager_changed",
-          description: `تم تغيير مدير الحساب إلى ${manager.name} - ${reason}`,
+          description: `Account manager changed to ${manager.name} - ${reason}`,
           metadata: {
             fromManager: before.accountManager,
             toManager: accountManagerId,

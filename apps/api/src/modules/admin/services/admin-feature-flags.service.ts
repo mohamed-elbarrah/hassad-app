@@ -27,34 +27,34 @@ export class AdminFeatureFlagsService {
   async getDefaults() {
     return {
       admin_dashboard_v2: {
-        label: "لوحة الإدارة الجديدة",
+        label: "New admin dashboard",
         default: true,
-        description: "تفعيل لوحة الإدارة المحدثة",
+        description: "Enable the updated admin dashboard",
       },
       ai_module: {
-        label: "الذكاء الاصطناعي",
+        label: "AI assistant",
         default: true,
-        description: "تفعيل وحدة الذكاء الاصطناعي",
+        description: "Enable the AI assistant module",
       },
       client_portal: {
-        label: "بوابة العميل",
+        label: "Client portal",
         default: true,
-        description: "تفعيل بوابة العملاء",
+        description: "Enable the client portal",
       },
       automation_rules: {
-        label: "قواعد الأتمتة",
+        label: "Automation rules",
         default: true,
-        description: "تفعيل قواعد أتمتة العملاء المحتملين",
+        description: "Enable request automation rules",
       },
       notifications: {
-        label: "الإشعارات",
+        label: "Notifications",
         default: true,
-        description: "تفعيل نظام الإشعارات",
+        description: "Enable the notification system",
       },
       public_registration: {
-        label: "التسجيل العام",
+        label: "Public registration",
         default: false,
-        description: "السماح بتسجيل حسابات جديدة للعملاء",
+        description: "Allow new client account registration"
       },
     };
   }

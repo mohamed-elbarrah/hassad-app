@@ -30,7 +30,7 @@ export class DirectConversationService {
     if (users.length !== 2) return null;
 
     const otherUser = users.find((u) => u.id !== userAId);
-    const title = options?.title ?? otherUser?.name ?? "محادثة";
+    const title = options?.title ?? otherUser?.name ?? "Conversation";
 
     return (db ?? this.prisma).conversation.create({
       data: {

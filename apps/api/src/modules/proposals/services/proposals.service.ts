@@ -84,8 +84,8 @@ export class ProposalsService {
           entityType: "proposal",
           eventType: "PROPOSAL_SENT",
           userId: recipientId,
-          title: "عرض فني جديد بانتظار مراجعتك",
-          body: `تم إرسال عرض فني جديد لك: "${created.proposal.title}". يمكنك الاطلاع عليه والرد من خلال الرابط المرسل.`,
+          title: "New proposal awaiting your review",
+          body: `A new proposal was sent to you: "${created.proposal.title}". You can review and respond using the provided link.`,
         })
         .catch(() => undefined);
     }
@@ -211,8 +211,8 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_APPROVED",
       userId: proposal.createdBy,
-      title: "تمت الموافقة على العرض الفني",
-      body: `تمت الموافقة على العرض الفني "${proposal.title}"`,
+      title: "Proposal approved",
+      body: `Proposal "${proposal.title}" was approved`,
     });
 
     return updatedProposal;
@@ -231,8 +231,8 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_REJECTED",
       userId: proposal.createdBy,
-      title: "تم رفض العرض الفني",
-      body: `تم رفض العرض الفني "${proposal.title}"`,
+      title: "Proposal rejected",
+      body: `Proposal "${proposal.title}" was rejected`,
     });
 
     return updated;
@@ -292,8 +292,8 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_APPROVED_BY_CLIENT",
       userId: proposal.createdBy,
-      title: "وافق العميل على العرض الفني",
-      body: `وافق العميل على العرض الفني "${proposal.title}"${notes ? ` — ملاحظاته: ${notes}` : ""}`,
+      title: "Client approved proposal",
+      body: `The client approved proposal "${proposal.title}"${notes ? ` — Notes: ${notes}` : ""}`,
     });
 
     return {
@@ -330,8 +330,8 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_REVISION_REQUESTED",
       userId: proposal.createdBy,
-      title: "طلب تعديل على العرض الفني",
-      body: `طلب العميل تعديلاً على العرض الفني "${proposal.title}"${notes ? `: ${notes}` : ""}`,
+      title: "Proposal revision requested",
+      body: `The client requested revisions to proposal "${proposal.title}"${notes ? `: ${notes}` : ""}`,
     });
 
     return {

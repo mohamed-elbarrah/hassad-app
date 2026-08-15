@@ -16,7 +16,7 @@ export class NotificationTemplatesService {
     const template = await this.prisma.notificationTemplate.findUnique({
       where: { id },
     });
-    if (!template) throw new NotFoundException("قالب الإشعار غير موجود");
+    if (!template) throw new NotFoundException("Notification template not found");
     return template;
   }
 
@@ -30,7 +30,7 @@ export class NotificationTemplatesService {
     const template = await this.prisma.notificationTemplate.findUnique({
       where: { id },
     });
-    if (!template) throw new NotFoundException("قالب الإشعار غير موجود");
+    if (!template) throw new NotFoundException("Notification template not found");
 
     return this.prisma.notificationTemplate.update({
       where: { id },

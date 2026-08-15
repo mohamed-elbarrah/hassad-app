@@ -228,8 +228,8 @@ export class ContractsService {
         entityType: "project",
         eventType: "PROJECT_CREATED_FROM_CONTRACT",
         userId: projectManagerId,
-        title: "تم إنشاء مشروع جديد تلقائياً",
-        body: `تم إنشاء مشروع "${project.name}" بعد توقيع العقد. يمكنك الآن توزيع المهام على الفريق.`,
+        title: "New project created automatically",
+        body: `Project "${project.name}" was created after the contract was signed. You can now assign tasks to the team.`,
         metadata: {
           contractId: contract.id,
           clientId: contract.clientId,
@@ -241,16 +241,16 @@ export class ContractsService {
     if (fallbackUsed) {
       this.notificationsService
         .broadcast({
-          title: "تعيين مدير مشروع تلقائي",
-          message: `تم إنشاء مشروع تلقائياً من العقد "${contract.title}" وتم تعيينه لـ "${assignment.pmName}" تلقائياً (أقل عبء مشاريع: ${assignment.currentLoad} مشاريع نشطة).`,
+          title: "Project manager assigned automatically",
+          message: `A project was created automatically from contract "${contract.title}" and assigned to "${assignment.pmName}" (lowest active project load: ${assignment.currentLoad}).`,
           roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
     } else if (assignment.isAccountManager) {
       this.notificationsService
         .broadcast({
-          title: "تعيين مدير مشروع",
-          message: `تم إنشاء مشروع من العقد "${contract.title}" وتم تعيينه لمدير حساب العميل "${assignment.pmName}" (${assignment.currentLoad} مشاريع نشطة).`,
+          title: "Project manager assigned",
+          message: `A project was created from contract "${contract.title}" and assigned to account manager "${assignment.pmName}" (${assignment.currentLoad} active projects).`,
           roles: ["ADMIN"],
         })
         .catch(() => undefined);
@@ -383,11 +383,11 @@ export class ContractsService {
       contractId,
       paymentPlanId: onSignRow?.id,
       amount,
-      label: "الدفعة المقدمة (Down Payment)",
+      label: "Down payment",
       issueDate: now,
       dueDate: now, // due immediately
       userId,
-      notes: "فاتورة الدفعة المقدمة لتفعيل العقد",
+      notes: "Down-payment invoice required to activate the contract",
     });
   }
 
@@ -455,8 +455,8 @@ export class ContractsService {
         contract.client.accountManager,
         projectManager?.projectManagerId,
       ].filter(Boolean) as string[],
-      title: "تم تفعيل العقد",
-      message: `تم تفعيل العقد "${contract.title}" بعد استلام الدفعة المقدمة.`,
+      title: "Contract activated",
+      message: `Contract "${contract.title}" was activated after receiving the down payment.`,
       entityId: contractId,
       entityType: "CONTRACT",
       eventType: "CONTRACT_ACTIVATED",
@@ -473,8 +473,8 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_ACTIVATED",
           userId: clientUser.userId,
-          title: "تم تفعيل العقد",
-          body: `تم تفعيل العقد "${contract.title}". فريق العمل جاهز لبدء مشروعك.`,
+          title: "Contract activated",
+          body: `Contract "${contract.title}" was activated. The team is ready to start your project.`,
         })
         .catch(() => undefined);
     }
@@ -640,8 +640,8 @@ export class ContractsService {
         .notifyUsers({
           userIds: resumeRecipients,
           excludeUserIds: [userId],
-          title: "تم استئناف الفترة",
-          message: `تم استئناف الفترة رقم ${period.periodNumber} بعد سداد الفاتورة`,
+          title: "Period resumed",
+          message: `Period ${period.periodNumber} was resumed after the invoice was paid`,
           entityId: period.id,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIOD_RESUMED",
@@ -790,7 +790,7 @@ export class ContractsService {
         await tx.contractPaymentPlan.create({
           data: {
             contractId: contract.id,
-            label: "الدفعة الأولى",
+            label: "First payment",
             sequence: 0,
             triggerType: "ON_SIGN",
             amountType: dto.downPaymentType,
@@ -814,7 +814,7 @@ export class ContractsService {
           await tx.contractPaymentPlan.create({
             data: {
               contractId: contract.id,
-              label: "الدفعة الشهرية",
+              label: "Monthly payment",
               sequence: 1,
               triggerType: "PERIOD_END",
               amountType: "FIXED",
@@ -869,8 +869,8 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_SENT",
           userId: recipientId,
-          title: "عقد جديد بانتظار توقيعك",
-          body: `العقد "${created.contract.title}" جاهز لمراجعته وتوقيعه`,
+          title: "New contract awaiting your signature",
+          body: `Contract "${created.contract.title}" is ready for review and signature`,
         })
         .catch(() => undefined);
     }
@@ -937,7 +937,7 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException("العقد غير موجود أو انتهت صلاحية الرابط");
+      throw new NotFoundException("Contract not found or the link has expired");
     }
 
     return contract;
@@ -955,11 +955,11 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException("العقد غير موجود");
+      throw new NotFoundException("Contract not found");
     }
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException("لا يمكن توقيع هذا العقد في وضعه الحالي");
+      throw new BadRequestException("This contract cannot be signed in its current state");
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
@@ -1004,8 +1004,8 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_SIGNED",
           userId: contract.createdBy,
-          title: "تم توقيع العقد",
-          body: `العميل وقّع على العقد "${contract.title}"`,
+          title: "Contract signed",
+          body: `The client signed contract "${contract.title}"`,
         })
         .catch(() => undefined);
 
@@ -1016,8 +1016,8 @@ export class ContractsService {
             entityType: "contract",
             eventType: "CONTRACT_SIGNED",
             userId: clientUser.userId,
-            title: "تم توقيع العقد بنجاح",
-            body: `تم توقيع العقد "${contract.title}" بنجاح. سيتم بدء العمل على مشروعك قريباً.`,
+            title: "Contract signed successfully",
+            body: `Contract "${contract.title}" was signed successfully. Work on your project will begin soon.`,
           })
           .catch(() => undefined);
       }
@@ -1028,8 +1028,8 @@ export class ContractsService {
     await this.onContractSigned(contract.id, dto.signedByName).catch(() => {
       this.notificationsService
         .broadcast({
-          title: "فشل إنشاء مشروع تلقائي",
-          message: `تم توقيع العقد "${contract.title}" لكن تعذر إنشاء المشروع/فاتورة الدفعة المقدمة تلقائياً. يرجى مراجعة الحالة يدوياً.`,
+          title: "Automatic project creation failed",
+          message: `Contract "${contract.title}" was signed, but the project or down-payment invoice could not be created automatically. Please review the status manually.`,
           roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
@@ -1079,8 +1079,8 @@ export class ContractsService {
     if (notifyUserIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: notifyUserIds,
-        title: "تم إرسال العقد",
-        message: `أرسل ${actorName ?? "النظام"} العقد "${contract.title}" إلى ${contract.client.companyName}`,
+        title: "Contract sent",
+        message: `${actorName ?? "System"} sent contract "${contract.title}" to ${contract.client.companyName}`,
         entityId: id,
         entityType: "CONTRACT",
         eventType: "CONTRACT_SENT",
@@ -1098,8 +1098,8 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_SENT",
           userId: clientUser.userId,
-          title: "عقد جديد بانتظار توقيعك",
-          body: `العقد "${contract.title}" جاهز لمراجعته وتوقيعه`,
+          title: "New contract awaiting your signature",
+          body: `Contract "${contract.title}" is ready for review and signature`,
         })
         .catch(() => undefined);
     }
@@ -1119,7 +1119,7 @@ export class ContractsService {
     const contract = await this.findOne(id);
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException("لا يمكن توقيع هذا العقد في وضعه الحالي");
+      throw new BadRequestException("This contract cannot be signed in its current state");
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
@@ -1157,8 +1157,8 @@ export class ContractsService {
     await this.onContractSigned(id, dto.signedByName).catch(() => {
       this.notificationsService
         .broadcast({
-          title: "فشل إنشاء مشروع تلقائي",
-          message: `تم توقيع العقد "${contract.title}" لكن تعذر تهيئة المشروع/فاتورة الدفعة المقدمة تلقائياً.`,
+          title: "Automatic project creation failed",
+          message: `Contract "${contract.title}" was signed, but the project or down-payment invoice could not be initialized automatically.`,
           roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
@@ -1171,8 +1171,8 @@ export class ContractsService {
         Boolean,
       ) as string[],
       excludeUserIds: [userId],
-      title: "تم توقيع العقد",
-      message: `تم توقيع العقد "${contract.title}" مع ${contract.client.companyName}`,
+      title: "Contract signed",
+      message: `Contract "${contract.title}" was signed with ${contract.client.companyName}`,
       entityId: id,
       entityType: "CONTRACT",
       eventType: "CONTRACT_SIGNED",
@@ -1212,15 +1212,15 @@ export class ContractsService {
       where: { id: actorId },
       select: { name: true },
     });
-    const cancelActorName = cancelActor?.name ?? "النظام";
+    const cancelActorName = cancelActor?.name ?? "System";
 
     await this.notificationsService.notifyUsers({
       userIds: [contract.createdBy, contract.client.accountManager].filter(
         Boolean,
       ) as string[],
       excludeUserIds: [actorId],
-      title: "تم إلغاء العقد",
-      message: `ألغى ${cancelActorName} العقد "${contract.title}" مع ${contract.client.companyName}`,
+      title: "Contract cancelled",
+      message: `${cancelActorName} cancelled contract "${contract.title}" with ${contract.client.companyName}`,
       entityId: id,
       entityType: "CONTRACT",
       eventType: "CONTRACT_CANCELLED",
@@ -1237,8 +1237,8 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_CANCELLED",
           userId: clientUser.userId,
-          title: "تم إلغاء العقد",
-          body: `تم إلغاء العقد "${contract.title}". للاستفسار، يرجى التواصل مع فريقنا.`,
+          title: "Contract cancelled",
+          body: `Contract "${contract.title}" was cancelled. Please contact our team if you have questions.`
         })
         .catch(() => undefined);
     }

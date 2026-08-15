@@ -185,7 +185,7 @@ export class AdminPortalService {
       where: { id: clientId },
       select: { id: true, portalAccessToken: true },
     });
-    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (!client) throw new NotFoundException("Client not found");
 
     if (client.portalAccessToken) {
       await this.prisma.client.update({

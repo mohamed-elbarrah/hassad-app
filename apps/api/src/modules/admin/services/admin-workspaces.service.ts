@@ -14,6 +14,11 @@ import {
 } from "@hassad/shared";
 import { PipelineStage } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { formatPlainNumber } from "../../../common/presentation/plain-number";
+import {
+  formatMonthDayTime,
+  formatMonthDayYear,
+} from "../../../common/presentation/english-date";
 import { classifyCrmRecordKind } from "../../../common/business/crm-record-kind";
 import {
   AdminClientsWorkspaceQueryDto,
@@ -186,12 +191,7 @@ export class AdminWorkspacesService {
         department: this.mapDepartment(item.department),
         phoneWhatsapp: item.phoneWhatsapp ?? "",
         lastSeen: item.lastLoginAt
-          ? new Date(item.lastLoginAt).toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+          ? formatMonthDayTime(new Date(item.lastLoginAt))
           : "No session yet",
         isActive: item.isActive,
       })),
@@ -250,11 +250,7 @@ export class AdminWorkspacesService {
         0,
       ),
       lastSeen: client.user?.lastLoginAt
-        ? new Date(client.user.lastLoginAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
+        ? formatMonthDayYear(new Date(client.user.lastLoginAt))
         : "No portal session",
       owner: client.manager?.name ?? "Unassigned",
       stageTone:
@@ -373,11 +369,7 @@ export class AdminWorkspacesService {
         openedAt: request.createdAt.toISOString(),
         openedDaysAgo,
         lastContact: request.lastContactAt
-          ? new Date(request.lastContactAt).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })
+          ? formatMonthDayYear(new Date(request.lastContactAt))
           : "No contact yet",
         nextFollowUp: stalled ? "Follow-up overdue" : "Next follow-up scheduled",
         nextStep: latestContract
@@ -735,11 +727,7 @@ export class AdminWorkspacesService {
   }
 
   private formatCurrency(amount: number) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return `$${formatPlainNumber(Math.round(amount))}`;
   }
 
   private buildInitials(name: string) {

@@ -25,11 +25,11 @@ import { ProjectGroupChatService } from "../../chat/services/project-group-chat.
 import { ProjectPeriodsService } from "../../projects/services/project-periods.service";
 
 const DEPARTMENT_ARABIC_LABELS: Record<TaskDepartment, string> = {
-  [TaskDepartment.DESIGN]: "التصميم",
-  [TaskDepartment.CONTENT]: "المحتوى",
-  [TaskDepartment.DEVELOPMENT]: "التطوير",
-  [TaskDepartment.MARKETING]: "التسويق",
-  [TaskDepartment.PRODUCTION]: "المونتاج",
+  [TaskDepartment.DESIGN]: "Design",
+  [TaskDepartment.CONTENT]: "Content",
+  [TaskDepartment.DEVELOPMENT]: "Development",
+  [TaskDepartment.MARKETING]: "Marketing",
+  [TaskDepartment.PRODUCTION]: "Production",
 };
 
 @Injectable()
@@ -116,8 +116,8 @@ export class TasksService {
             entityType: "project",
             eventType: "PROJECT_AWAITING_REVIEW",
             userId: client.userId,
-            title: "مشروعك جاهز للمراجعة والموافقة",
-            body: `المشروع "${project.name}" اكتمل وتم تقديمه لمراجعتك.`,
+            title: "Your project is ready for review and approval",
+            body: `Project "${project.name}" is complete and ready for your review.`,
           })
           .catch(() => undefined);
       }
@@ -140,26 +140,26 @@ export class TasksService {
       case TaskStatus.IN_PROGRESS:
         return {
           eventType: "TASK_STARTED",
-          title: "بدأ تنفيذ المهمة",
-          body: `بدأ ${actorName} تنفيذ المهمة "${taskTitle}".`,
+          title: "Task started",
+          body: `${actorName} started task "${taskTitle}".`,
         };
       case TaskStatus.IN_REVIEW:
         return {
           eventType: "TASK_SUBMITTED",
-          title: "مهمة بانتظار المراجعة",
-          body: `سلّم ${actorName} المهمة "${taskTitle}" للمراجعة.`,
+          title: "Task awaiting review",
+          body: `${actorName} submitted task "${taskTitle}" for review.`,
         };
       case TaskStatus.DONE:
         return {
           eventType: "TASK_APPROVED",
-          title: "تم اعتماد المهمة",
-          body: `تم اعتماد المهمة "${taskTitle}".`,
+          title: "Task approved",
+          body: `Task "${taskTitle}" was approved.`,
         };
       case TaskStatus.REVISION:
         return {
           eventType: "TASK_REJECTED",
-          title: "تم إرجاع المهمة للتعديل",
-          body: `أعاد ${actorName} المهمة "${taskTitle}" للتعديل.`,
+          title: "Task returned for revision",
+          body: `${actorName} returned task "${taskTitle}" for revision.`
         };
       default:
         return undefined;
@@ -386,10 +386,10 @@ export class TasksService {
           entityType: "task",
           eventType: "TASK_ASSIGNED",
           userId: createdTask.assignedTo,
-          title: "تم إسناد مهمة جديدة",
+          title: "New task assigned",
           body: departmentLabel
-            ? `تم إسناد المهمة "${createdTask.title}" إليك في قسم ${departmentLabel}.`
-            : `تم إسناد المهمة "${createdTask.title}" إليك.`,
+            ? `Task "${createdTask.title}" was assigned to you in the ${departmentLabel} department.`
+            : `Task "${createdTask.title}" was assigned to you.`,
           metadata: {
             taskId: createdTask.id,
             projectId: createdTask.projectId,
@@ -570,7 +570,7 @@ export class TasksService {
       where: { id: userId },
       select: { name: true },
     });
-    const taskActorName = taskActor?.name ?? "النظام";
+    const taskActorName = taskActor?.name ?? "System";
 
     const notificationConfig = this.getTaskStatusNotificationConfig(
       task.title,
@@ -658,13 +658,13 @@ export class TasksService {
             entityType: "task",
             eventType: "TASK_ASSIGNED",
             userId: recipientId,
-            title: "تم إسناد مهمة جديدة",
+            title: "New task assigned",
             body:
               recipientId === dto.userId
                 ? departmentLabel
-                  ? `تم إسناد المهمة "${existingTask.title}" إليك في قسم ${departmentLabel}.`
-                  : `تم إسناد المهمة "${existingTask.title}" إليك.`
-                : `تم إسناد المهمة "${existingTask.title}" إلى ${assigneeInfo.name}.`,
+                  ? `Task "${existingTask.title}" was assigned to you in the ${departmentLabel} department.`
+                  : `Task "${existingTask.title}" was assigned to you.`
+                : `Task "${existingTask.title}" was assigned to ${assigneeInfo.name}.`,
             metadata: {
               taskId: existingTask.id,
               projectId: existingTask.projectId,
@@ -835,8 +835,8 @@ export class TasksService {
           entityType: "task",
           eventType: "TASK_COMMENT_ADDED",
           userId: recipientId,
-          title: "تعليق جديد على المهمة",
-          body: `تمت إضافة تعليق جديد على المهمة "${task.title}".`,
+          title: "New task comment",
+          body: `A new comment was added to task "${task.title}".`,
           metadata: {
             taskId: task.id,
             commentId: comment.id,
@@ -1144,7 +1144,7 @@ export class TasksService {
   ): Promise<{ message: string; archived: boolean }> {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
-      throw new NotFoundException("المهمة غير موجودة");
+      throw new NotFoundException("Task not found");
     }
 
     const isArchived = task.archivedAt !== null;
@@ -1154,7 +1154,7 @@ export class TasksService {
     });
 
     return {
-      message: isArchived ? "تم إلغاء أرشفة المهمة" : "تم أرشفة المهمة",
+      message: isArchived ? "Task unarchived" : "Task archived",
       archived: !isArchived,
     };
   }

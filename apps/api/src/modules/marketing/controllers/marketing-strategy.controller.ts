@@ -44,11 +44,11 @@ export class TaskMarketingStrategyController {
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new BadRequestException("ملف PDF مطلوب");
+      throw new BadRequestException("A PDF file is required");
     }
 
     if (file.mimetype !== "application/pdf") {
-      throw new BadRequestException("يجب أن يكون الملف بصيغة PDF");
+      throw new BadRequestException("File must be a PDF");
     }
 
     const uploadResult = await this.storageService.upload({
@@ -127,11 +127,11 @@ export class MarketingStrategiesController {
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new BadRequestException("ملف PDF مطلوب");
+      throw new BadRequestException("A PDF file is required");
     }
 
     if (file.mimetype !== "application/pdf") {
-      throw new BadRequestException("يجب أن يكون الملف بصيغة PDF");
+      throw new BadRequestException("File must be a PDF");
     }
 
     const uploadResult = await this.storageService.upload({

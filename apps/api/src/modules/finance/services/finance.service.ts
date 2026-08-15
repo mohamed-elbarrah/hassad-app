@@ -115,8 +115,8 @@ export class FinanceService {
         entityType: "INVOICE",
         eventType: "INVOICE_CREATED",
         userId: clientUser.userId,
-        title: "فاتورة جديدة",
-        body: `تم إنشاء فاتورة جديدة بمبلغ ${invoice.amount} ر.س`,
+        title: "New invoice",
+        body: `A new invoice was created for ${invoice.amount} SAR`,
       });
     }
 
@@ -192,7 +192,7 @@ export class FinanceService {
         paymentMethod: PaymentMethod.BANK_TRANSFER,
         issueDate: new Date(),
         dueDate,
-        notes: `فاتورة تلقائية من العقد: ${contract.title}`,
+        notes: `Automatic invoice from contract: ${contract.title}`,
         items: {
           create: services.map((svc) => ({
             description: svc.name,
@@ -225,8 +225,8 @@ export class FinanceService {
           entityType: "invoice",
           eventType: "INVOICE_CREATED",
           userId: clientUser.userId,
-          title: "تم إنشاء فاتورة تلقائية",
-          body: `تم إنشاء فاتورة تلقائية رقم ${invoiceNumber} للعقد "${contract.title}"`,
+          title: "Automatic invoice created",
+          body: `Automatic invoice ${invoiceNumber} was created for contract "${contract.title}"`,
         })
         .catch(() => undefined);
     }
@@ -275,7 +275,7 @@ export class FinanceService {
         paymentMethod: PaymentMethod.BANK_TRANSFER,
         issueDate: params.issueDate,
         dueDate: params.dueDate,
-        notes: params.notes ?? `فاتورة من العقد: ${contract.title}`,
+        notes: params.notes ?? `Invoice from contract: ${contract.title}`,
         items: {
           create: {
             projectId: params.projectId,
@@ -308,8 +308,8 @@ export class FinanceService {
           entityType: "invoice",
           eventType: "INVOICE_CREATED",
           userId: clientUser.userId,
-          title: "تم إنشاء فاتورة",
-          body: `تم إنشاء فاتورة "${params.label}" بمبلغ ${params.amount} ر.س للعقد "${contract.title}"`,
+          title: "Invoice created",
+          body: `Invoice "${params.label}" for ${params.amount} SAR was created for contract "${contract.title}"`,
         })
         .catch(() => undefined);
     }
@@ -432,8 +432,8 @@ export class FinanceService {
         entityType: "PAYMENT",
         eventType: "PAYMENT_RECEIVED",
         userId: clientUser.userId,
-        title: "تم استلام دفع",
-        body: `تم استلام دفعة بقيمة ${payment.amount} ر.س للفاتورة "${invoice.invoiceNumber}"`,
+        title: "Payment received",
+        body: `A payment of ${payment.amount} SAR was received for invoice "${invoice.invoiceNumber}"`,
       });
     }
 
@@ -974,18 +974,18 @@ export class FinanceService {
       ]);
 
       const monthNames = [
-        "يناير",
-        "فبراير",
-        "مارس",
-        "أبريل",
-        "مايو",
-        "يونيو",
-        "يوليو",
-        "أغسطس",
-        "سبتمبر",
-        "أكتوبر",
-        "نوفمبر",
-        "ديسمبر",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
       ];
 
       months.push({
@@ -1023,10 +1023,10 @@ export class FinanceService {
     });
 
     const buckets = {
-      current: { label: "0-30 يوم", amount: 0, count: 0 },
-      thirty: { label: "31-60 يوم", amount: 0, count: 0 },
-      sixty: { label: "61-90 يوم", amount: 0, count: 0 },
-      ninety: { label: "+90 يوم", amount: 0, count: 0 },
+      current: { label: "0-30 days", amount: 0, count: 0 },
+      thirty: { label: "31-60 days", amount: 0, count: 0 },
+      sixty: { label: "61-90 days", amount: 0, count: 0 },
+      ninety: { label: "+90 days", amount: 0, count: 0 },
     };
 
     for (const inv of unpaid) {
@@ -1110,8 +1110,8 @@ export class FinanceService {
       actions.push({
         id: `late-${inv.id}`,
         type: "LATE_INVOICE",
-        title: `فاتورة متأخرة: ${inv.invoiceNumber}`,
-        description: inv.client?.companyName || "عميل غير معروف",
+        title: `Overdue invoice: ${inv.invoiceNumber}`,
+        description: inv.client?.companyName || "Unknown client",
         amount: inv.amount,
         entityId: inv.id,
         priority: "HIGH",
@@ -1122,8 +1122,8 @@ export class FinanceService {
       actions.push({
         id: `unsent-${inv.id}`,
         type: "UNSENT_INVOICE",
-        title: `فاتورة غير مرسلة: ${inv.invoiceNumber}`,
-        description: inv.client?.companyName || "عميل غير معروف",
+        title: `Unsent invoice: ${inv.invoiceNumber}`,
+        description: inv.client?.companyName || "Unknown client",
         amount: inv.amount,
         entityId: inv.id,
         priority: "MEDIUM",
@@ -1134,8 +1134,8 @@ export class FinanceService {
       actions.push({
         id: `failed-${p.id}`,
         type: "FAILED_PAYMENT",
-        title: `عملية دفع فاشلة`,
-        description: p.invoice?.client?.companyName || "عميل غير معروف",
+        title: `Failed payment`,
+        description: p.invoice?.client?.companyName || "Unknown client",
         amount: p.amount,
         entityId: p.id,
         priority: "HIGH",
@@ -1146,7 +1146,7 @@ export class FinanceService {
       actions.push({
         id: `salary-${s.id}`,
         type: "PENDING_SALARY",
-        title: `راتب معلق: ${s.employee?.name || "موظف"}`,
+        title: `Pending salary: ${s.employee?.name || "Employee"}`,
         description: `${s.month}/${s.year}`,
         amount: s.amount,
         entityId: s.id,
@@ -1247,18 +1247,18 @@ export class FinanceService {
     >();
 
     const monthNames = [
-      "يناير",
-      "فبراير",
-      "مارس",
-      "أبريل",
-      "مايو",
-      "يونيو",
-      "يوليو",
-      "أغسطس",
-      "سبتمبر",
-      "أكتوبر",
-      "نوفمبر",
-      "ديسمبر",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ];
 
     const cursor = new Date(from);
@@ -1361,13 +1361,13 @@ export class FinanceService {
 
     const methodLabels: Record<string, string> = {
       APPLE_PAY: "Apple Pay",
-      MADA: "مدى",
+      MADA: "Mada",
       VISA_MC: "Visa / Mastercard",
-      TABBY: "تابي",
-      TAMARA: "تمارا",
-      BANK_TRANSFER: "تحويل بنكي",
-      CARD: "بطاقة",
-      CASH: "نقدي",
+      TABBY: "Tabby",
+      TAMARA: "Tamara",
+      BANK_TRANSFER: "Bank transfer",
+      CARD: "Card",
+      CASH: "Cash",
     };
 
     return payments.map((p) => ({
@@ -1575,8 +1575,8 @@ export class FinanceService {
         entityType: "invoice",
         eventType: "INVOICE_SENT",
         userId: clientUser.userId,
-        title: "تم إرسال فاتورة",
-        body: `تم إرسال الفاتورة "${invoice.invoiceNumber}" إليك للمراجعة والدفع`,
+        title: "Invoice sent",
+        body: `Invoice "${invoice.invoiceNumber}" was sent to you for review and payment`,
       });
     }
 
@@ -1624,8 +1624,8 @@ export class FinanceService {
         entityType: "invoice",
         eventType: "INVOICE_REMINDER",
         userId: clientUser.userId,
-        title: "تذكير بدفع الفاتورة",
-        body: `تذكير: الفاتورة "${invoice.invoiceNumber}" بمبلغ ${invoice.amount} ر.س مستحقة الدفع`,
+        title: "Invoice payment reminder",
+        body: `Reminder: invoice "${invoice.invoiceNumber}" for ${invoice.amount} SAR is due for payment`
       });
     }
 

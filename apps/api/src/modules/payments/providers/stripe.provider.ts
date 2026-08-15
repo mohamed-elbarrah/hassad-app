@@ -38,7 +38,7 @@ export class StripeProvider implements PaymentProvider {
           price_data: {
             currency: params.currency.toLowerCase(),
             product_data: {
-              name: `فاتورة ${params.invoiceId}`,
+              name: `Invoice ${params.invoiceId}`,
             },
             unit_amount: Math.round(params.amount * 100),
           },

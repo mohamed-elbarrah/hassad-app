@@ -2,12 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { BaseTool, ToolDefinition, ToolResult } from "./tool.interface";
 import { AiAssistantArea } from "@hassad/shared";
+import { formatPlainNumber } from "../../../common/presentation/plain-number";
 
 @Injectable()
 export class GetRevenueSummaryTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getRevenueSummary",
-    description: "ملخص الإيرادات (الشهر الحالي)",
+    description: "Revenue summary (current month)",
     category: AiAssistantArea.FINANCE,
     parameters: {
       type: "object",
@@ -34,7 +35,7 @@ export class GetRevenueSummaryTool extends BaseTool {
     const total = payments.reduce((sum, p) => sum + Number(p.amount), 0);
 
     return {
-      summary: `إجمالي الإيرادات هذا الشهر: ${total.toLocaleString("ar-SA")}`,
+      summary: `Total revenue this month: ${formatPlainNumber(total)}`,
       data: { totalRevenue: total, paymentCount: payments.length },
     };
   }
@@ -44,7 +45,7 @@ export class GetRevenueSummaryTool extends BaseTool {
 export class GetInvoiceStatusTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getInvoiceStatus",
-    description: "حالة الفواتير (مدفوعة، معلقة، متأخرة)",
+    description: "Invoice status (paid, pending, overdue)",
     category: AiAssistantArea.FINANCE,
     parameters: {
       type: "object",
@@ -68,7 +69,7 @@ export class GetInvoiceStatusTool extends BaseTool {
     ]);
 
     return {
-      summary: `الفواتير: ${paid} مدفوعة، ${pending} معلقة (منها ${overdue} متأخرة)`,
+      summary: `Invoices: ${formatPlainNumber(paid)} paid, ${formatPlainNumber(pending)} pending (${formatPlainNumber(overdue)} overdue)`,
       data: { paid, pending, overdue },
     };
   }
@@ -78,12 +79,12 @@ export class GetInvoiceStatusTool extends BaseTool {
 export class GetPendingPaymentsTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getPendingPayments",
-    description: "المدفوعات المعلقة",
+    description: "Pending payments",
     category: AiAssistantArea.FINANCE,
     parameters: {
       type: "object",
       properties: {
-        limit: { type: "number", description: "عدد النتائج (أقصى 20)" },
+        limit: { type: "number", description: "Result count (maximum 20)" },
       },
       required: [],
     },
@@ -103,7 +104,7 @@ export class GetPendingPaymentsTool extends BaseTool {
     });
 
     return {
-      summary: `${payments.length} مدفوعات معلقة`,
+      summary: `${formatPlainNumber(payments.length)} pending payments`,
       data: { payments },
     };
   }

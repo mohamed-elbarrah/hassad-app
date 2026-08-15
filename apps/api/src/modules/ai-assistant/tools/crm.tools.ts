@@ -2,12 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { BaseTool, ToolDefinition, ToolResult } from "./tool.interface";
 import { AiAssistantArea } from "@hassad/shared";
+import { formatPlainNumber } from "../../../common/presentation/plain-number";
 
 @Injectable()
 export class GetRequestPipelineSummaryTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getRequestPipelineSummary",
-    description: "إجمالي الطلبات حسب المرحلة",
+    description: "Request totals by stage",
     category: AiAssistantArea.CRM,
     parameters: { type: "object", properties: {}, required: [] },
   };
@@ -18,7 +19,7 @@ export class GetRequestPipelineSummaryTool extends BaseTool {
     const total = await this.prisma.request.count();
     const byStage = await this.prisma.request.groupBy({ by: ["status"], _count: true });
     return {
-      summary: `إجمالي الطلبات: ${total}`,
+      summary: `Total requests: ${formatPlainNumber(total)}`,
       data: { total, byStage: byStage.map((s) => ({ stage: s.status, count: s._count })) },
     };
   }
@@ -28,7 +29,7 @@ export class GetRequestPipelineSummaryTool extends BaseTool {
 export class GetRequestStatusDistributionTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getRequestPipelineDistribution",
-    description: "توزيع الطلبات حسب المرحلة",
+    description: "Request distribution by stage",
     category: AiAssistantArea.CRM,
     parameters: { type: "object", properties: {}, required: [] },
   };
@@ -38,7 +39,7 @@ export class GetRequestStatusDistributionTool extends BaseTool {
   async execute(): Promise<ToolResult> {
     const byStage = await this.prisma.request.groupBy({ by: ["status"], _count: true });
     return {
-      summary: "توزيع الطلبات حسب المرحلة",
+      summary: "Request distribution by stage",
       data: { byStage: byStage.map((s) => ({ stage: s.status, count: s._count })) },
     };
   }
@@ -48,11 +49,11 @@ export class GetRequestStatusDistributionTool extends BaseTool {
 export class GetRecentRequestsTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getRecentRequests",
-    description: "آخر الطلبات المضافة",
+    description: "Most recently added requests",
     category: AiAssistantArea.CRM,
     parameters: {
       type: "object",
-      properties: { limit: { type: "number", description: "عدد النتائج (أقصى 20)" } },
+      properties: { limit: { type: "number", description: "Result count (maximum 20)" } },
       required: [],
     },
   };
@@ -67,7 +68,7 @@ export class GetRecentRequestsTool extends BaseTool {
       select: { id: true, companyName: true, status: true, createdAt: true },
     });
     return {
-      summary: `آخر ${requests.length} طلبات`,
+      summary: `${formatPlainNumber(requests.length)} most recent requests`,
       data: { requests },
     };
   }

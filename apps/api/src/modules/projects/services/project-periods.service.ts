@@ -168,8 +168,8 @@ export class ProjectPeriodsService {
       this.notificationsService
         .notifyUsers({
           userIds: [project.projectManagerId].filter(Boolean) as string[],
-          title: "تم توليد فترات المشروع",
-          message: `تم إنشاء ${periods.length} فترة شهرية للمشروع "${project.name}".`,
+          title: "Project periods generated",
+          message: `${periods.length} monthly periods were created for project "${project.name}".`,
           entityId: projectId,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIODS_GENERATED",
@@ -447,8 +447,8 @@ export class ProjectPeriodsService {
       this.notificationsService
         .notifyUsers({
           userIds: notifyIds,
-          title: "تم إغلاق الفترة",
-          message: `تم إغلاق الفترة رقم ${period.periodNumber} للمشروع "${period.project.name}".`,
+          title: "Period closed",
+          message: `Period ${period.periodNumber} for project "${period.project.name}" was closed.`,
           entityId: period.id,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIOD_CLOSED",
@@ -497,12 +497,12 @@ export class ProjectPeriodsService {
       contractId: contract.id,
       paymentPlanId: planRow.id,
       amount,
-      label: `الدفعة الشهرية — الفترة ${period.periodNumber}`,
+      label: `Monthly payment — period ${period.periodNumber}`,
       issueDate: period.endDate,
       dueDate,
       userId: actorId,
       projectId: period.project.id,
-      notes: `فاتورة الفترة ${period.periodNumber} للعقد "${contract.title}"`,
+      notes: `Invoice for period ${period.periodNumber} of contract "${contract.title}"`,
     });
 
     await this.prisma.projectPeriod.update({
@@ -523,8 +523,8 @@ export class ProjectPeriodsService {
       this.notificationsService
         .notifyUsers({
           userIds: notifyForInvoice,
-          title: "تم إصدار فاتورة الفترة",
-          message: `تم إصدار فاتورة الفترة رقم ${period.periodNumber} بقيمة ${amount} ر.س`,
+          title: "Period invoice issued",
+          message: `Invoice for period ${period.periodNumber} was issued for ${amount} SAR`,
           entityId: invoice.id,
           entityType: "INVOICE",
           eventType: "INVOICE_ISSUED",
@@ -707,8 +707,8 @@ export class ProjectPeriodsService {
       this.notificationsService
         .notifyUsers({
           userIds: [clientUserId],
-          title: "تم جدولة اجتماع جديد",
-          message: `"${dto.title}" للفترة ${period.periodNumber} من مشروع "${period.project?.name}".`,
+          title: "New meeting scheduled",
+          message: `"${dto.title}" for period ${period.periodNumber} of project "${period.project?.name}".`,
           entityId: meeting.id,
           entityType: "PROJECT_MEETING",
           eventType: "MEETING_SCHEDULED",
@@ -784,15 +784,15 @@ export class ProjectPeriodsService {
               : "MEETING_UPDATED";
       const title =
         dto.status === "CANCELLED"
-          ? "تم إلغاء اجتماع"
+          ? "Meeting canceled"
           : wasRescheduled
-            ? "تم تأجيل اجتماع"
-            : "تحديث اجتماع";
+            ? "Meeting postponed"
+            : "Meeting updated";
       this.notificationsService
         .notifyUsers({
           userIds: [clientUserId],
           title,
-          message: `"${updated.title}" للفترة ${existing.period?.periodNumber} من مشروع "${existing.period?.project?.name}".`,
+          message: `"${updated.title}" for period ${existing.period?.periodNumber} of project "${existing.period?.project?.name}".`,
           entityId: meetingId,
           entityType: "PROJECT_MEETING",
           eventType,

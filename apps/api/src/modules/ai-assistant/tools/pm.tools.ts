@@ -2,12 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { BaseTool, ToolDefinition, ToolResult } from "./tool.interface";
 import { AiAssistantArea } from "@hassad/shared";
+import { formatPlainNumber } from "../../../common/presentation/plain-number";
 
 @Injectable()
 export class GetProjectSummaryTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getProjectSummary",
-    description: "إجمالي المشاريع حسب الحالة",
+    description: "Project totals by status",
     category: AiAssistantArea.PM,
     parameters: {
       type: "object",
@@ -31,7 +32,7 @@ export class GetProjectSummaryTool extends BaseTool {
     ]);
 
     return {
-      summary: `إجمالي المشاريع: ${total}`,
+      summary: `Total projects: ${formatPlainNumber(total)}`,
       data: {
         total,
         byStatus: byStatus.map((s) => ({ status: s.status, count: s._count })),
@@ -44,7 +45,7 @@ export class GetProjectSummaryTool extends BaseTool {
 export class GetTaskDistributionTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getTaskDistribution",
-    description: "توزيع المهام حسب الحالة والأولوية",
+    description: "Task distribution by status and priority",
     category: AiAssistantArea.PM,
     parameters: {
       type: "object",
@@ -72,7 +73,7 @@ export class GetTaskDistributionTool extends BaseTool {
     ]);
 
     return {
-      summary: "توزيع المهام",
+      summary: "Task distribution",
       data: {
         byStatus: byStatus.map((s) => ({ status: s.status, count: s._count })),
         byPriority: byPriority.map((p) => ({ priority: p.priority, count: p._count })),
@@ -85,7 +86,7 @@ export class GetTaskDistributionTool extends BaseTool {
 export class GetUpcomingDeadlinesTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getUpcomingDeadlines",
-    description: "المهام ذات المواعيد النهائية القريبة (خلال 7 أيام)",
+    description: "Tasks with upcoming deadlines (within 7 days)",
     category: AiAssistantArea.PM,
     parameters: {
       type: "object",
@@ -114,7 +115,7 @@ export class GetUpcomingDeadlinesTool extends BaseTool {
     });
 
     return {
-      summary: `${tasks.length} مهمة تقترب من الموعد النهائي خلال 7 أيام`,
+      summary: `${formatPlainNumber(tasks.length)} tasks are due within 7 days`,
       data: { tasks },
     };
   }

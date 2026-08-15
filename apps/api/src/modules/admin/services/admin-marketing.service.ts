@@ -63,7 +63,7 @@ export class AdminMarketingService {
     const strategy = await this.prisma.marketingStrategy.findUnique({
       where: { id },
     });
-    if (!strategy) throw new NotFoundException("الاستراتيجية غير موجودة");
+    if (!strategy) throw new NotFoundException("Strategy not found");
 
     const validStatuses = [
       "DRAFT",
@@ -73,7 +73,7 @@ export class AdminMarketingService {
       "REVISION_REQUESTED",
     ];
     if (!validStatuses.includes(status))
-      throw new BadRequestException("حالة غير صالحة");
+      throw new BadRequestException("Invalid status");
 
     const updateData: any = { status: status as any };
     if (status === "APPROVED") {

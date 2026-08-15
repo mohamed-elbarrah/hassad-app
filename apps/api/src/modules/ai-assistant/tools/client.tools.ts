@@ -2,12 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { BaseTool, ToolDefinition, ToolResult } from "./tool.interface";
 import { AiAssistantArea } from "@hassad/shared";
+import { formatPlainNumber } from "../../../common/presentation/plain-number";
 
 @Injectable()
 export class GetClientSummaryTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getClientSummary",
-    description: "إجمالي العملاء (نشط، جديد)",
+    description: "Client totals (active and new)",
     category: AiAssistantArea.CLIENTS,
     parameters: {
       type: "object",
@@ -32,7 +33,7 @@ export class GetClientSummaryTool extends BaseTool {
     ]);
 
     return {
-      summary: `إجمالي العملاء: ${total} (${active} نشط، ${newThisMonth} جديد هذا الشهر)`,
+      summary: `Total clients: ${formatPlainNumber(total)} (${formatPlainNumber(active)} active, ${formatPlainNumber(newThisMonth)} new this month)`,
       data: { total, active, newThisMonth },
     };
   }
@@ -42,7 +43,7 @@ export class GetClientSummaryTool extends BaseTool {
 export class GetClientStatusDistributionTool extends BaseTool {
   definition: ToolDefinition = {
     name: "getClientStatusDistribution",
-    description: "توزيع العملاء حسب الحالة",
+    description: "Client distribution by status",
     category: AiAssistantArea.CLIENTS,
     parameters: {
       type: "object",
@@ -62,7 +63,7 @@ export class GetClientStatusDistributionTool extends BaseTool {
     });
 
     return {
-      summary: "توزيع العملاء حسب الحالة",
+      summary: "Client distribution by status",
       data: {
         byStatus: byStatus.map((s) => ({ status: s.status, count: s._count })),
       },

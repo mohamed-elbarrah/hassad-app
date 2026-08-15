@@ -365,11 +365,11 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("العميل غير موجود");
+      throw new ForbiddenException("Client not found");
     }
 
     if (!files || files.length === 0) {
-      throw new ForbiddenException("لم يتم إرسال أي ملفات");
+      throw new ForbiddenException("No files were submitted");
     }
 
     const uploadedFiles: {
@@ -421,7 +421,7 @@ export class PortalController {
   async getMyIntakeForm(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("العميل غير موجود");
+      throw new ForbiddenException("Client not found");
     }
     return this.portalService.getIntakeForm(clientId);
   }
@@ -434,7 +434,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("العميل غير موجود");
+      throw new ForbiddenException("Client not found");
     }
 
     return this.portalService.createIntakeForm(
@@ -452,7 +452,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("العميل غير موجود");
+      throw new ForbiddenException("Client not found");
     }
 
     return this.portalService.saveDraft(clientId, dto);
@@ -915,7 +915,7 @@ export class PortalController {
     });
 
     if (!strategy || strategy.clientId !== clientId) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException("Marketing strategy not found");
     }
 
     const url = await this.storageService.getPresignedUrl(strategy.filePath);

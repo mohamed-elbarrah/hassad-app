@@ -382,7 +382,7 @@ export class AdminReportsService {
       case "system-health":
         return this.getSystemHealthReport(from, to);
       default:
-        throw new NotFoundException(`نوع التقرير "${type}" غير موجود`);
+        throw new NotFoundException(`Report type "${type}" not found`);
     }
   }
 

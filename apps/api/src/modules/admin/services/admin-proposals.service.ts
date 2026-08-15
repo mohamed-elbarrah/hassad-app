@@ -92,7 +92,7 @@ export class AdminProposalsService {
         },
       },
     });
-    if (!proposal) throw new NotFoundException("العرض غير موجود");
+    if (!proposal) throw new NotFoundException("Proposal not found");
 
     const contract = await this.prisma.contract.findFirst({
       where: { proposalId: id },
@@ -109,9 +109,9 @@ export class AdminProposalsService {
         request: { select: { clientId: true } },
       },
     });
-    if (!proposal) throw new NotFoundException("العرض غير موجود");
+    if (!proposal) throw new NotFoundException("Proposal not found");
     if (proposal.status !== "APPROVED") {
-      throw new BadRequestException("يمكن تحويل العروض المقبولة فقط إلى عقود");
+      throw new BadRequestException("Only approved proposals can be converted to contracts");
     }
 
     const existingContract = await this.prisma.contract.findUnique({
@@ -119,13 +119,13 @@ export class AdminProposalsService {
       select: { id: true },
     });
     if (existingContract) {
-      throw new BadRequestException("تم تحويل هذا العرض إلى عقد مسبقاً");
+      throw new BadRequestException("This proposal has already been converted to a contract");
     }
 
     const clientId = proposal.clientId ?? proposal.request?.clientId;
     if (!clientId) {
       throw new BadRequestException(
-        "يجب أن يكون للعميل عميل مرتبط لتحويل العرض إلى عقد",
+        "The proposal must have a linked client to be converted to a contract",
       );
     }
 

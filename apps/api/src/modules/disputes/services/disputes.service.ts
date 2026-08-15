@@ -80,11 +80,11 @@ export class DisputesService {
     });
 
     if (!project) {
-      throw new NotFoundException("المشروع غير موجود");
+      throw new NotFoundException("Project not found");
     }
 
     if (!project.projectManagerId) {
-      throw new BadRequestException("المشروع ليس لديه مدير مخصص");
+      throw new BadRequestException("Project has no assigned manager");
     }
 
     // Check for existing active dispute for this project
@@ -105,7 +105,7 @@ export class DisputesService {
     });
 
     if (existingDispute) {
-      throw new BadRequestException("يوجد تذكرة مفتوحة لهذا المشروع بالفعل");
+      throw new BadRequestException("An open dispute ticket already exists for this project");
     }
 
     // Get next ticket number
@@ -131,7 +131,7 @@ export class DisputesService {
             create: {
               toStatus: DisputeStatus.PENDING_APPROVAL,
               changedBy: userId,
-              note: "تم إنشاء التذكرة",
+              note: "Ticket created",
             },
           },
         },
@@ -249,7 +249,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     return dispute;
@@ -384,7 +384,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     // Check if dispute allows messages
@@ -396,7 +396,7 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("لا يمكن إضافة رسائل لهذه التذكرة");
+      throw new BadRequestException("Messages cannot be added to this ticket");
     }
 
     this.assertThreadAccess(audience, threadType, "write");
@@ -456,11 +456,11 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     if (dispute.status !== DisputeStatus.PENDING_CLIENT) {
-      throw new BadRequestException("التذكرة ليست في حالة انتظار تأكيد العميل");
+      throw new BadRequestException("The ticket is not awaiting client confirmation");
     }
 
     const now = new Date();
@@ -484,7 +484,7 @@ export class DisputesService {
             create: {
               toStatus: DisputeStatus.RESOLVED,
               changedBy: userId,
-              note: dto.feedback || "أكد العميل حل المشكلة",
+              note: dto.feedback || "The client confirmed resolution",
             },
           },
         },
@@ -515,7 +515,7 @@ export class DisputesService {
               fromStatus: DisputeStatus.PENDING_CLIENT,
               toStatus: DisputeStatus.ESCALATED,
               changedBy: userId,
-              note: dto.feedback || "العميل يؤكد عدم حل المشكلة",
+              note: dto.feedback || "The client reported that the issue is not resolved",
             },
           },
         },
@@ -645,7 +645,7 @@ export class DisputesService {
 
     if (!dispute) {
       throw new NotFoundException(
-        "التذكرة غير موجودة أو ليس لديك صلاحية للوصول إليها",
+        "Ticket not found or you do not have access to it",
       );
     }
 
@@ -675,11 +675,11 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     if (dispute.status !== DisputeStatus.APPROVED) {
-      throw new BadRequestException("لا يمكن تعديل هذه التذكرة");
+      throw new BadRequestException("This ticket cannot be edited");
     }
 
     return this.prisma.disputeTicket.update({
@@ -691,7 +691,7 @@ export class DisputesService {
             fromStatus: DisputeStatus.APPROVED,
             toStatus: DisputeStatus.IN_PROGRESS,
             changedBy: pmId,
-            note: "بدأ مدير المشروع في معالجة التذكرة",
+            note: "The project manager started processing the ticket",
           },
         },
       },
@@ -707,7 +707,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     const allowedStatuses: DisputeStatus[] = [
@@ -717,7 +717,7 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("لا يمكن حل هذه التذكرة");
+      throw new BadRequestException("This ticket cannot be resolved");
     }
 
     const now = new Date();
@@ -734,7 +734,7 @@ export class DisputesService {
               fromStatus: dispute.status,
               toStatus: DisputeStatus.PENDING_CLIENT,
               changedBy: pmId,
-              note: "مدير المشروع أشار إلى حل المشكلة",
+              note: "The project manager marked the issue as resolved",
             },
           },
         },
@@ -847,7 +847,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     // Get PM stats
@@ -870,11 +870,11 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     if (dispute.status !== DisputeStatus.PENDING_APPROVAL) {
-      throw new BadRequestException("التذكرة ليست في حالة انتظار الموافقة");
+      throw new BadRequestException("The ticket is not awaiting approval");
     }
 
     const now = new Date();
@@ -893,7 +893,7 @@ export class DisputesService {
             fromStatus: DisputeStatus.PENDING_APPROVAL,
             toStatus: DisputeStatus.APPROVED,
             changedBy: adminId,
-            note: dto.notes || "تمت الموافقة على التذكرة",
+            note: dto.notes || "Ticket approved",
           },
         },
       },
@@ -927,11 +927,11 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     if (dispute.status !== DisputeStatus.PENDING_APPROVAL) {
-      throw new BadRequestException("التذكرة ليست في حالة انتظار الموافقة");
+      throw new BadRequestException("The ticket is not awaiting approval");
     }
 
     const now = new Date();
@@ -981,7 +981,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     const allowedStatuses: DisputeStatus[] = [
@@ -991,12 +991,12 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("لا يمكن تغيير مدير المشروع لهذه التذكرة");
+      throw new BadRequestException("The project manager cannot be changed for this ticket");
     }
 
     const now = new Date();
     const oldPmId = dispute.pmId;
-    const oldPmName = dispute.pm?.name || "مدير المشروع السابق";
+    const oldPmName = dispute.pm?.name || "Previous project manager";
 
     // Use transaction for atomic operation
     const result = await this.prisma.$transaction(async (tx) => {
@@ -1018,13 +1018,13 @@ export class DisputesService {
           resolvedBy: adminId,
           resolvedAt: now,
           closedAt: now,
-          resolution: `تم تغيير مدير المشروع. السبب: ${dto.reason}`,
+          resolution: `Project manager changed. Reason: ${dto.reason}`,
           history: {
             create: {
               fromStatus: dispute.status,
               toStatus: DisputeStatus.RESOLVED,
               changedBy: adminId,
-              note: `تم تغيير مدير المشروع من ${oldPmName} إلى ${pmChangeResult.newPm.name}. السبب: ${dto.reason}`,
+              note: `Project manager changed from ${oldPmName} to ${pmChangeResult.newPm.name}. Reason: ${dto.reason}`,
             },
           },
         },
@@ -1059,7 +1059,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     const allowedStatuses: DisputeStatus[] = [
@@ -1070,7 +1070,7 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("لا يمكن إغلاق هذه التذكرة");
+      throw new BadRequestException("This ticket cannot be closed");
     }
 
     const now = new Date();
@@ -1184,7 +1184,7 @@ export class DisputesService {
         : writableDisputeThreads[audience];
 
     if (!allowed.includes(threadType)) {
-      throw new ForbiddenException("لا تملك صلاحية للوصول إلى هذه المحادثة");
+      throw new ForbiddenException("You do not have access to this conversation");
     }
   }
 
@@ -1211,7 +1211,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     return dispute;
@@ -1241,7 +1241,7 @@ export class DisputesService {
 
     if (!dispute) {
       throw new NotFoundException(
-        "التذكرة غير موجودة أو ليس لديك صلاحية للوصول إليها",
+        "Ticket not found or you do not have access to it",
       );
     }
 
@@ -1271,7 +1271,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException("Ticket not found");
     }
 
     return dispute;
@@ -1591,7 +1591,7 @@ export class DisputesService {
               fromStatus: dispute.status as DisputeStatus,
               toStatus: DisputeStatus.ESCALATED,
               changedBy: systemUser.id,
-              note: "تم التصعيد تلقائياً لانتهاء المهلة",
+              note: "Automatically escalated because the deadline expired",
             },
           },
         },

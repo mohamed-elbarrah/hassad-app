@@ -41,7 +41,7 @@ export class AdminNotificationTemplatesService {
     const template = await this.prisma.notificationTemplate.findUnique({
       where: { id },
     });
-    if (!template) throw new NotFoundException("القالب غير موجود");
+    if (!template) throw new NotFoundException("Template not found");
     return template;
   }
 
@@ -53,7 +53,7 @@ export class AdminNotificationTemplatesService {
     const template = await this.prisma.notificationTemplate.findUnique({
       where: { id },
     });
-    if (!template) throw new NotFoundException("القالب غير موجود");
+    if (!template) throw new NotFoundException("Template not found");
 
     const updated = await this.prisma.notificationTemplate.update({
       where: { id },
@@ -89,7 +89,7 @@ export class AdminNotificationTemplatesService {
     const template = await this.prisma.notificationTemplate.findUnique({
       where: { id: templateId },
     });
-    if (!template) throw new NotFoundException("القالب غير موجود");
+    if (!template) throw new NotFoundException("Template not found");
 
     const skip = (page - 1) * limit;
     const where: any = { title: template.title };

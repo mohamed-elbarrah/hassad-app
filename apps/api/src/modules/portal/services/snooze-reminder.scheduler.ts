@@ -179,38 +179,38 @@ export class SnoozeReminderScheduler {
     switch (itemType) {
       case "DELIVERABLE_APPROVAL":
         return {
-          title: "تذكير: تسليم بانتظار مراجعتك",
-          body: `سلّمنا${greeting} عملاً جديداً ينتظر موافقتك. اضغط للمراجعة واتخاذ القرار.`,
+          title: "Reminder: deliverable awaiting your review",
+          body: `A new deliverable${greeting} is awaiting your approval. Open it to review and decide.`,
           actionUrl: `/portal/deliverables/${itemId}`,
         };
       case "INVOICE_PAYMENT":
         return {
-          title: "تذكير: فاتورة بانتظار السداد",
-          body: `فاتورة${greeting} أصبحت مستحقة مجدداً بعد تأجيلك السابق. اضغط لعرض التفاصيل والسداد.`,
+          title: "Reminder: invoice awaiting payment",
+          body: `An invoice${greeting} is due again after your previous snooze. Open it to view details and pay.`,
           actionUrl: `/portal/invoices/${itemId}`,
         };
       case "PROPOSAL_REVIEW":
         return {
-          title: "تذكير: عرض بانتظار مراجعتك",
-          body: `العرض${greeting} الذي أجّلت مراجعته جاهز للاطلاع. اضغط للقراءة واتخاذ القرار.`,
+          title: "Reminder: proposal awaiting your review",
+          body: `The proposal${greeting} you snoozed is ready for review. Open it to read and decide.`,
           actionUrl: `/portal/proposals/${itemId}`,
         };
       case "CONTRACT_SIGN":
         return {
-          title: "تذكير: عقد بانتظار توقيعك",
-          body: `العقد${greeting} بانتظار توقيعك منذ التأجيل. اضغط لاستكمال عملية التوقيع.`,
+          title: "Reminder: contract awaiting your signature",
+          body: `The contract${greeting} has been awaiting your signature since it was snoozed. Open it to sign.`,
           actionUrl: `/portal/contracts/${itemId}`,
         };
       case "STRATEGY_REVIEW":
         return {
-          title: "تذكير: دراسة تسويقية بانتظار مراجعتك",
-          body: `الدراسة التسويقية${greeting} جاهزة لمراجعتك. اضغط للاطلاع والموافقة أو طلب تعديل.`,
+          title: "Reminder: marketing strategy awaiting your review",
+          body: `The marketing strategy${greeting} is ready for review. Open it to approve or request revisions.`,
           actionUrl: `/portal/marketing-strategies/${itemId}`,
         };
       default:
         return {
-          title: "تذكير: إجراء يحتاج تدخلك",
-          body: `لديك${greeting} إجراء كنت قد أجّلته وأصبح متاحاً للمراجعة الآن.`,
+          title: "Reminder: action needs your attention",
+          body: `You have${greeting} a snoozed action that is now available for review.`,
           actionUrl: `/portal/actions`,
         };
     }

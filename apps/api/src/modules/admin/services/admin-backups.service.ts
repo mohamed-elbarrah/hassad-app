@@ -233,7 +233,7 @@ export class AdminBackupsService {
       }
       default:
         throw new BadRequestException(
-          `نوع التصدير "${type}" غير مدعوم. الأنواع المدعومة: users, clients, invoices, audit-log, requests, contracts, tasks`,
+          `Export type "${type}" is not supported. Supported types: users, clients, invoices, audit-log, requests, contracts, tasks`,
         );
     }
   }

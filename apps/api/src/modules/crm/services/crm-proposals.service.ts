@@ -3,6 +3,7 @@ import { ProposalStatus, RequestStatus } from "@hassad/shared";
 import { randomBytes } from "crypto";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { formatMonthDayYear } from "../../../common/presentation/english-date";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { RequestsService } from "../../requests/requests.service";
 import {
@@ -32,11 +33,7 @@ type CrmProposalRow = {
 };
 
 function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(value);
+  return formatMonthDayYear(value);
 }
 
 function mapStatusTone(status: ProposalStatus): CrmProposalRow["statusTone"] {

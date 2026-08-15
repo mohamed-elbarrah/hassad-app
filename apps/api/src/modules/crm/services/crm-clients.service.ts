@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 
 import { RequestStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { formatMonthDayYear } from "../../../common/presentation/english-date";
 
 import { CrmClientsWorkspaceQueryDto } from "../dto/crm-clients.dto";
 
@@ -71,11 +72,7 @@ export class CrmClientsService {
         0,
       ),
       lastSeen: client.user?.lastLoginAt
-        ? new Date(client.user.lastLoginAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
+        ? formatMonthDayYear(new Date(client.user.lastLoginAt))
         : "No portal session",
       stageTone:
         client.status === "STOPPED"

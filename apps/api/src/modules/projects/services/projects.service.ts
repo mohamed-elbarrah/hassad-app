@@ -168,8 +168,8 @@ export class ProjectsService {
             departmentId: marketingDept.id,
             assignedTo: dto.userId,
             createdBy: addedBy,
-            title: "إدارة الحملات الإعلانية",
-            description: `تم إنشاء هذه المهمة تلقائياً عند إسناد المشروع إلى قسم التسويق. يرجى البدء في إعداد الحملات الإعلانية للمشروع: ${project.name}`,
+            title: "Manage advertising campaigns",
+            description: `This task was created automatically when the project was assigned to Marketing. Start preparing advertising campaigns for project: ${project.name}`,
             status: TaskStatus.TODO,
             priority: TaskPriority.NORMAL,
             dueDate: project.endDate,
@@ -187,8 +187,8 @@ export class ProjectsService {
             entityType: "task",
             eventType: "TASK_ASSIGNED",
             userId: dto.userId,
-            title: "تم إسناد مهمة تسويق جديدة",
-            body: `تم إنشاء مهمة "إدارة الحملات الإعلانية" تلقائياً لك في مشروع ${project.name}.`,
+            title: "New marketing task assigned",
+            body: `The task "Manage advertising campaigns" was created automatically for you in project ${project.name}.`,
             metadata: {
               taskId: task.id,
               projectId: project.id,
@@ -290,8 +290,8 @@ export class ProjectsService {
     if (recipientIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: recipientIds,
-        title: "تحديث حالة المشروع",
-        message: `غيّر ${actorName ?? "النظام"} حالة المشروع "${project.name}" إلى ${status}`,
+        title: "Project status updated",
+        message: `${actorName ?? "System"} changed project "${project.name}" status to ${status}`,
         entityId: id,
         entityType: "PROJECT",
         eventType: "PROJECT_STATUS_CHANGED",
@@ -309,8 +309,8 @@ export class ProjectsService {
           entityType: "project",
           eventType: "PROJECT_STATUS_CHANGED",
           userId: clientUser.userId,
-          title: "تحديث حالة مشروعك",
-          body: `تم تغيير حالة مشروع "${project.name}" إلى ${status}`,
+          title: "Your project status updated",
+          body: `Project "${project.name}" status changed to ${status}`,
         })
         .catch(() => undefined);
     }
@@ -468,13 +468,13 @@ export class ProjectsService {
 
     if (!newPm) {
       throw new NotFoundException(
-        "مدير المشروع الجديد غير موجود أو غير نشط أو ليس لديه صلاحية مدير مشروع",
+        "The new project manager was not found, is inactive, or lacks project manager permissions",
       );
     }
 
     // Check if PM is already the same
     if (project.projectManagerId === newPmId) {
-      throw new BadRequestException("المدير المحدد هو بالفعل مدير هذا المشروع");
+      throw new BadRequestException("The selected manager is already this project's manager");
     }
 
     const oldPmId = project.projectManagerId;

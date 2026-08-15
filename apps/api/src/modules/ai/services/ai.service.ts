@@ -28,7 +28,7 @@ export class AiService {
     } catch (err) {
       this.logger.warn("All AI providers failed, using stub fallback", err);
       result = {
-        summary: `تحليل ${dto.analysisType} لـ ${dto.entityType} ${dto.entityId}`,
+        summary: `Analysis of ${dto.analysisType} for ${dto.entityType} ${dto.entityId}`,
         score: Math.round(Math.random() * 10000) / 100,
         recommendations: [],
       };
@@ -49,22 +49,22 @@ export class AiService {
 
   private buildPrompt(dto: AiAnalyzeDto): string {
     const typeLabels: Record<string, string> = {
-      CHURN_PREDICTION: "توقع انسحاب العميل",
-      SENTIMENT_ANALYSIS: "تحليل المشاعر",
-      PERFORMANCE_FORECAST: "توقع الأداء",
-      CONTENT_GENERATION: "توليد محتوى",
-      QUALITY_CHECK: "فحص الجودة",
+      CHURN_PREDICTION: "Client churn prediction",
+      SENTIMENT_ANALYSIS: "Sentiment analysis",
+      PERFORMANCE_FORECAST: "Performance forecast",
+      CONTENT_GENERATION: "Content generation",
+      QUALITY_CHECK: "Quality check",
     };
 
     return (
-      `أنت مساعد تحليلي لمنصة حسد لإدارة الأعمال. قم بـ "${typeLabels[dto.analysisType] || dto.analysisType}" ` +
-      `للكيان "${dto.entityType}" بالمعرف "${dto.entityId}".\n\n` +
-      `الرد يجب أن يكون بصيغة JSON فقط (بدون علامات markdown أو أكواد):\n` +
-      `{\n  "summary": "ملخص التحليل بالعربية",\n  "score": 0-100,\n  "recommendations": ["توصية 1", "توصية 2"]\n}\n\n` +
-      `ملاحظات:\n` +
-      `- score: رقم بين 0 و 100 يمثل الثقة/الدرجة\n` +
-      `- summary: نص وصفي بالعربية\n` +
-      `- recommendations: مصفوفة من النصوص`
+      `You are an analytical assistant for Hassad business management. Perform "${typeLabels[dto.analysisType] || dto.analysisType}" ` +
+      `for entity "${dto.entityType}" with ID "${dto.entityId}".\n\n` +
+      `Respond with JSON only (without markdown or code fences):\n` +
+      `{\n  "summary": "Analysis summary in English",\n  "score": 0-100,\n  "recommendations": ["Recommendation 1", "Recommendation 2"]\n}\n\n` +
+      `Notes:\n` +
+      `- score: a number from 0 to 100 representing confidence or score\n` +
+      `- summary: a descriptive summary in English\n` +
+      `- recommendations: an array of text values`
     );
   }
 
@@ -80,7 +80,7 @@ export class AiService {
         .trim();
       const parsed = JSON.parse(cleaned);
       return {
-        summary: parsed.summary || "تحليل آلي",
+        summary: parsed.summary || "Automated analysis",
         score: Math.min(100, Math.max(0, Number(parsed.score) || 50)),
         recommendations: Array.isArray(parsed.recommendations)
           ? parsed.recommendations

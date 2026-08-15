@@ -110,7 +110,7 @@ export class AiAssistantController {
     } catch (err) {
       this.logger.error("AI assistant error", err);
       sendEvent("error", {
-        message: "حدث خطأ أثناء المعالجة. حاول مرة أخرى.",
+        message: "An error occurred while processing your request. Please try again.",
       });
     } finally {
       res.end();

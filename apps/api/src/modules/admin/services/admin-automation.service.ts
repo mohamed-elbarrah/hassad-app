@@ -17,7 +17,7 @@ export class AdminAutomationService {
       where: { id },
       include: { logs: { orderBy: { executedAt: "desc" }, take: 20 } },
     });
-    if (!rule) throw new NotFoundException("القاعدة غير موجودة");
+    if (!rule) throw new NotFoundException("Automation rule not found");
     return rule;
   }
 
@@ -48,7 +48,7 @@ export class AdminAutomationService {
     },
   ) {
     const rule = await this.prisma.requestAutomationRule.findUnique({ where: { id } });
-    if (!rule) throw new NotFoundException("القاعدة غير موجودة");
+    if (!rule) throw new NotFoundException("Automation rule not found");
     return this.prisma.requestAutomationRule.update({
       where: { id },
       data: {
@@ -61,7 +61,7 @@ export class AdminAutomationService {
 
   async remove(id: string) {
     const rule = await this.prisma.requestAutomationRule.findUnique({ where: { id } });
-    if (!rule) throw new NotFoundException("القاعدة غير موجودة");
+    if (!rule) throw new NotFoundException("Automation rule not found");
     return this.prisma.requestAutomationRule.delete({ where: { id } });
   }
 

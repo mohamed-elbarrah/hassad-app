@@ -124,7 +124,7 @@ export class PmProjectActionsService {
         entityType: "project",
         eventType: "MEETING_SCHEDULED",
         userId: project.client.userId,
-        title: "تم جدولة اجتماع جديد",
+        title: "New meeting scheduled",
         body: dto.title,
       }).catch(() => undefined);
     }
@@ -167,7 +167,7 @@ export class PmProjectActionsService {
         entityType: "project",
         eventType: "MEETING_UPDATED",
         userId: project.client.userId,
-        title: "تحديث اجتماع",
+        title: "Meeting updated",
         body: dto.title ?? updated.title,
       }).catch(() => undefined);
     }
@@ -260,7 +260,7 @@ export class PmProjectActionsService {
         entityType: "project",
         eventType: "PROJECT_FILE_UPLOADED",
         userId: project.client.userId,
-        title: "تم رفع ملف جديد",
+        title: "New file uploaded",
         body: file.originalname,
       }).catch(() => undefined);
     }

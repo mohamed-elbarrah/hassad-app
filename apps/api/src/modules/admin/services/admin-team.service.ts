@@ -38,7 +38,7 @@ export class AdminTeamService {
         user: { select: { id: true, name: true } },
       },
     });
-    if (!workload) throw new NotFoundException("بيانات عبء العمل غير موجودة");
+    if (!workload) throw new NotFoundException("Workload data not found");
     return workload;
   }
 }

@@ -59,13 +59,13 @@ export class AiAssistantService {
       where: { id, userId, isActive: true },
       include: { messages: { orderBy: { createdAt: "asc" } } },
     });
-    if (!conv) throw new NotFoundException("المحادثة غير موجودة");
+    if (!conv) throw new NotFoundException("Conversation not found");
     return conv;
   }
 
   async deleteConversation(id: string, userId: string) {
     const conv = await this.prisma.aiConversation.findFirst({ where: { id, userId } });
-    if (!conv) throw new NotFoundException("المحادثة غير موجودة");
+    if (!conv) throw new NotFoundException("Conversation not found");
     return this.prisma.aiConversation.update({
       where: { id }, data: { isActive: false },
     });
@@ -93,52 +93,52 @@ export class AiAssistantService {
       .map((t) => `- ${t.name}: ${t.description}`)
       .join("\n");
 
-    return `أنت مساعد ذكي لمنصة "حصاد" لإدارة الأعمال. دورك مساعدة المدير بالتقارير والنصائح والتحليلات بناءً على بيانات حقيقية.
+    return `You are the Hassad business operations assistant. Help administrators with reports, recommendations, and analysis based on real data.
 
-المجالات المتاحة: ${areas.join(", ")}
+Available areas: ${areas.join(", ")}
 
-قواعد مهمة:
-1. تحدث باللغة العربية الفصحى
-2. كن موجزاً ومفيداً
-3. إذا طلب المستخدم بيانات أو إحصائيات، استخدم الأدوات المتاحة
-4. لا تخترع أرقاماً أو بيانات
-5. استخدم أداة واحدة فقط لكل رد إن أمكن
-6. بعد الحصول على بيانات الأداة: قدّم إجابة مفهومة ومختصرة للمستخدم. لا تستخدم أداة مكررة.
-7. إذا حصلت على البيانات المطلوبة، أجب مباشرة بدون استخدام أدوات إضافية
+Important rules:
+1. Respond in English.
+2. Be concise and useful.
+3. Use the available tools when the user requests data or statistics.
+4. Never invent numbers or data.
+5. Use one tool per response whenever possible.
+6. After receiving tool data, provide a clear and concise answer. Do not repeat a tool call.
+7. If you have the requested data, answer directly without additional tools.
 
-الأدوات المتاحة:
+Available tools:
 ${toolDescriptions}
 
-صيغة استخدام الأداة (أدرج السطرين فقط بدون نص إضافي):
+Tool-call format (include only these two lines with no extra text):
 <<<TOOL_CALL>>>
-{"name": "اسم_الأداة", "args": {}}
+{"name": "toolName", "args": {}}
 <<<TOOL_CALL>>>
 
-مثال:
+Example:
 <<<TOOL_CALL>>>
 {"name": "getRevenueSummary", "args": {}}
 <<<TOOL_CALL>>>
 
-إذا لم تكن بحاجة لأداة، أجب مباشرة.`;
+If no tool is needed, answer directly.`;
   }
 
   private buildSinglePrompt(
     systemPrompt: string,
     messages: Array<{ role: string; content: string }>,
   ): string {
-    const parts = [`[النظام]\n${systemPrompt}\n`];
+    const parts = [`[System]\n${systemPrompt}\n`];
     for (const m of messages) {
       let label: string;
       if (m.role === "user") {
-        label = "المستخدم";
+        label = "User";
       } else if (m.role === "system") {
-        label = "نتيجة الأداة";
+        label = "Tool result";
       } else {
-        label = "المساعد";
+        label = "Assistant";
       }
       parts.push(`[${label}]\n${m.content}`);
     }
-    parts.push("[المساعد]\n");
+    parts.push("[Assistant]\n");
     return parts.join("\n");
   }
 
@@ -168,7 +168,7 @@ ${toolDescriptions}
       const provider = this.providerRegistry.getPrimary();
       if (!provider) {
         this.logger.warn("No AI provider available");
-        const errMsg = "عذراً، لا يوجد مزود ذكاء اصطناعي مفعل حالياً.";
+        const errMsg = "Sorry, no AI provider is currently active.";
         messages.push({ role: "assistant", content: errMsg });
         break;
       }
@@ -186,7 +186,7 @@ ${toolDescriptions}
         });
       } catch (err) {
         this.logger.error("AI generation failed", err);
-        const errMsg = "عذراً، حدث خطأ في الاتصال بمزود الذكاء الاصطناعي.";
+        const errMsg = "Sorry, an error occurred while connecting to the AI provider.";
         messages.push({ role: "assistant", content: errMsg });
         break;
       }
@@ -238,13 +238,13 @@ ${toolDescriptions}
       if (results.length === 0 && !cleanText) {
         messages.push({
           role: "assistant",
-          content: "تم الحصول على جميع البيانات المطلوبة.",
+          content: "All requested data has been retrieved.",
         });
         break;
       }
 
       if (results.length > 0) {
-        const resultSection = `[بيانات الأدوات]\n${results.join("\n")}`;
+        const resultSection = `[Tool data]\n${results.join("\n")}`;
         messages.push({ role: "system", content: resultSection });
         for (const r of results) {
           await this.saveMessage(conversationId, AiMessageRole.SYSTEM, r);
@@ -260,7 +260,7 @@ ${toolDescriptions}
       }
     }
 
-    const final = messages[messages.length - 1]?.content || "عذراً، لم أتمكن من معالجة طلبك.";
+    const final = messages[messages.length - 1]?.content || "Sorry, I could not process your request.";
     await this.saveMessage(conversationId, AiMessageRole.ASSISTANT, final, [
       ...toolCalls.map((tc) => ({
         name: tc.name,

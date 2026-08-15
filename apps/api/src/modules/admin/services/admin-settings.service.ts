@@ -42,14 +42,14 @@ export class AdminSettingsService {
   /** Default settings to seed if none exist */
   async ensureDefaults() {
     const defaults: Record<string, any> = {
-      companyName: "حصاد",
+      companyName: "Hassad",
       companyNameEn: "Hassad",
       supportEmail: "support@hassad.sa",
       supportPhone: "+966500000000",
       defaultCurrency: "SAR",
       timezone: "Asia/Riyadh",
       dateFormat: "DD/MM/YYYY",
-      language: "ar",
+      language: "en",
       invoicePrefix: "INV",
       lowBalanceAlert: 5000,
       autoArchiveDays: 90,

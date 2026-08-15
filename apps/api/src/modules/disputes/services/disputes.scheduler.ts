@@ -62,7 +62,7 @@ export class DisputesScheduler {
     });
 
     for (const dispute of pastDeadline) {
-      await this.escalateDispute(dispute.id, dispute.pmId, "انتهاء مهلة الحل");
+      await this.escalateDispute(dispute.id, dispute.pmId, "Resolution deadline expired");
     }
 
     this.logger.log(`Escalated ${pastDeadline.length} overdue disputes`);
@@ -165,7 +165,7 @@ export class DisputesScheduler {
       await this.escalateDispute(
         dispute.id,
         dispute.pmId,
-        "تصعيد تلقائي - عدم استجابة العميل",
+        "Automatic escalation - client did not respond",
       );
     }
 
@@ -211,7 +211,7 @@ export class DisputesScheduler {
         ticketId: dispute.id,
         toStatus: DisputeStatus.PENDING_CLIENT,
         changedBy: systemUserId,
-        note: `تم إرسال التذكير ${reminderNumber} للعميل`,
+        note: `Reminder ${reminderNumber} sent to the client`,
       },
     });
   }

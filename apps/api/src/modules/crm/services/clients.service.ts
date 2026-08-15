@@ -63,7 +63,7 @@ export class ClientsService {
       const nameFallback =
         dto.contactName ||
         (dto.email ? dto.email.split("@")[0] : null) ||
-        "عميل جديد";
+        "New client";
 
       const result = await this.canonicalClientService.upsertCanonicalClient(
         tx,
