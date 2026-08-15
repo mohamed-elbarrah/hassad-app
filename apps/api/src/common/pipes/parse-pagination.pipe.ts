@@ -1,4 +1,5 @@
-import { PipeTransform, Injectable, BadRequestException } from "@nestjs/common";
+import { PipeTransform, Injectable } from "@nestjs/common";
+import { ApiException } from "../errors/api-error";
 
 export interface PaginationParams {
   page: number;
@@ -20,11 +21,13 @@ export class ParsePaginationPipe implements PipeTransform {
     const limit = Number(value?.limit ?? 20);
 
     if (!Number.isInteger(page) || page < 1) {
-      throw new BadRequestException("page must be a positive integer");
+      throw new ApiException("PAGINATION_INVALID_PAGE", "page must be a positive integer", 400);
     }
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "PAGINATION_INVALID_LIMIT",
         "limit must be an integer between 1 and 100",
+        400,
       );
     }
 

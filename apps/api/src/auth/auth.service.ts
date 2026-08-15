@@ -18,6 +18,7 @@ import {
 } from "@hassad/shared";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
+import { ApiException } from "../common/errors/api-error";
 import { JwtPayload } from "../common/decorators/current-user.decorator";
 import { CanonicalClientService } from "../modules/requests/canonical-client.service";
 import { RegisterClientDto } from "./dto/register-client.dto";
@@ -57,7 +58,7 @@ export class AuthService {
 
     // Use generic message to avoid user enumeration
     if (!user) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new ApiException("AUTH_INVALID_CREDENTIALS", "Invalid credentials", 401);
     }
 
     // ── Lockout check ──────────────────────────────────────────────────
@@ -73,7 +74,7 @@ export class AuthService {
     // ── Suspension check ───────────────────────────────────────────────
     if (user.suspendedAt) {
       if (!user.suspendedUntil || user.suspendedUntil > new Date()) {
-        throw new UnauthorizedException("User account is suspended.");
+        throw new ApiException("AUTH_ACCOUNT_SUSPENDED", "User account is suspended.", 401);
       }
       // Suspension period has passed — auto-clear
       await this.prisma.user.update({
@@ -88,13 +89,15 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException("User account is inactive");
+      throw new ApiException("AUTH_ACCOUNT_INACTIVE", "User account is inactive", 401);
     }
 
     // OAuth users don't have passwordHash
     if (!user.passwordHash) {
-      throw new UnauthorizedException(
+      throw new ApiException(
+        "AUTH_SOCIAL_LOGIN_REQUIRED",
         "This account uses social login. Please sign in with your provider.",
+        401,
       );
     }
 
@@ -159,7 +162,7 @@ export class AuthService {
         ]);
       }
 
-      throw new UnauthorizedException("Invalid credentials");
+      throw new ApiException("AUTH_INVALID_CREDENTIALS", "Invalid credentials", 401);
     }
 
     // ── Successful login: reset lockout state ──────────────────────────
@@ -289,7 +292,7 @@ export class AuthService {
         },
       },
     });
-    if (!user) throw new UnauthorizedException();
+    if (!user) throw new ApiException("AUTH_UNAUTHORIZED", "Authentication required", 401);
 
     let clientId: string | undefined;
     let intakeCompleted = false;
@@ -504,7 +507,7 @@ export class AuthService {
       !user.resetTokenExpiresAt ||
       user.resetTokenExpiresAt < new Date()
     ) {
-      throw new UnauthorizedException("Invalid or expired reset token");
+      throw new ApiException("AUTH_INVALID_RESET_TOKEN", "Invalid or expired reset token", 401);
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);

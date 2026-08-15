@@ -1,10 +1,10 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import {
   CreateInvoiceDto,
   CreateTicketDto,
@@ -256,8 +256,11 @@ export class FinanceService {
     });
     if (!contract) throw new NotFoundException("Contract not found");
     if (params.amount <= 0) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "INVOICE_AMOUNT_INVALID",
         "Scheduled invoice amount must be greater than zero",
+        400,
+        { amount: params.amount },
       );
     }
 

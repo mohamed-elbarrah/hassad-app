@@ -12,12 +12,12 @@ import {
   UploadedFile,
   UploadedFiles,
   NotFoundException,
-  ForbiddenException,
   Logger,
   ParseUUIDPipe,
 } from "@nestjs/common";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { PortalService } from "../services/portal.service";
+import { ApiException } from "../../../common/errors/api-error";
 import {
   CreateDeliverableDto,
   CreateRevisionDto,
@@ -258,7 +258,7 @@ export class PortalController {
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new ForbiddenException("File is required");
+      throw new ApiException("FILE_REQUIRED", "File is required", 400);
     }
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.DELIVERABLE,
@@ -278,7 +278,7 @@ export class PortalController {
   async findDeliverable(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     }
     return this.portalService.findDeliverable(id);
   }
@@ -288,7 +288,7 @@ export class PortalController {
   async approveDeliverable(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     }
     return this.portalService.approveDeliverable(id, user.id);
   }
@@ -298,7 +298,7 @@ export class PortalController {
   async rejectDeliverable(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     }
     return this.portalService.rejectDeliverable(id);
   }
@@ -312,7 +312,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     }
     return this.portalService.createRevision(id, user.id, dto);
   }
@@ -322,7 +322,7 @@ export class PortalController {
   async getRevisions(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     }
     return this.portalService.getRevisions(id);
   }
@@ -338,7 +338,7 @@ export class PortalController {
       clientId &&
       !(await this.verifyClientOwnsProject(clientId, projectId))
     ) {
-      throw new ForbiddenException();
+      throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     }
     return this.portalService.findDeliverablesByProject(projectId);
   }
@@ -351,7 +351,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && clientId !== clientIdFromUrl) {
-      throw new ForbiddenException();
+      throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     }
     return this.portalService.findDeliverablesByClient(clientIdFromUrl);
   }
@@ -365,11 +365,11 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("Client not found");
+      throw new ApiException("CLIENT_NOT_FOUND", "Client not found", 404);
     }
 
     if (!files || files.length === 0) {
-      throw new ForbiddenException("No files were submitted");
+      throw new ApiException("FILES_REQUIRED", "No files were submitted", 400);
     }
 
     const uploadedFiles: {
@@ -421,7 +421,7 @@ export class PortalController {
   async getMyIntakeForm(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("Client not found");
+      throw new ApiException("CLIENT_NOT_FOUND", "Client not found", 404);
     }
     return this.portalService.getIntakeForm(clientId);
   }
@@ -434,7 +434,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("Client not found");
+      throw new ApiException("CLIENT_NOT_FOUND", "Client not found", 404);
     }
 
     return this.portalService.createIntakeForm(
@@ -452,7 +452,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("Client not found");
+      throw new ApiException("CLIENT_NOT_FOUND", "Client not found", 404);
     }
 
     return this.portalService.saveDraft(clientId, dto);
@@ -469,7 +469,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && clientId !== clientIdFromUrl) {
-      throw new ForbiddenException();
+      throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     }
 
     const uploadedFileKeys: {
@@ -512,7 +512,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && clientId !== clientIdFromUrl) {
-      throw new ForbiddenException();
+      throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     }
     return this.portalService.getIntakeForm(clientIdFromUrl);
   }
@@ -557,7 +557,7 @@ export class PortalController {
     @Param("id", ParseUUIDPipe) projectId: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     // Service throws NotFoundException for not-found / not-owned — let it
     // bubble so the client sees a real 404, not a misleading []. (Audit #9)
     return this.portalService.getProjectPeriods(clientId, projectId);
@@ -740,7 +740,7 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     return this.portalService.getProjectReviewDetail(id, clientId);
   }
 
@@ -748,7 +748,7 @@ export class PortalController {
   @RequirePermissions("portal.approve_deliverables")
   async approveProject(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     return this.portalService.approveProject(id, clientId);
   }
 
@@ -760,7 +760,7 @@ export class PortalController {
     @Body() dto: RequestProjectRevisionDto,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     return this.portalService.requestProjectRevision(id, clientId, dto);
   }
 
@@ -779,7 +779,7 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     return this.portalService.getProjectDetail(clientId, id);
   }
 
@@ -791,7 +791,7 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     // Defense in depth: validate the URL projectId matches the period's
     // owning project. The service already checks client ownership via the
     // period, but the URL contract should be enforced too. (Audit issue #3)
@@ -807,7 +807,7 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     // Defense in depth: validate the URL projectId matches the file's
     // owning project. (Audit issue #3)
     await this.verifyFileBelongsToProject(clientId, projectId, fileId);
@@ -821,7 +821,7 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     return this.portalService.getInvoiceDetail(clientId, id);
   }
 
@@ -839,7 +839,7 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     return this.portalService.resolveDeliverableForReview(clientId, id);
   }
 
@@ -860,7 +860,7 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     return this.portalService.getClientStrategyOne(id, clientId);
   }
 
@@ -872,12 +872,12 @@ export class PortalController {
     @Body() dto: ClientApproveStrategyDto,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
       select: { userId: true },
     });
-    if (!client?.userId) throw new ForbiddenException();
+    if (!client?.userId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     return this.portalService.approveStrategy(id, client.userId);
   }
 
@@ -889,12 +889,12 @@ export class PortalController {
     @Body() dto: StrategyRevisionDto,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
       select: { userId: true },
     });
-    if (!client?.userId) throw new ForbiddenException();
+    if (!client?.userId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
     return this.portalService.requestStrategyRevision(
       id,
       client.userId,
@@ -906,7 +906,7 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async downloadStrategy(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("PORTAL_ACCESS_DENIED", "You do not have access to this portal resource", 403);
 
     // Verify client owns this strategy
     const strategy = await this.prisma.marketingStrategy.findUnique({

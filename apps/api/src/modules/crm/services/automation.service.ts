@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { AutomationStatus } from "@hassad/shared";
 import {
   CreateAutomationRuleDto,
@@ -47,7 +48,7 @@ export class AutomationService {
       );
     }
     if (!rule.isActive) {
-      throw new BadRequestException("Automation rule is inactive");
+      throw new ApiException("AUTOMATION_INACTIVE", "Automation rule is inactive", 400);
     }
 
     const request = await this.prisma.request.findUnique({ where: { id: requestId } });

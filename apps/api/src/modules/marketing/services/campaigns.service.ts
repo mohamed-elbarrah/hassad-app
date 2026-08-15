@@ -5,6 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
   CampaignStatus,
@@ -46,15 +47,15 @@ export class CampaignsService {
     }
 
     if (task.department?.name !== "MARKETING") {
-      throw new BadRequestException("Task must be a marketing task");
+      throw new ApiException("CAMPAIGN_MARKETING_TASK_REQUIRED", "Task must be a marketing task", 400);
     }
 
     if (!task.assignedTo) {
-      throw new BadRequestException("The task must be assigned to a marketer first");
+      throw new ApiException("CAMPAIGN_MARKETER_REQUIRED", "The task must be assigned to a marketer first", 400);
     }
 
     if (!task.project?.clientId) {
-      throw new BadRequestException("Task is not linked to a project or client");
+      throw new ApiException("CAMPAIGN_CONTEXT_MISSING", "Task is not linked to a project or client", 400);
     }
 
     // Enforce: marketing strategy must be APPROVED before creating campaigns
@@ -66,8 +67,10 @@ export class CampaignsService {
     });
 
     if (!approvedStrategy) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "CAMPAIGN_STRATEGY_NOT_APPROVED",
         "The marketing strategy must be approved before campaigns can be created",
+        400,
       );
     }
 
@@ -164,14 +167,14 @@ export class CampaignsService {
       campaign.status === CampaignStatus.STOPPED ||
       campaign.status === CampaignStatus.COMPLETED
     ) {
-      throw new BadRequestException("Completed or stopped campaigns cannot be edited");
+      throw new ApiException("CAMPAIGN_NOT_EDITABLE", "Completed or stopped campaigns cannot be edited", 400);
     }
 
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.platform !== undefined) {
       if (campaign.status !== CampaignStatus.PLANNING) {
-        throw new BadRequestException("The campaign platform cannot be changed after activation");
+        throw new ApiException("CAMPAIGN_PLATFORM_LOCKED", "The campaign platform cannot be changed after activation", 400);
       }
       data.platform = dto.platform;
     }
@@ -281,7 +284,7 @@ export class CampaignsService {
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException("Archived campaign data cannot be updated");
+      throw new ApiException("CAMPAIGN_ARCHIVED", "Archived campaign data cannot be updated", 400);
     }
 
     const latest: any = campaign.kpiSnapshots[0] ?? {};
@@ -414,7 +417,7 @@ export class CampaignsService {
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException("The status of an archived campaign cannot be changed");
+      throw new ApiException("CAMPAIGN_ARCHIVED", "The status of an archived campaign cannot be changed", 400);
     }
 
     this.validateStatusTransition(
@@ -530,7 +533,7 @@ export class CampaignsService {
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException("Campaign is already archived");
+      throw new ApiException("CAMPAIGN_ALREADY_ARCHIVED", "Campaign is already archived", 400);
     }
 
     return this.prisma.campaign.update({
@@ -549,7 +552,7 @@ export class CampaignsService {
     }
 
     if (!campaign.isArchived) {
-      throw new BadRequestException("Campaign is not archived");
+      throw new ApiException("CAMPAIGN_NOT_ARCHIVED", "Campaign is not archived", 400);
     }
 
     return this.prisma.campaign.update({
@@ -655,8 +658,11 @@ export class CampaignsService {
     };
 
     if (!allowed[current].includes(next)) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "CAMPAIGN_INVALID_STATUS_TRANSITION",
         `Cannot transition from ${current} to ${next}`,
+        400,
+        { currentStatus: current, requestedStatus: next },
       );
     }
   }

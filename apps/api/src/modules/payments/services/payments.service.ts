@@ -1,11 +1,11 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
   OnModuleInit,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
 import {
@@ -88,8 +88,10 @@ export class PaymentsService implements OnModuleInit {
     });
 
     if (!gateway || !gateway.isActive) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "PAYMENT_GATEWAY_UNAVAILABLE",
         `Payment gateway ${gatewayName} is not available`,
+        400,
       );
     }
 
@@ -107,7 +109,7 @@ export class PaymentsService implements OnModuleInit {
       case "bank_transfer":
         return new BankTransferProvider();
       default:
-        throw new BadRequestException(`Unsupported gateway: ${gatewayName}`);
+        throw new ApiException("PAYMENT_GATEWAY_UNSUPPORTED", `Unsupported gateway: ${gatewayName}`, 400);
     }
   }
 
@@ -120,7 +122,7 @@ export class PaymentsService implements OnModuleInit {
       where: { id: dto.invoiceId },
     });
 
-    if (!invoice) throw new NotFoundException("Invoice not found");
+    if (!invoice) throw new ApiException("INVOICE_NOT_FOUND", "Invoice not found", 404);
 
     const provider = await this.getProvider("stripe");
     const gateway = await this.prisma.paymentGateway.findUnique({
@@ -128,7 +130,7 @@ export class PaymentsService implements OnModuleInit {
     });
 
     if (!provider.createElementPaymentIntent) {
-      throw new BadRequestException("Gateway does not support element payment");
+      throw new ApiException("PAYMENT_METHOD_UNSUPPORTED", "Gateway does not support element payment", 400);
     }
 
     const intent = await provider.createElementPaymentIntent({
@@ -178,7 +180,7 @@ export class PaymentsService implements OnModuleInit {
       where: { id: dto.invoiceId },
     });
 
-    if (!invoice) throw new NotFoundException("Invoice not found");
+    if (!invoice) throw new ApiException("INVOICE_NOT_FOUND", "Invoice not found", 404);
 
     const provider = await this.getProvider(dto.gatewayName);
     const gateway = await this.prisma.paymentGateway.findUnique({
@@ -229,9 +231,9 @@ export class PaymentsService implements OnModuleInit {
     const log = await this.prisma.webhookLog.findUnique({
       where: { id: webhookLogId },
     });
-    if (!log) throw new NotFoundException("Webhook log not found");
+    if (!log) throw new ApiException("WEBHOOK_LOG_NOT_FOUND", "Webhook log not found", 404);
     if (log.processed)
-      throw new BadRequestException("Webhook already processed");
+      throw new ApiException("WEBHOOK_ALREADY_PROCESSED", "Webhook already processed", 409);
 
     const provider = await this.getProvider(log.provider);
     const event =

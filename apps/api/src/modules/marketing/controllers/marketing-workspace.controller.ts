@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuar
 import { FileInterceptor } from "@nestjs/platform-express";
 import { CampaignStatus, TaskStatus } from "@hassad/shared";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { ApiException } from "../../../common/errors/api-error";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -75,7 +76,7 @@ export class MarketingWorkspaceController {
   @RequirePermissions("marketing.create")
   @UseInterceptors(FileInterceptor("file"))
   async createStrategy(@CurrentUser("id") userId: string, @Param("taskId") taskId: string, @UploadedFile() file?: Express.Multer.File) {
-    if (!file || file.mimetype !== "application/pdf") throw new BadRequestException("A PDF strategy file is required");
+    if (!file || file.mimetype !== "application/pdf") throw new ApiException("STRATEGY_PDF_REQUIRED", "A PDF strategy file is required", 400);
     const upload = await this.storage.upload({ category: StorageCategory.MARKETING_STRATEGY, entityId: taskId, file: { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype, size: file.size } });
     return this.strategies.create(taskId, { key: upload.key, originalName: file.originalname, size: file.size, mimeType: file.mimetype }, userId);
   }
@@ -88,7 +89,7 @@ export class MarketingWorkspaceController {
   @RequirePermissions("marketing.update")
   @UseInterceptors(FileInterceptor("file"))
   async resubmitStrategy(@CurrentUser("id") userId: string, @Param("id") id: string, @UploadedFile() file?: Express.Multer.File) {
-    if (!file || file.mimetype !== "application/pdf") throw new BadRequestException("A PDF strategy file is required");
+    if (!file || file.mimetype !== "application/pdf") throw new ApiException("STRATEGY_PDF_REQUIRED", "A PDF strategy file is required", 400);
     const upload = await this.storage.upload({ category: StorageCategory.MARKETING_STRATEGY, entityId: id, file: { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype, size: file.size } });
     return this.workspace.resubmitStrategy(userId, id, { key: upload.key, originalName: file.originalname, size: file.size, mimeType: file.mimetype });
   }

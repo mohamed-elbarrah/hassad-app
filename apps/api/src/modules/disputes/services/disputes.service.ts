@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import {
   Prisma,
   DisputeStatus,
@@ -84,7 +85,7 @@ export class DisputesService {
     }
 
     if (!project.projectManagerId) {
-      throw new BadRequestException("Project has no assigned manager");
+      throw new ApiException("DISPUTE_PROJECT_MANAGER_MISSING", "Project has no assigned manager", 400);
     }
 
     // Check for existing active dispute for this project
@@ -105,7 +106,7 @@ export class DisputesService {
     });
 
     if (existingDispute) {
-      throw new BadRequestException("An open dispute ticket already exists for this project");
+      throw new ApiException("DISPUTE_ALREADY_OPEN", "An open dispute ticket already exists for this project", 409);
     }
 
     // Get next ticket number
@@ -396,7 +397,7 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("Messages cannot be added to this ticket");
+      throw new ApiException("DISPUTE_MESSAGES_NOT_ALLOWED", "Messages cannot be added to this ticket", 400);
     }
 
     this.assertThreadAccess(audience, threadType, "write");
@@ -460,7 +461,7 @@ export class DisputesService {
     }
 
     if (dispute.status !== DisputeStatus.PENDING_CLIENT) {
-      throw new BadRequestException("The ticket is not awaiting client confirmation");
+      throw new ApiException("DISPUTE_NOT_AWAITING_CONFIRMATION", "The ticket is not awaiting client confirmation", 400);
     }
 
     const now = new Date();
@@ -679,7 +680,7 @@ export class DisputesService {
     }
 
     if (dispute.status !== DisputeStatus.APPROVED) {
-      throw new BadRequestException("This ticket cannot be edited");
+      throw new ApiException("DISPUTE_NOT_EDITABLE", "This ticket cannot be edited", 400);
     }
 
     return this.prisma.disputeTicket.update({
@@ -717,7 +718,7 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("This ticket cannot be resolved");
+      throw new ApiException("DISPUTE_NOT_RESOLVABLE", "This ticket cannot be resolved", 400);
     }
 
     const now = new Date();
@@ -874,7 +875,7 @@ export class DisputesService {
     }
 
     if (dispute.status !== DisputeStatus.PENDING_APPROVAL) {
-      throw new BadRequestException("The ticket is not awaiting approval");
+      throw new ApiException("DISPUTE_NOT_AWAITING_APPROVAL", "The ticket is not awaiting approval", 400);
     }
 
     const now = new Date();
@@ -931,7 +932,7 @@ export class DisputesService {
     }
 
     if (dispute.status !== DisputeStatus.PENDING_APPROVAL) {
-      throw new BadRequestException("The ticket is not awaiting approval");
+      throw new ApiException("DISPUTE_NOT_AWAITING_APPROVAL", "The ticket is not awaiting approval", 400);
     }
 
     const now = new Date();
@@ -991,7 +992,7 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("The project manager cannot be changed for this ticket");
+      throw new ApiException("DISPUTE_MANAGER_CHANGE_NOT_ALLOWED", "The project manager cannot be changed for this ticket", 400);
     }
 
     const now = new Date();
@@ -1070,7 +1071,7 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("This ticket cannot be closed");
+      throw new ApiException("DISPUTE_NOT_CLOSABLE", "This ticket cannot be closed", 400);
     }
 
     const now = new Date();
@@ -1184,7 +1185,7 @@ export class DisputesService {
         : writableDisputeThreads[audience];
 
     if (!allowed.includes(threadType)) {
-      throw new ForbiddenException("You do not have access to this conversation");
+      throw new ApiException("DISPUTE_CONVERSATION_FORBIDDEN", "You do not have access to this conversation", 403);
     }
   }
 

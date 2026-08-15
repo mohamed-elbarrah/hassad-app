@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { CampaignPlatform, CampaignStatus, MarketingStrategyStatus, TaskDepartment, TaskStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { TasksService } from "../../tasks/services/tasks.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
@@ -91,7 +92,7 @@ export class MarketingWorkspaceService {
 
   async changeTaskStatus(userId: string, taskId: string, status: TaskStatus) {
     await this.ownedTask(userId, taskId);
-    if (status === TaskStatus.TODO || status === TaskStatus.DONE) throw new BadRequestException("Marketing users cannot make this transition");
+    if (status === TaskStatus.TODO || status === TaskStatus.DONE) throw new ApiException("MARKETING_TASK_TRANSITION_NOT_ALLOWED", "Marketing users cannot make this transition", 400);
     return this.tasks.changeStatus(taskId, userId, status);
   }
 
@@ -112,7 +113,7 @@ export class MarketingWorkspaceService {
 
   async uploadTaskFile(userId: string, taskId: string, file: Express.Multer.File, purpose?: string) {
     await this.ownedTask(userId, taskId);
-    if (!file) throw new BadRequestException("Task file is required");
+    if (!file) throw new ApiException("TASK_FILE_REQUIRED", "Task file is required", 400);
     const upload = await this.storage.upload({ category: StorageCategory.TASK_FILE, entityId: taskId, file: { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype, size: file.size } });
     return this.tasks.addFile(taskId, userId, { key: upload.key, originalName: file.originalname, mimeType: file.mimetype, size: file.size, purpose });
   }

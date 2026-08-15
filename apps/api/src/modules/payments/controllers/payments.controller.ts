@@ -10,7 +10,6 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { PaymentsService } from "../services/payments.service";
@@ -19,6 +18,7 @@ import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { StorageService } from "../../../common/storage/storage.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { UpdateGatewayDto } from "../dto/update-gateway.dto";
 import { CreateBankAccountDto } from "../dto/create-bank-account.dto";
@@ -73,8 +73,8 @@ export class PaymentsController {
     @UploadedFile() file: Express.Multer.File,
     @Body("paymentId") paymentId: string,
   ) {
-    if (!file) throw new BadRequestException("Receipt image is required");
-    if (!paymentId) throw new BadRequestException("paymentId is required");
+    if (!file) throw new ApiException("RECEIPT_IMAGE_REQUIRED", "Receipt image is required", 400);
+    if (!paymentId) throw new ApiException("PAYMENT_ID_REQUIRED", "paymentId is required", 400);
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.RECEIPT,
       entityId: paymentId,

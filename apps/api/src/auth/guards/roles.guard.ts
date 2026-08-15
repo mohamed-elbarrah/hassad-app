@@ -2,10 +2,10 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { ROLES_KEY } from "../../common/decorators/roles.decorator";
+import { ApiException } from "../../common/errors/api-error";
 import { UserRole } from "@hassad/shared";
 import type { Request } from "express";
 import { JwtPayload } from "../../common/decorators/current-user.decorator";
@@ -26,14 +26,17 @@ export class RolesGuard implements CanActivate {
     const user = request.user as JwtPayload | undefined;
 
     if (!user || !user.role) {
-      throw new ForbiddenException("User role is missing");
+      throw new ApiException("AUTH_ROLE_MISSING", "User role is missing", 403);
     }
 
     const hasRole = () => requiredRoles.includes(user.role);
 
     if (!hasRole()) {
-      throw new ForbiddenException(
+      throw new ApiException(
+        "AUTH_ROLE_FORBIDDEN",
         `Access restricted to roles: ${requiredRoles.join(", ")}`,
+        403,
+        { requiredRoles },
       );
     }
 

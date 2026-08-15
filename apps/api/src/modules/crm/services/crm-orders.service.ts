@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { PipelineStage, RequestStatus } from "@prisma/client";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 
 const orderDetailClientSelect = {
   id: true,
@@ -266,7 +267,7 @@ export class CrmOrdersService {
   async createNote(id: string, authorId: string, content: string) {
     const trimmed = content.trim();
     if (!trimmed) {
-      throw new BadRequestException("Note content is required");
+      throw new ApiException("ORDER_NOTE_REQUIRED", "Note content is required", 400);
     }
 
     const request = await this.prisma.request.findUnique({
@@ -317,7 +318,7 @@ export class CrmOrdersService {
     const currentStage = request.crmStage ?? 'NEW';
 
     if (currentStage === toStage) {
-      throw new BadRequestException('Order is already in this stage');
+      throw new ApiException("ORDER_STAGE_UNCHANGED", "Order is already in this stage", 400);
     }
 
     const content = note?.trim();

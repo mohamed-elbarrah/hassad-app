@@ -7,7 +7,6 @@ import {
   ParseEnumPipe,
   UseGuards,
   Query,
-  ForbiddenException,
   NotFoundException,
   UseInterceptors,
   UploadedFiles,
@@ -16,6 +15,7 @@ import { FilesInterceptor } from "@nestjs/platform-express";
 import { DisputeThreadType } from "@prisma/client";
 import { DisputesService } from "../services/disputes.service";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import {
@@ -51,7 +51,7 @@ export class PortalDisputesController {
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("DISPUTE_ACCESS_DENIED", "You do not have access to this dispute", 403);
     return this.disputesService.createDispute(clientId, user.id, dto, files);
   }
 
@@ -103,7 +103,7 @@ export class PortalDisputesController {
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("DISPUTE_ACCESS_DENIED", "You do not have access to this dispute", 403);
     return this.disputesService.addClientThreadMessage(
       clientId,
       id,
@@ -126,7 +126,7 @@ export class PortalDisputesController {
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("DISPUTE_ACCESS_DENIED", "You do not have access to this dispute", 403);
     return this.disputesService.addClientThreadMessage(
       clientId,
       id,
@@ -144,7 +144,7 @@ export class PortalDisputesController {
     @Body() dto: ClientConfirmDto,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId) throw new ApiException("DISPUTE_ACCESS_DENIED", "You do not have access to this dispute", 403);
     return this.disputesService.clientConfirmResolution(clientId, user.id, id, dto);
   }
 }

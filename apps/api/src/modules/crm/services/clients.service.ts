@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import {
   CreateClientDto,
   UpdateClientDto,
@@ -33,14 +34,14 @@ export class ClientsService {
           where: { email: dto.email.trim().toLowerCase() },
         });
         if (existingUser) {
-          throw new ConflictException("A user with this email already exists");
+          throw new ApiException("CLIENT_EMAIL_ALREADY_EXISTS", "A user with this email already exists", 409);
         }
 
         const role = await tx.role.findFirst({
           where: { name: "CLIENT" },
         });
         if (!role) {
-          throw new BadRequestException("CLIENT role not found");
+          throw new ApiException("CLIENT_ROLE_NOT_FOUND", "CLIENT role not found", 500);
         }
 
         const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -205,8 +206,10 @@ export class ClientsService {
   }
 
   async handover(id: string, userId: string, dto: HandoverClientDto) {
-    throw new BadRequestException(
+    throw new ApiException(
+      "CLIENT_HANDOVER_DISABLED",
       "Direct client handover is disabled. Create projects from signed contracts so the request workflow remains canonical.",
+      400,
     );
   }
 }

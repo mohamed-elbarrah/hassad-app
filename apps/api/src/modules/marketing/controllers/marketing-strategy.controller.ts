@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { MarketingStrategyService } from "../services/marketing-strategy.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import {
@@ -44,11 +45,11 @@ export class TaskMarketingStrategyController {
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new BadRequestException("A PDF file is required");
+      throw new ApiException("STRATEGY_PDF_REQUIRED", "A PDF file is required", 400);
     }
 
     if (file.mimetype !== "application/pdf") {
-      throw new BadRequestException("File must be a PDF");
+      throw new ApiException("STRATEGY_PDF_INVALID", "File must be a PDF", 400);
     }
 
     const uploadResult = await this.storageService.upload({
@@ -127,11 +128,11 @@ export class MarketingStrategiesController {
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new BadRequestException("A PDF file is required");
+      throw new ApiException("STRATEGY_PDF_REQUIRED", "A PDF file is required", 400);
     }
 
     if (file.mimetype !== "application/pdf") {
-      throw new BadRequestException("File must be a PDF");
+      throw new ApiException("STRATEGY_PDF_INVALID", "File must be a PDF", 400);
     }
 
     const uploadResult = await this.storageService.upload({

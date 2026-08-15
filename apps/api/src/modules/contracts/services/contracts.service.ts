@@ -7,6 +7,7 @@ import {
 import { OnEvent, EventEmitter2 } from "@nestjs/event-emitter";
 import { randomUUID } from "crypto";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FinanceService } from "../../finance/services/finance.service";
 import {
@@ -410,8 +411,11 @@ export class ContractsService {
     if (!contract) throw new NotFoundException("Contract not found");
     if (contract.status === ContractStatus.ACTIVE) return contract;
     if (contract.status !== ContractStatus.SIGNED) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "CONTRACT_NOT_SIGNED",
         `Contract must be SIGNED to activate (current: ${contract.status})`,
+        400,
+        { currentStatus: contract.status, requiredStatus: ContractStatus.SIGNED },
       );
     }
 
@@ -959,7 +963,11 @@ export class ContractsService {
     }
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException("This contract cannot be signed in its current state");
+      throw new ApiException(
+        "CONTRACT_NOT_SIGNABLE",
+        "This contract cannot be signed in its current state",
+        400,
+      );
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
@@ -1119,7 +1127,11 @@ export class ContractsService {
     const contract = await this.findOne(id);
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException("This contract cannot be signed in its current state");
+      throw new ApiException(
+        "CONTRACT_NOT_SIGNABLE",
+        "This contract cannot be signed in its current state",
+        400,
+      );
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {

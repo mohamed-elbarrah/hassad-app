@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import {
   formatMonth,
   formatMonthDay,
@@ -2827,7 +2828,7 @@ export class PortalService {
     }
 
     if (project.status !== ProjectStatus.AWAITING_REVIEW) {
-      throw new BadRequestException("Project is not awaiting review");
+      throw new ApiException("PROJECT_NOT_AWAITING_REVIEW", "Project is not awaiting review", 400);
     }
 
     const updated = await this.prisma.project.update({
@@ -2882,7 +2883,7 @@ export class PortalService {
     }
 
     if (project.status !== ProjectStatus.AWAITING_REVIEW) {
-      throw new BadRequestException("Project is not awaiting review");
+      throw new ApiException("PROJECT_NOT_AWAITING_REVIEW", "Project is not awaiting review", 400);
     }
 
     const [updated] = await this.prisma.$transaction([
@@ -2994,7 +2995,7 @@ export class PortalService {
     });
 
     if (!client?.userId || client.userId !== clientUserId) {
-      throw new BadRequestException("This action is not authorized");
+      throw new ApiException("PORTAL_ACTION_NOT_AUTHORIZED", "This action is not authorized", 403);
     }
 
     return this.marketingStrategyService.approve(id, clientUserId);
@@ -3020,7 +3021,7 @@ export class PortalService {
     });
 
     if (!client?.userId || client.userId !== clientUserId) {
-      throw new BadRequestException("This action is not authorized");
+      throw new ApiException("PORTAL_ACTION_NOT_AUTHORIZED", "This action is not authorized", 403);
     }
 
     return this.marketingStrategyService.requestRevision(

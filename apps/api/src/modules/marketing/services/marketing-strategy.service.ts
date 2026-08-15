@@ -5,6 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
@@ -46,12 +47,14 @@ export class MarketingStrategyService {
     }
 
     if (task.department?.name !== TaskDepartment.MARKETING) {
-      throw new BadRequestException("Task must be a marketing task");
+      throw new ApiException("STRATEGY_MARKETING_TASK_REQUIRED", "Task must be a marketing task", 400);
     }
 
     if (task.assignedTo !== userId) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "STRATEGY_ASSIGNEE_REQUIRED",
         "A marketing assignee is required to create a marketing strategy",
+        400,
       );
     }
 
@@ -70,13 +73,15 @@ export class MarketingStrategyService {
     });
 
     if (existingActive) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "STRATEGY_ALREADY_ACTIVE",
         "An active marketing strategy already exists for this task",
+        409,
       );
     }
 
     if (!task.project?.clientId) {
-      throw new BadRequestException("Task is not linked to a project or client");
+      throw new ApiException("STRATEGY_CONTEXT_MISSING", "Task is not linked to a project or client", 400);
     }
 
     const strategy = await this.prisma.marketingStrategy.create({
@@ -109,15 +114,17 @@ export class MarketingStrategyService {
     }
 
     if (strategy.createdBy !== userId) {
-      throw new BadRequestException("Only the strategy creator can send it");
+      throw new ApiException("STRATEGY_CREATOR_REQUIRED", "Only the strategy creator can send it", 403);
     }
 
     if (
       strategy.status !== MarketingStrategyStatus.DRAFT &&
       strategy.status !== MarketingStrategyStatus.REVISION_REQUESTED
     ) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "STRATEGY_INVALID_SEND_STATUS",
         `The strategy cannot be sent in its current state: ${STRATEGY_STATUS_LABELS[strategy.status] ?? strategy.status}`,
+        400,
       );
     }
 
@@ -187,8 +194,10 @@ export class MarketingStrategyService {
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
     if (strategy.status !== MarketingStrategyStatus.SENT) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "STRATEGY_INVALID_APPROVAL_STATUS",
         "The strategy can only be approved when it is in the sent state",
+        400,
       );
     }
 
@@ -243,8 +252,10 @@ export class MarketingStrategyService {
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
     if (strategy.status !== MarketingStrategyStatus.SENT) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "STRATEGY_INVALID_REVISION_STATUS",
         "A revision can only be requested when the strategy is in the sent state",
+        400,
       );
     }
 
@@ -298,8 +309,10 @@ export class MarketingStrategyService {
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
     if (strategy.status !== MarketingStrategyStatus.SENT) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "STRATEGY_INVALID_REJECTION_STATUS",
         "The strategy can only be rejected when it is in the sent state",
+        400,
       );
     }
 
@@ -353,12 +366,14 @@ export class MarketingStrategyService {
     }
 
     if (strategy.createdBy !== userId) {
-      throw new BadRequestException("Only the strategy creator can resubmit it");
+      throw new ApiException("STRATEGY_CREATOR_REQUIRED", "Only the strategy creator can resubmit it", 403);
     }
 
     if (strategy.status !== MarketingStrategyStatus.REVISION_REQUESTED) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "STRATEGY_INVALID_RESUBMIT_STATUS",
         "The strategy can only be resubmitted when revision was requested",
+        400,
       );
     }
 
@@ -512,7 +527,7 @@ export class MarketingStrategyService {
     });
 
     if (!client?.userId || client.userId !== clientUserId) {
-      throw new BadRequestException("This action is not authorized");
+      throw new ApiException("STRATEGY_ACTION_NOT_AUTHORIZED", "This action is not authorized", 403);
     }
   }
 }

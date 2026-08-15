@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { ProposalStatus, RequestStatus } from "@hassad/shared";
 import { randomBytes } from "crypto";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { formatMonthDayYear } from "../../../common/presentation/english-date";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { RequestsService } from "../../requests/requests.service";
@@ -176,7 +177,7 @@ export class CrmProposalsService {
 
   async create(userId: string, dto: CrmCreateProposalDto) {
     if (!dto.requestId) {
-      throw new BadRequestException("A request reference is required");
+      throw new ApiException("PROPOSAL_REQUEST_REQUIRED", "A request reference is required", 400);
     }
 
     const creator = await this.prisma.user.findUnique({

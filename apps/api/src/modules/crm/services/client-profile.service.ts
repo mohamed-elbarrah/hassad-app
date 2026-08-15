@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import {
   UpsertClientProfileDto,
   UpsertClientProfileV2Dto,
@@ -36,7 +37,7 @@ export class ClientProfileService {
 
     const ownedClientId = await this.resolveClientIdForUser(user.id);
     if (!ownedClientId || ownedClientId !== clientId) {
-      throw new ForbiddenException("You can only access your own profile");
+      throw new ApiException("PROFILE_ACCESS_DENIED", "You can only access your own profile", 403);
     }
   }
 

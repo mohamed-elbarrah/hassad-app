@@ -3,6 +3,7 @@ import { ContractStatus, RequestStatus } from "@hassad/shared";
 import { randomBytes } from "crypto";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { RequestsService } from "../../requests/requests.service";
 import {
@@ -170,7 +171,7 @@ export class CrmContractsService {
 
   async create(userId: string, dto: CrmCreateContractDto) {
     if (!dto.requestId && !dto.proposalId) {
-      throw new BadRequestException("A request or proposal reference is required");
+      throw new ApiException("CONTRACT_REFERENCE_REQUIRED", "A request or proposal reference is required", 400);
     }
 
     const created = await this.prisma.$transaction(async (tx) => {

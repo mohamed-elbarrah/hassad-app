@@ -4,11 +4,11 @@ import {
   Body,
   Headers,
   Param,
-  BadRequestException,
   RawBodyRequest,
   Req,
 } from "@nestjs/common";
 import { PaymentsService } from "../services/payments.service";
+import { ApiException } from "../../../common/errors/api-error";
 
 @Controller("webhooks")
 export class WebhooksController {
@@ -22,7 +22,7 @@ export class WebhooksController {
   ) {
     if (provider === "stripe") {
       if (!stripeSignature)
-        throw new BadRequestException("Missing stripe signature");
+        throw new ApiException("WEBHOOK_SIGNATURE_MISSING", "Missing stripe signature", 400);
       const payload = req.rawBody ?? Buffer.from(JSON.stringify(req.body));
       await this.paymentsService.processWebhook(
         "stripe",

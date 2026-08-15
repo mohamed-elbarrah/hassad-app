@@ -10,6 +10,10 @@ import {
 import { Request, Response } from "express";
 import { RobustErrorLoggerService } from "../../modules/health/services/robust-error-logger.service";
 import {
+  API_ERROR_CODES,
+  errorCodeForStatus,
+} from "../errors/api-error";
+import {
   ErrorCategory,
   ErrorLevel,
 } from "../../modules/health/dto/health-check.dto";
@@ -31,19 +35,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message =
+    const rawResponse =
       exception instanceof HttpException
         ? exception.getResponse()
         : "Internal server error";
-
-    const extractedMessage =
-      typeof message === "object" && message !== null && "message" in message
-        ? (message as { message: string | string[] }).message
-        : message;
-
+    const responseBody =
+      typeof rawResponse === "object" && rawResponse !== null
+        ? (rawResponse as Record<string, unknown>)
+        : null;
+    const extractedMessage = responseBody?.message ?? rawResponse;
     const normalizedMessage = Array.isArray(extractedMessage)
       ? extractedMessage.join("; ")
-      : extractedMessage;
+      : String(extractedMessage);
+    const code =
+      typeof responseBody?.code === "string"
+        ? responseBody.code
+        : Array.isArray(extractedMessage)
+          ? API_ERROR_CODES.VALIDATION_FAILED
+          : errorCodeForStatus(status);
+    const details = responseBody?.details ??
+      (Array.isArray(extractedMessage) ? extractedMessage : null);
 
     const path = request.originalUrl ?? request.url;
     const method = request.method;
@@ -113,6 +124,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
     // Send response
     response.status(status).json({
       success: false,
+      data: null,
+      error: {
+        code,
+        message: normalizedMessage,
+        details,
+      },
+      // Retain these fields during the compatibility period.
       statusCode: status,
       message: normalizedMessage,
       timestamp: new Date().toISOString(),

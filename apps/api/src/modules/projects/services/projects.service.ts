@@ -1,9 +1,9 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import { Project, Task, User, Prisma } from "@prisma/client";
 import {
   CreateProjectDto,
@@ -35,8 +35,10 @@ export class ProjectsService {
 
   async create(dto: CreateProjectDto) {
     if (!dto.contractId) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "PROJECT_SIGNED_CONTRACT_REQUIRED",
         "Project must be linked to a signed contract",
+        400,
       );
     }
 
@@ -54,8 +56,11 @@ export class ProjectsService {
       contract.status !== ContractStatus.SIGNED &&
       contract.status !== ContractStatus.ACTIVE
     ) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "CONTRACT_INVALID_PROJECT_STATUS",
         `Contract must be SIGNED or ACTIVE to create a project (current status: ${contract.status})`,
+        400,
+        { currentStatus: contract.status, allowedStatuses: [ContractStatus.SIGNED, ContractStatus.ACTIVE] },
       );
     }
 
@@ -474,7 +479,11 @@ export class ProjectsService {
 
     // Check if PM is already the same
     if (project.projectManagerId === newPmId) {
-      throw new BadRequestException("The selected manager is already this project's manager");
+      throw new ApiException(
+        "PROJECT_MANAGER_UNCHANGED",
+        "The selected manager is already this project's manager",
+        400,
+      );
     }
 
     const oldPmId = project.projectManagerId;

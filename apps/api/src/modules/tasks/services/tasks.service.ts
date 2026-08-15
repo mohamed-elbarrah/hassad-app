@@ -1,10 +1,10 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
 import {
   CreateTaskDto,
   UpdateTaskDto,
@@ -298,7 +298,7 @@ export class TasksService {
     }
 
     if (!user.isActive) {
-      throw new BadRequestException("Cannot assign task to an inactive user");
+      throw new ApiException("TASK_ASSIGNEE_INACTIVE", "Cannot assign task to an inactive user", 400);
     }
 
     const assigneeRole = user.role.name as UserRole;
@@ -308,8 +308,10 @@ export class TasksService {
         (d) => d.departmentId === departmentId,
       );
       if (!inDepartment) {
-        throw new BadRequestException(
+        throw new ApiException(
+          "TASK_ASSIGNEE_DEPARTMENT_MISMATCH",
           "Assignee does not belong to the selected department",
+          400,
         );
       }
     } else if (assigneeRole === UserRole.MARKETING) {
@@ -322,13 +324,17 @@ export class TasksService {
           })
         )?.name;
       if (deptName !== TaskDepartment.MARKETING) {
-        throw new BadRequestException(
+        throw new ApiException(
+          "TASK_MARKETING_DEPARTMENT_REQUIRED",
           "Marketing users can only be assigned to marketing department tasks",
+          400,
         );
       }
     } else {
-      throw new BadRequestException(
+      throw new ApiException(
+        "TASK_ASSIGNEE_NOT_EXECUTABLE",
         "Task assignee must be an executable team member",
+        400,
       );
     }
 
@@ -340,7 +346,7 @@ export class TasksService {
       where: { name: dto.dept },
     });
     if (!department) {
-      throw new BadRequestException(`Department ${dto.dept} not found`);
+      throw new ApiException("TASK_DEPARTMENT_NOT_FOUND", `Department ${dto.dept} not found`, 400);
     }
 
     let assigneeInfo: { id: string; name: string } | null = null;
@@ -482,23 +488,25 @@ export class TasksService {
       task.status !== TaskStatus.TODO &&
       task.status !== TaskStatus.REVISION
     ) {
-      throw new BadRequestException("Task must be TODO or REVISION to start");
+      throw new ApiException("TASK_INVALID_START_STATUS", "Task must be TODO or REVISION to start", 400);
     }
     if (
       toStatus === TaskStatus.IN_REVIEW &&
       task.status !== TaskStatus.IN_PROGRESS
     ) {
-      throw new BadRequestException("Task must be IN_PROGRESS to submit");
+      throw new ApiException("TASK_INVALID_SUBMIT_STATUS", "Task must be IN_PROGRESS to submit", 400);
     }
     if (toStatus === TaskStatus.DONE && task.status !== TaskStatus.IN_REVIEW) {
-      throw new BadRequestException("Task must be IN_REVIEW to approve");
+      throw new ApiException("TASK_INVALID_APPROVAL_STATUS", "Task must be IN_REVIEW to approve", 400);
     }
     if (
       toStatus === TaskStatus.REVISION &&
       task.status !== TaskStatus.IN_REVIEW
     ) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "TASK_INVALID_REVISION_STATUS",
         "Task must be IN_REVIEW to reject for revision",
+        400,
       );
     }
 
@@ -705,15 +713,20 @@ export class TasksService {
   async changeStatus(id: string, userId: string, toStatus: TaskStatus) {
     const validStatuses = Object.values(TaskStatus);
     if (!validStatuses.includes(toStatus)) {
-      throw new BadRequestException(
+      throw new ApiException(
+        "TASK_INVALID_STATUS",
         `Invalid status: ${toStatus}. Valid statuses: ${validStatuses.join(", ")}`,
+        400,
+        { requestedStatus: toStatus, validStatuses },
       );
     }
 
     switch (toStatus) {
       case TaskStatus.TODO:
-        throw new BadRequestException(
+        throw new ApiException(
+          "TASK_TODO_REVERSION_NOT_ALLOWED",
           "Cannot revert a task to TODO. Use start to move to IN_PROGRESS.",
+          400,
         );
       case TaskStatus.IN_PROGRESS:
         return this.start(id, userId);
@@ -724,7 +737,7 @@ export class TasksService {
       case TaskStatus.REVISION:
         return this.reject(id, userId);
       default:
-        throw new BadRequestException(`Unhandled status: ${toStatus}`);
+        throw new ApiException("TASK_UNHANDLED_STATUS", `Unhandled status: ${toStatus}`, 400);
     }
   }
 

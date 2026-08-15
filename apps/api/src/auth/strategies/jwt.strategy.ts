@@ -4,6 +4,7 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Request } from "express";
 import { JwtPayload } from "../../common/decorators/current-user.decorator";
+import { ApiException } from "../../common/errors/api-error";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -22,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
     if (!payload.id || !payload.email || !payload.role) {
-      throw new UnauthorizedException("Invalid token payload");
+      throw new ApiException("AUTH_INVALID_TOKEN_PAYLOAD", "Invalid token payload", 401);
     }
     return {
       id: payload.id,
