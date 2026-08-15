@@ -1,4 +1,7 @@
 import { formatPlainNumber } from "../../../common/presentation/plain-number";
+import { arabicTemplates } from "./notification-messages.ar";
+import { preciseArabicTemplates } from "./notification-messages.ar.precise";
+import { NotificationLocale } from "./notification-locale";
 
 export type NotificationMessageKey =
   | "task.assigned"
@@ -93,9 +96,9 @@ export type NotificationMessageKey =
   | "proposal.revision_requested"
   | "request.submitted";
 
-type NotificationParams = Record<string, string | number | null | undefined>;
+export type NotificationParams = Record<string, string | number | null | undefined>;
 
-type NotificationTemplate = {
+export type NotificationTemplate = {
   title: (params: NotificationParams) => string;
   body: (params: NotificationParams) => string;
 };
@@ -381,11 +384,21 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   },
 };
 
+// Arabic templates are added incrementally. Missing translations intentionally
+// fall back to the English catalog until the Arabic catalog is complete.
+const englishTemplates = templates;
+
+const localizedTemplates: Partial<Record<NotificationMessageKey, NotificationTemplate>> = arabicTemplates;
+
 export function renderNotificationMessage(
   key: NotificationMessageKey,
   params: NotificationParams,
+  locale: NotificationLocale = "en",
 ) {
-  const template = templates[key];
+  const template =
+    (locale === "ar"
+      ? preciseArabicTemplates[key] ?? localizedTemplates[key]
+      : undefined) ?? englishTemplates[key];
   return {
     title: template.title(params),
     body: template.body(params),

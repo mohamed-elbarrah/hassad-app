@@ -6,6 +6,10 @@ import {
   NotificationMessageKey,
   renderNotificationMessage,
 } from "./notification-messages";
+import {
+  NotificationLocale,
+  normalizeNotificationLocale,
+} from "./notification-locale";
 
 @Injectable()
 export class NotificationsService {
@@ -58,6 +62,15 @@ export class NotificationsService {
     };
   }
 
+  private async resolveLocale(locale?: NotificationLocale) {
+    if (locale) return locale;
+    const setting = await this.prisma.companySetting.findUnique({
+      where: { key: "language" },
+      select: { value: true },
+    });
+    return normalizeNotificationLocale(setting?.value);
+  }
+
   async createLocalizedNotification(params: {
     entityId: string;
     entityType: string;
@@ -65,11 +78,13 @@ export class NotificationsService {
     userId: string;
     messageKey: NotificationMessageKey;
     messageParams?: Record<string, string | number | null | undefined>;
+    locale?: NotificationLocale;
     metadata?: Prisma.InputJsonValue;
   }) {
     const rendered = renderNotificationMessage(
       params.messageKey,
       params.messageParams ?? {},
+      await this.resolveLocale(params.locale),
     );
     return this.createNotification({
       ...params,
@@ -270,6 +285,7 @@ export class NotificationsService {
     excludeUserIds?: string[];
     messageKey: NotificationMessageKey;
     messageParams?: Record<string, string | number | null | undefined>;
+    locale?: NotificationLocale;
     entityId?: string;
     entityType?: string;
     eventType?: string;
@@ -278,6 +294,7 @@ export class NotificationsService {
     const rendered = renderNotificationMessage(
       params.messageKey,
       params.messageParams ?? {},
+      await this.resolveLocale(params.locale),
     );
     return this.notifyUsers({
       ...params,

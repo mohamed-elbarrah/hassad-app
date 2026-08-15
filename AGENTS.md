@@ -40,7 +40,7 @@ If these documents conflict, the priority is: execution rules, product catalog, 
 
 ### Backend presentation and localization contract (mandatory for `apps/api`)
 
-- Backend-generated user-facing content must be English by default. Do not add Arabic hardcoded literals to API source files.
+- Backend-generated user-facing content must be English by default. Do not add Arabic hardcoded literals to API source files, except inside dedicated locale catalogs such as `notification-messages.ar.ts`.
 - Preserve user-generated content exactly as entered: names, comments, chat messages, proposal/project titles, notes, and client-provided text must not be translated or rewritten.
 - Numbers in backend-generated text must always use Latin digits (`0-9`) without grouping separators. Use `formatPlainNumber` for numeric interpolation and avoid locale-dependent number formatting.
 - Do not use `toLocale*`, `Intl.NumberFormat`, or locale-dependent date/number formatting in API presentation code. Use the centralized English date helpers or return raw ISO/numeric values.
