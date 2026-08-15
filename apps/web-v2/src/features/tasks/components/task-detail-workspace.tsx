@@ -131,9 +131,7 @@ export function TaskDetailWorkspace({
             <Card>
               <CardHeader>
                 <CardTitle>{t("taskInfo")}</CardTitle>
-                <CardDescription>
-                  Stable ownership and scheduling data for this task.
-                </CardDescription>
+                <CardDescription>{t("taskInfoDescription")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <dl className="flex flex-col gap-4 text-sm">
@@ -185,9 +183,7 @@ export function TaskDetailWorkspace({
             <Card>
               <CardHeader>
                 <CardTitle>{t("taskSignal")}</CardTitle>
-                <CardDescription>
-                  The main reason this task may need PM or admin attention.
-                </CardDescription>
+                <CardDescription>{t("taskSignalDescription")}</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <div className="flex flex-wrap gap-2">
@@ -214,10 +210,8 @@ export function TaskDetailWorkspace({
 
         <Card>
           <CardHeader>
-            <CardTitle>Workflow</CardTitle>
-            <CardDescription>
-              Execution path from queue to approval, including revision loops when they happen.
-            </CardDescription>
+            <CardTitle>{t("workflow")}</CardTitle>
+            <CardDescription>{t("taskWorkflowDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             <WorkflowStepper steps={task.workflow} />
@@ -227,18 +221,18 @@ export function TaskDetailWorkspace({
         <Tabs defaultValue="comments">
           <div className="overflow-x-auto pb-1">
             <TabsList className="min-w-max">
-              <TabsTrigger value="comments">Comments</TabsTrigger>
-              <TabsTrigger value="files">Files</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-              <TabsTrigger value="client">Client</TabsTrigger>
-              {task.marketing ? <TabsTrigger value="marketing">Marketing</TabsTrigger> : null}
+              <TabsTrigger value="comments">{t("comments")}</TabsTrigger>
+              <TabsTrigger value="files">{t("files")}</TabsTrigger>
+              <TabsTrigger value="history">{t("history")}</TabsTrigger>
+              <TabsTrigger value="client">{t("clientTab")}</TabsTrigger>
+              {task.marketing ? <TabsTrigger value="marketing">{t("marketingTab")}</TabsTrigger> : null}
             </TabsList>
           </div>
 
           <TabsContent value="comments">
             <Card>
               <CardHeader>
-                <CardTitle>Internal discussion</CardTitle>
+                <CardTitle>{t("internalDiscussionTitle")}</CardTitle>
                 <CardDescription>
                   PM, assignee, and admin discussion around execution, blockers, and review decisions.
                 </CardDescription>
@@ -266,7 +260,7 @@ export function TaskDetailWorkspace({
           <TabsContent value="files">
             <Card>
               <CardHeader>
-                <CardTitle>Files</CardTitle>
+                <CardTitle>{t("files")}</CardTitle>
                 <CardDescription>
                   Task brief, working files, and review submissions tied to this task.
                 </CardDescription>
@@ -275,11 +269,11 @@ export function TaskDetailWorkspace({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>File</TableHead>
-                      <TableHead>Purpose</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Uploaded</TableHead>
-                      <TableHead>By</TableHead>
+                      <TableHead>{t("file")}</TableHead>
+                      <TableHead>{t("purpose")}</TableHead>
+                      <TableHead>{t("type")}</TableHead>
+                      <TableHead>{t("uploaded")}</TableHead>
+                      <TableHead>{t("by")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -301,7 +295,7 @@ export function TaskDetailWorkspace({
           <TabsContent value="history">
             <Card>
               <CardHeader>
-                <CardTitle>Status history</CardTitle>
+                <CardTitle>{t("statusHistory")}</CardTitle>
                 <CardDescription>
                   Key workflow transitions and task events visible to admin.
                 </CardDescription>
@@ -325,7 +319,7 @@ export function TaskDetailWorkspace({
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.34fr)]">
               <Card>
                 <CardHeader>
-                  <CardTitle>Client context</CardTitle>
+                  <CardTitle>{t("clientContextTitle")}</CardTitle>
                   <CardDescription>
                     Compact client context relevant to this task without duplicating the full client detail page.
                   </CardDescription>
@@ -367,7 +361,7 @@ export function TaskDetailWorkspace({
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Client signals</CardTitle>
+                  <CardTitle>{t("clientSignals")}</CardTitle>
                   <CardDescription>
                     Relationship and commercial context that can affect task execution.
                   </CardDescription>
@@ -392,7 +386,7 @@ export function TaskDetailWorkspace({
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.34fr)]">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Marketing strategy</CardTitle>
+                    <CardTitle>{t("marketingStrategy")}</CardTitle>
                     <CardDescription>
                       Marketing-only extension for strategy approval and campaign readiness.
                     </CardDescription>
@@ -423,7 +417,7 @@ export function TaskDetailWorkspace({
                     {task.marketing.revisionNote ? (
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Revision note</CardTitle>
+                          <CardTitle className="text-base">{t("revisionNote")}</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-muted-foreground">
@@ -435,7 +429,7 @@ export function TaskDetailWorkspace({
 
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-base">Campaigns</CardTitle>
+                        <CardTitle className="text-base">{t("campaigns")}</CardTitle>
                         <CardDescription>
                           Campaigns created from the approved strategy. Open any row for the latest snapshot.
                         </CardDescription>
@@ -444,10 +438,10 @@ export function TaskDetailWorkspace({
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Campaign</TableHead>
-                              <TableHead>Platform</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Performance</TableHead>
+                              <TableHead>{t("campaign")}</TableHead>
+                              <TableHead>{t("platform")}</TableHead>
+                              <TableHead>{t("status")}</TableHead>
+                              <TableHead>{t("performance")}</TableHead>
                               <TableHead />
                             </TableRow>
                           </TableHeader>
@@ -490,7 +484,7 @@ export function TaskDetailWorkspace({
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Campaign readiness</CardTitle>
+                    <CardTitle>{t("campaignReadiness")}</CardTitle>
                     <CardDescription>
                       Whether campaign creation can move forward from this task.
                     </CardDescription>
@@ -504,13 +498,13 @@ export function TaskDetailWorkspace({
                     </div>
                     {task.marketing.sentAt ? (
                       <div className="flex items-start justify-between gap-4 text-sm">
-                        <span className="text-muted-foreground">Sent at</span>
+                        <span className="text-muted-foreground">{t("sentAt")}</span>
                         <span className="font-medium">{task.marketing.sentAt}</span>
                       </div>
                     ) : null}
                     {task.marketing.approvedAt ? (
                       <div className="flex items-start justify-between gap-4 text-sm">
-                        <span className="text-muted-foreground">Approved at</span>
+                        <span className="text-muted-foreground">{t("approvedAt")}</span>
                         <span className="font-medium">{task.marketing.approvedAt}</span>
                       </div>
                     ) : null}
@@ -554,7 +548,7 @@ export function TaskDetailWorkspace({
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Campaign info</CardTitle>
+                    <CardTitle>{t("campaignInfo")}</CardTitle>
                     <CardDescription>
                       Execution settings and current outcome for this campaign.
                     </CardDescription>
@@ -563,7 +557,7 @@ export function TaskDetailWorkspace({
                     <Table>
                       <TableBody>
                         <TableRow>
-                          <TableCell className="font-medium">Status</TableCell>
+                          <TableCell className="font-medium">{t("status")}</TableCell>
                           <TableCell>
                             <StatusBadge tone={selectedCampaign.statusTone}>
                               {selectedCampaign.status}
@@ -571,19 +565,19 @@ export function TaskDetailWorkspace({
                           </TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell className="font-medium">Owner</TableCell>
+                          <TableCell className="font-medium">{t("owner")}</TableCell>
                           <TableCell>{selectedCampaign.owner}</TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell className="font-medium">Budget</TableCell>
+                          <TableCell className="font-medium">{t("budget")}</TableCell>
                           <TableCell>{selectedCampaign.budget}</TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell className="font-medium">Spend</TableCell>
+                          <TableCell className="font-medium">{t("spend")}</TableCell>
                           <TableCell>{selectedCampaign.spend}</TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell className="font-medium">Won performance</TableCell>
+                          <TableCell className="font-medium">{t("wonPerformance")}</TableCell>
                           <TableCell>{selectedCampaign.wonValue}</TableCell>
                         </TableRow>
                         {selectedCampaign.rows.map((row) => (
