@@ -1,6 +1,4 @@
-import type { AuthSession } from "@/lib/auth/auth-types";
 import type { WorkspaceDefinition } from "@/lib/auth/workspaces";
-import { AccountMenu } from "@/components/app/account-menu";
 import { AppBreadcrumbs } from "@/components/app/app-breadcrumbs";
 import { CommandMenu } from "@/components/app/command-menu";
 import { NotificationMenu } from "@/components/app/notification-menu";
@@ -8,10 +6,8 @@ import { ThemeToggle } from "@/components/app/theme-toggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function AppTopbar({
-  session,
   workspace,
 }: {
-  session: AuthSession;
   workspace: WorkspaceDefinition;
 }) {
   return (
@@ -24,7 +20,6 @@ export function AppTopbar({
         <CommandMenu commands={workspace.commands} workspaceLabel={workspace.label} />
         <ThemeToggle />
         <NotificationMenu workspaceKey={workspace.key} workspaceLabel={workspace.label} />
-        <AccountMenu session={session} />
       </div>
     </header>
   );

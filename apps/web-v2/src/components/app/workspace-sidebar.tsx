@@ -16,7 +16,9 @@ import {
   UsersIcon,
 } from "lucide-react";
 
+import type { AuthSession } from "@/lib/auth/auth-types";
 import type { WorkspaceDefinition } from "@/lib/auth/workspaces";
+import { AccountMenu } from "@/components/app/account-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
@@ -25,6 +27,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
+  SidebarFooter,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -48,8 +51,10 @@ const iconMap = {
 };
 
 export function WorkspaceSidebar({
+  session,
   workspace,
 }: {
+  session: AuthSession;
   workspace: WorkspaceDefinition;
 }) {
   const pathname = usePathname();
@@ -59,14 +64,13 @@ export function WorkspaceSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href={workspace.home} />}>
-              <LayoutDashboardIcon />
-              <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">
-                <span className="truncate">Hassad</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {workspace.label}
-                </span>
-              </span>
+            <SidebarMenuButton
+              size="lg"
+              aria-label="Hassad home"
+              render={<Link href={workspace.home} />}
+            >
+              <LayoutDashboardIcon aria-hidden="true" />
+              <span className="truncate group-data-[collapsible=icon]:hidden">Hassad</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -150,6 +154,9 @@ export function WorkspaceSidebar({
           </SidebarGroup>
         ))}
       </SidebarContent>
+      <SidebarFooter>
+        <AccountMenu session={session} />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
