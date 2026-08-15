@@ -16,9 +16,19 @@ import {
 } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useReportingPeriod } from "@/features/reporting/reporting-period-context";
+import { useTranslations } from "@/lib/i18n";
 
 export function ReportingPeriodToolbar() {
   const { preset, range, rangeLabel, setPreset, setRange } = useReportingPeriod();
+  const { t } = useTranslations();
+  const localizedRangeLabel =
+    preset === "30d"
+      ? t("last30Days")
+      : preset === "6m"
+        ? t("last6Months")
+        : preset === "12m"
+          ? t("last12Months")
+          : rangeLabel;
 
   function handlePresetChange(value: string[]) {
     const nextPreset = value[0];
@@ -41,7 +51,7 @@ export function ReportingPeriodToolbar() {
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      <Badge variant="outline">{rangeLabel}</Badge>
+      <Badge variant="outline">{localizedRangeLabel}</Badge>
       <ToggleGroup
         multiple={false}
         value={[preset]}
@@ -64,14 +74,12 @@ export function ReportingPeriodToolbar() {
           }
         >
           <CalendarIcon data-icon="inline-start" />
-          Range
+          {t("range")}
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="end">
           <PopoverHeader className="px-3 pt-3">
-            <PopoverTitle>Date range</PopoverTitle>
-            <PopoverDescription>
-              Select the reporting window for every overview card.
-            </PopoverDescription>
+            <PopoverTitle>{t("dateRange")}</PopoverTitle>
+            <PopoverDescription>{t("dateRangeDescription")}</PopoverDescription>
           </PopoverHeader>
           <Calendar
             mode="range"

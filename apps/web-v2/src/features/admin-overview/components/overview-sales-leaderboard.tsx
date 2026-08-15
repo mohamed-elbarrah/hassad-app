@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AdminOverviewSnapshot } from "@/features/admin-overview/lib/admin-overview-data";
+import { useTranslations } from "@/lib/i18n";
 
 type OverviewSalesLeaderboardProps = {
   rows: AdminOverviewSnapshot["salesLeaders"];
@@ -25,12 +26,13 @@ export function OverviewSalesLeaderboard({
   rows,
   periodLabel,
 }: OverviewSalesLeaderboardProps) {
+  const { t } = useTranslations();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top sales managers</CardTitle>
+        <CardTitle>{t("topSalesManagers")}</CardTitle>
         <CardDescription>
-          Best CRM closers for {periodLabel.toLowerCase()}.
+          {t("topSalesManagersDescription", { period: periodLabel.toLowerCase() })}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -38,10 +40,10 @@ export function OverviewSalesLeaderboard({
           <TableHeader>
             <TableRow>
               <TableHead>#</TableHead>
-              <TableHead>Manager</TableHead>
-              <TableHead className="text-right">Deals</TableHead>
-              <TableHead className="text-right">Contracts</TableHead>
-              <TableHead className="text-right">Revenue</TableHead>
+              <TableHead>{t("manager")}</TableHead>
+              <TableHead className="text-right">{t("deals")}</TableHead>
+              <TableHead className="text-right">{t("contracts")}</TableHead>
+              <TableHead className="text-right">{t("revenue")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

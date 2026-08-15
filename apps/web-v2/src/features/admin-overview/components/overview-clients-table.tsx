@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import type { AdminOverviewSnapshot } from "@/features/admin-overview/lib/admin-overview-data";
 import { StatusBadge } from "@/components/patterns/status-badge";
+import { translateAdminOverviewText, useTranslations } from "@/lib/i18n";
 
 type OverviewClientsTableProps = {
   rows: AdminOverviewSnapshot["clients"];
@@ -25,23 +26,24 @@ export function OverviewClientsTable({
   rows,
   periodLabel,
 }: OverviewClientsTableProps) {
+  const { locale, t } = useTranslations();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Clients</CardTitle>
+        <CardTitle>{t("clients")}</CardTitle>
         <CardDescription>
-          Client portfolio activity in {periodLabel.toLowerCase()}.
+          {t("clientsDescription", { period: periodLabel.toLowerCase() })}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Client</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead className="text-right">Active</TableHead>
-              <TableHead>Last seen</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
+              <TableHead>{t("client")}</TableHead>
+              <TableHead className="text-right">{t("total")}</TableHead>
+              <TableHead className="text-right">{t("active")}</TableHead>
+              <TableHead>{t("lastSeen")}</TableHead>
+              <TableHead className="text-right">{t("balance")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -62,7 +64,7 @@ export function OverviewClientsTable({
                   {row.activeProjects}
                 </TableCell>
                 <TableCell>
-                  <StatusBadge tone={row.onlineTone}>{row.lastSeen}</StatusBadge>
+                  <StatusBadge tone={row.onlineTone}>{translateAdminOverviewText(locale, row.lastSeen)}</StatusBadge>
                 </TableCell>
                 <TableCell className="text-right font-medium">{row.balance}</TableCell>
               </TableRow>

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import type { AdminOverviewSnapshot } from "@/features/admin-overview/lib/admin-overview-data";
+import { translateAdminOverviewText, useTranslations } from "@/lib/i18n";
 
 type OverviewActiveProjectsTableProps = {
   rows: AdminOverviewSnapshot["activeProjects"];
@@ -26,23 +27,24 @@ export function OverviewActiveProjectsTable({
   rows,
   periodLabel,
 }: OverviewActiveProjectsTableProps) {
+  const { locale, t } = useTranslations();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Active projects</CardTitle>
+        <CardTitle>{t("activeProjects")}</CardTitle>
         <CardDescription>
-          Delivery state and workload across {periodLabel.toLowerCase()}.
+          {t("activeProjectsDescription", { period: periodLabel.toLowerCase() })}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Project</TableHead>
-              <TableHead>State</TableHead>
-              <TableHead>Progress</TableHead>
-              <TableHead>PM</TableHead>
-              <TableHead className="text-right">Tasks</TableHead>
+              <TableHead>{t("project")}</TableHead>
+              <TableHead>{t("state")}</TableHead>
+              <TableHead>{t("progress")}</TableHead>
+              <TableHead>{t("pm")}</TableHead>
+              <TableHead className="text-right">{t("tasks")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,7 +59,7 @@ export function OverviewActiveProjectsTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge tone={row.stateTone}>{row.state}</StatusBadge>
+                  <StatusBadge tone={row.stateTone}>{translateAdminOverviewText(locale, row.state)}</StatusBadge>
                 </TableCell>
                 <TableCell className="font-medium">{row.progress}</TableCell>
                 <TableCell>

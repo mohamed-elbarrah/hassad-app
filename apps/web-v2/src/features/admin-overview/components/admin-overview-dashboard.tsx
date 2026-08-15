@@ -23,38 +23,26 @@ import { OverviewClientsTable } from "@/features/admin-overview/components/overv
 import { OverviewLeadOrdersTable } from "@/features/admin-overview/components/overview-lead-orders-table";
 import { OverviewSalesLeaderboard } from "@/features/admin-overview/components/overview-sales-leaderboard";
 import { useGetAdminOverviewQuery } from "@/lib/api/admin-overview-api";
-
-const projectAmountConfig = {
-  amount: {
-    label: "Active project value",
-    color: "var(--color-chart-2)",
-  },
-} satisfies ChartConfig;
-
-const invoiceConfig = {
-  paid: {
-    label: "Paid invoices",
-    color: "var(--color-chart-3)",
-  },
-  unpaid: {
-    label: "Unpaid invoices",
-    color: "var(--color-chart-1)",
-  },
-} satisfies ChartConfig;
-
-const crmConfig = {
-  contracts: {
-    label: "Active contracts",
-    color: "var(--color-chart-4)",
-  },
-  offers: {
-    label: "Offers sent",
-    color: "var(--color-chart-2)",
-  },
-} satisfies ChartConfig;
+import {
+  localizeOverviewChartLabel,
+  translateAdminOverviewText,
+  useTranslations,
+} from "@/lib/i18n";
 
 function AdminOverviewContent() {
+  const { locale, t } = useTranslations();
   const { range, rangeLabel, granularity } = useReportingPeriod();
+  const projectAmountConfig = {
+    amount: { label: t("activeProjectValue"), color: "var(--color-chart-2)" },
+  } satisfies ChartConfig;
+  const invoiceConfig = {
+    paid: { label: t("paidInvoices"), color: "var(--color-chart-3)" },
+    unpaid: { label: t("unpaidInvoices"), color: "var(--color-chart-1)" },
+  } satisfies ChartConfig;
+  const crmConfig = {
+    contracts: { label: t("activeContracts"), color: "var(--color-chart-4)" },
+    offers: { label: t("offersSent"), color: "var(--color-chart-2)" },
+  } satisfies ChartConfig;
   const {
     data: snapshot,
     error,
@@ -70,14 +58,14 @@ function AdminOverviewContent() {
   if (isLoading && !snapshot) {
     return (
       <PageScaffold
-        title="Admin overview"
-        description="CRM, delivery, and finance health for the latest operating window."
+        title={t("adminOverview")}
+        description={t("adminOverviewDescription")}
         actions={<ReportingPeriodToolbar />}
       >
         <WorkspaceQueryState
           kind="loading"
-          loadingTitle="Loading admin overview"
-          loadingDescription="Retrieving KPI, finance, CRM, and delivery signals from the admin API."
+          loadingTitle={t("loadingAdminOverview")}
+          loadingDescription={t("loadingAdminOverviewDescription")}
         />
       </PageScaffold>
     );
@@ -86,8 +74,8 @@ function AdminOverviewContent() {
   if (isError && !snapshot) {
     return (
       <PageScaffold
-        title="Admin overview"
-        description="CRM, delivery, and finance health for the latest operating window."
+        title={t("adminOverview")}
+        description={t("adminOverviewDescription")}
         actions={<ReportingPeriodToolbar />}
       >
         <WorkspaceQueryState
@@ -104,8 +92,8 @@ function AdminOverviewContent() {
   if (!snapshot) {
     return (
       <PageScaffold
-        title="Admin overview"
-        description="CRM, delivery, and finance health for the latest operating window."
+        title={t("adminOverview")}
+        description={t("adminOverviewDescription")}
         actions={<ReportingPeriodToolbar />}
       >
         <WorkspaceQueryState
@@ -121,17 +109,17 @@ function AdminOverviewContent() {
 
   return (
     <PageScaffold
-      title="Admin overview"
-      description="CRM, delivery, and finance health for the latest operating window."
+      title={t("adminOverview")}
+      description={t("adminOverviewDescription")}
       actions={<ReportingPeriodToolbar />}
     >
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {snapshot.kpis.map((kpi) => (
           <MetricTile
             key={kpi.label}
-            label={kpi.label}
+            label={translateAdminOverviewText(locale, kpi.label)}
             value={kpi.value}
-            description={kpi.description}
+            description={translateAdminOverviewText(locale, kpi.description)}
             trend={kpi.trend}
           />
         ))}
@@ -139,8 +127,8 @@ function AdminOverviewContent() {
 
       <section className="grid gap-4 lg:grid-cols-3">
         <OverviewChartCard
-          title="Active project value"
-          description="Total value under active execution for the selected period."
+          title={t("activeProjectValue")}
+          description={t("activeProjectValueDescription")}
           periodLabel={rangeLabel}
           summary={
             <div className="flex items-end justify-between gap-3">
@@ -149,14 +137,20 @@ function AdminOverviewContent() {
                   {snapshot.summaries.projectAmount}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  Current active project amount
+                  {t("currentActiveProjectAmount")}
                 </span>
               </div>
             </div>
           }
         >
           <ChartContainer config={projectAmountConfig} className="min-h-64 w-full">
-            <BarChart accessibilityLayer data={snapshot.projectAmountChart}>
+            <BarChart
+              accessibilityLayer
+              data={snapshot.projectAmountChart.map((point) => ({
+                ...point,
+                label: localizeOverviewChartLabel(locale, point.label),
+              }))}
+            >
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="label"
@@ -178,8 +172,8 @@ function AdminOverviewContent() {
         </OverviewChartCard>
 
         <OverviewChartCard
-          title="Paid vs unpaid invoices"
-          description="Invoice cash position across the selected reporting window."
+          title={`${t("paidInvoices")} / ${t("unpaidInvoices")}`}
+          description={t("invoiceCashPosition")}
           periodLabel={rangeLabel}
           summary={
             <div className="grid grid-cols-2 gap-3">
@@ -187,19 +181,25 @@ function AdminOverviewContent() {
                 <span className="text-2xl font-semibold tracking-tight">
                   {snapshot.summaries.paidInvoices}
                 </span>
-                <span className="text-sm text-muted-foreground">Paid invoices</span>
+                <span className="text-sm text-muted-foreground">{t("paidInvoices")}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-2xl font-semibold tracking-tight">
                   {snapshot.summaries.unpaidInvoices}
                 </span>
-                <span className="text-sm text-muted-foreground">Unpaid invoices</span>
+                <span className="text-sm text-muted-foreground">{t("unpaidInvoices")}</span>
               </div>
             </div>
           }
         >
           <ChartContainer config={invoiceConfig} className="min-h-64 w-full">
-            <BarChart accessibilityLayer data={snapshot.invoiceChart}>
+            <BarChart
+              accessibilityLayer
+              data={snapshot.invoiceChart.map((point) => ({
+                ...point,
+                label: localizeOverviewChartLabel(locale, point.label),
+              }))}
+            >
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="label"
@@ -226,8 +226,8 @@ function AdminOverviewContent() {
         </OverviewChartCard>
 
         <OverviewChartCard
-          title="Contracts vs offers"
-          description="CRM throughput between live contracts and outbound offers."
+          title={`${t("activeContracts")} / ${t("offersSent")}`}
+          description={t("contractsOffersDescription")}
           periodLabel={rangeLabel}
           summary={
             <div className="grid grid-cols-2 gap-3">
@@ -235,19 +235,25 @@ function AdminOverviewContent() {
                 <span className="text-2xl font-semibold tracking-tight">
                   {snapshot.summaries.activeContracts}
                 </span>
-                <span className="text-sm text-muted-foreground">Active contracts</span>
+                <span className="text-sm text-muted-foreground">{t("activeContracts")}</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-2xl font-semibold tracking-tight">
                   {snapshot.summaries.offersSent}
                 </span>
-                <span className="text-sm text-muted-foreground">Offers sent</span>
+                <span className="text-sm text-muted-foreground">{t("offersSent")}</span>
               </div>
             </div>
           }
         >
           <ChartContainer config={crmConfig} className="min-h-64 w-full">
-            <BarChart accessibilityLayer data={snapshot.commercialChart}>
+            <BarChart
+              accessibilityLayer
+              data={snapshot.commercialChart.map((point) => ({
+                ...point,
+                label: localizeOverviewChartLabel(locale, point.label),
+              }))}
+            >
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="label"

@@ -18,6 +18,7 @@ import {
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { Badge } from "@/components/ui/badge";
 import type { AdminOverviewSnapshot } from "@/features/admin-overview/lib/admin-overview-data";
+import { translateAdminOverviewText, useTranslations } from "@/lib/i18n";
 
 type OverviewLeadOrdersTableProps = {
   rows: AdminOverviewSnapshot["leadOrders"];
@@ -28,27 +29,28 @@ export function OverviewLeadOrdersTable({
   rows,
   periodLabel,
 }: OverviewLeadOrdersTableProps) {
+  const { locale, t } = useTranslations();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Leads and orders</CardTitle>
+        <CardTitle>{t("leadsAndOrders")}</CardTitle>
         <CardDescription>
-          Active CRM opportunities and follow-up quality in {periodLabel.toLowerCase()}.
+          {t("leadsAndOrdersDescription", { period: periodLabel.toLowerCase() })}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Client</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Pipeline</TableHead>
-              <TableHead>Calls</TableHead>
-              <TableHead>Meetings</TableHead>
-              <TableHead>Projects</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Next action</TableHead>
-              <TableHead className="text-right">Value</TableHead>
+              <TableHead>{t("client")}</TableHead>
+              <TableHead>{t("type")}</TableHead>
+              <TableHead>{t("pipeline")}</TableHead>
+              <TableHead>{t("calls")}</TableHead>
+              <TableHead>{t("meetings")}</TableHead>
+              <TableHead>{t("projects")}</TableHead>
+              <TableHead>{t("owner")}</TableHead>
+              <TableHead>{t("nextAction")}</TableHead>
+              <TableHead className="text-right">{t("value")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -64,11 +66,13 @@ export function OverviewLeadOrdersTable({
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {row.kind === "order" ? "Order" : "Lead"}
+                    {row.kind === "order" ? t("order") : t("lead")}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge tone={row.stageTone}>{formatOrderStage(row.crmStage ?? row.stage)}</StatusBadge>
+                  <StatusBadge tone={row.stageTone}>
+                    {translateAdminOverviewText(locale, formatOrderStage(row.crmStage ?? row.stage))}
+                  </StatusBadge>
                 </TableCell>
                 <TableCell>{row.calls}</TableCell>
                 <TableCell>{row.meetings}</TableCell>
@@ -86,7 +90,9 @@ export function OverviewLeadOrdersTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-muted-foreground">{row.nextAction}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {translateAdminOverviewText(locale, row.nextAction)}
+                  </span>
                 </TableCell>
                 <TableCell className="text-right font-medium">{row.value}</TableCell>
               </TableRow>
