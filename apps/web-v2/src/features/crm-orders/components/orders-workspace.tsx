@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { BriefcaseBusinessIcon } from "lucide-react";
+import { LocalizedCurrency } from "@/components/patterns/localized-currency";
 import { ClientSource } from "@hassad/shared";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
@@ -44,7 +45,6 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import {
-  formatOrderCurrency,
   formatOrderSource,
   formatOrderStage,
   formatProposalStatus,
@@ -52,9 +52,11 @@ import {
   type OrderDirectoryFilter,
   type OrderValueFilter,
 } from "@/features/crm-orders/lib/order-directory";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 import { useGetAdminRequestsWorkspaceQuery } from "@/lib/api/admin-requests-api";
 
 export function OrdersWorkspace() {
+  const { locale, t } = useTranslations();
   const [statusFilter, setStatusFilter] = useState<OrderDirectoryFilter>("all");
   const [kindFilter, setKindFilter] = useState<"all" | "lead" | "order">("all");
   const [dateFilter, setDateFilter] = useState<OrderDateFilter>("last-30-days");
@@ -70,8 +72,8 @@ export function OrdersWorkspace() {
 
   return (
     <PageScaffold
-      title="Requests"
-      description="CRM pipeline view for every client request, from qualification through project creation."
+      title={t("requests")}
+      description={t("requestPipelineDescription")}
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
@@ -92,10 +94,10 @@ export function OrdersWorkspace() {
             size="sm"
             spacing={0}
           >
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="active">Active</ToggleGroupItem>
-            <ToggleGroupItem value="waiting-approval">Waiting approval</ToggleGroupItem>
-            <ToggleGroupItem value="stalled">Stalled</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t("all")}</ToggleGroupItem>
+            <ToggleGroupItem value="active">{t("active")}</ToggleGroupItem>
+            <ToggleGroupItem value="waiting-approval">{t("waitingApproval")}</ToggleGroupItem>
+            <ToggleGroupItem value="stalled">{t("stalled")}</ToggleGroupItem>
           </ToggleGroup>
 
           <ToggleGroup
@@ -110,9 +112,9 @@ export function OrdersWorkspace() {
             size="sm"
             spacing={0}
           >
-            <ToggleGroupItem value="all">All types</ToggleGroupItem>
-            <ToggleGroupItem value="lead">Leads</ToggleGroupItem>
-            <ToggleGroupItem value="order">Orders</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t("allTypes")}</ToggleGroupItem>
+            <ToggleGroupItem value="lead">{t("leads")}</ToggleGroupItem>
+            <ToggleGroupItem value="order">{t("orders")}</ToggleGroupItem>
           </ToggleGroup>
 
           <Select
@@ -128,15 +130,15 @@ export function OrdersWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter requests by date">
+            <SelectTrigger size="sm" aria-label={t("filterRequestsDate")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-time">All dates</SelectItem>
-                <SelectItem value="last-7-days">Opened in last 7 days</SelectItem>
-                <SelectItem value="last-30-days">Opened in last 30 days</SelectItem>
-                <SelectItem value="last-90-days">Opened in last 90 days</SelectItem>
+                <SelectItem value="all-time">{t("allDates")}</SelectItem>
+                <SelectItem value="last-7-days">{t("openedLast7")}</SelectItem>
+                <SelectItem value="last-30-days">{t("openedLast30")}</SelectItem>
+                <SelectItem value="last-90-days">{t("openedLast90")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -155,16 +157,16 @@ export function OrdersWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter requests by value">
+            <SelectTrigger size="sm" aria-label={t("filterRequestsValue")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-values">All values</SelectItem>
-                <SelectItem value="under-15000">Under $15k</SelectItem>
-                <SelectItem value="15000-30000">$15k to $30k</SelectItem>
-                <SelectItem value="30000-50000">$30k to $50k</SelectItem>
-                <SelectItem value="50000-plus">$50k and above</SelectItem>
+                <SelectItem value="all-values">{t("allValues")}</SelectItem>
+                <SelectItem value="under-15000">{t("under15k")}</SelectItem>
+                <SelectItem value="15000-30000">{t("from15to30k")}</SelectItem>
+                <SelectItem value="30000-50000">{t("from30to50k")}</SelectItem>
+                <SelectItem value="50000-plus">{t("above50k")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -173,7 +175,7 @@ export function OrdersWorkspace() {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Request pipeline</CardTitle>
+          <CardTitle>{t("requestPipeline")}</CardTitle>
           <CardDescription>
             Each row shows the CRM state, value, follow-up discipline, and proposal or contract signal that matters before project handoff.
           </CardDescription>
@@ -182,8 +184,8 @@ export function OrdersWorkspace() {
           {isLoading && !data ? (
             <WorkspaceQueryState
               kind="loading"
-              loadingTitle="Loading CRM requests"
-              loadingDescription="Retrieving live pipeline stages, proposal signals, and follow-up health from the admin API."
+              loadingTitle={t("loadingCrmRequests")}
+              loadingDescription={t("loadingCrmRequestsDescription")}
             />
           ) : isError && !data ? (
             <WorkspaceQueryState
@@ -199,9 +201,9 @@ export function OrdersWorkspace() {
                 <EmptyMedia variant="icon">
                   <BriefcaseBusinessIcon />
                 </EmptyMedia>
-                <EmptyTitle>No requests match these filters</EmptyTitle>
+                <EmptyTitle>{t("noRequests")}</EmptyTitle>
                 <EmptyDescription>
-                  Change the status, date, or value filters to inspect another pipeline segment.
+                  {t("adjustRequestFilters")}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
@@ -209,17 +211,17 @@ export function OrdersWorkspace() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Request</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead className="text-right">Estimated value</TableHead>
-                  <TableHead>Last contact</TableHead>
-                  <TableHead>Next follow-up</TableHead>
-                  <TableHead>Proposal</TableHead>
-                  <TableHead>Contract</TableHead>
-                  <TableHead>Aging</TableHead>
+                  <TableHead>{t("request")}</TableHead>
+                  <TableHead>{t("type")}</TableHead>
+                  <TableHead>{t("stage")}</TableHead>
+                  <TableHead>{t("owner")}</TableHead>
+                  <TableHead>{t("source")}</TableHead>
+                  <TableHead className="text-right">{t("estimatedValue")}</TableHead>
+                  <TableHead>{t("lastContact")}</TableHead>
+                  <TableHead>{t("nextFollowUp")}</TableHead>
+                  <TableHead>{t("proposal")}</TableHead>
+                  <TableHead>{t("contract")}</TableHead>
+                  <TableHead>{t("aging")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -240,18 +242,18 @@ export function OrdersWorkspace() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {row.kind === "order" ? "Order" : "Lead"}
+                        {translateRequestLabel(locale, row.kind === "order" ? "Order" : "Lead")}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <StatusBadge tone={row.stageTone}>
-                        {formatOrderStage(row.crmStage ?? row.stage)}
+                        {translateRequestLabel(locale, formatOrderStage(row.crmStage ?? row.stage))}
                       </StatusBadge>
                     </TableCell>
                     <TableCell>{row.owner}</TableCell>
-                    <TableCell>{formatOrderSource(row.source as ClientSource)}</TableCell>
+                    <TableCell>{translateRequestLabel(locale, formatOrderSource(row.source as ClientSource))}</TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatOrderCurrency(row.estimatedValue)}
+                      <LocalizedCurrency amount={row.estimatedValue} />
                     </TableCell>
                     <TableCell>{row.lastContact}</TableCell>
                     <TableCell>
@@ -264,18 +266,18 @@ export function OrdersWorkspace() {
                     </TableCell>
                     <TableCell>
                       <StatusBadge tone={row.proposalTone}>
-                        {formatProposalStatus(row.proposalStatus)}
+                        {translateRequestLabel(locale, formatProposalStatus(row.proposalStatus))}
                       </StatusBadge>
                     </TableCell>
                     <TableCell>
                       <div className="flex min-w-0 flex-col gap-1">
                         <StatusBadge tone={row.contractTone}>
-                          {row.contractState}
+                          {translateRequestLabel(locale, row.contractState)}
                         </StatusBadge>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge tone={row.agingTone}>{row.agingLabel}</StatusBadge>
+                      <StatusBadge tone={row.agingTone}>{translateRequestLabel(locale, row.agingLabel)}</StatusBadge>
                     </TableCell>
                   </TableRow>
                 ))}

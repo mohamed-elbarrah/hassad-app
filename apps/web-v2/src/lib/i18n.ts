@@ -121,6 +121,13 @@ const commonMessages = {
     adjustClientFilter: "Adjust the filter or sort to inspect another client segment.",
     loadingClients: "Loading clients", loadingClientsDescription: "Retrieving client portfolio health and spend data from the workspace API.",
     clientDetail: "Client detail", clientDetailDescription: "Account identity, collected business context, and operational relationship signals.",
+    requests: "Requests", proposals: "Proposals", proposalRegister: "Proposal register", proposalRegisterDescription: "Current proposal rows, status, value, validity, and contract readiness.",
+    status: "Status", clientRequest: "Client / request", creator: "Creator", services: "Services", proposalSent: "Sent", proposalResponse: "Response", proposalValidity: "Validity", proposalContract: "Contract", proposalsFilterDate: "Filter proposals by date", proposalsFilterValue: "Filter proposals by value", sentLast7: "Sent in last 7 days", sentLast30: "Sent in last 30 days", sentLast90: "Sent in last 90 days", noProposals: "No proposals match these filters", adjustProposalFilters: "Change the filters to inspect another proposal segment.", loadingProposals: "Loading proposals", loadingProposalsDescription: "Retrieving proposal register data from the workspace API.",
+    requestPipeline: "Request pipeline", requestPipelineDescription: "Each row shows CRM state, value, follow-up discipline, and proposal or contract signals before project handoff.",
+    allTypes: "All types", orders: "Orders", waitingApproval: "Waiting approval", stalled: "Stalled", filterRequestsDate: "Filter requests by date", filterRequestsValue: "Filter requests by value",
+    allDates: "All dates", openedLast7: "Opened in last 7 days", openedLast30: "Opened in last 30 days", openedLast90: "Opened in last 90 days", allValues: "All values", under15k: "Under $15k", from15to30k: "$15k to $30k", from30to50k: "$30k to $50k", above50k: "$50k and above",
+    loadingCrmRequests: "Loading CRM requests", loadingCrmRequestsDescription: "Retrieving live pipeline stages, proposal signals, and follow-up health from the admin API.", noRequests: "No requests match these filters", adjustRequestFilters: "Change the filters to inspect another pipeline segment.", request: "Request", stage: "Stage", source: "Source", estimatedValue: "Estimated value", lastContact: "Last contact", nextFollowUp: "Next follow-up", proposal: "Proposal", contract: "Contract", aging: "Aging", paidCampaign: "Paid campaign", website: "Website", referral: "Referral", whatsapp: "WhatsApp", platform: "Platform", draft: "Draft", sent: "Sent", approved: "Approved", revisionRequested: "Revision requested", rejected: "Rejected", notStarted: "Not started",
+
     employeeFormDescription: "Set employee identity and access. Team employees require a department.",
     fullName: "Full name", email: "Email", password: "Password", passwordReset: "Password reset",
     leavePassword: "Leave blank to keep current password", phoneWhatsapp: "Phone / WhatsApp",
@@ -234,6 +241,13 @@ const commonMessages = {
     adjustClientFilter: "عدّل الفلتر أو الترتيب لاستعراض تصنيف آخر من العملاء.",
     loadingClients: "جارٍ تحميل العملاء", loadingClientsDescription: "جارٍ جلب حالة محفظة العملاء وبيانات الإنفاق من واجهة مساحة العمل.",
     clientDetail: "تفاصيل العميل", clientDetailDescription: "هوية الحساب وبيانات العمل وإشارات العلاقة التشغيلية.",
+    requests: "الطلبات", proposals: "العروض", proposalRegister: "سجل العروض", proposalRegisterDescription: "العروض الحالية وحالاتها وقيمها وصلاحيتها واستعداد العقود.",
+    status: "الحالة", clientRequest: "العميل / الطلب", creator: "المنشئ", services: "الخدمات", proposalSent: "تاريخ الإرسال", proposalResponse: "حالة الرد", proposalValidity: "مدة الصلاحية", proposalContract: "حالة العقد", proposalsFilterDate: "تصفية العروض حسب التاريخ", proposalsFilterValue: "تصفية العروض حسب القيمة", sentLast7: "أُرسل خلال آخر 7 أيام", sentLast30: "أُرسل خلال آخر 30 يومًا", sentLast90: "أُرسل خلال آخر 90 يومًا", noProposals: "لا توجد عروض تطابق هذه الفلاتر", adjustProposalFilters: "غيّر الفلاتر لاستعراض جزء آخر من العروض.", loadingProposals: "جارٍ تحميل العروض", loadingProposalsDescription: "جارٍ جلب سجل العروض من واجهة مساحة العمل.",
+    requestPipeline: "مسار الطلبات", requestPipelineDescription: "يعرض كل صف حالة الطلب وقيمته والمتابعة وإشارات العرض أو العقد قبل تسليمه للتنفيذ.",
+    allTypes: "كل الأنواع", orders: "الطلبات", waitingApproval: "بانتظار الموافقة", stalled: "متوقف", filterRequestsDate: "تصفية الطلبات حسب التاريخ", filterRequestsValue: "تصفية الطلبات حسب القيمة",
+    allDates: "كل التواريخ", openedLast7: "فُتح خلال آخر 7 أيام", openedLast30: "فُتح خلال آخر 30 يومًا", openedLast90: "فُتح خلال آخر 90 يومًا", allValues: "كل القيم", under15k: "أقل من 15 ألفًا", from15to30k: "من 15 إلى 30 ألفًا", from30to50k: "من 30 إلى 50 ألفًا", above50k: "50 ألفًا فأكثر",
+    loadingCrmRequests: "جارٍ تحميل طلبات إدارة العملاء", loadingCrmRequestsDescription: "جارٍ جلب مراحل المسار وإشارات العروض وصحة المتابعة من واجهة الإدارة.", noRequests: "لا توجد طلبات تطابق هذه الفلاتر", adjustRequestFilters: "غيّر الفلاتر لاستعراض جزء آخر من المسار.", request: "الطلب", stage: "المرحلة", source: "المصدر", estimatedValue: "القيمة التقديرية", lastContact: "آخر تواصل", nextFollowUp: "المتابعة التالية", proposal: "العرض", contract: "العقد", aging: "مدة الانتظار", paidCampaign: "حملة مدفوعة", website: "الموقع الإلكتروني", referral: "إحالة", whatsapp: "واتساب", platform: "المنصة", draft: "مسودة", sent: "مرسل", approved: "معتمد", revisionRequested: "مطلوب تعديل", rejected: "مرفوض", notStarted: "لم يبدأ",
+
     employeeFormDescription: "حدد هوية الموظف وصلاحياته. يجب تعيين قسم لموظفي الفريق.",
     fullName: "الاسم الكامل", email: "البريد الإلكتروني", password: "كلمة المرور", passwordReset: "إعادة تعيين كلمة المرور",
     leavePassword: "اتركه فارغًا للإبقاء على كلمة المرور الحالية", phoneWhatsapp: "الهاتف / واتساب",
@@ -360,6 +374,21 @@ const clientArabicLabels: Record<string, string> = {
 
 export function translateClientLabel(locale: Locale, value: string) {
   return locale === "ar" ? clientArabicLabels[value] ?? value : value;
+}
+
+const requestArabicLabels: Record<string, string> = {
+  Lead: "عميل محتمل", Order: "طلب", New: "جديد", "New Lead": "عميل محتمل جديد", Contacted: "تم التواصل", "Follow-up Attempt": "محاولة متابعة", "Meeting Scheduled": "تم تحديد اجتماع", "Meeting Completed": "تم عقد الاجتماع", "Proposal Sent": "تم إرسال العرض", "Negotiation / Follow-up": "تفاوض / متابعة", Negotiation: "تفاوض", "Proposal sent": "تم إرسال العرض", Approved: "معتمد", Rejected: "مرفوض", "Contract sent": "تم إرسال العقد", Signed: "موقّع", Active: "نشط", Cancelled: "ملغى", "Won (Contract Signed)": "تم الفوز (العقد موقّع)", "Paid campaign": "حملة مدفوعة", Website: "الموقع الإلكتروني", Referral: "إحالة", WhatsApp: "واتساب", Platform: "المنصة", Draft: "مسودة", Sent: "مرسل", "Revision requested": "مطلوب تعديل", "Not started": "لم يبدأ", "Waiting for CRM approval": "بانتظار موافقة إدارة العملاء", "Drafting contract package": "جارٍ إعداد حزمة العقد", "Not created": "لم يتم الإنشاء", "Validity not started": "لم تبدأ الصلاحية", "Not sent": "لم يتم الإرسال", SENT: "تم الإرسال", DRAFT: "مسودة", APPROVED: "معتمد", REJECTED: "مرفوض", "REVISION REQUESTED": "مطلوب تعديل", "Signed, awaiting project creation": "موقّع، بانتظار إنشاء المشروع", "1d in pipeline": "يوم واحد في المسار", "2d in current stage": "يومان في المرحلة الحالية", "6d in pipeline": "6 أيام في المسار", "Approval completed": "اكتملت الموافقة", "Follow-up overdue": "المتابعة متأخرة", "Fresh opportunity": "فرصة جديدة", "Proposal prep in progress": "جارٍ إعداد العرض", "Ready for conversion": "جاهز للتحويل",
+};
+
+export function translateRequestLabel(locale: Locale, value: string): string {
+  if (locale !== "ar") return value;
+  if (requestArabicLabels[value]) return requestArabicLabels[value];
+  if (value.startsWith("Sent ")) return `تم الإرسال ${translateRequestLabel(locale, value.slice(5))}`;
+  if (value.startsWith("Valid until ")) return `صالح حتى ${value.slice(11)}`;
+  if (value === "Linked to contract") return "مرتبط بعقد";
+  if (value === "Today") return "اليوم";
+  if (value === "Yesterday") return "أمس";
+  return value;
 }
 
 export function localizeOverviewChartLabel(locale: Locale, label: string) {

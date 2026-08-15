@@ -12,8 +12,10 @@ import type {
 } from "@/features/crm-proposals/lib/proposal-directory";
 import { useGetAdminProposalsQuery } from "@/lib/api/admin-proposals-api";
 import { useAppSelector } from "@/lib/store";
+import { useTranslations } from "@/lib/i18n";
 
 export function ProposalsWorkspace() {
+  const { t } = useTranslations();
   const authStatus = useAppSelector((state) => state.auth.status);
   const [statusFilter, setStatusFilter] = useState<ProposalDirectoryFilter>("all");
   const [dateFilter, setDateFilter] = useState<ProposalDateFilter>("last-30-days");
@@ -57,8 +59,8 @@ export function ProposalsWorkspace() {
 
   return (
     <ProposalRegisterWorkspace
-      title="Proposals"
-      description="CRM proposal view for commercial documents, client decision state, and contract readiness."
+      title={t("proposals")}
+      description={t("proposalRegisterDescription")}
       rows={rows}
       isLoading={authStatus !== "authenticated" || isLoading}
       isError={isError}

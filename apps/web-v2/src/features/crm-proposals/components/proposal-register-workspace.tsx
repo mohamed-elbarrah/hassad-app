@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FileTextIcon } from "lucide-react";
+import { LocalizedCurrency } from "@/components/patterns/localized-currency";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
 import { StatusBadge } from "@/components/patterns/status-badge";
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatProposalStatus, type ProposalDateFilter, type ProposalDirectoryFilter, type ProposalValueFilter, type ProposalDirectoryRecord } from "@/features/crm-proposals/lib/proposal-directory";
 import type { describeApiError } from "@/lib/api/describe-api-error";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 
 export type ProposalWorkspaceRow = Omit<ProposalDirectoryRecord, "creator"> & {
   creator?: string;
@@ -51,6 +53,7 @@ export function ProposalRegisterWorkspace({
   basePath: string;
   showCreator?: boolean;
 }) {
+  const { locale, t } = useTranslations();
   return (
     <PageScaffold
       title={title}
@@ -76,11 +79,11 @@ export function ProposalRegisterWorkspace({
             size="sm"
             spacing={0}
           >
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="sent">Sent</ToggleGroupItem>
-            <ToggleGroupItem value="approved">Approved</ToggleGroupItem>
-            <ToggleGroupItem value="revision-requested">Revision requested</ToggleGroupItem>
-            <ToggleGroupItem value="rejected">Rejected</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t("all")}</ToggleGroupItem>
+            <ToggleGroupItem value="sent">{t("sent")}</ToggleGroupItem>
+            <ToggleGroupItem value="approved">{t("approved")}</ToggleGroupItem>
+            <ToggleGroupItem value="revision-requested">{t("revisionRequested")}</ToggleGroupItem>
+            <ToggleGroupItem value="rejected">{t("rejected")}</ToggleGroupItem>
           </ToggleGroup>
 
           <Select
@@ -96,15 +99,15 @@ export function ProposalRegisterWorkspace({
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter proposals by date">
+            <SelectTrigger size="sm" aria-label={t("proposalsFilterDate")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-time">All dates</SelectItem>
-                <SelectItem value="last-7-days">Sent in last 7 days</SelectItem>
-                <SelectItem value="last-30-days">Sent in last 30 days</SelectItem>
-                <SelectItem value="last-90-days">Sent in last 90 days</SelectItem>
+                <SelectItem value="all-time">{t("allDates")}</SelectItem>
+                <SelectItem value="last-7-days">{t("sentLast7")}</SelectItem>
+                <SelectItem value="last-30-days">{t("sentLast30")}</SelectItem>
+                <SelectItem value="last-90-days">{t("sentLast90")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -123,7 +126,7 @@ export function ProposalRegisterWorkspace({
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter proposals by value">
+            <SelectTrigger size="sm" aria-label={t("proposalsFilterValue")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -141,17 +144,17 @@ export function ProposalRegisterWorkspace({
     >
       <Card>
         <CardHeader>
-          <CardTitle>Proposal register</CardTitle>
+          <CardTitle>{t("proposalRegister")}</CardTitle>
           <CardDescription>
-            Current proposal rows, status, value, validity, and contract readiness.
+            {t("proposalRegisterDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading && !rows.length ? (
             <WorkspaceQueryState
               kind="loading"
-              loadingTitle={`Loading ${title.toLowerCase()}`}
-              loadingDescription="Retrieving proposal register data from the workspace API."
+              loadingTitle={t("loadingProposals")}
+              loadingDescription={t("loadingProposalsDescription")}
             />
           ) : isError && !rows.length ? (
             <WorkspaceQueryState kind="error" error={error} onRetry={onRetry} />
@@ -161,9 +164,9 @@ export function ProposalRegisterWorkspace({
                 <EmptyMedia variant="icon">
                   <FileTextIcon />
                 </EmptyMedia>
-                <EmptyTitle>No proposals match these filters</EmptyTitle>
+                <EmptyTitle>{t("noProposals")}</EmptyTitle>
                 <EmptyDescription>
-                  Change the status, date, or value filters to inspect another proposal segment.
+                  {t("adjustProposalFilters")}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
@@ -171,16 +174,16 @@ export function ProposalRegisterWorkspace({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Proposal</TableHead>
-                  <TableHead>Client / request</TableHead>
-                  {showCreator ? <TableHead>Creator</TableHead> : null}
-                  <TableHead>Services</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Sent</TableHead>
-                  <TableHead>Response</TableHead>
-                  <TableHead>Validity</TableHead>
-                  <TableHead>Contract</TableHead>
+                  <TableHead>{t("proposal")}</TableHead>
+                  <TableHead>{t("clientRequest")}</TableHead>
+                  {showCreator ? <TableHead>{t("creator")}</TableHead> : null}
+                  <TableHead>{t("services")}</TableHead>
+                  <TableHead className="text-right">{t("value")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                  <TableHead>{t("proposalSent")}</TableHead>
+                  <TableHead>{t("proposalResponse")}</TableHead>
+                  <TableHead>{t("proposalValidity")}</TableHead>
+                  <TableHead>{t("proposalContract")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -202,27 +205,27 @@ export function ProposalRegisterWorkspace({
                     {showCreator ? <TableCell>{row.creator ?? "—"}</TableCell> : null}
                     <TableCell>
                       <div className="flex min-w-0 flex-col gap-1">
-                        <span>{row.servicesCount} services</span>
+                        <span>{row.servicesCount} {t("services").toLowerCase()}</span>
                         <span className="truncate text-sm text-muted-foreground">
                           {row.servicesLabel}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {`$${row.totalValue.toLocaleString("en-US")}`}
+                      <LocalizedCurrency amount={row.totalValue} />
                     </TableCell>
                     <TableCell>
                       <StatusBadge tone={row.statusTone}>
-                        {formatProposalStatus(row.status)}
+                        {translateRequestLabel(locale, formatProposalStatus(row.status))}
                       </StatusBadge>
                     </TableCell>
-                    <TableCell>{row.sentAtLabel}</TableCell>
+                    <TableCell>{translateRequestLabel(locale, row.sentAtLabel)}</TableCell>
                     <TableCell>{row.responseLabel}</TableCell>
                     <TableCell>
-                      <StatusBadge tone={row.validityTone}>{row.validUntilLabel}</StatusBadge>
+                      <StatusBadge tone={row.validityTone}>{translateRequestLabel(locale, row.validUntilLabel)}</StatusBadge>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge tone={row.contractTone}>{row.contractLabel}</StatusBadge>
+                      <StatusBadge tone={row.contractTone}>{translateRequestLabel(locale, row.contractLabel)}</StatusBadge>
                     </TableCell>
                   </TableRow>
                 ))}
