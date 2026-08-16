@@ -1,4 +1,5 @@
 import { formatDistanceToNowStrict } from "date-fns";
+import type { Locale } from "@/lib/i18n";
 
 export type ChatUserPresence = "online" | "last_seen";
 
@@ -76,30 +77,56 @@ export function buildInitials(name: string) {
     .join("");
 }
 
-export function resolvePresence(lastLoginAt: string | null, isOnline?: boolean, lastSeenAt?: string | null): {
+export function resolvePresence(
+  lastLoginAt: string | null,
+  isOnline?: boolean,
+  lastSeenAt?: string | null,
+  locale: Locale = "en",
+): {
   state: ChatUserPresence;
   label: string;
 } {
-  if (isOnline === true) return { state: "online", label: "Online" };
+  if (isOnline === true)
+    return { state: "online", label: locale === "ar" ? "متصل" : "Online" };
   const effectiveLastSeen = lastSeenAt ?? lastLoginAt;
   if (!effectiveLastSeen) {
-    return { state: "last_seen", label: "No recent activity" };
+    return {
+      state: "last_seen",
+      label: locale === "ar" ? "لا يوجد نشاط حديث" : "No recent activity",
+    };
   }
 
   const lastSeenDate = new Date(effectiveLastSeen);
   if (Number.isNaN(lastSeenDate.getTime())) {
-    return { state: "last_seen", label: "Recent activity unavailable" };
+    return {
+      state: "last_seen",
+      label:
+        locale === "ar"
+          ? "النشاط الأخير غير متاح"
+          : "Recent activity unavailable",
+    };
   }
 
   const diffMinutes = Math.abs(Date.now() - lastSeenDate.getTime()) / 60000;
   if (diffMinutes <= 5) {
-    return { state: "online", label: "Online" };
+    return { state: "online", label: locale === "ar" ? "متصل" : "Online" };
   }
 
-  return {
-    state: "last_seen",
-    label: `Last seen ${formatDistanceToNowStrict(lastSeenDate, { addSuffix: true })}`,
-  };
+  if (locale === "ar") {
+    const minutes = Math.max(1, Math.round(diffMinutes));
+    if (minutes < 60) {
+      return { state: "last_seen", label: `آخر ظهور منذ ${minutes} دقيقة` };
+    }
+    const hours = Math.max(1, Math.round(minutes / 60));
+    if (hours < 24) {
+      return { state: "last_seen", label: `آخر ظهور منذ ${hours} ساعة` };
+    }
+    const days = Math.max(1, Math.round(hours / 24));
+    return { state: "last_seen", label: `آخر ظهور منذ ${days} يوم` };
+  }
+
+  const relative = formatDistanceToNowStrict(lastSeenDate, { addSuffix: true });
+  return { state: "last_seen", label: `Last seen ${relative}` };
 }
 
 export function getConversationPeer(
@@ -107,7 +134,9 @@ export function getConversationPeer(
   currentUserId: string,
 ) {
   return (
-    conversation.participants.find((participant) => participant.id !== currentUserId) ??
+    conversation.participants.find(
+      (participant) => participant.id !== currentUserId,
+    ) ??
     conversation.participants[0] ??
     null
   );
@@ -118,7 +147,9 @@ export function getConversationTitle(
   currentUserId: string,
 ) {
   if (conversation.type === "DIRECT") {
-    return getConversationPeer(conversation, currentUserId)?.name ?? "Direct chat";
+    return (
+      getConversationPeer(conversation, currentUserId)?.name ?? "Direct chat"
+    );
   }
 
   return conversation.title ?? conversation.project?.name ?? "Group chat";
@@ -127,16 +158,24 @@ export function getConversationTitle(
 export function getConversationSubtitle(
   conversation: ChatConversationRecord,
   currentUserId: string,
+  locale: Locale = "en",
 ) {
   if (conversation.type === "DIRECT") {
     const peer = getConversationPeer(conversation, currentUserId);
     if (!peer) return "Direct conversation";
-    return resolvePresence(peer.lastLoginAt).label;
+    return resolvePresence(
+      peer.lastLoginAt,
+      peer.isOnline,
+      peer.lastSeenAt,
+      locale,
+    ).label;
   }
 
   if (conversation.project?.name) {
     return conversation.project.name;
   }
 
-  return `${conversation.participants.length} participants`;
+  return locale === "ar"
+    ? `${conversation.participants.length} مشاركين`
+    : `${conversation.participants.length} participants`;
 }

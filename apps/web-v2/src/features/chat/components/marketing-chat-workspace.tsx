@@ -6,7 +6,6 @@ import {
   ArrowLeftIcon,
   CopyIcon,
   Edit3Icon,
-  MessageSquareIcon,
   PlusIcon,
   MoreHorizontalIcon,
   PaperclipIcon,
@@ -15,7 +14,6 @@ import {
   Trash2Icon,
   UsersIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -90,6 +88,7 @@ import {
   useUpdateMarketingChatMessageMutation,
 } from "@/lib/api/marketing-chat-api";
 import { cn } from "@/lib/utils";
+import { formatPlainNumber, useTranslations } from "@/lib/i18n";
 import {
   buildInitials,
   getConversationPeer,
@@ -109,12 +108,13 @@ function apiSocketUrl() {
   return baseUrl.replace(/\/v1\/?$/, "");
 }
 
-function formatMessageTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+function formatMessageTime(value: string, locale: "en" | "ar") {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    numberingSystem: "latn",
   }).format(new Date(value));
 }
 
@@ -136,6 +136,7 @@ function mergeByUserId(
 export function MarketingChatWorkspace({
   currentUserId,
 }: MarketingChatWorkspaceProps) {
+  const { locale, t } = useTranslations();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -197,8 +198,8 @@ export function MarketingChatWorkspace({
       name: targetName,
       subtitle:
         targetKind === "client"
-          ? "Client chat will start after the first message."
-          : "Employee chat will start after the first message.",
+          ? t("clientChatWillStart")
+          : t("employeeChatWillStart"),
       kind: targetKind === "client" ? "client" : "employee",
       avatarUrl: null,
       isActive: true,
@@ -281,8 +282,7 @@ export function MarketingChatWorkspace({
     return conversations.filter((conversation) =>
       [
         getConversationTitle(conversation, currentUserId),
-        getConversationSubtitle(conversation, currentUserId),
-        conversation.lastMessage?.displayContent ?? "",
+        getConversationSubtitle(conversation, currentUserId, locale),
       ].some((value) => value.toLowerCase().includes(query)),
     );
   }, [conversations, currentUserId, searchValue]);
@@ -363,7 +363,7 @@ export function MarketingChatWorkspace({
           payload.conversationId === activeConversationId &&
           payload.userId !== currentUserId
         ) {
-          setTypingLabel(`${payload.userName} is typing...`);
+          setTypingLabel(t("isTyping", { name: payload.userName }));
         }
       },
     );
@@ -445,6 +445,7 @@ export function MarketingChatWorkspace({
     presenceOverrides[activePeer?.id ?? ""]?.isOnline ?? activePeer?.isOnline,
     presenceOverrides[activePeer?.id ?? ""]?.lastSeenAt ??
       activePeer?.lastSeenAt,
+    locale,
   );
 
   function chooseTarget(target: ChatTargetOption) {
@@ -571,10 +572,7 @@ export function MarketingChatWorkspace({
 
   if (conversationsIsError && !conversationsResponse) {
     return (
-      <PageScaffold
-        title="Chat"
-        description="Direct conversations between admin, employees, and clients."
-      >
+      <PageScaffold title={t("chat")} description={t("chatDescription")}>
         <WorkspaceQueryState
           kind="error"
           error={conversationsError}
@@ -586,18 +584,9 @@ export function MarketingChatWorkspace({
 
   return (
     <PageScaffold
-      title="Chat"
-      description="Direct conversations stay in one shared workspace and only create a thread after the first message is sent."
-      actions={
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={<Link href="/chat-preview" />}
-        >
-          <MessageSquareIcon data-icon="inline-start" />
-          Preview route
-        </Button>
-      }
+      hideHeader
+      title={t("chat")}
+      description={t("chatWorkspaceDescription")}
     >
       <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
         <Card
@@ -607,17 +596,15 @@ export function MarketingChatWorkspace({
           )}
         >
           <CardHeader>
-            <CardTitle>Conversations</CardTitle>
-            <CardDescription>
-              Search existing conversations or start a new direct chat.
-            </CardDescription>
+            <CardTitle>{t("conversations")}</CardTitle>
+            <CardDescription>{t("searchExistingOrStart")}</CardDescription>
           </CardHeader>
           <CardContent className="flex h-full flex-col gap-4">
             <div className="flex items-center gap-2">
               <Input
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
-                placeholder="Search conversations"
+                placeholder={t("searchConversations")}
                 className="min-w-0 flex-1"
               />
               <Tabs
@@ -630,8 +617,8 @@ export function MarketingChatWorkspace({
                 }}
               >
                 <TabsList>
-                  <TabsTrigger value="DIRECT">Direct</TabsTrigger>
-                  <TabsTrigger value="GROUP">Groups</TabsTrigger>
+                  <TabsTrigger value="DIRECT">{t("direct")}</TabsTrigger>
+                  <TabsTrigger value="GROUP">{t("groups")}</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
@@ -644,11 +631,11 @@ export function MarketingChatWorkspace({
                 render={<Button variant="outline" className="w-full" />}
               >
                 <PlusIcon data-icon="inline-start" />
-                New conversation
+                {t("newConversation")}
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>New direct conversation</DialogTitle>
+                  <DialogTitle>{t("newDirectConversation")}</DialogTitle>
                   <DialogDescription>
                     Search for an employee or client to start a direct
                     conversation.
@@ -660,7 +647,7 @@ export function MarketingChatWorkspace({
                   onChange={(event) =>
                     setNewConversationSearch(event.target.value)
                   }
-                  placeholder="Search people"
+                  placeholder={t("searchPeople")}
                 />
                 <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
                   {combinedTargets.map((target) => {
@@ -668,6 +655,7 @@ export function MarketingChatWorkspace({
                       target.lastLoginAt,
                       presenceOverrides[target.userId]?.isOnline,
                       presenceOverrides[target.userId]?.lastSeenAt,
+                      locale,
                     );
                     return (
                       <button
@@ -705,7 +693,7 @@ export function MarketingChatWorkspace({
                   deferredNewConversationSearch.length >= 2 &&
                   combinedTargets.length === 0 ? (
                     <p className="py-4 text-center text-sm text-muted-foreground">
-                      No people found.
+                      {t("noPeopleFound")}
                     </p>
                   ) : null}
                 </div>
@@ -716,7 +704,7 @@ export function MarketingChatWorkspace({
               {conversationsIsLoading && conversations.length === 0 ? (
                 <WorkspaceQueryState
                   kind="loading"
-                  loadingTitle="Loading conversations"
+                  loadingTitle={t("loadingConversations")}
                 />
               ) : null}
 
@@ -725,6 +713,7 @@ export function MarketingChatWorkspace({
                 const subtitle = getConversationSubtitle(
                   conversation,
                   currentUserId,
+                  locale,
                 );
                 const isActive = conversation.id === activeConversationId;
 
@@ -760,18 +749,15 @@ export function MarketingChatWorkspace({
                         <p className="truncate text-xs text-muted-foreground">
                           {subtitle}
                         </p>
-                        <p className="mt-1 truncate text-sm text-muted-foreground">
-                          {conversation.lastMessage?.displayContent ??
-                            "No messages yet"}
-                        </p>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <span className="text-xs text-muted-foreground">
-                          {formatMessageTime(conversation.updatedAt)}
+                          {formatMessageTime(conversation.updatedAt, locale)}
                         </span>
                         {conversation.messageCount ? (
                           <StatusBadge tone="active">
-                            {conversation.messageCount} msg
+                            {formatPlainNumber(conversation.messageCount)}{" "}
+                            {t("messages")}
                           </StatusBadge>
                         ) : null}
                       </div>
@@ -797,7 +783,7 @@ export function MarketingChatWorkspace({
                   size="icon-sm"
                   className="lg:hidden"
                   onClick={() => setMobileView("list")}
-                  aria-label="Back to conversations"
+                  aria-label={t("backToConversations")}
                 >
                   <ArrowLeftIcon />
                 </Button>
@@ -814,16 +800,17 @@ export function MarketingChatWorkspace({
                   <CardTitle className="truncate">
                     {activeConversation
                       ? getConversationTitle(activeConversation, currentUserId)
-                      : (effectiveDraftTarget?.name ?? "Select a conversation")}
+                      : (effectiveDraftTarget?.name ?? t("selectConversation"))}
                   </CardTitle>
                   <CardDescription>
                     {activeConversation
                       ? getConversationSubtitle(
                           activeConversation,
                           currentUserId,
+                          locale,
                         )
                       : (effectiveDraftTarget?.subtitle ??
-                        "Choose an existing conversation or start a new one.")}
+                        t("chooseConversationDescription"))}
                   </CardDescription>
                 </div>
               </div>
@@ -839,7 +826,10 @@ export function MarketingChatWorkspace({
             </div>
           </CardHeader>
 
-          <CardContent className="flex h-[calc(72vh-5rem)] flex-col p-0">
+          <CardContent
+            dir={locale === "ar" ? "rtl" : "ltr"}
+            className="flex h-[calc(72vh-5rem)] flex-col p-0"
+          >
             <div className="min-h-0 flex-1">
               {messagesIsError && activeConversationId ? (
                 <WorkspaceQueryState
@@ -857,17 +847,18 @@ export function MarketingChatWorkspace({
                         {messagesIsLoading && activeConversationId ? (
                           <WorkspaceQueryState
                             kind="loading"
-                            loadingTitle="Loading messages"
+                            loadingTitle={t("loadingMessages")}
                           />
                         ) : null}
 
                         {!activeConversationId && !effectiveDraftTarget ? (
                           <Empty>
                             <EmptyHeader>
-                              <EmptyTitle>No conversation selected</EmptyTitle>
+                              <EmptyTitle>
+                                {t("noConversationSelected")}
+                              </EmptyTitle>
                               <EmptyDescription>
-                                Pick an existing thread or search for a client
-                                or employee to start one.
+                                {t("selectConversationDescription")}
                               </EmptyDescription>
                             </EmptyHeader>
                           </Empty>
@@ -878,9 +869,9 @@ export function MarketingChatWorkspace({
                         !messagesIsFetching ? (
                           <Empty>
                             <EmptyHeader>
-                              <EmptyTitle>No messages yet</EmptyTitle>
+                              <EmptyTitle>{t("noMessagesYet")}</EmptyTitle>
                               <EmptyDescription>
-                                Send the first message to start this thread.
+                                {t("sendFirstMessage")}
                               </EmptyDescription>
                             </EmptyHeader>
                           </Empty>
@@ -894,7 +885,17 @@ export function MarketingChatWorkspace({
                               scrollAnchor={index === threadMessages.length - 1}
                             >
                               <MessageGroup>
-                                <Message align={isOwn ? "end" : "start"}>
+                                <Message
+                                  align={
+                                    locale === "ar"
+                                      ? isOwn
+                                        ? "start"
+                                        : "end"
+                                      : isOwn
+                                        ? "end"
+                                        : "start"
+                                  }
+                                >
                                   <MessageAvatar>
                                     <Avatar size="sm">
                                       <AvatarImage
@@ -909,24 +910,37 @@ export function MarketingChatWorkspace({
                                     </Avatar>
                                   </MessageAvatar>
                                   <MessageContent>
-                                    <MessageHeader className="gap-2">
+                                    <MessageHeader className="gap-2 text-right">
                                       <span>{message.sender.name}</span>
                                       <span>
-                                        {formatMessageTime(message.createdAt)}
+                                        {formatMessageTime(
+                                          message.createdAt,
+                                          locale,
+                                        )}
                                       </span>
                                     </MessageHeader>
                                     <Bubble
                                       align={isOwn ? "end" : "start"}
                                       variant={isOwn ? "default" : "outline"}
                                     >
-                                      <BubbleContent>
+                                      <BubbleContent
+                                        className={
+                                          locale === "ar"
+                                            ? "text-right"
+                                            : undefined
+                                        }
+                                      >
                                         {message.replyTo ? (
                                           <div className="mb-2 rounded-lg bg-background/20 px-2 py-1 text-xs">
                                             {message.replyTo.senderName}:{" "}
                                             {message.replyTo.content}
                                           </div>
                                         ) : null}
-                                        <p>{message.displayContent}</p>
+                                        <p>
+                                          {message.deletedAt
+                                            ? t("deleted")
+                                            : message.displayContent}
+                                        </p>
                                         {message.attachments.length > 0 ? (
                                           <AttachmentGroup className="mt-3">
                                             {message.attachments.map(
@@ -949,10 +963,10 @@ export function MarketingChatWorkspace({
                                     </Bubble>
                                     <MessageFooter className="gap-2">
                                       {message.editedAt ? (
-                                        <span>Edited</span>
+                                        <span>{t("edited")}</span>
                                       ) : null}
                                       {message.deletedAt ? (
-                                        <span>Deleted</span>
+                                        <span>{t("deleted")}</span>
                                       ) : null}
                                       <DropdownMenu>
                                         <DropdownMenuTrigger
@@ -1054,7 +1068,7 @@ export function MarketingChatWorkspace({
               {editingTarget ? (
                 <div className="mb-3 flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
                   <div className="min-w-0">
-                    <p className="font-medium">Editing your message</p>
+                    <p className="font-medium">{t("editingYourMessage")}</p>
                     <p className="truncate text-muted-foreground">
                       {editingTarget.displayContent}
                     </p>
@@ -1099,7 +1113,7 @@ export function MarketingChatWorkspace({
                   placeholder={
                     effectiveDraftTarget
                       ? `Message ${effectiveDraftTarget.name}...`
-                      : "Write a message..."
+                      : t("writeMessage")
                   }
                   rows={4}
                 />
@@ -1120,7 +1134,7 @@ export function MarketingChatWorkspace({
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <PaperclipIcon data-icon="inline-start" />
-                      Attach files
+                      {t("attachFiles")}
                     </Button>
                   </div>
                   <Button
@@ -1133,7 +1147,7 @@ export function MarketingChatWorkspace({
                     }
                   >
                     <SendHorizonalIcon data-icon="inline-start" />
-                    {editingTarget ? "Save edit" : "Send message"}
+                    {editingTarget ? t("saveEdit") : t("sendMessage")}
                   </Button>
                 </div>
               </div>

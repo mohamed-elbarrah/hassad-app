@@ -1,5 +1,6 @@
 // Enums
 export * from "./enums/roles";
+export * from "./enums/locale";
 export * from "./enums/client";
 export * from "./enums/project";
 
