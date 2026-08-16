@@ -14,6 +14,6 @@ import { EncryptionService } from "./encryption/encryption.service";
     AiProviderRegistry,
     EncryptionService,
   ],
-  exports: [AiService, AiProviderRegistry, EncryptionService],
+  exports: [AiService, AiProviderService, AiProviderRegistry, EncryptionService],
 })
 export class AiModule {}

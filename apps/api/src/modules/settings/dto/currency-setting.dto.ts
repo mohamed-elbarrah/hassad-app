@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsNumber,
   IsBoolean,
+  IsNotEmpty,
   Min,
   IsUUID,
 } from "class-validator";
@@ -17,12 +18,15 @@ export enum SymbolType {
 
 export class CreateCurrencySettingDto {
   @IsString()
+  @IsNotEmpty()
   code: string;
 
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @IsString()
+  @IsNotEmpty()
   symbol: string;
 
   @IsEnum(SymbolType)
@@ -69,6 +73,7 @@ export class UpdateCurrencySettingDto {
 
   @IsString()
   @IsOptional()
+  @IsNotEmpty()
   symbol?: string;
 
   @IsEnum(SymbolType)

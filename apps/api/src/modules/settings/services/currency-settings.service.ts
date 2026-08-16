@@ -9,6 +9,7 @@ import { StorageService } from "../../../common/storage/storage.service";
 import {
   CreateCurrencySettingDto,
   UpdateCurrencySettingDto,
+  SymbolType,
 } from "../dto/currency-setting.dto";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { cleanSvgContent } from "../../../common/security/svg-sanitizer";
@@ -22,10 +23,28 @@ export class CurrencySettingsService {
     private readonly storageService: StorageService,
   ) {}
 
+  private async withSvgPreview<T extends { svgKey: string | null }>(settings: T[]) {
+    const keys = settings.map((setting) => setting.svgKey).filter(Boolean) as string[];
+    if (keys.length === 0) return settings;
+
+    const svgs = await this.prisma.currencySvg.findMany({ where: { key: { in: keys } }, select: { key: true, path: true } });
+    const paths = new Map(svgs.map((svg) => [svg.key, svg.path]));
+    return settings.map((setting) => ({ ...setting, svgUrl: setting.svgKey ? paths.get(setting.svgKey) ?? null : null }));
+  }
+
+  private validateSymbolConfiguration(dto: { symbol?: string; symbolType?: string; svgKey?: string }) {
+    if (!dto.symbol?.trim()) throw new BadRequestException("Currency symbol is required");
+    if (dto.symbolType === SymbolType.SVG_INLINE && !dto.svgKey?.trim()) {
+      throw new BadRequestException("Inline SVG content is required");
+    }
+    if (dto.symbolType === SymbolType.SVG_URL && !dto.svgKey?.trim()) {
+      throw new BadRequestException("An SVG upload is required");
+    }
+  }
+
   async findAll() {
-    return this.prisma.currencySetting.findMany({
-      orderBy: { createdAt: "asc" },
-    });
+    const settings = await this.prisma.currencySetting.findMany({ orderBy: { createdAt: "asc" } });
+    return this.withSvgPreview(settings);
   }
 
   async findDefault() {
@@ -40,10 +59,15 @@ export class CurrencySettingsService {
       where: { id },
     });
     if (!setting) throw new NotFoundException("Currency setting not found");
-    return setting;
+    const [result] = await this.withSvgPreview([setting]);
+    return result;
   }
 
   async create(dto: CreateCurrencySettingDto) {
+    this.validateSymbolConfiguration(dto);
+    if (dto.isDefault && dto.isActive === false) {
+      throw new BadRequestException("The default currency must be active");
+    }
     if (dto.isDefault) {
       await this.prisma.currencySetting.updateMany({
         where: { isDefault: true },
@@ -59,11 +83,22 @@ export class CurrencySettingsService {
     });
     if (!exists) throw new NotFoundException("Currency setting not found");
 
+    this.validateSymbolConfiguration({
+      symbol: dto.symbol ?? exists.symbol,
+      symbolType: dto.symbolType ?? exists.symbolType,
+      svgKey: dto.svgKey ?? exists.svgKey ?? undefined,
+    });
+    if (dto.isDefault && dto.isActive === false) {
+      throw new BadRequestException("The default currency must be active");
+    }
     if (dto.isDefault) {
       await this.prisma.currencySetting.updateMany({
         where: { isDefault: true, id: { not: id } },
         data: { isDefault: false },
       });
+    }
+    if (dto.isActive === false && exists.isDefault) {
+      throw new BadRequestException("The default currency must remain active");
     }
     return this.prisma.currencySetting.update({ where: { id }, data: dto });
   }

@@ -133,6 +133,38 @@ export class AiProviderService {
     return adapter.listModels();
   }
 
+  async fetchModelsPreview(data: { name: string; apiKey: string; baseUrl?: string }) {
+    const factory = ADAPTER_FACTORIES[data.name];
+    if (!factory) {
+      throw new BadRequestException(`No adapter for provider type "${data.name}"`);
+    }
+
+    const adapter = factory({
+      id: "preview",
+      name: data.name,
+      displayName: data.name,
+      baseUrl: data.baseUrl || null,
+      apiKey: data.apiKey,
+      models: [],
+      priority: 0,
+      isActive: true,
+      requestsPerMinute: null,
+      tokensPerMinute: null,
+      maxTokens: null,
+      temperature: null,
+    });
+
+    try {
+      return { success: true, models: await adapter.listModels() };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unable to fetch models",
+        models: DEFAULT_MODELS[data.name] || [],
+      };
+    }
+  }
+
   getDefaultModels(type: string): string[] {
     return DEFAULT_MODELS[type] || [];
   }

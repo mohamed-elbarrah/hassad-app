@@ -471,14 +471,25 @@ export class PaymentsService implements OnModuleInit {
     const updateData: any = {};
     if (isActive !== undefined) updateData.isActive = isActive;
     if (hasConfigFields) {
-      const config: Record<string, string> = {};
+      const existing = await this.prisma.paymentGateway.findUnique({ where: { name } });
+      let config: Record<string, string> = {};
+      if (existing?.configJson) {
+        try {
+          const raw = typeof existing.configJson === "string"
+            ? this.decrypt(existing.configJson)
+            : JSON.stringify(existing.configJson);
+          config = JSON.parse(raw) as Record<string, string>;
+        } catch {
+          config = {};
+        }
+      }
       if (secretKey) config.secretKey = secretKey;
       if (webhookSecret) config.webhookSecret = webhookSecret;
       if (publishableKey) config.publishableKey = publishableKey;
       updateData.configJson = this.encrypt(JSON.stringify(config)) as any;
     }
 
-    return this.prisma.paymentGateway.upsert({
+    await this.prisma.paymentGateway.upsert({
       where: { name },
       update: updateData,
       create: {
@@ -493,13 +504,18 @@ export class PaymentsService implements OnModuleInit {
         isActive: isActive ?? true,
       },
     });
+
+    const gateways = await this.getGateways();
+    return gateways.find((gateway) => gateway.name === name);
   }
 
   async deleteGateway(name: string) {
-    return this.prisma.paymentGateway.update({
+    await this.prisma.paymentGateway.update({
       where: { name },
       data: { isActive: false },
     });
+    const gateways = await this.getGateways();
+    return gateways.find((gateway) => gateway.name === name);
   }
 
   async getBankAccounts(includeInactive?: boolean) {

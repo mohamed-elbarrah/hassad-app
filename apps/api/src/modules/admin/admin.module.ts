@@ -13,6 +13,7 @@ import { AdminController } from "./controllers/admin.controller";
 import { AdminAuditController } from "./controllers/admin-audit.controller";
 import { AdminKpiController } from "./controllers/admin-kpi.controller";
 import { AdminSettingsController } from "./controllers/admin-settings.controller";
+import { AdminSettingsConfigurationController } from "./controllers/admin-settings-configuration.controller";
 import { AdminUsersController } from "./controllers/admin-users.controller";
 import { AdminSessionsController } from "./controllers/admin-sessions.controller";
 import { AdminSecurityController } from "./controllers/admin-security.controller";
@@ -87,6 +88,7 @@ import { PrismaHealthIndicator } from "../health/indicators";
 import { HealthPersistenceService } from "../health/services/health-persistence.service";
 import { RobustErrorLoggerService } from "../health/services/robust-error-logger.service";
 import { RequestsModule } from "../requests/requests.module";
+import { SettingsModule } from "../settings/settings.module";
 
 @Module({
   imports: [
@@ -97,6 +99,7 @@ import { RequestsModule } from "../requests/requests.module";
     ChatModule,
     AiModule,
     RequestsModule,
+    SettingsModule,
     TerminusModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -118,6 +121,7 @@ import { RequestsModule } from "../requests/requests.module";
     AdminKpiController,
     AdminAuditController,
     AdminSettingsController,
+    AdminSettingsConfigurationController,
     AdminUsersController,
     AdminSessionsController,
     AdminSecurityController,
