@@ -91,7 +91,6 @@ export type NotificationMessageKey =
   | "meeting.pm_updated"
   | "project.file_uploaded"
   | "chat.new_message"
-  | "proposal.submitted"
   | "proposal.client_approved"
   | "proposal.revision_requested"
   | "request.submitted";

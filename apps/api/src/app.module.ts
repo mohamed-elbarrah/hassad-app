@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -6,6 +7,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { StorageModule } from "./common/storage/storage.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { RequestLocaleInterceptor } from "./common/interceptors/request-locale.interceptor";
 import { RobustErrorLoggerService } from "./modules/health/services/robust-error-logger.service";
 import { ThrottlerModule } from "@nestjs/throttler";
 
@@ -87,6 +89,10 @@ import { DisputesModule } from "./modules/disputes/disputes.module";
   ],
   providers: [
     RobustErrorLoggerService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RequestLocaleInterceptor,
+    },
     {
       provide: "APP_FILTER",
       useClass: HttpExceptionFilter,

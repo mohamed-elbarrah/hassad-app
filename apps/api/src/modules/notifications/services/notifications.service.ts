@@ -7,6 +7,7 @@ import {
   renderNotificationMessage,
 } from "./notification-messages";
 import {
+  getRequestNotificationLocale,
   NotificationLocale,
   normalizeNotificationLocale,
 } from "./notification-locale";
@@ -64,6 +65,10 @@ export class NotificationsService {
 
   private async resolveLocale(locale?: NotificationLocale) {
     if (locale) return locale;
+
+    const requestLocale = getRequestNotificationLocale();
+    if (requestLocale) return requestLocale;
+
     const setting = await this.prisma.companySetting.findUnique({
       where: { key: "language" },
       select: { value: true },

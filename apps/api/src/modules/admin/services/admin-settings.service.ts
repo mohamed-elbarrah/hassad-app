@@ -1,4 +1,6 @@
 import { Injectable } from "@nestjs/common";
+import { isSupportedLocale } from "@hassad/shared";
+import { ApiException } from "../../../common/errors/api-error";
 import { PrismaService } from "../../../prisma/prisma.service";
 
 @Injectable()
@@ -27,7 +29,8 @@ export class AdminSettingsService {
   async updateBatch(updates: Record<string, any>) {
     const results: Record<string, any> = {};
 
-    for (const [key, value] of Object.entries(updates)) {
+    for (const [key, rawValue] of Object.entries(updates)) {
+      const value = this.normalizeSettingValue(key, rawValue);
       const setting = await this.prisma.companySetting.upsert({
         where: { key },
         create: { key, value },
@@ -37,6 +40,19 @@ export class AdminSettingsService {
     }
 
     return results;
+  }
+
+  private normalizeSettingValue(key: string, value: any) {
+    if (key !== "language") return value;
+
+    if (isSupportedLocale(value)) return value;
+
+    throw new ApiException(
+      "SETTINGS_LANGUAGE_UNSUPPORTED",
+      "Language must be one of: en, ar",
+      400,
+      { supportedLocales: ["en", "ar"] },
+    );
   }
 
   /** Default settings to seed if none exist */
