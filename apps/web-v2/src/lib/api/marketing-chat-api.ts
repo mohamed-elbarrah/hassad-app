@@ -73,7 +73,9 @@ function mapParticipant(participant: RawParticipant): ChatParticipantRecord {
   };
 }
 
-function mapAttachment(attachment: RawMessage["attachments"][number]): ChatAttachmentRecord {
+function mapAttachment(
+  attachment: RawMessage["attachments"][number],
+): ChatAttachmentRecord {
   return {
     id: attachment.id,
     fileName: attachment.fileName,
@@ -100,7 +102,9 @@ function mapMessage(message: RawMessage): ChatMessageRecord {
   };
 }
 
-function mapConversation(conversation: RawConversation): ChatConversationRecord {
+function mapConversation(
+  conversation: RawConversation,
+): ChatConversationRecord {
   return {
     id: conversation.id,
     type: conversation.type,
@@ -113,7 +117,9 @@ function mapConversation(conversation: RawConversation): ChatConversationRecord 
     project: conversation.project,
     participants: conversation.participants.map(mapParticipant),
     messageCount: conversation.messageCount,
-    lastMessage: conversation.lastMessage ? mapMessage(conversation.lastMessage) : null,
+    lastMessage: conversation.lastMessage
+      ? mapMessage(conversation.lastMessage)
+      : null,
   };
 }
 
@@ -139,7 +145,12 @@ function buildMessageFormData(args: {
 export const marketingChatApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getMarketingChatConversations: builder.query<
-      { data: ChatConversationRecord[]; total: number; page: number; limit: number },
+      {
+        data: ChatConversationRecord[];
+        total: number;
+        page: number;
+        limit: number;
+      },
       { type?: "DIRECT" | "GROUP" | "PROJECT" }
     >({
       query: (params) => ({ url: "/marketing/chat/conversations", params }),
@@ -155,7 +166,9 @@ export const marketingChatApi = baseApi.injectEndpoints({
       providesTags: ["MarketingChat"],
     }),
     getMarketingChatMessages: builder.query<ChatMessageRecord[], string>({
-      query: (conversationId) => ({ url: `/marketing/chat/conversations/${conversationId}/messages` }),
+      query: (conversationId) => ({
+        url: `/marketing/chat/conversations/${conversationId}/messages`,
+      }),
       transformResponse: (response: RawMessage[]) => response.map(mapMessage),
       providesTags: ["MarketingChat"],
     }),
@@ -211,6 +224,7 @@ export const marketingChatApi = baseApi.injectEndpoints({
           id: string;
           name: string;
           email: string;
+          avatarUrl: string | null;
           companyName: string | null;
           status: string;
           lastLoginAt: string | null;
@@ -221,9 +235,9 @@ export const marketingChatApi = baseApi.injectEndpoints({
         response.items.map((item) => ({
           userId: item.id,
           name: item.name,
+          avatarUrl: item.avatarUrl,
           subtitle: `${item.companyName ?? item.email} · ${item.status}`,
           kind: "client",
-          avatarUrl: null,
           isActive: true,
           lastLoginAt: item.lastLoginAt,
           lastSeenAt: item.lastSeenAt,

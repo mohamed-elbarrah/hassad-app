@@ -6,7 +6,10 @@ import { ChatPresenceService } from "../../chat/services/chat-presence.service";
 
 @Injectable()
 export class TeamChatService {
-  constructor(private readonly prisma: PrismaService, private readonly presence: ChatPresenceService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly presence: ChatPresenceService,
+  ) {}
 
   async searchEmployees(search = "", limit = 6) {
     const where: Prisma.UserWhereInput = {
@@ -45,7 +48,9 @@ export class TeamChatService {
         avatarUrl: item.avatarUrl,
         isActive: item.isActive,
         lastLoginAt: item.lastLoginAt?.toISOString() ?? null,
-        lastSeenAt: this.presence.lastSeenAt(item.id, item.lastSeenAt)?.toISOString() ?? null,
+        lastSeenAt:
+          this.presence.lastSeenAt(item.id, item.lastSeenAt)?.toISOString() ??
+          null,
         isOnline: this.presence.isOnline(item.id),
       })),
     };
@@ -78,6 +83,7 @@ export class TeamChatService {
         id: true,
         name: true,
         email: true,
+        avatarUrl: true,
         lastLoginAt: true,
         lastSeenAt: true,
         clientProfile: {
@@ -95,11 +101,16 @@ export class TeamChatService {
         id: user.id,
         name: user.name,
         email: user.email,
+        avatarUrl: user.avatarUrl,
         companyName:
-          user.clientProfile?.companyName ?? user.clientProfile?.businessName ?? null,
+          user.clientProfile?.companyName ??
+          user.clientProfile?.businessName ??
+          null,
         status: user.clientProfile?.status ?? "ACTIVE",
         lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
-        lastSeenAt: this.presence.lastSeenAt(user.id, user.lastSeenAt)?.toISOString() ?? null,
+        lastSeenAt:
+          this.presence.lastSeenAt(user.id, user.lastSeenAt)?.toISOString() ??
+          null,
         isOnline: this.presence.isOnline(user.id),
       })),
     };

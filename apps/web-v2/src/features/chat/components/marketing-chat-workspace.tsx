@@ -3,10 +3,11 @@
 import { skipToken } from "@reduxjs/toolkit/query";
 import { io, type Socket } from "socket.io-client";
 import {
-  AlertCircleIcon,
+  ArrowLeftIcon,
   CopyIcon,
   Edit3Icon,
   MessageSquareIcon,
+  PlusIcon,
   MoreHorizontalIcon,
   PaperclipIcon,
   ReplyIcon,
@@ -28,9 +29,17 @@ import {
   AttachmentGroup,
   AttachmentTitle,
 } from "@/components/ui/attachment";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Card,
   CardContent,
@@ -45,9 +54,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Message, MessageAvatar, MessageContent, MessageFooter, MessageGroup, MessageHeader } from "@/components/ui/message";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+  MessageFooter,
+  MessageGroup,
+  MessageHeader,
+} from "@/components/ui/message";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -119,20 +141,35 @@ export function MarketingChatWorkspace({
   const socketRef = useRef<Socket | null>(null);
   const typingTimeoutRef = useRef<number | null>(null);
 
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null);
   const [draftTarget, setDraftTarget] = useState<ChatTargetOption | null>(null);
-  const [localMessagesByConversation, setLocalMessagesByConversation] = useState<
-    Record<string, ChatMessageRecord[]>
-  >({});
+  const [localMessagesByConversation, setLocalMessagesByConversation] =
+    useState<Record<string, ChatMessageRecord[]>>({});
   const [composerValue, setComposerValue] = useState("");
-  const [replyTarget, setReplyTarget] = useState<ChatMessageRecord | null>(null);
-  const [editingTarget, setEditingTarget] = useState<ChatMessageRecord | null>(null);
+  const [replyTarget, setReplyTarget] = useState<ChatMessageRecord | null>(
+    null,
+  );
+  const [editingTarget, setEditingTarget] = useState<ChatMessageRecord | null>(
+    null,
+  );
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [searchValue, setSearchValue] = useState("");
+  const [conversationType, setConversationType] = useState<"DIRECT" | "GROUP">(
+    "DIRECT",
+  );
+  const [isNewConversationOpen, setIsNewConversationOpen] = useState(false);
+  const [newConversationSearch, setNewConversationSearch] = useState("");
+  const [mobileView, setMobileView] = useState<"list" | "messages">("list");
   const [typingLabel, setTypingLabel] = useState<string | null>(null);
-  const [presenceOverrides, setPresenceOverrides] = useState<Record<string, { isOnline: boolean; lastSeenAt: string | null }>>({});
+  const [presenceOverrides, setPresenceOverrides] = useState<
+    Record<string, { isOnline: boolean; lastSeenAt: string | null }>
+  >({});
 
-  const deferredSearchValue = useDeferredValue(searchValue.trim());
+  const deferredNewConversationSearch = useDeferredValue(
+    newConversationSearch.trim(),
+  );
 
   const {
     data: conversationsResponse,
@@ -140,7 +177,7 @@ export function MarketingChatWorkspace({
     isError: conversationsIsError,
     isLoading: conversationsIsLoading,
     refetch: refetchConversations,
-  } = useGetMarketingChatConversationsQuery({ type: "DIRECT" });
+  } = useGetMarketingChatConversationsQuery({ type: conversationType });
   const conversations = useMemo(
     () => conversationsResponse?.data ?? [],
     [conversationsResponse?.data],
@@ -169,23 +206,31 @@ export function MarketingChatWorkspace({
     } satisfies ChatTargetOption;
   }, [searchParams]);
 
-  const queryConversationId =
-    queryTarget
-      ? (conversations.find((conversation) =>
-          conversation.participants.some(
-            (participant) => participant.id === queryTarget.userId,
-          ),
-        )?.id ?? null)
-      : null;
+  useEffect(() => {
+    if (queryTarget) {
+      setMobileView("messages");
+    }
+  }, [queryTarget]);
+
+  const queryConversationId = queryTarget
+    ? (conversations.find((conversation) =>
+        conversation.participants.some(
+          (participant) => participant.id === queryTarget.userId,
+        ),
+      )?.id ?? null)
+    : null;
 
   const activeConversationId =
     selectedConversationId ??
     queryConversationId ??
-    (draftTarget || queryTarget ? null : conversations[0]?.id ?? null);
-  const effectiveDraftTarget = draftTarget ?? (queryConversationId ? null : queryTarget);
+    (draftTarget || queryTarget ? null : (conversations[0]?.id ?? null));
+  const effectiveDraftTarget =
+    draftTarget ?? (queryConversationId ? null : queryTarget);
 
   const activeConversation =
-    conversations.find((conversation) => conversation.id === activeConversationId) ?? null;
+    conversations.find(
+      (conversation) => conversation.id === activeConversationId,
+    ) ?? null;
 
   const {
     data: messagesData,
@@ -197,16 +242,19 @@ export function MarketingChatWorkspace({
   } = useGetMarketingChatMessagesQuery(activeConversationId ?? skipToken);
 
   const searchArgs =
-    deferredSearchValue.length >= 2
-      ? { search: deferredSearchValue, limit: 6 }
+    isNewConversationOpen && deferredNewConversationSearch.length >= 2
+      ? { search: deferredNewConversationSearch, limit: 6 }
       : skipToken;
 
-  const { data: employeeTargets = [] } = useSearchMarketingEmployeeChatTargetsQuery(searchArgs);
-  const { data: clientTargets = [] } = useSearchMarketingClientChatTargetsQuery(searchArgs);
+  const { data: employeeTargets = [] } =
+    useSearchMarketingEmployeeChatTargetsQuery(searchArgs);
+  const { data: clientTargets = [] } =
+    useSearchMarketingClientChatTargetsQuery(searchArgs);
 
   const [sendConversationMessage, sendConversationState] =
     useSendMarketingConversationMessageMutation();
-  const [sendDirectMessage, sendDirectState] = useSendMarketingDirectMessageMutation();
+  const [sendDirectMessage, sendDirectState] =
+    useSendMarketingDirectMessageMutation();
   const [updateChatMessage, updateChatMessageState] =
     useUpdateMarketingChatMessageMutation();
   const [deleteChatMessage, deleteChatMessageState] =
@@ -226,13 +274,29 @@ export function MarketingChatWorkspace({
     [clientTargets, currentUserId, employeeTargets],
   );
 
+  const visibleConversations = useMemo(() => {
+    const query = searchValue.trim().toLowerCase();
+    if (!query) return conversations;
+
+    return conversations.filter((conversation) =>
+      [
+        getConversationTitle(conversation, currentUserId),
+        getConversationSubtitle(conversation, currentUserId),
+        conversation.lastMessage?.displayContent ?? "",
+      ].some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [conversations, currentUserId, searchValue]);
+
   useEffect(() => {
     const socket = io(apiSocketUrl(), {
       withCredentials: true,
       transports: ["websocket"],
     });
     socketRef.current = socket;
-    const heartbeat = window.setInterval(() => socket.emit("presenceHeartbeat"), 30_000);
+    const heartbeat = window.setInterval(
+      () => socket.emit("presenceHeartbeat"),
+      30_000,
+    );
 
     socket.on("connect", () => {
       void refetchConversations();
@@ -240,12 +304,24 @@ export function MarketingChatWorkspace({
     });
 
     socket.on("userOnline", (payload: { userId: string }) => {
-      setPresenceOverrides((current) => ({ ...current, [payload.userId]: { isOnline: true, lastSeenAt: new Date().toISOString() } }));
+      setPresenceOverrides((current) => ({
+        ...current,
+        [payload.userId]: {
+          isOnline: true,
+          lastSeenAt: new Date().toISOString(),
+        },
+      }));
     });
 
-    socket.on("userOffline", (payload: { userId: string; lastSeenAt: string }) => {
-      setPresenceOverrides((current) => ({ ...current, [payload.userId]: { isOnline: false, lastSeenAt: payload.lastSeenAt } }));
-    });
+    socket.on(
+      "userOffline",
+      (payload: { userId: string; lastSeenAt: string }) => {
+        setPresenceOverrides((current) => ({
+          ...current,
+          [payload.userId]: { isOnline: false, lastSeenAt: payload.lastSeenAt },
+        }));
+      },
+    );
 
     socket.on("newMessage", (message: ChatMessageRecord) => {
       if (message.conversationId === activeConversationId) {
@@ -278,7 +354,11 @@ export function MarketingChatWorkspace({
 
     socket.on(
       "userTyping",
-      (payload: { conversationId: string; userId: string; userName: string }) => {
+      (payload: {
+        conversationId: string;
+        userId: string;
+        userName: string;
+      }) => {
         if (
           payload.conversationId === activeConversationId &&
           payload.userId !== currentUserId
@@ -305,7 +385,12 @@ export function MarketingChatWorkspace({
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [activeConversationId, currentUserId, refetchConversations, refetchMessages]);
+  }, [
+    activeConversationId,
+    currentUserId,
+    refetchConversations,
+    refetchMessages,
+  ]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -315,7 +400,9 @@ export function MarketingChatWorkspace({
 
     socket.emit("joinConversation", { conversationId: activeConversationId });
     return () => {
-      socket.emit("leaveConversation", { conversationId: activeConversationId });
+      socket.emit("leaveConversation", {
+        conversationId: activeConversationId,
+      });
     };
   }, [activeConversationId]);
 
@@ -327,7 +414,7 @@ export function MarketingChatWorkspace({
       ...current,
       [conversationId]: updater(
         current[conversationId] ??
-          (conversationId === activeConversationId ? messagesData ?? [] : []),
+          (conversationId === activeConversationId ? (messagesData ?? []) : []),
       ),
     }));
   }
@@ -340,7 +427,8 @@ export function MarketingChatWorkspace({
     [];
 
   const activePeer =
-    (activeConversation && getConversationPeer(activeConversation, currentUserId)) ??
+    (activeConversation &&
+      getConversationPeer(activeConversation, currentUserId)) ??
     (effectiveDraftTarget
       ? {
           id: effectiveDraftTarget.userId,
@@ -352,21 +440,32 @@ export function MarketingChatWorkspace({
         }
       : null);
 
-  const activePresence = resolvePresence(activePeer?.lastLoginAt ?? null, presenceOverrides[activePeer?.id ?? ""]?.isOnline ?? activePeer?.isOnline, presenceOverrides[activePeer?.id ?? ""]?.lastSeenAt ?? activePeer?.lastSeenAt);
+  const activePresence = resolvePresence(
+    activePeer?.lastLoginAt ?? null,
+    presenceOverrides[activePeer?.id ?? ""]?.isOnline ?? activePeer?.isOnline,
+    presenceOverrides[activePeer?.id ?? ""]?.lastSeenAt ??
+      activePeer?.lastSeenAt,
+  );
 
   function chooseTarget(target: ChatTargetOption) {
     const existingConversation = conversations.find((conversation) =>
-      conversation.participants.some((participant) => participant.id === target.userId),
+      conversation.participants.some(
+        (participant) => participant.id === target.userId,
+      ),
     );
 
     if (existingConversation) {
       setSelectedConversationId(existingConversation.id);
       setDraftTarget(null);
+      setMobileView("messages");
       return;
     }
 
+    setConversationType("DIRECT");
+    setIsNewConversationOpen(false);
     setDraftTarget(target);
     setSelectedConversationId(null);
+    setMobileView("messages");
     setReplyTarget(null);
     setEditingTarget(null);
   }
@@ -385,7 +484,9 @@ export function MarketingChatWorkspace({
     }
 
     typingTimeoutRef.current = window.setTimeout(() => {
-      socketRef.current?.emit("stopTyping", { conversationId: activeConversationId });
+      socketRef.current?.emit("stopTyping", {
+        conversationId: activeConversationId,
+      });
     }, 1200);
   }
 
@@ -418,7 +519,9 @@ export function MarketingChatWorkspace({
       }).unwrap();
 
       updateConversationMessages(activeConversationId, (current) =>
-        current.some((item) => item.id === message.id) ? current : [...current, message],
+        current.some((item) => item.id === message.id)
+          ? current
+          : [...current, message],
       );
       setComposerValue("");
       setReplyTarget(null);
@@ -496,85 +599,173 @@ export function MarketingChatWorkspace({
         </Button>
       }
     >
-      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)_280px]">
-        <Card className="min-h-[72vh]">
+      <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <Card
+          className={cn(
+            "min-h-[72vh] flex-col",
+            mobileView === "list" ? "flex" : "hidden lg:flex",
+          )}
+        >
           <CardHeader>
             <CardTitle>Conversations</CardTitle>
             <CardDescription>
-              Search employees or clients to start a direct chat.
+              Search existing conversations or start a new direct chat.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex h-full flex-col gap-4">
-            <Input
-              value={searchValue}
-              onChange={(event) => setSearchValue(event.target.value)}
-              placeholder="Search people or filter conversations"
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder="Search conversations"
+                className="min-w-0 flex-1"
+              />
+              <Tabs
+                value={conversationType}
+                onValueChange={(value) => {
+                  setConversationType(value as "DIRECT" | "GROUP");
+                  setSelectedConversationId(null);
+                  setDraftTarget(null);
+                  setMobileView("list");
+                }}
+              >
+                <TabsList>
+                  <TabsTrigger value="DIRECT">Direct</TabsTrigger>
+                  <TabsTrigger value="GROUP">Groups</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
-            {combinedTargets.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs font-medium text-muted-foreground">Start new</p>
-                {combinedTargets.map((target) => {
-                  const presence = resolvePresence(target.lastLoginAt, presenceOverrides[target.userId]?.isOnline, presenceOverrides[target.userId]?.lastSeenAt);
-                  return (
-                    <button
-                      key={target.userId}
-                      type="button"
-                      onClick={() => chooseTarget(target)}
-                      className="flex items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors hover:bg-muted"
-                    >
-                      <Avatar size="sm">
-                        <AvatarFallback>{buildInitials(target.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+            <Dialog
+              open={isNewConversationOpen}
+              onOpenChange={setIsNewConversationOpen}
+            >
+              <DialogTrigger
+                render={<Button variant="outline" className="w-full" />}
+              >
+                <PlusIcon data-icon="inline-start" />
+                New conversation
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>New direct conversation</DialogTitle>
+                  <DialogDescription>
+                    Search for an employee or client to start a direct
+                    conversation.
+                  </DialogDescription>
+                </DialogHeader>
+                <Input
+                  autoFocus
+                  value={newConversationSearch}
+                  onChange={(event) =>
+                    setNewConversationSearch(event.target.value)
+                  }
+                  placeholder="Search people"
+                />
+                <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
+                  {combinedTargets.map((target) => {
+                    const presence = resolvePresence(
+                      target.lastLoginAt,
+                      presenceOverrides[target.userId]?.isOnline,
+                      presenceOverrides[target.userId]?.lastSeenAt,
+                    );
+                    return (
+                      <button
+                        key={target.userId}
+                        type="button"
+                        onClick={() => chooseTarget(target)}
+                        className="flex items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors hover:bg-muted"
+                      >
+                        <Avatar size="sm">
+                          <AvatarImage
+                            src={target.avatarUrl ?? undefined}
+                            alt=""
+                          />
+                          <AvatarFallback>
+                            {buildInitials(target.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
                           <p className="truncate font-medium">{target.name}</p>
-                          <StatusBadge tone={presence.state === "online" ? "success" : "neutral"}>
-                            {presence.label}
-                          </StatusBadge>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {target.subtitle}
+                          </p>
                         </div>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {target.subtitle}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
+                        <StatusBadge
+                          tone={
+                            presence.state === "online" ? "success" : "neutral"
+                          }
+                        >
+                          {presence.label}
+                        </StatusBadge>
+                      </button>
+                    );
+                  })}
+                  {isNewConversationOpen &&
+                  deferredNewConversationSearch.length >= 2 &&
+                  combinedTargets.length === 0 ? (
+                    <p className="py-4 text-center text-sm text-muted-foreground">
+                      No people found.
+                    </p>
+                  ) : null}
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
               {conversationsIsLoading && conversations.length === 0 ? (
-                <WorkspaceQueryState kind="loading" loadingTitle="Loading conversations" />
+                <WorkspaceQueryState
+                  kind="loading"
+                  loadingTitle="Loading conversations"
+                />
               ) : null}
 
-              {conversations.map((conversation) => {
+              {visibleConversations.map((conversation) => {
                 const title = getConversationTitle(conversation, currentUserId);
-                const subtitle = getConversationSubtitle(conversation, currentUserId);
+                const subtitle = getConversationSubtitle(
+                  conversation,
+                  currentUserId,
+                );
                 const isActive = conversation.id === activeConversationId;
 
                 return (
                   <button
-                      key={conversation.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedConversationId(conversation.id);
-                        setDraftTarget(null);
-                      }}
+                    key={conversation.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedConversationId(conversation.id);
+                      setDraftTarget(null);
+                      setMobileView("messages");
+                    }}
                     className={cn(
-                      "rounded-lg border px-3 py-3 text-left transition-colors hover:bg-muted",
-                      isActive ? "border-primary bg-muted" : "border-border",
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-muted",
+                      isActive ? "bg-muted" : "",
                     )}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
+                    <Avatar size="sm">
+                      <AvatarImage
+                        src={
+                          (conversation.type === "DIRECT"
+                            ? getConversationPeer(conversation, currentUserId)
+                                ?.avatarUrl
+                            : undefined) ?? undefined
+                        }
+                        alt=""
+                      />
+                      <AvatarFallback>{buildInitials(title)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <p className="truncate font-medium">{title}</p>
-                        <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
-                        <p className="mt-2 truncate text-sm text-muted-foreground">
-                          {conversation.lastMessage?.displayContent ?? "No messages yet"}
+                        <p className="truncate text-xs text-muted-foreground">
+                          {subtitle}
+                        </p>
+                        <p className="mt-1 truncate text-sm text-muted-foreground">
+                          {conversation.lastMessage?.displayContent ??
+                            "No messages yet"}
                         </p>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex shrink-0 flex-col items-end gap-1">
                         <span className="text-xs text-muted-foreground">
                           {formatMessageTime(conversation.updatedAt)}
                         </span>
@@ -592,11 +783,29 @@ export function MarketingChatWorkspace({
           </CardContent>
         </Card>
 
-        <Card className="min-h-[72vh]">
+        <Card
+          className={cn(
+            "min-h-[72vh] flex-col",
+            mobileView === "messages" ? "flex" : "hidden lg:flex",
+          )}
+        >
           <CardHeader className="border-b">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="lg:hidden"
+                  onClick={() => setMobileView("list")}
+                  aria-label="Back to conversations"
+                >
+                  <ArrowLeftIcon />
+                </Button>
                 <Avatar size="sm">
+                  <AvatarImage
+                    src={activePeer?.avatarUrl ?? undefined}
+                    alt=""
+                  />
                   <AvatarFallback>
                     {activePeer ? buildInitials(activePeer.name) : "CH"}
                   </AvatarFallback>
@@ -605,18 +814,25 @@ export function MarketingChatWorkspace({
                   <CardTitle className="truncate">
                     {activeConversation
                       ? getConversationTitle(activeConversation, currentUserId)
-                      : effectiveDraftTarget?.name ?? "Select a conversation"}
+                      : (effectiveDraftTarget?.name ?? "Select a conversation")}
                   </CardTitle>
                   <CardDescription>
                     {activeConversation
-                      ? getConversationSubtitle(activeConversation, currentUserId)
-                      : effectiveDraftTarget?.subtitle ??
-                        "Choose an existing conversation or start a new one."}
+                      ? getConversationSubtitle(
+                          activeConversation,
+                          currentUserId,
+                        )
+                      : (effectiveDraftTarget?.subtitle ??
+                        "Choose an existing conversation or start a new one.")}
                   </CardDescription>
                 </div>
               </div>
               {activePeer ? (
-                <StatusBadge tone={activePresence.state === "online" ? "success" : "neutral"}>
+                <StatusBadge
+                  tone={
+                    activePresence.state === "online" ? "success" : "neutral"
+                  }
+                >
                   {activePresence.label}
                 </StatusBadge>
               ) : null}
@@ -626,7 +842,11 @@ export function MarketingChatWorkspace({
           <CardContent className="flex h-[calc(72vh-5rem)] flex-col p-0">
             <div className="min-h-0 flex-1">
               {messagesIsError && activeConversationId ? (
-                <WorkspaceQueryState kind="error" error={messagesError} onRetry={refetchMessages} />
+                <WorkspaceQueryState
+                  kind="error"
+                  error={messagesError}
+                  onRetry={refetchMessages}
+                />
               ) : null}
 
               {!messagesIsError ? (
@@ -635,7 +855,10 @@ export function MarketingChatWorkspace({
                     <MessageScrollerViewport>
                       <MessageScrollerContent className="px-4 py-4">
                         {messagesIsLoading && activeConversationId ? (
-                          <WorkspaceQueryState kind="loading" loadingTitle="Loading messages" />
+                          <WorkspaceQueryState
+                            kind="loading"
+                            loadingTitle="Loading messages"
+                          />
                         ) : null}
 
                         {!activeConversationId && !effectiveDraftTarget ? (
@@ -643,7 +866,8 @@ export function MarketingChatWorkspace({
                             <EmptyHeader>
                               <EmptyTitle>No conversation selected</EmptyTitle>
                               <EmptyDescription>
-                                Pick an existing thread or search for a client or employee to start one.
+                                Pick an existing thread or search for a client
+                                or employee to start one.
                               </EmptyDescription>
                             </EmptyHeader>
                           </Empty>
@@ -673,6 +897,12 @@ export function MarketingChatWorkspace({
                                 <Message align={isOwn ? "end" : "start"}>
                                   <MessageAvatar>
                                     <Avatar size="sm">
+                                      <AvatarImage
+                                        src={
+                                          message.sender.avatarUrl ?? undefined
+                                        }
+                                        alt=""
+                                      />
                                       <AvatarFallback>
                                         {buildInitials(message.sender.name)}
                                       </AvatarFallback>
@@ -681,7 +911,9 @@ export function MarketingChatWorkspace({
                                   <MessageContent>
                                     <MessageHeader className="gap-2">
                                       <span>{message.sender.name}</span>
-                                      <span>{formatMessageTime(message.createdAt)}</span>
+                                      <span>
+                                        {formatMessageTime(message.createdAt)}
+                                      </span>
                                     </MessageHeader>
                                     <Bubble
                                       align={isOwn ? "end" : "start"}
@@ -690,60 +922,92 @@ export function MarketingChatWorkspace({
                                       <BubbleContent>
                                         {message.replyTo ? (
                                           <div className="mb-2 rounded-lg bg-background/20 px-2 py-1 text-xs">
-                                            {message.replyTo.senderName}: {message.replyTo.content}
+                                            {message.replyTo.senderName}:{" "}
+                                            {message.replyTo.content}
                                           </div>
                                         ) : null}
                                         <p>{message.displayContent}</p>
                                         {message.attachments.length > 0 ? (
                                           <AttachmentGroup className="mt-3">
-                                            {message.attachments.map((attachment) => (
-                                              <Attachment key={attachment.id}>
-                                                <AttachmentContent>
-                                                  <AttachmentTitle>
-                                                    {attachment.fileName}
-                                                  </AttachmentTitle>
-                                                  <AttachmentDescription>
-                                                    {attachment.fileType}
-                                                  </AttachmentDescription>
-                                                </AttachmentContent>
-                                              </Attachment>
-                                            ))}
+                                            {message.attachments.map(
+                                              (attachment) => (
+                                                <Attachment key={attachment.id}>
+                                                  <AttachmentContent>
+                                                    <AttachmentTitle>
+                                                      {attachment.fileName}
+                                                    </AttachmentTitle>
+                                                    <AttachmentDescription>
+                                                      {attachment.fileType}
+                                                    </AttachmentDescription>
+                                                  </AttachmentContent>
+                                                </Attachment>
+                                              ),
+                                            )}
                                           </AttachmentGroup>
                                         ) : null}
                                       </BubbleContent>
                                     </Bubble>
                                     <MessageFooter className="gap-2">
-                                      {message.editedAt ? <span>Edited</span> : null}
-                                      {message.deletedAt ? <span>Deleted</span> : null}
+                                      {message.editedAt ? (
+                                        <span>Edited</span>
+                                      ) : null}
+                                      {message.deletedAt ? (
+                                        <span>Deleted</span>
+                                      ) : null}
                                       <DropdownMenu>
                                         <DropdownMenuTrigger
-                                          render={<Button variant="ghost" size="icon-xs" />}
+                                          render={
+                                            <Button
+                                              variant="ghost"
+                                              size="icon-xs"
+                                            />
+                                          }
                                         >
                                           <MoreHorizontalIcon />
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align={isOwn ? "end" : "start"}>
+                                        <DropdownMenuContent
+                                          align={isOwn ? "end" : "start"}
+                                        >
                                           <DropdownMenuGroup>
-                                            <DropdownMenuItem onClick={() => setReplyTarget(message)}>
+                                            <DropdownMenuItem
+                                              onClick={() =>
+                                                setReplyTarget(message)
+                                              }
+                                            >
                                               <ReplyIcon />
                                               Reply
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => void handleCopy(message)}>
+                                            <DropdownMenuItem
+                                              onClick={() =>
+                                                void handleCopy(message)
+                                              }
+                                            >
                                               <CopyIcon />
                                               Copy
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
-                                              disabled={!isOwn || !!message.deletedAt}
+                                              disabled={
+                                                !isOwn || !!message.deletedAt
+                                              }
                                               onClick={() => {
                                                 setEditingTarget(message);
-                                                setComposerValue(message.content);
+                                                setComposerValue(
+                                                  message.content,
+                                                );
                                               }}
                                             >
                                               <Edit3Icon />
                                               Edit
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
-                                              disabled={!isOwn || !!message.deletedAt}
-                                              onClick={() => void handleDeleteMessage(message)}
+                                              disabled={
+                                                !isOwn || !!message.deletedAt
+                                              }
+                                              onClick={() =>
+                                                void handleDeleteMessage(
+                                                  message,
+                                                )
+                                              }
                                             >
                                               <Trash2Icon />
                                               Delete
@@ -770,12 +1034,18 @@ export function MarketingChatWorkspace({
               {replyTarget ? (
                 <div className="mb-3 flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
                   <div className="min-w-0">
-                    <p className="font-medium">Replying to {replyTarget.sender.name}</p>
+                    <p className="font-medium">
+                      Replying to {replyTarget.sender.name}
+                    </p>
                     <p className="truncate text-muted-foreground">
                       {replyTarget.displayContent}
                     </p>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setReplyTarget(null)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setReplyTarget(null)}
+                  >
                     Clear
                   </Button>
                 </div>
@@ -805,7 +1075,10 @@ export function MarketingChatWorkspace({
               {selectedFiles.length > 0 ? (
                 <div className="mb-3 flex flex-wrap gap-2">
                   {selectedFiles.map((file) => (
-                    <StatusBadge key={`${file.name}-${file.size}`} tone="neutral">
+                    <StatusBadge
+                      key={`${file.name}-${file.size}`}
+                      tone="neutral"
+                    >
                       {file.name}
                     </StatusBadge>
                   ))}
@@ -865,50 +1138,6 @@ export function MarketingChatWorkspace({
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="min-h-[72vh]">
-          <CardHeader>
-            <CardTitle>Thread details</CardTitle>
-            <CardDescription>
-              This rail is shared between existing conversations and first-message drafts.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {activePeer ? (
-              <>
-                <div className="flex items-start gap-3">
-                  <Avatar size="lg">
-                    <AvatarFallback>{buildInitials(activePeer.name)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="font-medium">{activePeer.name}</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {activePeer.email || effectiveDraftTarget?.subtitle || "Direct chat target"}
-                    </p>
-                  </div>
-                </div>
-                <div className="rounded-lg border px-3 py-3">
-                  <p className="text-sm font-medium">Presence</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {activePresence.label}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyTitle>No thread selected</EmptyTitle>
-                  <EmptyDescription>
-                    Open an existing chat or choose a target from the search results.
-                  </EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  <AlertCircleIcon />
-                </EmptyContent>
-              </Empty>
-            )}
           </CardContent>
         </Card>
       </div>

@@ -78,6 +78,7 @@ export class AdminWorkspaceChatService {
         id: true,
         name: true,
         email: true,
+        avatarUrl: true,
         lastLoginAt: true,
         lastSeenAt: true,
         clientProfile: {
@@ -95,6 +96,7 @@ export class AdminWorkspaceChatService {
         id: user.id,
         name: user.name,
         email: user.email,
+        avatarUrl: user.avatarUrl,
         companyName:
           user.clientProfile?.companyName ?? user.clientProfile?.businessName ?? null,
         status: user.clientProfile?.status ?? "ACTIVE",
