@@ -5,7 +5,9 @@ import {
   IsOptional,
   IsEnum,
   IsIn,
+  MinLength,
 } from "class-validator";
+import { Type } from "class-transformer";
 
 export class CreateConversationDto {
   @IsEnum(["DIRECT", "GROUP"])
@@ -39,7 +41,12 @@ export class CreateMessageDto {
   conversationId?: string;
 
   @IsString()
+  @MinLength(1)
   content: string;
+
+  @IsOptional()
+  @IsUUID()
+  parentMessageId?: string;
 }
 
 export class GetConversationsQueryDto {
@@ -56,8 +63,26 @@ export class GetConversationsQueryDto {
   projectId?: string;
 
   @IsOptional()
+  @Type(() => Number)
   page?: number;
 
   @IsOptional()
+  @Type(() => Number)
   limit?: number;
+}
+
+export class GetMessagesQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number;
+}
+
+export class UpdateMessageDto {
+  @IsString()
+  @MinLength(1)
+  content: string;
 }

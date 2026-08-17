@@ -399,7 +399,7 @@ export class AdminService {
       payments,
       contractStatusDistribution,
     ] = await Promise.all([
-      this.prisma.lead.count({ where: { isActive: true, ...dateFilter } }),
+      this.prisma.request.count({ where: dateFilter }),
       this.prisma.client.count({
         where: { status: { not: "STOPPED" }, ...dateFilter },
       }),
@@ -802,9 +802,8 @@ export class AdminService {
   async runAiScan(userId: string) {
     const SYSTEM_USER_ID = userId;
 
-    const [leads, clients, projects, tasks] = await Promise.all([
-      this.prisma.lead.findMany({
-        where: { isActive: true },
+    const [requests, clients, projects, tasks] = await Promise.all([
+      this.prisma.request.findMany({
         take: 10,
         orderBy: { createdAt: "desc" },
       }),
@@ -830,9 +829,9 @@ export class AdminService {
       entityId: string;
       analysisType: string;
     }> = [
-      ...leads.map((l) => ({
-        entityType: "LEAD",
-        entityId: l.id,
+      ...requests.map((r) => ({
+        entityType: "REQUEST",
+        entityId: r.id,
         analysisType: "SENTIMENT_ANALYSIS",
       })),
       ...clients.map((c) => ({

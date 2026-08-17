@@ -55,6 +55,36 @@ export enum RequestStatus {
   CANCELLED = "CANCELLED",
 }
 
+export enum CrmStage {
+  NEW = "NEW",
+  SCHEDULED = "SCHEDULED",
+  DONE = "DONE",
+  FAILED = "FAILED",
+  SENT = "SENT",
+  NEGOTIATION = "NEGOTIATION",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+  CONTRACT_SENT = "CONTRACT_SENT",
+  SIGNED = "SIGNED",
+  ACTIVE = "ACTIVE",
+  CANCELLED = "CANCELLED",
+}
+
+export const CRM_STAGE_UI_MAP: Record<CrmStage, string> = {
+  [CrmStage.NEW]: "New",
+  [CrmStage.SCHEDULED]: "Scheduled",
+  [CrmStage.DONE]: "Done",
+  [CrmStage.FAILED]: "Failed",
+  [CrmStage.SENT]: "Proposal sent",
+  [CrmStage.NEGOTIATION]: "Negotiation",
+  [CrmStage.APPROVED]: "Approved",
+  [CrmStage.REJECTED]: "Rejected",
+  [CrmStage.CONTRACT_SENT]: "Contract sent",
+  [CrmStage.SIGNED]: "Signed",
+  [CrmStage.ACTIVE]: "Active",
+  [CrmStage.CANCELLED]: "Cancelled",
+};
+
 export const REQUEST_STATUS_AR: Record<RequestStatus, string> = {
   [RequestStatus.SUBMITTED]: "مقدم",
   [RequestStatus.QUALIFYING]: "قيد التأهيل",
@@ -172,6 +202,7 @@ export enum ContactLogResult {
   RESPONDED = "RESPONDED",
   BUSY = "BUSY",
   WRONG_NUMBER = "WRONG_NUMBER",
+  NOT_INTERESTED = "NOT_INTERESTED",
 }
 
 export enum AutomationStatus {

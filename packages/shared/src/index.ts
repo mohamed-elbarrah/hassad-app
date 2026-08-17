@@ -24,6 +24,7 @@ export * from "./schemas/project.schema";
 export * from "./schemas/user.schema";
 export * from "./schemas/dispute.schema";
 export * from "./schemas/intake-form-v2.schema";
+export * from "./schemas/admin-workspace.schema";
 
 import type { ServiceItem } from "./schemas/proposal.schema";
 
@@ -86,7 +87,6 @@ export interface User {
 /** Matches the DB `Client` model exactly */
 export interface Client {
   id: string;
-  leadId?: string | null;
   companyName: string;
   businessName: string;
   businessType: BusinessType;
@@ -306,7 +306,6 @@ export interface HandoverClientInput {
 export interface Proposal {
   id: string;
   requestId?: string | null;
-  leadId?: string | null;
   createdBy: string;
   title: string;
   serviceDescription: string;
@@ -622,11 +621,6 @@ export interface DeliverableTemplate {
   createdAt: Date | string;
 }
 
-export interface LeadServiceItem {
-  serviceId: string;
-  quantity?: number;
-  notes?: string;
-}
 
 export interface ProjectProgress {
   projectId: string;

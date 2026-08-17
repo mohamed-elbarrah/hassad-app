@@ -54,7 +54,7 @@ export class SalesAssignmentService {
    * Find the best sales user to assign a new request to.
    *
    * @param preferredSalesIds - IDs of sales users to prefer (e.g. client.accountManager,
-   *   lead.assignedTo). First element has highest priority.
+   *   request.assignedSalesId). First element has highest priority.
    * @param clientId - Optional client ID to check for an account manager.
    * @param db - Optional Prisma client (transaction or main). Defaults to this.prisma.
    * @returns The chosen sales user, or null if no active user exists.

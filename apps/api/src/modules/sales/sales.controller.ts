@@ -12,8 +12,8 @@ export class SalesController {
 
   @Get("metrics")
   @RequirePermissions("sales.read")
-  getMetrics() {
-    return this.salesService.getMetrics();
+  getMetrics(@Query("period") period?: string) {
+    return this.salesService.getMetrics(period);
   }
 
   @Get("performance")

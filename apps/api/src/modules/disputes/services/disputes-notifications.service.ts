@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
+import { DisputeThreadType } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 
@@ -206,10 +207,10 @@ export class DisputesNotificationsService {
     // Get the author to determine who to notify
     const message = await this.prisma.disputeMessage.findUnique({
       where: { id: payload.messageId },
-      select: { authorId: true, isInternal: true },
+      select: { authorId: true, isInternal: true, threadType: true },
     });
 
-    if (!message || message.isInternal) return; // Internal notes don't trigger notifications
+    if (!message) return;
 
     // Get client's user ID
     const client = await this.prisma.client.findUnique({
@@ -217,14 +218,41 @@ export class DisputesNotificationsService {
       select: { userId: true },
     });
 
-    if (!client?.userId) return;
+    const adminUserIds = await this.getAdminUserIds();
+    const recipients = new Set<string>();
 
-    // Determine recipient: if author is PM, notify client; if author is client, notify PM
-    const recipientId =
-      message.authorId === dispute.pmId ? client.userId : dispute.pmId;
+    if (message.threadType === DisputeThreadType.CLIENT_PM) {
+      if (message.authorId === dispute.pmId && client?.userId) {
+        recipients.add(client.userId);
+      } else if (message.authorId === client?.userId) {
+        recipients.add(dispute.pmId);
+      }
+    } else if (message.threadType === DisputeThreadType.ADMIN_CLIENT) {
+      if (message.authorId === client?.userId) {
+        for (const adminId of adminUserIds) {
+          if (adminId !== message.authorId) {
+            recipients.add(adminId);
+          }
+        }
+      } else if (client?.userId) {
+        recipients.add(client.userId);
+      }
+    } else if (message.threadType === DisputeThreadType.ADMIN_PM) {
+      if (message.authorId === dispute.pmId) {
+        for (const adminId of adminUserIds) {
+          if (adminId !== message.authorId) {
+            recipients.add(adminId);
+          }
+        }
+      } else {
+        recipients.add(dispute.pmId);
+      }
+    }
+
+    if (recipients.size === 0) return;
 
     await this.notificationsService.notifyUsers({
-      userIds: [recipientId],
+      userIds: Array.from(recipients),
       title: "رسالة جديدة في التذكرة",
       message: `لديك رسالة جديدة في التذكرة #${dispute.ticketNumber}`,
       entityId: payload.disputeId,

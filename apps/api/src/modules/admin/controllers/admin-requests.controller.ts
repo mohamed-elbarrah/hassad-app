@@ -13,7 +13,7 @@ import { RequirePermissions } from "../../../common/decorators/permissions.decor
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { StaleQueryDto } from "../dto/admin-leads.dto";
+import { StaleQueryDto } from "../dto/admin-query.dto";
 
 @Controller("admin/requests")
 @UseGuards(JwtAuthGuard, PermissionsGuard)

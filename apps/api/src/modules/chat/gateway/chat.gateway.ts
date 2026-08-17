@@ -12,6 +12,8 @@ import { Logger, UseGuards } from "@nestjs/common";
 import { WsAuthGuard } from "../../../common/guards/ws-auth.guard";
 import { ChatService } from "../services/chat.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { ChatPresenceService } from "../services/chat-presence.service";
+import { JwtService } from "@nestjs/jwt";
 
 @WebSocketGateway({
   cors: {
@@ -29,35 +31,75 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private chatService: ChatService,
     private eventEmitter: EventEmitter2,
+    private presenceService: ChatPresenceService,
+    private jwtService: JwtService,
   ) {
     this.eventEmitter.on("chat.messageCreated", (payload) => {
       this.server
         .to(`conversation:${payload.conversationId}`)
-        .emit("newMessage", payload);
+        .emit("newMessage", payload.message);
+    });
+
+    this.eventEmitter.on("chat.messageUpdated", (payload) => {
+      this.server
+        .to(`conversation:${payload.conversationId}`)
+        .emit("messageUpdated", payload.message);
+    });
+
+    this.eventEmitter.on("chat.messageDeleted", (payload) => {
+      this.server
+        .to(`conversation:${payload.conversationId}`)
+        .emit("messageDeleted", payload.message);
     });
   }
 
   async handleConnection(client: Socket) {
-    const user = client.data.user;
+    let user = client.data.user;
     if (!user) {
-      client.disconnect(true);
-      return;
+      const token = client.handshake.auth?.token ?? client.handshake.headers.cookie?.match(/(?:^|;\s*)token=([^;]+)/)?.[1];
+      if (!token) { client.disconnect(true); return; }
+      try {
+        user = this.jwtService.verify(decodeURIComponent(token));
+        client.data.user = user;
+      } catch {
+        client.disconnect(true);
+        return;
+      }
     }
 
-    this.logger.log(`Chat WS connected: userId=${user.sub || user.id}`);
+    const userId = user.sub || user.id;
+    this.logger.log(`Chat WS connected: userId=${userId}`);
+    const becameOnline = await this.presenceService.connect(userId, client.id);
 
     const conversations = await this.chatService.getUserConversationIds(
-      user.sub || user.id,
+      userId,
     );
     for (const convId of conversations) {
       client.join(`conversation:${convId}`);
     }
 
-    client.join(`user:${user.sub || user.id}`);
+    client.join(`user:${userId}`);
+    if (becameOnline) {
+      for (const convId of conversations) this.server.to(`conversation:${convId}`).emit("userOnline", { userId });
+    }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
+    const user = client.data.user;
+    if (!user) return;
+    const userId = user.sub || user.id;
+    const lastSeenAt = await this.presenceService.disconnect(userId, client.id);
     this.logger.log(`Chat WS disconnected: ${client.id}`);
+    if (lastSeenAt) {
+      const conversations = await this.chatService.getUserConversationIds(userId);
+      for (const convId of conversations) this.server.to(`conversation:${convId}`).emit("userOffline", { userId, lastSeenAt: lastSeenAt.toISOString() });
+    }
+  }
+
+  @SubscribeMessage("presenceHeartbeat")
+  handlePresenceHeartbeat(@ConnectedSocket() client: Socket) {
+    const user = client.data.user;
+    return this.presenceService.heartbeat(user.sub || user.id, client.id);
   }
 
   @SubscribeMessage("joinConversation")
@@ -65,6 +107,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { conversationId: string },
     @ConnectedSocket() client: Socket,
   ) {
+    await this.chatService.assertConversationAccess(
+      data.conversationId,
+      client.data.user.sub || client.data.user.id,
+    );
     client.join(`conversation:${data.conversationId}`);
     return { event: "joined", conversationId: data.conversationId };
   }
@@ -74,19 +120,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { conversationId: string },
     @ConnectedSocket() client: Socket,
   ) {
+    await this.chatService.assertConversationAccess(
+      data.conversationId,
+      client.data.user.sub || client.data.user.id,
+    );
     client.leave(`conversation:${data.conversationId}`);
     return { event: "left", conversationId: data.conversationId };
   }
 
   @SubscribeMessage("sendMessage")
   async handleSendMessage(
-    @MessageBody() data: { conversationId: string; content: string },
+    @MessageBody()
+    data: { conversationId: string; content: string; parentMessageId?: string },
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
     return this.chatService.createMessage(user.sub || user.id, {
       conversationId: data.conversationId,
       content: data.content,
+      parentMessageId: data.parentMessageId,
     });
   }
 
@@ -96,6 +148,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
+    await this.chatService.assertConversationAccess(data.conversationId, user.sub || user.id);
     client.to(`conversation:${data.conversationId}`).emit("userTyping", {
       conversationId: data.conversationId,
       userId: user.sub || user.id,
@@ -109,6 +162,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
+    await this.chatService.assertConversationAccess(data.conversationId, user.sub || user.id);
     client.to(`conversation:${data.conversationId}`).emit("userStopTyping", {
       conversationId: data.conversationId,
       userId: user.sub || user.id,

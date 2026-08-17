@@ -127,10 +127,31 @@ export class AdminProjectsService {
           select: {
             id: true,
             title: true,
+            description: true,
             status: true,
             priority: true,
             dueDate: true,
             assignedTo: true,
+            revisionCount: true,
+            isVisibleToClient: true,
+            archivedAt: true,
+            period: {
+              select: {
+                id: true,
+                periodNumber: true,
+              },
+            },
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            department: {
+              select: {
+                name: true,
+              },
+            },
           },
           orderBy: { createdAt: "desc" },
           take: 50,
@@ -142,6 +163,11 @@ export class AdminProjectsService {
             filePath: true,
             uploadedBy: true,
             uploadedAt: true,
+            uploader: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         meetings: {
@@ -151,6 +177,12 @@ export class AdminProjectsService {
             scheduledAt: true,
             notes: true,
             createdBy: true,
+            creator: {
+              select: {
+                name: true,
+              },
+            },
+            periodId: true,
           },
         },
         periods: {
@@ -161,6 +193,7 @@ export class AdminProjectsService {
             endDate: true,
             status: true,
             completionPercentage: true,
+            summary: true,
           },
         },
         invoiceItems: {
@@ -242,6 +275,66 @@ export class AdminProjectsService {
         createdAt: h.createdAt.toISOString(),
       })),
     };
+  }
+
+  async getPeriods(projectId: string) {
+    await this.assertProject(projectId);
+    return this.prisma.projectPeriod.findMany({
+      where: { projectId },
+      orderBy: { periodNumber: "asc" },
+      include: {
+        invoice: { select: { id: true, invoiceNumber: true, status: true, amount: true } },
+        _count: { select: { tasks: true, deliverables: true, meetings: true } },
+      },
+    });
+  }
+
+  async getTeam(projectId: string) {
+    await this.assertProject(projectId);
+    return this.prisma.projectMember.findMany({
+      where: { projectId },
+      orderBy: { joinedAt: "asc" },
+      include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, isActive: true } } },
+    });
+  }
+
+  async getDeliverables(projectId: string, query: { status?: string; page?: number; limit?: number }) {
+    await this.assertProject(projectId);
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
+    const where: any = { projectId };
+    if (query.status) where.status = query.status;
+    const [items, total] = await Promise.all([
+      this.prisma.deliverable.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          task: { select: { id: true, title: true } },
+          period: { select: { id: true, periodNumber: true } },
+          approver: { select: { id: true, name: true } },
+          _count: { select: { revisionRequests: true } },
+        },
+      }),
+      this.prisma.deliverable.count({ where }),
+    ]);
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async getTimeline(projectId: string) {
+    await this.assertProject(projectId);
+    return this.prisma.ledger.findMany({
+      where: { entity: "project", entityId: projectId },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: { user: { select: { id: true, name: true } } },
+    });
+  }
+
+  private async assertProject(projectId: string) {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
+    if (!project) throw new NotFoundException("Project not found");
   }
 
   async reassignPm(

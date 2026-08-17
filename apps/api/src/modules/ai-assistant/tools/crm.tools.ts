@@ -4,104 +4,71 @@ import { BaseTool, ToolDefinition, ToolResult } from "./tool.interface";
 import { AiAssistantArea } from "@hassad/shared";
 
 @Injectable()
-export class GetLeadPipelineSummaryTool extends BaseTool {
+export class GetRequestPipelineSummaryTool extends BaseTool {
   definition: ToolDefinition = {
-    name: "getLeadPipelineSummary",
-    description: "إجمالي العملاء المحتملين حسب المرحلة",
+    name: "getRequestPipelineSummary",
+    description: "إجمالي الطلبات حسب المرحلة",
     category: AiAssistantArea.CRM,
-    parameters: {
-      type: "object",
-      properties: {},
-      required: [],
-    },
+    parameters: { type: "object", properties: {}, required: [] },
   };
 
-  constructor(private prisma: PrismaService) {
-    super();
-  }
+  constructor(private prisma: PrismaService) { super(); }
 
   async execute(): Promise<ToolResult> {
-    const total = await this.prisma.lead.count({ where: { isActive: true } });
-    const byStage = await this.prisma.lead.groupBy({
-      by: ["pipelineStage"],
-      _count: true,
-      where: { isActive: true },
-    });
-
+    const total = await this.prisma.request.count();
+    const byStage = await this.prisma.request.groupBy({ by: ["status"], _count: true });
     return {
-      summary: `إجمالي العملاء المحتملين: ${total}`,
-      data: {
-        total,
-        byStage: byStage.map((s) => ({ stage: s.pipelineStage, count: s._count })),
-      },
+      summary: `إجمالي الطلبات: ${total}`,
+      data: { total, byStage: byStage.map((s) => ({ stage: s.status, count: s._count })) },
     };
   }
 }
 
 @Injectable()
-export class GetLeadStatusDistributionTool extends BaseTool {
+export class GetRequestStatusDistributionTool extends BaseTool {
   definition: ToolDefinition = {
-    name: "getLeadPipelineDistribution",
-    description: "توزيع العملاء المحتملين حسب مرحلة البيع",
+    name: "getRequestPipelineDistribution",
+    description: "توزيع الطلبات حسب المرحلة",
     category: AiAssistantArea.CRM,
-    parameters: {
-      type: "object",
-      properties: {},
-      required: [],
-    },
+    parameters: { type: "object", properties: {}, required: [] },
   };
 
-  constructor(private prisma: PrismaService) {
-    super();
-  }
+  constructor(private prisma: PrismaService) { super(); }
 
   async execute(): Promise<ToolResult> {
-    const byStage = await this.prisma.lead.groupBy({
-      by: ["pipelineStage"],
-      _count: true,
-      where: { isActive: true },
-    });
-
+    const byStage = await this.prisma.request.groupBy({ by: ["status"], _count: true });
     return {
-      summary: "توزيع العملاء المحتملين حسب المرحلة",
-      data: {
-        byStage: byStage.map((s) => ({ stage: s.pipelineStage, count: s._count })),
-      },
+      summary: "توزيع الطلبات حسب المرحلة",
+      data: { byStage: byStage.map((s) => ({ stage: s.status, count: s._count })) },
     };
   }
 }
 
 @Injectable()
-export class GetRecentLeadsTool extends BaseTool {
+export class GetRecentRequestsTool extends BaseTool {
   definition: ToolDefinition = {
-    name: "getRecentLeads",
-    description: "آخر العملاء المحتملين المضافين",
+    name: "getRecentRequests",
+    description: "آخر الطلبات المضافة",
     category: AiAssistantArea.CRM,
     parameters: {
       type: "object",
-      properties: {
-        limit: { type: "number", description: "عدد النتائج (أقصى 20)" },
-      },
+      properties: { limit: { type: "number", description: "عدد النتائج (أقصى 20)" } },
       required: [],
     },
   };
 
-  constructor(private prisma: PrismaService) {
-    super();
-  }
+  constructor(private prisma: PrismaService) { super(); }
 
   async execute(args: { limit?: number }): Promise<ToolResult> {
     const limit = Math.min(args.limit ?? 10, 20);
-    const leads = await this.prisma.lead.findMany({
-      where: { isActive: true },
+    const requests = await this.prisma.request.findMany({
       orderBy: { createdAt: "desc" },
       take: limit,
-      select: { id: true, companyName: true, pipelineStage: true, createdAt: true },
+      select: { id: true, companyName: true, status: true, createdAt: true },
     });
-
     return {
-      summary: `آخر ${leads.length} عملاء محتملين`,
-      data: { leads },
+      summary: `آخر ${requests.length} طلبات`,
+      data: { requests },
     };
   }
 }

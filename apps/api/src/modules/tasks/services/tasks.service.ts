@@ -419,19 +419,35 @@ export class TasksService {
         project: {
           include: {
             client: true,
+            manager: { select: { id: true, name: true, email: true } },
           },
         },
+        period: { select: { id: true, periodNumber: true } },
         assignee: true,
         creator: true,
         approver: true,
         department: { select: { id: true, name: true } },
-        files: true,
-        comments: {
+        files: {
           include: {
-            user: true,
+            uploader: { select: { id: true, name: true } },
           },
         },
-        statusHistory: true,
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                role: { select: { name: true } },
+              },
+            },
+          },
+        },
+        statusHistory: {
+          include: {
+            changer: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 
@@ -845,7 +861,11 @@ export class TasksService {
       where: { projectId },
       include: {
         assignee: { select: { id: true, name: true } },
-        files: true,
+        files: {
+          include: {
+            uploader: { select: { id: true, name: true } },
+          },
+        },
         comments: {
           include: {
             user: { select: { id: true, name: true } },
@@ -894,6 +914,7 @@ export class TasksService {
             id: true,
             name: true,
             clientId: true,
+            status: true,
             client: {
               select: {
                 companyName: true,
@@ -904,6 +925,7 @@ export class TasksService {
         },
         assignee: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
+        period: { select: { periodNumber: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -969,6 +991,7 @@ export class TasksService {
     filters: {
       status?: string;
       priority?: string;
+      projectId?: string;
       dept?: string;
       deptName?: string;
       dueBefore?: string;
@@ -976,7 +999,7 @@ export class TasksService {
     },
     includeCampaigns: boolean = false,
   ) {
-    const where: Record<string, unknown> = { assignedTo: userId };
+    const where: Record<string, unknown> = { assignedTo: userId, archivedAt: null };
     if (filters.status) where["status"] = filters.status;
     if (filters.priority) where["priority"] = filters.priority;
     if (filters.dept) where["departmentId"] = filters.dept;
@@ -1007,6 +1030,7 @@ export class TasksService {
       },
       assignee: { select: { id: true, name: true } },
       department: { select: { id: true, name: true } },
+      period: { select: { id: true, periodNumber: true } },
     };
 
     if (includeCampaigns) {
@@ -1032,12 +1056,13 @@ export class TasksService {
     const [grouped, overdue] = await Promise.all([
       this.prisma.task.groupBy({
         by: ["status"],
-        where: { assignedTo: userId },
+        where: { assignedTo: userId, archivedAt: null },
         _count: { status: true },
       }),
       this.prisma.task.count({
         where: {
           assignedTo: userId,
+          archivedAt: null,
           dueDate: { lt: new Date() },
           status: { not: TaskStatus.DONE },
         },

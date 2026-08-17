@@ -3,12 +3,12 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  ConnectedSocket,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { Logger, UseGuards } from "@nestjs/common";
 import { WsAuthGuard } from "../../../common/guards/ws-auth.guard";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { JwtService } from "@nestjs/jwt";
 
 @WebSocketGateway({
   cors: {
@@ -25,7 +25,10 @@ export class NotificationsGateway
 
   private readonly logger = new Logger(NotificationsGateway.name);
 
-  constructor(private eventEmitter: EventEmitter2) {
+  constructor(
+    private eventEmitter: EventEmitter2,
+    private jwtService: JwtService,
+  ) {
     this.eventEmitter.on("notification.created", (payload) => {
       const { userId, ...rest } = payload;
       this.server.to(`user:${userId}`).emit("notification", rest);
@@ -37,15 +40,30 @@ export class NotificationsGateway
     });
 
     this.eventEmitter.on("notification.broadcast", (payload) => {
-      this.server.emit("broadcast", payload);
+      for (const userId of payload.userIds ?? []) {
+        this.server.to(`user:${userId}`).emit("broadcast", {
+          title: payload.title,
+          message: payload.message,
+        });
+      }
     });
   }
 
   async handleConnection(client: Socket) {
-    const user = client.data.user;
+    let user = client.data.user;
     if (!user) {
-      client.disconnect(true);
-      return;
+      const token = client.handshake.auth?.token ?? client.handshake.headers.cookie?.match(/(?:^|;\s*)token=([^;]+)/)?.[1];
+      if (!token) {
+        client.disconnect(true);
+        return;
+      }
+      try {
+        user = this.jwtService.verify(decodeURIComponent(token));
+        client.data.user = user;
+      } catch {
+        client.disconnect(true);
+        return;
+      }
     }
 
     const userId = user.sub || user.id;

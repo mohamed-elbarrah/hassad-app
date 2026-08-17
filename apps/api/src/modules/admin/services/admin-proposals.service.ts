@@ -42,9 +42,31 @@ export class AdminProposalsService {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          lead: { select: { id: true, companyName: true } },
           client: { select: { id: true, companyName: true } },
           creator: { select: { id: true, name: true } },
+          request: {
+            select: {
+              id: true,
+              companyName: true,
+              services: {
+                include: {
+                  service: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          contract: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+            },
+          },
         },
       }),
       this.prisma.proposal.count({ where }),
@@ -57,7 +79,6 @@ export class AdminProposalsService {
     const proposal = await this.prisma.proposal.findUnique({
       where: { id },
       include: {
-        lead: { select: { id: true, companyName: true, contactName: true } },
         client: { select: { id: true, companyName: true } },
         creator: { select: { id: true, name: true, email: true } },
         request: {
@@ -71,7 +92,7 @@ export class AdminProposalsService {
         },
       },
     });
-    if (!proposal) throw new Error("العرض غير موجود");
+    if (!proposal) throw new NotFoundException("العرض غير موجود");
 
     const contract = await this.prisma.contract.findFirst({
       where: { proposalId: id },
@@ -85,7 +106,7 @@ export class AdminProposalsService {
     const proposal = await this.prisma.proposal.findUnique({
       where: { id },
       include: {
-        lead: { include: { client: { select: { id: true } } } },
+        request: { select: { clientId: true } },
       },
     });
     if (!proposal) throw new NotFoundException("العرض غير موجود");
@@ -101,7 +122,7 @@ export class AdminProposalsService {
       throw new BadRequestException("تم تحويل هذا العرض إلى عقد مسبقاً");
     }
 
-    const clientId = proposal.clientId ?? proposal.lead?.client?.id;
+    const clientId = proposal.clientId ?? proposal.request?.clientId;
     if (!clientId) {
       throw new BadRequestException(
         "يجب أن يكون للعميل عميل مرتبط لتحويل العرض إلى عقد",

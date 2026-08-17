@@ -318,7 +318,7 @@ export class AdminClientsService {
           },
         },
         profile: true,
-        lead: { select: { source: true } },
+        requests: { orderBy: { createdAt: "desc" }, take: 1, select: { source: true } },
         _count: {
           select: {
             contracts: true,
@@ -430,7 +430,7 @@ export class AdminClientsService {
 
     return {
       ...this.formatClientResponse(client),
-      source: client.lead?.source ?? null,
+      source: client.requests[0]?.source ?? null,
       portalToken: client.portalAccessToken,
       portalTokenExpiresAt: client.portalTokenExpiresAt?.toISOString() ?? null,
       managerName: client.manager?.name ?? null,
@@ -738,7 +738,7 @@ export class AdminClientsService {
       businessName: client.businessName,
       businessType: client.businessType,
       status: client.status,
-      contactName: client.user?.name ?? client.lead?.contactName ?? null,
+      contactName: client.user?.name ?? null,
       email: client.user?.email ?? null,
       phone: client.user?.phoneWhatsapp ?? null,
       isActive: client.user?.isActive ?? false,

@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  ParseEnumPipe,
   UseGuards,
   Query,
   ForbiddenException,
@@ -12,6 +13,7 @@ import {
   UploadedFiles,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
+import { DisputeThreadType } from "@prisma/client";
 import { DisputesService } from "../services/disputes.service";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -50,7 +52,7 @@ export class PortalDisputesController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
-    return this.disputesService.createDispute(clientId, dto, files);
+    return this.disputesService.createDispute(clientId, user.id, dto, files);
   }
 
   @Get()
@@ -72,15 +74,67 @@ export class PortalDisputesController {
     return this.disputesService.getClientDisputeById(clientId, id);
   }
 
+  @Get(":id/threads")
+  async getThreads(@CurrentUser() user: any, @Param("id") id: string) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new NotFoundException("التذكرة غير موجودة");
+    return this.disputesService.getClientThreads(clientId, id);
+  }
+
+  @Get(":id/threads/:threadType/messages")
+  async getThreadMessages(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Param("threadType", new ParseEnumPipe(DisputeThreadType))
+    threadType: DisputeThreadType,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new NotFoundException("التذكرة غير موجودة");
+    return this.disputesService.getClientThreadMessages(clientId, id, threadType);
+  }
+
   @Post(":id/messages")
   @UseInterceptors(FilesInterceptor("files", 5))
   async addMessage(
+    @CurrentUser() user: any,
     @CurrentUser("id") userId: string,
     @Param("id") id: string,
     @Body() dto: CreateDisputeMessageDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.disputesService.addMessage(id, userId, dto, files);
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.disputesService.addClientThreadMessage(
+      clientId,
+      id,
+      userId,
+      DisputeThreadType.CLIENT_PM,
+      { ...dto, isInternal: false, threadType: DisputeThreadType.CLIENT_PM },
+      files,
+    );
+  }
+
+  @Post(":id/threads/:threadType/messages")
+  @UseInterceptors(FilesInterceptor("files", 5))
+  async addThreadMessage(
+    @CurrentUser() user: any,
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Param("threadType", new ParseEnumPipe(DisputeThreadType))
+    threadType: DisputeThreadType,
+    @Body() dto: CreateDisputeMessageDto,
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.disputesService.addClientThreadMessage(
+      clientId,
+      id,
+      userId,
+      threadType,
+      { ...dto, isInternal: false, threadType },
+      files,
+    );
   }
 
   @Post(":id/confirm")
@@ -91,6 +145,6 @@ export class PortalDisputesController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
-    return this.disputesService.clientConfirmResolution(clientId, id, dto);
+    return this.disputesService.clientConfirmResolution(clientId, user.id, id, dto);
   }
 }

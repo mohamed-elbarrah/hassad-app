@@ -5,6 +5,7 @@ import { PrismaModule } from "../../prisma/prisma.module";
 import { FinanceModule } from "../finance/finance.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { ChatModule } from "../chat/chat.module";
 import { AiModule } from "../ai/ai.module";
 import { TerminusModule } from "@nestjs/terminus";
 
@@ -18,10 +19,10 @@ import { AdminSecurityController } from "./controllers/admin-security.controller
 import { AdminProjectsController } from "./controllers/admin-projects.controller";
 import { AdminTasksController } from "./controllers/admin-tasks.controller";
 import { AdminContractsController } from "./controllers/admin-contracts.controller";
-import { AdminLeadsController } from "./controllers/admin-leads.controller";
 import { AdminRequestsController } from "./controllers/admin-requests.controller";
 import { AdminCampaignsController } from "./controllers/admin-campaigns.controller";
 import { AdminChatController } from "./controllers/admin-chat.controller";
+import { AdminWorkspaceChatController } from "./controllers/admin-chat-workspace.controller";
 import { AdminPortalController } from "./controllers/admin-portal.controller";
 import { AdminFinanceController } from "./controllers/admin-finance.controller";
 import { AdminProposalsController } from "./controllers/admin-proposals.controller";
@@ -40,6 +41,9 @@ import { AdminDeliverablesController } from "./controllers/admin-deliverables.co
 import { AdminMarketingController } from "./controllers/admin-marketing.controller";
 import { AdminIntakeFormsController } from "./controllers/admin-intake-forms.controller";
 import { AdminBusinessGoalController } from "./controllers/admin-business-goal.controller";
+import { AdminWorkspacesController } from "./controllers/admin-workspaces.controller";
+import { AdminCrmOrdersController } from "./controllers/admin-crm-orders.controller";
+import { AdminContractMigrationReviewController } from "./controllers/admin-contract-migration-review.controller";
 
 import { AdminActionLogService } from "./services/admin-action-log.service";
 import { AdminKpiService } from "./services/admin-kpi.service";
@@ -52,10 +56,11 @@ import { AdminSecurityService } from "./services/admin-security.service";
 import { AdminProjectsService } from "./services/admin-projects.service";
 import { AdminTasksService } from "./services/admin-tasks.service";
 import { AdminContractsService } from "./services/admin-contracts.service";
-import { AdminLeadsService } from "./services/admin-leads.service";
+import { AdminContractMigrationReviewService } from "./services/admin-contract-migration-review.service";
 import { AdminRequestsService } from "./services/admin-requests.service";
 import { AdminCampaignsService } from "./services/admin-campaigns.service";
 import { AdminChatService } from "./services/admin-chat.service";
+import { AdminWorkspaceChatService } from "./services/admin-chat-workspace.service";
 import { AdminPortalService } from "./services/admin-portal.service";
 import { AdminFinanceService } from "./services/admin-finance.service";
 import { AdminProposalsService } from "./services/admin-proposals.service";
@@ -75,10 +80,13 @@ import { AdminAlertService } from "./services/admin-alert.service";
 import { AdminAlertScheduler } from "./schedulers/admin-alert.scheduler";
 import { AdminMarketingService } from "./services/admin-marketing.service";
 import { AdminBusinessGoalService } from "./services/admin-business-goal.service";
+import { AdminWorkspacesService } from "./services/admin-workspaces.service";
+import { AdminCrmOrdersService } from "./services/admin-crm-orders.service";
 
 import { PrismaHealthIndicator } from "../health/indicators";
 import { HealthPersistenceService } from "../health/services/health-persistence.service";
 import { RobustErrorLoggerService } from "../health/services/robust-error-logger.service";
+import { RequestsModule } from "../requests/requests.module";
 
 @Module({
   imports: [
@@ -86,7 +94,9 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     FinanceModule,
     PaymentsModule,
     NotificationsModule,
+    ChatModule,
     AiModule,
+    RequestsModule,
     TerminusModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -102,6 +112,9 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
   ],
   controllers: [
     AdminController,
+    AdminWorkspacesController,
+    AdminCrmOrdersController,
+    AdminContractMigrationReviewController,
     AdminKpiController,
     AdminAuditController,
     AdminSettingsController,
@@ -111,10 +124,10 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminProjectsController,
     AdminTasksController,
     AdminContractsController,
-    AdminLeadsController,
     AdminRequestsController,
     AdminCampaignsController,
     AdminChatController,
+    AdminWorkspaceChatController,
     AdminPortalController,
     AdminFinanceController,
     AdminProposalsController,
@@ -146,10 +159,11 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminProjectsService,
     AdminTasksService,
     AdminContractsService,
-    AdminLeadsService,
+    AdminContractMigrationReviewService,
     AdminRequestsService,
     AdminCampaignsService,
     AdminChatService,
+    AdminWorkspaceChatService,
     AdminPortalService,
     AdminFinanceService,
     AdminProposalsService,
@@ -163,6 +177,8 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminDeliverablesService,
     AdminMarketingService,
     AdminBusinessGoalService,
+    AdminWorkspacesService,
+    AdminCrmOrdersService,
     AdminSystemEventsService,
     AdminAlertService,
     AdminAlertScheduler,

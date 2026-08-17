@@ -10,6 +10,7 @@ import {
   DisputeStatus,
   DisputeCategory,
   DisputePriority,
+  DisputeThreadType,
 } from "@prisma/client";
 import {
   CreateDisputeDto,
@@ -26,6 +27,24 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { ProjectsService } from "../../projects/services/projects.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
+
+type DisputeAudience = "admin" | "pm" | "client";
+
+const visibleDisputeThreads: Record<DisputeAudience, DisputeThreadType[]> = {
+  admin: [
+    DisputeThreadType.CLIENT_PM,
+    DisputeThreadType.ADMIN_CLIENT,
+    DisputeThreadType.ADMIN_PM,
+  ],
+  pm: [DisputeThreadType.CLIENT_PM, DisputeThreadType.ADMIN_PM],
+  client: [DisputeThreadType.CLIENT_PM, DisputeThreadType.ADMIN_CLIENT],
+};
+
+const writableDisputeThreads: Record<DisputeAudience, DisputeThreadType[]> = {
+  admin: [DisputeThreadType.ADMIN_CLIENT, DisputeThreadType.ADMIN_PM],
+  pm: [DisputeThreadType.CLIENT_PM, DisputeThreadType.ADMIN_PM],
+  client: [DisputeThreadType.CLIENT_PM, DisputeThreadType.ADMIN_CLIENT],
+};
 
 @Injectable()
 export class DisputesService {
@@ -44,6 +63,7 @@ export class DisputesService {
    */
   async createDispute(
     clientId: string,
+    userId: string,
     dto: CreateDisputeDto,
     files?: Express.Multer.File[],
   ) {
@@ -110,7 +130,7 @@ export class DisputesService {
           history: {
             create: {
               toStatus: DisputeStatus.PENDING_APPROVAL,
-              changedBy: clientId,
+              changedBy: userId,
               note: "تم إنشاء التذكرة",
             },
           },
@@ -122,7 +142,7 @@ export class DisputesService {
       });
 
       if (files?.length) {
-        await this.uploadAttachments(tx, created.id, clientId, files);
+        await this.uploadAttachments(tx, created.id, userId, files);
       }
 
       return created;
@@ -207,10 +227,15 @@ export class DisputesService {
         project: { select: { id: true, name: true } },
         pm: { select: { id: true, name: true, avatarUrl: true } },
         messages: {
-          where: { isInternal: false },
+          where: {
+            threadType: {
+              in: visibleDisputeThreads.client,
+            },
+          },
           orderBy: { createdAt: "asc" },
           include: {
             author: { select: { id: true, name: true, avatarUrl: true } },
+            attachments: true,
           },
         },
         attachments: {
@@ -239,6 +264,120 @@ export class DisputesService {
     dto: CreateDisputeMessageDto,
     files?: Express.Multer.File[],
   ) {
+    const threadType = dto.threadType ?? DisputeThreadType.CLIENT_PM;
+    return this.addThreadMessage(
+      disputeId,
+      authorId,
+      threadType,
+      dto,
+      files,
+      threadType === DisputeThreadType.CLIENT_PM ? "pm" : "admin",
+    );
+  }
+
+  /**
+   * Client adds message to the allowed dispute thread.
+   */
+  async addClientThreadMessage(
+    clientId: string,
+    disputeId: string,
+    authorId: string,
+    threadType: DisputeThreadType,
+    dto: CreateDisputeMessageDto,
+    files?: Express.Multer.File[],
+  ) {
+    await this.getClientThreadContext(clientId, disputeId);
+    return this.addThreadMessage(
+      disputeId,
+      authorId,
+      threadType,
+      dto,
+      files,
+      "client",
+    );
+  }
+
+  async addPmThreadMessage(
+    pmId: string,
+    disputeId: string,
+    threadType: DisputeThreadType,
+    dto: CreateDisputeMessageDto,
+    files?: Express.Multer.File[],
+  ) {
+    await this.getPmThreadContext(pmId, disputeId);
+    return this.addThreadMessage(disputeId, pmId, threadType, dto, files, "pm");
+  }
+
+  async addAdminThreadMessage(
+    adminId: string,
+    disputeId: string,
+    threadType: DisputeThreadType,
+    dto: CreateDisputeMessageDto,
+    files?: Express.Multer.File[],
+  ) {
+    await this.getAdminThreadContext(disputeId);
+    return this.addThreadMessage(
+      disputeId,
+      adminId,
+      threadType,
+      dto,
+      files,
+      "admin",
+    );
+  }
+
+  async getClientThreads(clientId: string, disputeId: string) {
+    const dispute = await this.getClientThreadContext(clientId, disputeId);
+    return this.buildThreadSummaries(dispute, "client");
+  }
+
+  async getPmThreads(pmId: string, disputeId: string) {
+    const dispute = await this.getPmThreadContext(pmId, disputeId);
+    return this.buildThreadSummaries(dispute, "pm");
+  }
+
+  async getAdminThreads(disputeId: string) {
+    const dispute = await this.getAdminThreadContext(disputeId);
+    return this.buildThreadSummaries(dispute, "admin");
+  }
+
+  async getClientThreadMessages(
+    clientId: string,
+    disputeId: string,
+    threadType: DisputeThreadType,
+  ) {
+    const dispute = await this.getClientThreadContext(clientId, disputeId);
+    return this.getThreadMessages(dispute, threadType, "client");
+  }
+
+  async getPmThreadMessages(
+    pmId: string,
+    disputeId: string,
+    threadType: DisputeThreadType,
+  ) {
+    const dispute = await this.getPmThreadContext(pmId, disputeId);
+    return this.getThreadMessages(dispute, threadType, "pm");
+  }
+
+  async getAdminThreadMessages(
+    disputeId: string,
+    threadType: DisputeThreadType,
+  ) {
+    const dispute = await this.getAdminThreadContext(disputeId);
+    return this.getThreadMessages(dispute, threadType, "admin");
+  }
+
+  /**
+   * Legacy message create shim. New code should use thread-specific methods.
+   */
+  private async addThreadMessage(
+    disputeId: string,
+    authorId: string,
+    threadType: DisputeThreadType,
+    dto: CreateDisputeMessageDto,
+    files: Express.Multer.File[] | undefined,
+    audience: DisputeAudience,
+  ) {
     const dispute = await this.prisma.disputeTicket.findUnique({
       where: { id: disputeId },
       select: { id: true, status: true },
@@ -260,16 +399,20 @@ export class DisputesService {
       throw new BadRequestException("لا يمكن إضافة رسائل لهذه التذكرة");
     }
 
+    this.assertThreadAccess(audience, threadType, "write");
+
     const message = await this.prisma.$transaction(async (tx) => {
       const created = await tx.disputeMessage.create({
         data: {
           ticketId: disputeId,
           authorId,
           content: dto.content,
-          isInternal: dto.isInternal ?? false,
+          threadType,
+          isInternal: false,
         },
         include: {
           author: { select: { id: true, name: true, avatarUrl: true } },
+          attachments: true,
         },
       });
 
@@ -301,6 +444,7 @@ export class DisputesService {
    */
   async clientConfirmResolution(
     clientId: string,
+    userId: string,
     disputeId: string,
     dto: ClientConfirmDto,
   ) {
@@ -339,7 +483,7 @@ export class DisputesService {
           history: {
             create: {
               toStatus: DisputeStatus.RESOLVED,
-              changedBy: clientId,
+              changedBy: userId,
               note: dto.feedback || "أكد العميل حل المشكلة",
             },
           },
@@ -370,7 +514,7 @@ export class DisputesService {
             create: {
               fromStatus: DisputeStatus.PENDING_CLIENT,
               toStatus: DisputeStatus.ESCALATED,
-              changedBy: clientId,
+              changedBy: userId,
               note: dto.feedback || "العميل يؤكد عدم حل المشكلة",
             },
           },
@@ -414,12 +558,31 @@ export class DisputesService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { openedAt: "desc" },
-        include: {
+        select: {
+          id: true,
+          ticketNumber: true,
+          clientId: true,
+          pmId: true,
+          projectId: true,
+          title: true,
+          category: true,
+          status: true,
+          priority: true,
+          openedAt: true,
+          deadlineAt: true,
           project: { select: { id: true, name: true } },
-          client: { select: { id: true, companyName: true } },
+          client: {
+            select: {
+              id: true,
+              companyName: true,
+              user: { select: { name: true } },
+            },
+          },
+          pm: { select: { id: true, name: true, avatarUrl: true } },
           messages: {
             take: 1,
             orderBy: { createdAt: "desc" },
+            select: { createdAt: true },
           },
           _count: { select: { messages: true } },
         },
@@ -446,13 +609,32 @@ export class DisputesService {
       where: { id: disputeId, pmId },
       include: {
         project: { select: { id: true, name: true } },
-        client: { select: { id: true, companyName: true } },
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            userId: true,
+            user: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
+        pm: { select: { id: true, name: true, avatarUrl: true } },
+        reviewer: { select: { id: true, name: true } },
+        resolver: { select: { id: true, name: true } },
+        newPm: { select: { id: true, name: true } },
         messages: {
-          where: { isInternal: false }, // PM cannot see internal admin notes
+          where: {
+            threadType: {
+              in: visibleDisputeThreads.pm,
+            },
+          },
           orderBy: { createdAt: "asc" },
           include: {
             author: { select: { id: true, name: true, avatarUrl: true } },
+            attachments: true,
           },
+        },
+        attachments: {
+          include: { uploader: { select: { id: true, name: true } } },
         },
         history: {
           orderBy: { changedAt: "asc" },
@@ -468,6 +650,20 @@ export class DisputesService {
     }
 
     return dispute;
+  }
+
+  async getPmDisputeWorkspace(pmId: string, disputeId: string) {
+    const [detail, threads, pmStats] = await Promise.all([
+      this.getPmDisputeById(pmId, disputeId),
+      this.getPmThreads(pmId, disputeId),
+      this.getPmStats(pmId),
+    ]);
+
+    return {
+      detail,
+      threads,
+      pmStats,
+    };
   }
 
   /**
@@ -517,6 +713,7 @@ export class DisputesService {
     const allowedStatuses: DisputeStatus[] = [
       DisputeStatus.APPROVED,
       DisputeStatus.IN_PROGRESS,
+      DisputeStatus.ESCALATED,
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
@@ -547,6 +744,7 @@ export class DisputesService {
           ticketId: disputeId,
           authorId: pmId,
           content: dto.message,
+          threadType: DisputeThreadType.CLIENT_PM,
           isInternal: false,
         },
       }),
@@ -619,7 +817,14 @@ export class DisputesService {
       where: { id: disputeId },
       include: {
         project: { select: { id: true, name: true } },
-        client: { select: { id: true, companyName: true } },
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            userId: true,
+            user: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
         pm: { select: { id: true, name: true, avatarUrl: true } },
         reviewer: { select: { id: true, name: true } },
         resolver: { select: { id: true, name: true } },
@@ -628,6 +833,7 @@ export class DisputesService {
           orderBy: { createdAt: "asc" },
           include: {
             author: { select: { id: true, name: true, avatarUrl: true } },
+            attachments: true,
           },
         },
         attachments: {
@@ -967,6 +1173,281 @@ export class DisputesService {
 
   // ─── Helper Methods ────────────────────────────────────────────────────────
 
+  private assertThreadAccess(
+    audience: DisputeAudience,
+    threadType: DisputeThreadType,
+    action: "read" | "write",
+  ) {
+    const allowed =
+      action === "read"
+        ? visibleDisputeThreads[audience]
+        : writableDisputeThreads[audience];
+
+    if (!allowed.includes(threadType)) {
+      throw new ForbiddenException("لا تملك صلاحية للوصول إلى هذه المحادثة");
+    }
+  }
+
+  private async getClientThreadContext(clientId: string, disputeId: string) {
+    const dispute = await this.prisma.disputeTicket.findFirst({
+      where: { id: disputeId, clientId },
+      select: {
+        id: true,
+        ticketNumber: true,
+        title: true,
+        status: true,
+        clientId: true,
+        pmId: true,
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            userId: true,
+            user: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
+        pm: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    if (!dispute) {
+      throw new NotFoundException("التذكرة غير موجودة");
+    }
+
+    return dispute;
+  }
+
+  private async getPmThreadContext(pmId: string, disputeId: string) {
+    const dispute = await this.prisma.disputeTicket.findFirst({
+      where: { id: disputeId, pmId },
+      select: {
+        id: true,
+        ticketNumber: true,
+        title: true,
+        status: true,
+        clientId: true,
+        pmId: true,
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            userId: true,
+            user: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
+        pm: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    if (!dispute) {
+      throw new NotFoundException(
+        "التذكرة غير موجودة أو ليس لديك صلاحية للوصول إليها",
+      );
+    }
+
+    return dispute;
+  }
+
+  private async getAdminThreadContext(disputeId: string) {
+    const dispute = await this.prisma.disputeTicket.findUnique({
+      where: { id: disputeId },
+      select: {
+        id: true,
+        ticketNumber: true,
+        title: true,
+        status: true,
+        clientId: true,
+        pmId: true,
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            userId: true,
+            user: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
+        pm: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    if (!dispute) {
+      throw new NotFoundException("التذكرة غير موجودة");
+    }
+
+    return dispute;
+  }
+
+  private threadMeta(
+    dispute: Awaited<ReturnType<DisputesService["getAdminThreadContext"]>>,
+    threadType: DisputeThreadType,
+  ) {
+    const clientName =
+      dispute.client?.companyName ??
+      dispute.client?.user?.name ??
+      "Client";
+    const pmName = dispute.pm?.name ?? "PM";
+
+    if (threadType === DisputeThreadType.CLIENT_PM) {
+      return {
+        threadType,
+        title: "Client ↔ PM",
+        description: "Private resolution thread between the client and the assigned PM.",
+        participantsLabel: `${clientName} and ${pmName}`,
+      };
+    }
+
+    if (threadType === DisputeThreadType.ADMIN_CLIENT) {
+      return {
+        threadType,
+        title: "Admin ↔ Client",
+        description: "Private thread visible only to admins and the client.",
+        participantsLabel: `Admins and ${clientName}`,
+      };
+    }
+
+    return {
+      threadType,
+      title: "Admin ↔ PM",
+      description: "Private thread visible only to admins and the assigned PM.",
+      participantsLabel: `Admins and ${pmName}`,
+    };
+  }
+
+  private authorRole(
+    dispute: Awaited<ReturnType<DisputesService["getAdminThreadContext"]>>,
+    authorId: string,
+  ) {
+    if (authorId === dispute.pmId) {
+      return "PM";
+    }
+
+    if (authorId === dispute.client?.userId) {
+      return "CLIENT";
+    }
+
+    return "ADMIN";
+  }
+
+  private async attachDisputeUrls(attachments: Array<any>) {
+    const keys = attachments.map((attachment) => attachment.filePath);
+    const urlMap = await this.storageService.getMultiplePresignedUrls(keys);
+
+    return attachments.map((attachment) => ({
+      id: attachment.id,
+      fileName: attachment.fileName,
+      filePath: attachment.filePath,
+      fileSize: attachment.fileSize,
+      mimeType: attachment.mimeType,
+      uploadedAt: attachment.uploadedAt?.toISOString?.() ?? null,
+      url: urlMap.get(attachment.filePath) ?? null,
+    }));
+  }
+
+  private async threadMessageResponse(
+    dispute: Awaited<ReturnType<DisputesService["getAdminThreadContext"]>>,
+    message: any,
+  ) {
+    const attachments =
+      message.attachments?.length > 0
+        ? await this.attachDisputeUrls(message.attachments)
+        : [];
+
+    return {
+      id: message.id,
+      threadType: message.threadType,
+      content: message.content,
+      createdAt: message.createdAt.toISOString(),
+      author: {
+        id: message.author.id,
+        name: message.author.name,
+        avatarUrl: message.author.avatarUrl ?? null,
+        role: this.authorRole(dispute, message.author.id),
+      },
+      attachments,
+    };
+  }
+
+  private async getThreadMessages(
+    dispute: Awaited<ReturnType<DisputesService["getAdminThreadContext"]>>,
+    threadType: DisputeThreadType,
+    audience: DisputeAudience,
+  ) {
+    this.assertThreadAccess(audience, threadType, "read");
+
+    const messages = await this.prisma.disputeMessage.findMany({
+      where: {
+        ticketId: dispute.id,
+        threadType,
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: { select: { id: true, name: true, avatarUrl: true } },
+        attachments: true,
+      },
+    });
+
+    return Promise.all(
+      messages.map((message) => this.threadMessageResponse(dispute, message)),
+    );
+  }
+
+  private async buildThreadSummaries(
+    dispute: Awaited<ReturnType<DisputesService["getAdminThreadContext"]>>,
+    audience: DisputeAudience,
+  ) {
+    const allowedThreads = visibleDisputeThreads[audience];
+    const counts = await this.prisma.disputeMessage.groupBy({
+      by: ["threadType"],
+      where: {
+        ticketId: dispute.id,
+        threadType: { in: allowedThreads },
+      },
+      _count: { id: true },
+    });
+
+    const latestMessages = await this.prisma.disputeMessage.findMany({
+      where: {
+        ticketId: dispute.id,
+        threadType: { in: allowedThreads },
+      },
+      orderBy: [{ threadType: "asc" }, { createdAt: "desc" }],
+      include: {
+        author: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+
+    const countMap = new Map(
+      counts.map((item) => [item.threadType, item._count.id]),
+    );
+    const lastMessageMap = new Map<string, any>();
+
+    for (const message of latestMessages) {
+      if (!lastMessageMap.has(message.threadType)) {
+        lastMessageMap.set(message.threadType, message);
+      }
+    }
+
+    return allowedThreads.map((threadType) => {
+      const meta = this.threadMeta(dispute, threadType);
+      const lastMessage = lastMessageMap.get(threadType);
+
+      return {
+        ...meta,
+        canReply: writableDisputeThreads[audience].includes(threadType),
+        messageCount: countMap.get(threadType) ?? 0,
+        lastMessage: lastMessage
+          ? {
+              id: lastMessage.id,
+              content: lastMessage.content,
+              createdAt: lastMessage.createdAt.toISOString(),
+              authorName: lastMessage.author.name,
+              authorRole: this.authorRole(dispute, lastMessage.author.id),
+            }
+          : null,
+      };
+    });
+  }
+
   /**
    * Upload files and create attachment records within a transaction.
    * Used by both createDispute and addMessage to avoid duplication.
@@ -1030,7 +1511,7 @@ export class DisputesService {
       case "new":
         updates.totalDisputes = { increment: 1 };
         break;
-      case "resolved":
+      case "resolved": {
         updates.resolvedDisputes = { increment: 1 };
         // Recalculate avg resolution days
         const resolvedDisputes = await this.prisma.disputeTicket.findMany({
@@ -1055,6 +1536,7 @@ export class DisputesService {
           updates.avgResolutionDays = totalDays / resolvedDisputes.length;
         }
         break;
+      }
       case "escalated":
         updates.escalatedDisputes = { increment: 1 };
         break;

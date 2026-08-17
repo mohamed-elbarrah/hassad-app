@@ -1,3 +1,5 @@
+.web/
+
 # Dependencies
 node_modules/
 .pnpm-store/
@@ -55,3 +57,4 @@ apps/api/uploads/
 # Production
 .env.production
 nginx/ssl/
+

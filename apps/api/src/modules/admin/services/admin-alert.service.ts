@@ -71,39 +71,10 @@ export class AdminAlertService {
     return notified;
   }
 
-  // ── Unassigned leads ───────────────────────────────────────────────────
+  // Legacy method name retained for scheduler compatibility. Requests are
+  // the only active CRM source.
   async checkUnassignedLeads(): Promise<number> {
-    const unassigned = await this.prisma.lead.findMany({
-      where: { assignedTo: null, isActive: true },
-      select: { id: true, companyName: true, contactName: true },
-      take: 50,
-    });
-
-    if (unassigned.length === 0) return 0;
-
-    const salesManagers = await this.prisma.user.findMany({
-      where: {
-        role: { name: { in: ["ADMIN", "SALES_MANAGER"] } },
-        isActive: true,
-      },
-      select: { id: true },
-    });
-    if (salesManagers.length === 0) return 0;
-
-    const managerIds = salesManagers.map((u) => u.id);
-    await this.notificationsService.notifyUsers({
-      userIds: managerIds,
-      title: "عملاء متوقعون غير معينين",
-      message: `يوجد ${unassigned.length} عميل متوقع غير معين. يرجى توزيعهم على فريق المبيعات.`,
-      entityId: "unassigned-leads",
-      entityType: "LEAD",
-      eventType: "UNASSIGNED_LEAD",
-    });
-
-    this.logger.log(
-      `Unassigned leads alert sent to ${managerIds.length} manager(s)`,
-    );
-    return unassigned.length;
+    return this.checkUnassignedRequests();
   }
 
   // ── Unassigned requests ────────────────────────────────────────────────
@@ -401,26 +372,7 @@ export class AdminAlertService {
 
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-    const staleLeads = await this.prisma.lead.findMany({
-      where: {
-        isActive: true,
-        lastContactAt: { lt: fourteenDaysAgo },
-      },
-      select: { id: true, companyName: true, assignedTo: true },
-    });
-
-    for (const lead of staleLeads) {
-      if (lead.assignedTo) {
-        await this.notificationsService.createNotification({
-          userId: lead.assignedTo,
-          title: "عميل متوقع بحاجة للمتابعة",
-          body: `العميل المتوقع "${lead.companyName}" لم يتم التواصل معه منذ 14 يوماً.`,
-          entityId: lead.id,
-          entityType: "LEAD",
-          eventType: "STALE_LEAD",
-        });
-      }
-    }
+    const staleLeads: never[] = [];
 
     const staleRequests = await this.prisma.request.findMany({
       where: {
@@ -461,7 +413,6 @@ export class AdminAlertService {
 
     const checks = [
       ["stalledProjects", () => this.checkStalledProjects()],
-      ["unassignedLeads", () => this.checkUnassignedLeads()],
       ["unassignedRequests", () => this.checkUnassignedRequests()],
       ["failedSystems", () => this.checkFailedSystems()],
       ["inactiveClients", () => this.checkInactiveClients()],

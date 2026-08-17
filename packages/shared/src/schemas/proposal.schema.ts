@@ -10,7 +10,7 @@ export const ServiceItemSchema = z.object({
 export type ServiceItem = z.infer<typeof ServiceItemSchema>;
 
 export const CreateProposalSchema = z.object({
-  leadId: z.string().uuid("Invalid lead ID format"),
+  requestId: z.string().uuid("Invalid request ID format"),
   title: z.string().min(1, "Title is required"),
   serviceDescription: z.string().min(1, "Service description is required"),
   servicesList: z

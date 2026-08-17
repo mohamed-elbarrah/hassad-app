@@ -30,7 +30,6 @@ async function main() {
             id: true,
             companyName: true,
             accountManager: true,
-            leadId: true,
           },
         },
       },

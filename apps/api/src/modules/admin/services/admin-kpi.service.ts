@@ -27,34 +27,19 @@ export class AdminKpiService {
       requestAges,
       unassignedLeads,
     ] = await Promise.all([
-      this.prisma.lead.count({ where: { isActive: true, ...dateFilter } }),
-      this.prisma.lead.count({
-        where: { isActive: true, requestId: { not: null }, ...dateFilter },
-      }),
       this.prisma.request.count({ where: dateFilter }),
-      this.prisma.contract.count({
-        where: { requestId: { not: null }, ...dateFilter },
-      }),
-      // Average response time: first contact log after lead creation
-      this.prisma.lead.findMany({
-        where: {
-          isActive: true,
-          lastContactAt: { not: null },
-          ...dateFilter,
-        },
+      this.prisma.request.count({ where: dateFilter }),
+      this.prisma.request.count({ where: dateFilter }),
+      this.prisma.contract.count({ where: { requestId: { not: null }, ...dateFilter } }),
+      this.prisma.request.findMany({
+        where: { lastContactAt: { not: null }, ...dateFilter },
         select: { createdAt: true, lastContactAt: true },
       }),
-      // Request aging
       this.prisma.request.findMany({
-        where: {
-          status: { notIn: ["SIGNED", "PROJECT_CREATED", "CANCELLED"] },
-          ...dateFilter,
-        },
+        where: { status: { notIn: ["SIGNED", "PROJECT_CREATED", "CANCELLED"] }, ...dateFilter },
         select: { createdAt: true },
       }),
-      this.prisma.lead.count({
-        where: { isActive: true, assignedTo: null, ...dateFilter },
-      }),
+      this.prisma.request.count({ where: { assignedSalesId: null, ...dateFilter } }),
     ]);
 
     const leadToRequestConversion =
