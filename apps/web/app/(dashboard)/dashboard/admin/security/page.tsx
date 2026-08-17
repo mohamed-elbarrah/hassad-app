@@ -1,0 +1,7 @@
+export default function Security() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <h1 className="text-2xl font-bold text-muted-foreground">Security</h1>
+    </div>
+  );
+}

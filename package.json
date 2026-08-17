@@ -2,10 +2,10 @@
   "name": "hassad",
   "private": true,
   "scripts": {
-    "build": "turbo build --filter=@hassad/shared --filter=api --filter=web --filter=web-v2",
+    "build": "turbo build --filter=@hassad/shared --filter=api --filter=web --filter=web",
     "dev": "turbo dev",
     "watch:shared": "npm --prefix packages/shared run watch",
-    "verify": "turbo run lint typecheck --filter=@hassad/shared --filter=api --filter=web --filter=web-v2",
+    "verify": "turbo run lint typecheck --filter=@hassad/shared --filter=api --filter=web --filter=web",
     "verify:request-canonical": "npm --prefix apps/api run verify:request-canonical",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""

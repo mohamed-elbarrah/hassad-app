@@ -1,0 +1,24 @@
+"use client";
+
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface AdminDetailSkeletonProps {
+  variant?: string;
+}
+
+export function AdminDetailSkeleton({
+  variant: _variant,
+}: AdminDetailSkeletonProps) {
+  return (
+    <div className="max-w-4xl space-y-6" dir="rtl">
+      <Skeleton className="h-5 w-48" />
+      <Skeleton className="h-8 w-64" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-2xl" />
+        ))}
+      </div>
+      <Skeleton className="h-96 rounded-2xl" />
+    </div>
+  );
+}
