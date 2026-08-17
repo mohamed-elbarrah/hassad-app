@@ -26,15 +26,16 @@ export class RolesGuard implements CanActivate {
     const user = request.user as JwtPayload | undefined;
 
     if (!user || !user.role) {
-      throw new ForbiddenException("User role is missing");
+      throw new ForbiddenException({ code: "ROLE_REQUIRED" });
     }
 
     const hasRole = () => requiredRoles.includes(user.role);
 
     if (!hasRole()) {
-      throw new ForbiddenException(
-        `Access restricted to roles: ${requiredRoles.join(", ")}`,
-      );
+      throw new ForbiddenException({
+        code: "PERMISSION_DENIED",
+        details: { requiredRoles },
+      });
     }
 
     return true;

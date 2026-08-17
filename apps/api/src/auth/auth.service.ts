@@ -8,20 +8,14 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
-import {
-  LoginDto,
-  UserRole,
-  ClientSource,
-  ClientStatus,
-  PipelineStage,
-  BusinessType,
-} from "@hassad/shared";
+import { UserRole, ClientStatus, BusinessType } from "@hassad/shared";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { JwtPayload } from "../common/decorators/current-user.decorator";
 import { CanonicalClientService } from "../modules/requests/canonical-client.service";
 import { RegisterClientDto } from "./dto/register-client.dto";
 import { RegisterInternalDto } from "./dto/register-internal.dto";
+import { LoginDto } from "./dto/login.dto";
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MINUTES = 30;
@@ -57,7 +51,7 @@ export class AuthService {
 
     // Use generic message to avoid user enumeration
     if (!user) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException({ code: "INVALID_CREDENTIALS" });
     }
 
     // ── Lockout check ──────────────────────────────────────────────────
@@ -65,7 +59,10 @@ export class AuthService {
       const remainingMs = user.lockedUntil.getTime() - Date.now();
       const remainingMin = Math.ceil(remainingMs / 60000);
       throw new HttpException(
-        `Account locked. Try again in ${remainingMin} minute(s).`,
+        {
+          code: "ACCOUNT_LOCKED",
+          details: { retryAfterSeconds: remainingMin * 60 },
+        },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
@@ -73,7 +70,7 @@ export class AuthService {
     // ── Suspension check ───────────────────────────────────────────────
     if (user.suspendedAt) {
       if (!user.suspendedUntil || user.suspendedUntil > new Date()) {
-        throw new UnauthorizedException("User account is suspended.");
+        throw new UnauthorizedException({ code: "ACCOUNT_SUSPENDED" });
       }
       // Suspension period has passed — auto-clear
       await this.prisma.user.update({
@@ -88,14 +85,12 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException("User account is inactive");
+      throw new UnauthorizedException({ code: "ACCOUNT_INACTIVE" });
     }
 
     // OAuth users don't have passwordHash
     if (!user.passwordHash) {
-      throw new UnauthorizedException(
-        "This account uses social login. Please sign in with your provider.",
-      );
+      throw new UnauthorizedException({ code: "SOCIAL_LOGIN_REQUIRED" });
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -159,7 +154,7 @@ export class AuthService {
         ]);
       }
 
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException({ code: "INVALID_CREDENTIALS" });
     }
 
     // ── Successful login: reset lockout state ──────────────────────────
@@ -217,9 +212,9 @@ export class AuthService {
 
     const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
     if (!refreshSecret) {
-      throw new InternalServerErrorException(
-        "JWT_REFRESH_SECRET is not configured",
-      );
+      throw new InternalServerErrorException({
+        code: "AUTH_CONFIGURATION_ERROR",
+      });
     }
 
     const refreshToken = this.jwtService.sign(payload, {
@@ -289,7 +284,9 @@ export class AuthService {
         },
       },
     });
-    if (!user) throw new UnauthorizedException();
+    if (!user) {
+      throw new UnauthorizedException({ code: "USER_NOT_FOUND" });
+    }
 
     let clientId: string | undefined;
     let intakeCompleted = false;
@@ -334,7 +331,7 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new ConflictException("Email already in use");
+      throw new ConflictException({ code: "EMAIL_ALREADY_IN_USE" });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -358,7 +355,7 @@ export class AuthService {
         status: ClientStatus.LEAD,
       });
 
-      return { message: "Registration successful. Please log in." };
+      return { code: "USER_REGISTERED" };
     });
   }
 
@@ -367,7 +364,7 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new ConflictException("Email already in use");
+      throw new ConflictException({ code: "EMAIL_ALREADY_IN_USE" });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -504,7 +501,7 @@ export class AuthService {
       !user.resetTokenExpiresAt ||
       user.resetTokenExpiresAt < new Date()
     ) {
-      throw new UnauthorizedException("Invalid or expired reset token");
+      throw new UnauthorizedException({ code: "INVALID_RESET_TOKEN" });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
@@ -518,6 +515,6 @@ export class AuthService {
       },
     });
 
-    return { message: "Password reset successfully" };
+    return { code: "PASSWORD_RESET" };
   }
 }

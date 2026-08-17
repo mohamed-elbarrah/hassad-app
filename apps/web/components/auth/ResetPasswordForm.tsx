@@ -7,6 +7,7 @@ import { AuthInput } from "@/components/auth/AuthInput";
 import { AuthButton } from "@/components/auth/AuthButton";
 import { Link } from "@/components/auth/AuthLink";
 import { useResetPasswordMutation } from "@/features/auth/authApi";
+import { authErrorMessage } from "@/lib/i18n";
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState("");
@@ -40,10 +41,7 @@ export function ResetPasswordForm() {
       setSubmitted(true);
       toast.success("تم إعادة تعيين كلمة المرور بنجاح!");
     } catch (err: unknown) {
-      const message =
-        (err as { data?: { message?: string } })?.data?.message ??
-        "حدث خطأ. يرجى المحاولة مجدداً.";
-      toast.error(message);
+      toast.error(authErrorMessage(err, "حدث خطأ. يرجى المحاولة مجدداً."));
     }
   }
 

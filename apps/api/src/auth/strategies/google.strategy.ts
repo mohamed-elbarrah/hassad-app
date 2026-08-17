@@ -34,7 +34,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
       `${firstName} ${lastName}`.trim() || email?.split("@")[0] || "User";
 
     if (!email) {
-      return done(new UnauthorizedException("No email from Google"), false);
+      return done(
+        new UnauthorizedException({ code: "OAUTH_EMAIL_REQUIRED" }),
+        false,
+      );
     }
 
     try {

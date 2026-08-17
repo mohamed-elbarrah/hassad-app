@@ -12,14 +12,13 @@ import { useState } from "react";
 import { AuthInput } from "./AuthInput";
 import { AuthButton } from "./AuthButton";
 
-
-
 import { Link } from "./AuthLink";
+import { authErrorMessage } from "@/lib/i18n";
 
 // We'll define our own schema since LoginSchema from shared might not match
 const loginFormSchema = z.object({
   email: z.string().email("البريد الإلكتروني غير صالح"),
-  password: z.string().min(1, "كلمة المرور مطلوبة"),
+  password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
   rememberMe: z.boolean().optional(),
 });
 
@@ -32,7 +31,11 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [globalError, setGlobalError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: { email: "", password: "", rememberMe: false },
   });
@@ -64,9 +67,8 @@ export function LoginForm() {
         router.push(ROLE_ROUTES[data.user.role as UserRole] ?? "/dashboard");
       }
     } catch (err: unknown) {
-      const error = err as { data?: { message?: string } };
       setGlobalError(
-        error?.data?.message || "فشل تسجيل الدخول. يرجى التحقق من بياناتك.",
+        authErrorMessage(err, "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى."),
       );
     }
   }

@@ -16,19 +16,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>("JWT_SECRET") ?? "default_secret",
+      secretOrKey: configService.getOrThrow<string>("JWT_SECRET"),
     });
   }
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
     if (!payload.id || !payload.email || !payload.role) {
-      throw new UnauthorizedException("Invalid token payload");
+      throw new UnauthorizedException({ code: "INVALID_TOKEN" });
     }
     return {
       id: payload.id,
       name: payload.name ?? "",
       email: payload.email,
       role: payload.role,
+      permissions: payload.permissions,
     };
   }
 }

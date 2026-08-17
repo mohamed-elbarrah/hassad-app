@@ -20,7 +20,7 @@ import { RequestsModule } from "../modules/requests/requests.module";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>("JWT_SECRET") ?? "default_secret",
+        secret: configService.getOrThrow<string>("JWT_SECRET"),
         signOptions: {
           expiresIn: (configService.get<string>("JWT_EXPIRES_IN") ||
             "1h") as unknown as number,

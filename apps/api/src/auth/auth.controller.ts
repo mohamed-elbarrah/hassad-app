@@ -13,7 +13,7 @@ import { Throttle } from "@nestjs/throttler"; // NEW
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "./auth.service";
 import { JwtService } from "@nestjs/jwt";
-import { LoginDto, UserRole } from "@hassad/shared";
+import { UserRole } from "@hassad/shared";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { RolesGuard } from "./guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
@@ -27,6 +27,7 @@ import { RegisterClientDto } from "./dto/register-client.dto";
 import { RegisterInternalDto } from "./dto/register-internal.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { LoginDto } from "./dto/login.dto";
 import { EmailService } from "../common/services/email.service";
 
 @Controller("auth")
@@ -85,7 +86,7 @@ export class AuthController {
       maxAge: tokenMaxAge,
     });
 
-    return { user, accessToken };
+    return { user };
   }
 
   @UseGuards(AuthGuard("jwt-refresh"))
@@ -106,7 +107,7 @@ export class AuthController {
         60 * 60 * 1000,
     });
 
-    return { accessToken };
+    return { code: "TOKEN_REFRESHED" };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -133,7 +134,7 @@ export class AuthController {
       path: "/",
       maxAge: 0,
     });
-    return { message: "Logged out successfully" };
+    return { code: "SIGNED_OUT" };
   }
 
   /** POST /auth/forgot-password — sends reset email */
@@ -144,7 +145,7 @@ export class AuthController {
     const user = await this.authService.findByEmail(dto.email);
     if (!user) {
       // Don't leak whether email exists
-      return { message: "If this email exists, a reset link has been sent." };
+      return { code: "PASSWORD_RESET_REQUEST_ACCEPTED" };
     }
 
     const token = await this.authService.generateResetToken(user.id);
@@ -154,7 +155,7 @@ export class AuthController {
 
     await this.emailService.sendPasswordReset(user.email, resetUrl, user.name);
 
-    return { message: "If this email exists, a reset link has been sent." };
+    return { code: "PASSWORD_RESET_REQUEST_ACCEPTED" };
   }
 
   /** POST /auth/reset-password — validates token and updates password */
@@ -162,7 +163,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto.token, dto.password);
-    return { message: "Password has been reset successfully." };
+    return { code: "PASSWORD_RESET" };
   }
 
   /** POST /auth/register — public client self-registration */

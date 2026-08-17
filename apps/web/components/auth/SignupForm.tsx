@@ -13,6 +13,7 @@ import { AuthDivider } from "./AuthDivider";
 import { AuthSocialRow } from "./AuthSocialRow";
 import { AuthFooter } from "./AuthFooter";
 import { useRouter } from "next/navigation";
+import { authErrorMessage } from "@/lib/i18n";
 
 const signupSchema = z
   .object({
@@ -73,10 +74,12 @@ export function SignupForm() {
       setSubmitted(true);
       toast.success("تم إنشاء حسابك بنجاح!");
     } catch (err: unknown) {
-      const message =
-        (err as { data?: { message?: string } })?.data?.message ??
-        "حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مجدداً.";
-      toast.error(message);
+      toast.error(
+        authErrorMessage(
+          err,
+          "حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مجدداً.",
+        ),
+      );
     }
   }
 

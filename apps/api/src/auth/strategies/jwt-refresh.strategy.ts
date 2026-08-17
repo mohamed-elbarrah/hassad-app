@@ -18,9 +18,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey:
-        configService.get<string>("JWT_REFRESH_SECRET") ??
-        "default_refresh_secret",
+      secretOrKey: configService.getOrThrow<string>("JWT_REFRESH_SECRET"),
       passReqToCallback: true,
     });
   }
@@ -28,7 +26,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
   async validate(req: Request, payload: JwtPayload) {
     const refreshToken = req.cookies?.refreshToken;
     if (!refreshToken) {
-      throw new UnauthorizedException("Refresh token is missing");
+      throw new UnauthorizedException({ code: "REFRESH_TOKEN_REQUIRED" });
     }
     return { ...payload, refreshToken };
   }

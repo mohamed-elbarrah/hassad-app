@@ -36,14 +36,34 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : "Internal server error";
 
-    const extractedMessage =
-      typeof message === "object" && message !== null && "message" in message
-        ? (message as { message: string | string[] }).message
-        : message;
-
-    const normalizedMessage = Array.isArray(extractedMessage)
-      ? extractedMessage.join("; ")
-      : extractedMessage;
+    const responseBody =
+      typeof message === "object" && message !== null
+        ? (message as Record<string, unknown>)
+        : undefined;
+    const rawMessage = responseBody?.message;
+    const validationMessages = Array.isArray(rawMessage)
+      ? rawMessage
+      : undefined;
+    const errorCode =
+      typeof responseBody?.code === "string"
+        ? responseBody.code
+        : validationMessages
+          ? "VALIDATION_ERROR"
+          : status === HttpStatus.UNAUTHORIZED
+            ? "AUTHENTICATION_REQUIRED"
+            : status === HttpStatus.FORBIDDEN
+              ? "PERMISSION_DENIED"
+              : status >= 500
+                ? "INTERNAL_SERVER_ERROR"
+                : "REQUEST_FAILED";
+    const errorDetails =
+      responseBody?.details && typeof responseBody.details === "object"
+        ? responseBody.details
+        : validationMessages
+          ? {
+              issues: validationMessages.map(() => ({ code: "INVALID_VALUE" })),
+            }
+          : {};
 
     const path = request.originalUrl ?? request.url;
     const method = request.method;
@@ -82,7 +102,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const summary =
       exception instanceof Error
         ? `${exception.name}: ${exception.message}`
-        : String(normalizedMessage);
+        : `${errorCode}`;
 
     // Log to console immediately
     if (level === ErrorLevel.ERROR) {
@@ -113,12 +133,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     // Send response
     response.status(status).json({
       success: false,
-      statusCode: status,
-      message: normalizedMessage,
-      timestamp: new Date().toISOString(),
-      path,
-      // Include request ID for client to report
-      requestId: context.requestId,
+      error: {
+        code: errorCode,
+        details: errorDetails,
+      },
     });
   }
 

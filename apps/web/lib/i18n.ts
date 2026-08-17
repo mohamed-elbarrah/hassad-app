@@ -24,3 +24,21 @@ export function contractTypeLabel(type: string | null | undefined): string {
   if (!type) return "عقد";
   return CONTRACT_TYPE_LABELS[type] ?? type;
 }
+
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_CREDENTIALS: "فشل تسجيل الدخول. يرجى التحقق من بياناتك.",
+  ACCOUNT_LOCKED: "تم قفل الحساب مؤقتاً. يرجى المحاولة لاحقاً.",
+  ACCOUNT_SUSPENDED: "هذا الحساب موقوف.",
+  ACCOUNT_INACTIVE: "هذا الحساب غير نشط.",
+  SOCIAL_LOGIN_REQUIRED: "يرجى تسجيل الدخول باستخدام مزود الخدمة الاجتماعي.",
+  EMAIL_ALREADY_IN_USE: "البريد الإلكتروني مستخدم بالفعل.",
+  INVALID_RESET_TOKEN: "رابط إعادة التعيين غير صالح أو منتهي الصلاحية.",
+  AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+  INVALID_TOKEN: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+};
+
+export function authErrorMessage(error: unknown, fallback: string): string {
+  const code = (error as { data?: { error?: { code?: string } } })?.data?.error
+    ?.code;
+  return (code && AUTH_ERROR_MESSAGES[code]) || fallback;
+}
