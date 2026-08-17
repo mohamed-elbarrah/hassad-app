@@ -11,12 +11,18 @@ import { Request, Response } from "express";
 import { RobustErrorLoggerService } from "../../modules/health/services/robust-error-logger.service";
 import {
   API_ERROR_CODES,
+  ApiException,
   errorCodeForStatus,
+  sanitizeApiErrorDetails,
 } from "../errors/api-error";
 import {
   ErrorCategory,
   ErrorLevel,
 } from "../../modules/health/dto/health-check.dto";
+import {
+  getCurrentBackendLocale,
+  resolveRequestLocale,
+} from "../localization/request-locale";
 
 @Injectable()
 @Catch()
@@ -29,6 +35,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const locale =
+      getCurrentBackendLocale() ??
+      resolveRequestLocale(
+        request.headers["x-locale"],
+        request.headers["accept-language"],
+      );
+    response.setHeader?.("Content-Language", locale);
 
     const status =
       exception instanceof HttpException
@@ -48,21 +61,28 @@ export class HttpExceptionFilter implements ExceptionFilter {
       ? extractedMessage.join("; ")
       : String(extractedMessage);
     const code =
+      exception instanceof ApiException &&
       typeof responseBody?.code === "string"
         ? responseBody.code
         : Array.isArray(extractedMessage)
           ? API_ERROR_CODES.VALIDATION_FAILED
           : errorCodeForStatus(status);
-    const details = responseBody?.details ??
-      (Array.isArray(extractedMessage) ? extractedMessage : null);
+    const details =
+      status >= HttpStatus.INTERNAL_SERVER_ERROR
+        ? null
+        : sanitizeApiErrorDetails(
+            responseBody?.details ??
+              (Array.isArray(extractedMessage) ? extractedMessage : null),
+          );
 
-    const path = request.originalUrl ?? request.url;
+    const rawPath = request.originalUrl ?? request.url;
+    const path = rawPath.split("?", 1)[0];
     const method = request.method;
     const userId = (request as any).user?.id;
 
     // Capture request body for debugging (be careful with sensitive data)
     const requestBody = this.sanitizeRequestBody(request.body);
-    const queryParams = request.query;
+    const queryParams = sanitizeApiErrorDetails(request.query);
 
     // Build comprehensive context
     const context: Record<string, any> = {
@@ -90,16 +110,28 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const category = this.categorizeError(path, exception);
 
     // Create error summary
+    const clientMessage =
+      status >= HttpStatus.INTERNAL_SERVER_ERROR
+        ? "Internal server error"
+        : normalizedMessage;
     const summary =
-      exception instanceof Error
-        ? `${exception.name}: ${exception.message}`
-        : String(normalizedMessage);
+      status >= HttpStatus.INTERNAL_SERVER_ERROR
+        ? clientMessage
+        : exception instanceof Error
+          ? `${exception.name}: ${exception.message}`
+          : String(normalizedMessage);
+    const loggedError =
+      status >= HttpStatus.INTERNAL_SERVER_ERROR
+        ? undefined
+        : exception instanceof Error
+          ? exception
+          : undefined;
 
     // Log to console immediately
     if (level === ErrorLevel.ERROR) {
       this.logger.error(
         `${method} ${path} -> ${status} ${summary}`,
-        exception instanceof Error ? exception.stack : undefined,
+        loggedError?.stack,
       );
     }
 
@@ -109,7 +141,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       level,
       category,
       message: `[HTTP ${status}] ${summary}`,
-      error: exception instanceof Error ? exception : undefined,
+      error: loggedError,
       context,
       service: this.getServiceName(path),
       endpoint: `${method} ${path}`,
@@ -127,16 +159,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       data: null,
       error: {
         code,
-        message: normalizedMessage,
+        message: clientMessage,
         details,
       },
-      // Retain these fields during the compatibility period.
-      statusCode: status,
-      message: normalizedMessage,
-      timestamp: new Date().toISOString(),
-      path,
-      // Include request ID for client to report
-      requestId: context.requestId,
     });
   }
 
@@ -233,26 +258,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
   }
 
   private sanitizeRequestBody(body: any): any {
-    if (!body || typeof body !== "object") return body;
-
-    const sensitiveFields = [
-      "password",
-      "token",
-      "secret",
-      "authorization",
-      "cookie",
-      "credit_card",
-      "cvv",
-    ];
-    const sanitized = { ...body };
-
-    for (const key of Object.keys(sanitized)) {
-      const lowerKey = key.toLowerCase();
-      if (sensitiveFields.some((field) => lowerKey.includes(field))) {
-        sanitized[key] = "[REDACTED]";
-      }
-    }
-
-    return sanitized;
+    if (!body || typeof body !== "object") return null;
+    return sanitizeApiErrorDetails(body);
   }
 }

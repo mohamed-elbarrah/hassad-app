@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import {
@@ -25,6 +20,11 @@ import {
 } from "./dto/request.dto";
 import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
 import type { CrmCreateRequestIntakeDto } from "../crm/dto/crm-requests.dto";
+import {
+  badRequest,
+  conflict,
+  notFound,
+} from "../../common/errors/domain-errors";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
 
@@ -95,7 +95,8 @@ export class RequestsService {
     const allowedTransitions = REQUEST_TRANSITIONS[fromStatus] ?? [];
 
     if (!allowedTransitions.includes(toStatus)) {
-      throw new BadRequestException(
+      throw badRequest(
+        "REQUEST_INVALID_STATUS_TRANSITION",
         `Invalid request status transition from ${fromStatus} to ${toStatus}`,
       );
     }
@@ -286,7 +287,7 @@ export class RequestsService {
     });
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw notFound("REQUEST_NOT_FOUND", "Request not found");
     }
 
     return request;
@@ -299,14 +300,27 @@ export class RequestsService {
     note?: string,
     tx?: Prisma.TransactionClient,
   ) {
+    if (!tx) {
+      return this.prisma.$transaction((transaction) =>
+        this.updateStatus(requestId, toStatus, changedBy, note, transaction),
+      );
+    }
+
     const db = this.getDbClient(tx);
+    await tx.$queryRaw`
+      SELECT id
+      FROM "requests"
+      WHERE id = ${requestId}
+      FOR UPDATE
+    `;
+
     const request = await db.request.findUnique({
       where: { id: requestId },
       select: { id: true, status: true },
     });
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw notFound("REQUEST_NOT_FOUND", "Request not found");
     }
 
     if (request.status === toStatus) {
@@ -350,13 +364,22 @@ export class RequestsService {
       requester.role === UserRole.CLIENT ? requester.id : null;
 
     const createdRequest = await this.prisma.$transaction(async (tx) => {
-      const { client } =
+      const canonicalClient =
         await this.canonicalClientService.upsertCanonicalClient(tx, {
           userId: clientUserId,
           companyName: dto.companyName,
           businessName: dto.businessName,
           businessType: dto.businessType,
         });
+
+      if (!canonicalClient?.client) {
+        throw notFound(
+          "REQUEST_CANONICAL_NOT_FOUND",
+          "Canonical client not found",
+        );
+      }
+
+      const { client } = canonicalClient;
 
       const assignment = await this.salesAssignmentService.findBestSales(
         [client.accountManager],
@@ -435,7 +458,7 @@ export class RequestsService {
     });
 
     if (!createdRequest) {
-      throw new BadRequestException("Unable to create request");
+      throw badRequest("REQUEST_CREATE_FAILED", "Unable to create request");
     }
 
     if (createdRequest.assignee) {
@@ -443,7 +466,10 @@ export class RequestsService {
         .notifyUsersWithMessage({
           userIds: [createdRequest.assignee.id],
           messageKey: "request.submitted",
-          messageParams: { contactName: createdRequest.contactName, companyName: createdRequest.companyName },
+          messageParams: {
+            contactName: createdRequest.contactName,
+            companyName: createdRequest.companyName,
+          },
           entityId: createdRequest.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",
@@ -460,10 +486,11 @@ export class RequestsService {
       include: { manager: true },
     });
     if (!client) {
-      throw new NotFoundException("Client not found");
+      throw notFound("CLIENT_NOT_FOUND", "Client not found");
     }
     if (client.status === "STOPPED") {
-      throw new BadRequestException(
+      throw badRequest(
+        "CLIENT_STOPPED",
         "Cannot create request for a stopped client",
       );
     }
@@ -553,7 +580,7 @@ export class RequestsService {
     });
 
     if (!request) {
-      throw new BadRequestException("Unable to create request");
+      throw badRequest("REQUEST_CREATE_FAILED", "Unable to create request");
     }
 
     if (request.assignee) {
@@ -561,7 +588,10 @@ export class RequestsService {
         .notifyUsersWithMessage({
           userIds: [request.assignee.id],
           messageKey: "request.submitted",
-          messageParams: { contactName: request.contactName, companyName: request.companyName },
+          messageParams: {
+            contactName: request.contactName,
+            companyName: request.companyName,
+          },
           entityId: request.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",
@@ -574,15 +604,24 @@ export class RequestsService {
 
   async createCrmIntake(userId: string, dto: CrmCreateRequestIntakeDto) {
     if (!dto.services.length) {
-      throw new BadRequestException("At least one service is required");
+      throw badRequest(
+        "REQUEST_SERVICE_REQUIRED",
+        "At least one service is required",
+      );
     }
 
     if (dto.mode === "existing" && !dto.existingClient?.clientId) {
-      throw new BadRequestException("Existing client is required");
+      throw badRequest(
+        "REQUEST_EXISTING_CLIENT_REQUIRED",
+        "Existing client is required",
+      );
     }
 
     if (dto.mode === "new" && !dto.newClient) {
-      throw new BadRequestException("New client data is required");
+      throw badRequest(
+        "REQUEST_NEW_CLIENT_REQUIRED",
+        "New client data is required",
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -606,10 +645,13 @@ export class RequestsService {
         });
 
         if (!client) {
-          throw new NotFoundException("Client not found");
+          throw notFound("CLIENT_NOT_FOUND", "Client not found");
         }
         if (client.status === ClientStatus.STOPPED) {
-          throw new BadRequestException("Cannot create request for a stopped client");
+          throw badRequest(
+            "CLIENT_STOPPED",
+            "Cannot create request for a stopped client",
+          );
         }
 
         clientId = client.id;
@@ -629,12 +671,15 @@ export class RequestsService {
         });
 
         if (existingUser) {
-          throw new ConflictException("A user with this email already exists");
+          throw conflict(
+            "CLIENT_EMAIL_ALREADY_EXISTS",
+            "A user with this email already exists",
+          );
         }
 
         const role = await tx.role.findFirst({ where: { name: "CLIENT" } });
         if (!role) {
-          throw new BadRequestException("CLIENT role not found");
+          throw badRequest("CLIENT_ROLE_NOT_FOUND", "CLIENT role not found");
         }
 
         const passwordHash = await bcrypt.hash(newClient.password, 12);
@@ -648,14 +693,22 @@ export class RequestsService {
           },
         });
 
-        const resolvedClient = await this.canonicalClientService.upsertCanonicalClient(tx, {
-          userId: user.id,
-          companyName: newClient.companyName,
-          businessName: newClient.businessName,
-          businessType: newClient.businessType,
-          preferredManagerId: newClient.accountManager ?? null,
-          status: ClientStatus.LEAD,
-        });
+        const resolvedClient =
+          await this.canonicalClientService.upsertCanonicalClient(tx, {
+            userId: user.id,
+            companyName: newClient.companyName,
+            businessName: newClient.businessName,
+            businessType: newClient.businessType,
+            preferredManagerId: newClient.accountManager ?? null,
+            status: ClientStatus.LEAD,
+          });
+
+        if (!resolvedClient?.client) {
+          throw notFound(
+            "REQUEST_CANONICAL_NOT_FOUND",
+            "Canonical client not found",
+          );
+        }
 
         clientId = resolvedClient.client.id;
         clientCreated = resolvedClient.created;
@@ -669,12 +722,16 @@ export class RequestsService {
         assignedSalesId = resolvedClient.client.accountManager ?? null;
         source = dto.source ?? ClientSource.PLATFORM;
       } else {
-        throw new BadRequestException("Existing client or new client payload is required");
+        throw badRequest(
+          "REQUEST_CLIENT_PAYLOAD_REQUIRED",
+          "Existing client or new client payload is required",
+        );
       }
 
       const finalSalesId = assignedSalesId
         ? assignedSalesId
-        : (await this.salesAssignmentService.findBestSales([], clientId, tx))?.salesId ?? null;
+        : ((await this.salesAssignmentService.findBestSales([], clientId, tx))
+            ?.salesId ?? null);
 
       const request = await tx.request.create({
         data: {
@@ -700,7 +757,9 @@ export class RequestsService {
           fromStatus: null,
           toStatus: RequestStatus.SUBMITTED,
           changedBy: userId,
-          note: clientCreated ? "Request created with a newly created CRM client" : "Request created for existing CRM client",
+          note: clientCreated
+            ? "Request created with a newly created CRM client"
+            : "Request created for existing CRM client",
         },
       });
 
@@ -717,7 +776,9 @@ export class RequestsService {
         data: {
           clientId,
           userId,
-          eventType: clientCreated ? "CLIENT_CREATED" : "CLIENT_REQUEST_CREATED",
+          eventType: clientCreated
+            ? "CLIENT_CREATED"
+            : "CLIENT_REQUEST_CREATED",
           description: clientCreated
             ? "Client created from CRM intake"
             : "Request created for existing CRM client",
@@ -751,15 +812,24 @@ export class RequestsService {
       });
 
       if (!createdRequest) {
-        throw new BadRequestException("Unable to create CRM intake request");
+        throw badRequest(
+          "REQUEST_CREATE_FAILED",
+          "Unable to create CRM intake request",
+        );
       }
 
       return {
         request: createdRequest,
-        client: { id: clientId, created: clientCreated, companyName: requestClientLabel },
+        client: {
+          id: clientId,
+          created: clientCreated,
+          companyName: requestClientLabel,
+        },
         toast: {
           type: "success" as const,
-          title: clientCreated ? "Client and request created" : "Request created",
+          title: clientCreated
+            ? "Client and request created"
+            : "Request created",
           description: clientCreated
             ? "The client credentials were created and the intake request was submitted."
             : "The intake request was submitted for the selected client.",
@@ -777,15 +847,22 @@ export class RequestsService {
     tx?: Prisma.TransactionClient,
   ) {
     const db = this.getDbClient(tx);
-    const requestId = params.requestId ?? (params.proposalId
-      ? (await db.proposal.findUnique({
-          where: { id: params.proposalId },
-          select: { requestId: true },
-        }))?.requestId
-      : null);
+    const requestId =
+      params.requestId ??
+      (params.proposalId
+        ? (
+            await db.proposal.findUnique({
+              where: { id: params.proposalId },
+              select: { requestId: true },
+            })
+          )?.requestId
+        : null);
 
     if (!requestId) {
-      throw new BadRequestException("A request reference is required");
+      throw badRequest(
+        "REQUEST_REFERENCE_REQUIRED",
+        "A request reference is required",
+      );
     }
 
     const request = await db.request.findUnique({
@@ -794,7 +871,7 @@ export class RequestsService {
         client: { select: { id: true, companyName: true, userId: true } },
       },
     });
-    if (!request) throw new NotFoundException("Request not found");
+    if (!request) throw notFound("REQUEST_NOT_FOUND", "Request not found");
     return request;
   }
 
@@ -802,17 +879,25 @@ export class RequestsService {
     requestId: string,
     userId: string,
     dto: CreateRequestContactLogDto,
+    tx?: Prisma.TransactionClient,
   ) {
-    const request = await this.prisma.request.findUnique({
+    if (!tx) {
+      return this.prisma.$transaction((transaction) =>
+        this.addContactLog(requestId, userId, dto, transaction),
+      );
+    }
+
+    const db = this.getDbClient(tx);
+    const request = await db.request.findUnique({
       where: { id: requestId },
       select: { id: true },
     });
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw notFound("REQUEST_NOT_FOUND", "Request not found");
     }
 
-    const log = await this.prisma.requestContactLog.create({
+    const log = await db.requestContactLog.create({
       data: {
         requestId,
         userId,
@@ -824,7 +909,7 @@ export class RequestsService {
       include: { user: { select: USER_SUMMARY_SELECT } },
     });
 
-    await this.prisma.request.update({
+    await db.request.update({
       where: { id: requestId },
       data: {
         contactAttemptCount: { increment: 1 },
@@ -842,7 +927,7 @@ export class RequestsService {
     });
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw notFound("REQUEST_NOT_FOUND", "Request not found");
     }
 
     return this.prisma.requestContactLog.findMany({

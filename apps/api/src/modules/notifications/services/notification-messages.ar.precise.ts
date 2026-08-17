@@ -3,72 +3,348 @@ import type {
   NotificationParams,
   NotificationTemplate,
 } from "./notification-messages";
+import { formatPlainNumber } from "../../../common/presentation/plain-number";
+
+const snoozeCategoryLabels: Record<string, string> = {
+  DELIVERABLE_APPROVAL: "اعتماد التسليم",
+  INVOICE_PAYMENT: "سداد الفاتورة",
+  PROPOSAL_REVIEW: "مراجعة العرض",
+  CONTRACT_SIGN: "توقيع العقد",
+  STRATEGY_REVIEW: "مراجعة الاستراتيجية التسويقية",
+};
+
+function getSnoozeCategory(itemType: NotificationParams[string]) {
+  return typeof itemType === "string"
+    ? (snoozeCategoryLabels[itemType] ?? "عنصر الإجراء")
+    : "عنصر الإجراء";
+}
+
+function getSnoozeCompanyName(companyName: NotificationParams[string]) {
+  return companyName === null || companyName === undefined
+    ? "شركتك"
+    : String(companyName);
+}
 
 /** Reviewed Arabic copy for notification keys that are not in the initial catalog. */
-export const preciseArabicTemplates: Partial<Record<NotificationMessageKey, NotificationTemplate>> = {
-  "admin.high_workload": { title: () => "عبء عمل مرتفع", body: ({ activeTasks, averageTasks }) => `لديك ${activeTasks ?? 0} مهمة نشطة، والمتوسط ${averageTasks ?? 0}. يرجى مراجعة أولوياتك.` },
-  "admin.inactive_client": { title: () => "عميل غير نشط", body: ({ companyName }) => `العميل "${companyName}" غير نشط منذ أكثر من 30 يومًا. يرجى التواصل معه.` },
-  "admin.overdue_task": { title: () => "مهمة متأخرة", body: ({ taskTitle, message }) => `المهمة "${taskTitle}" ${message ?? "مستحقة اليوم"}.` },
-  "admin.request_followup": { title: () => "طلب يحتاج متابعة", body: ({ contactName, companyName }) => `لم يتم تحديث طلب "${contactName}" (${companyName}) منذ 14 يومًا.` },
-  "admin.stalled_project": { title: () => "مشروع متعثر", body: ({ projectName, status }) => `المشروع "${projectName}" متعثر، وحالته الحالية ${status}. يرجى مراجعته.` },
-  "admin.system_failures": { title: () => "أعطال في النظام", body: ({ webhooks, gateways }) => `تحتاج ${webhooks ?? 0} حالة فشل في Webhook و${gateways ?? 0} حالة فشل في بوابة الدفع إلى المراجعة.` },
-  "admin.unassigned_requests": { title: () => "طلبات غير مسندة", body: ({ count }) => `يوجد ${count ?? 0} طلب غير مسند. يرجى توزيعها على فريق المبيعات.` },
-  "admin.underloaded_team": { title: () => "أعضاء بفترة عمل منخفضة", body: ({ names }) => `الأعضاء التالية أسماؤهم لديهم عبء عمل منخفض: ${names}. يرجى إعادة توزيع المهام.` },
-  "campaign.created": { title: () => "حملة جديدة", body: ({ campaignName, taskTitle }) => `تم إنشاء الحملة "${campaignName}" للمهمة "${taskTitle}".` },
-  "campaign.launched": { title: () => "تم إطلاق حملة جديدة", body: ({ campaignName }) => `تم إطلاق الحملة "${campaignName}" لمشروعك.` },
-  "campaign.optimization_needed": { title: () => "الحملة تحتاج إلى تحسين", body: ({ campaignName }) => `تم وضع علامة التحسين على الحملة "${campaignName}".` },
-  "campaign.performance_updated": { title: () => "تم تحديث أداء الحملة", body: ({ campaignName }) => `تم تحديث نتائج الحملة "${campaignName}".` },
-  "contract.auto_canceled": { title: () => "تم إلغاء العقد تلقائيًا", body: ({ contractTitle, graceDays }) => `تم إلغاء العقد "${contractTitle}" تلقائيًا لعدم دفع الدفعة المقدمة خلال ${graceDays ?? 0} يومًا.` },
-  "contract.expired": { title: () => "انتهى العقد", body: ({ contractTitle, companyName }) => `انتهى العقد "${contractTitle}" مع ${companyName}. يرجى التواصل مع العميل بشأن التجديد.` },
-  "contract.expiring": { title: () => "العقد على وشك الانتهاء", body: ({ contractTitle, companyName, days }) => `سينتهي العقد "${contractTitle}" مع ${companyName} خلال ${days ?? 0} أيام.` },
-  "contract.renewal_urgent": { title: () => "تجديد عقد عاجل", body: ({ contractTitle, companyName, days }) => `سينتهي العقد "${contractTitle}" مع ${companyName} خلال ${days ?? 0} أيام ولم يتم اتخاذ إجراء.` },
-  "contract.status_changed": { title: () => "تم تحديث حالة العقد", body: ({ contractTitle, status }) => `تغيرت حالة العقد "${contractTitle}" إلى ${status}.` },
-  "crm.contract_review": { title: () => "عقد بانتظار المراجعة", body: ({ contractTitle }) => `العقد "${contractTitle}" جاهز للموافقة.` },
-  "crm.proposal_review": { title: () => "عرض جديد جاهز", body: ({ proposalTitle }) => `تم إرسال العرض "${proposalTitle}" للمراجعة.` },
-  "dispute.approved": { title: () => "تمت الموافقة على تذكرة النزاع", body: ({ title }) => `تمت الموافقة على النزاع "${title}". لديك 3 أيام لحله.` },
-  "dispute.auto_escalated": { title: () => "تم تصعيد النزاع تلقائيًا", body: ({ ticketNumber }) => `تم تصعيد التذكرة رقم ${ticketNumber} تلقائيًا لانتهاء مهلة الرد.` },
-  "dispute.awaiting_confirmation": { title: () => "تذكرة نزاع بانتظار التأكيد", body: () => "أشار مدير المشروع إلى حل المشكلة. يرجى تأكيد الحل أو تصعيد التذكرة." },
-  "dispute.client_confirmed": { title: () => "تم حل النزاع", body: ({ ticketNumber }) => `أكد العميل حل التذكرة رقم ${ticketNumber}.` },
-  "dispute.closed": { title: () => "أُغلقت تذكرة النزاع", body: ({ ticketNumber, client }) => client ? `أُغلقت تذكرة النزاع رقم ${ticketNumber}.` : `أُغلقت تذكرة النزاع رقم ${ticketNumber}.` },
-  "dispute.created": { title: () => "تذكرة نزاع جديدة", body: ({ projectName }) => `تم إنشاء تذكرة نزاع جديدة للمشروع "${projectName}".` },
-  "dispute.escalated": { title: () => "تم تصعيد تذكرة النزاع", body: ({ ticketNumber }) => `أبلغ العميل أن تذكرة النزاع رقم ${ticketNumber} لم تُحل.` },
-  "dispute.manager_assigned": { title: () => "تم تعيينك مديرًا للمشروع", body: ({ projectName }) => `تم تعيينك مديرًا لمشروع "${projectName}" بسبب النزاع.` },
-  "dispute.manager_changed": { title: () => "تم تغيير مدير المشروع", body: ({ ticketNumber }) => `تم تغيير مدير المشروع لحل تذكرة النزاع رقم ${ticketNumber}.` },
-  "dispute.manager_removed": { title: () => "تمت إزالتك كمدير للمشروع", body: ({ projectName }) => `تمت إزالتك كمدير لمشروع "${projectName}" بسبب النزاع.` },
-  "dispute.new_message": { title: () => "رسالة نزاع جديدة", body: ({ ticketNumber }) => `لديك رسالة جديدة في تذكرة النزاع رقم ${ticketNumber}.` },
-  "dispute.new_ticket": { title: () => "تذكرة نزاع جديدة", body: ({ ticketNumber }) => `تذكرة النزاع رقم ${ticketNumber} بحاجة إلى المراجعة.` },
-  "dispute.rejected": { title: () => "رُفضت تذكرة النزاع", body: ({ reason }) => `رُفضت تذكرة النزاع. السبب: ${reason}.` },
-  "dispute.reminder": { title: ({ reminderNumber }) => `تذكير ${reminderNumber}`, body: ({ message }) => String(message ?? "يرجى مراجعة تذكرة النزاع.") },
-  "dispute.resolved": { title: () => "تم حل تذكرة النزاع", body: ({ ticketNumber }) => `تم حل تذكرة النزاع رقم ${ticketNumber} وأكد العميل الحل.` },
-  "invoice.automatic_created": { title: () => "تم إنشاء فاتورة تلقائية", body: ({ invoiceNumber, contractTitle }) => `تم إنشاء الفاتورة التلقائية ${invoiceNumber} للعقد "${contractTitle}".` },
-  "invoice.due_reminder": { title: () => "تذكير بسداد الفاتورة", body: ({ invoiceNumber, amount }) => `الفاتورة "${invoiceNumber}" بقيمة ${amount ?? 0} ريال سعودي مستحقة للسداد.` },
-  "invoice.overdue_escalation": { title: () => "فواتير متأخرة لأكثر من 30 يومًا", body: ({ count }) => `هناك ${count ?? 0} فاتورة متأخرة لأكثر من 30 يومًا وتحتاج إلى متابعة.` },
-  "invoice.payment_reminder": { title: () => "تذكير بسداد الفاتورة", body: ({ invoiceTitle, dayLabel, amount }) => `الفاتورة "${invoiceTitle}" مستحقة ${dayLabel}. يرجى سداد ${amount ?? 0} ريال سعودي.` },
-  "invoice.scheduled_created": { title: () => "تم إنشاء الفاتورة", body: ({ label, amount, contractTitle }) => `تم إنشاء فاتورة "${label}" بقيمة ${amount ?? 0} ريال سعودي للعقد "${contractTitle}".` },
-  "invoice.sent": { title: () => "تم إرسال الفاتورة", body: ({ invoiceNumber }) => `تم إرسال الفاتورة "${invoiceNumber}" للمراجعة والسداد.` },
-  "marketing_task.assigned": { title: () => "تم إسناد مهمة تسويق جديدة", body: ({ projectName }) => `تم إنشاء مهمة إدارة الحملات الإعلانية تلقائيًا لك في مشروع ${projectName}.` },
-  "meeting.canceled": { title: () => "تم إلغاء الاجتماع", body: ({ meetingTitle, projectName }) => `تم إلغاء الاجتماع "${meetingTitle}" في المشروع "${projectName}".` },
-  "meeting.pm_scheduled": { title: () => "تم جدولة اجتماع جديد", body: ({ meetingTitle }) => `تم جدولة الاجتماع: ${meetingTitle}.` },
-  "meeting.pm_updated": { title: () => "تم تحديث الاجتماع", body: ({ meetingTitle }) => `تم تحديث الاجتماع: ${meetingTitle}.` },
-  "meeting.postponed": { title: () => "تم تأجيل الاجتماع", body: ({ meetingTitle, projectName }) => `تم تأجيل الاجتماع "${meetingTitle}" في المشروع "${projectName}".` },
-  "meeting.scheduled": { title: () => "تم جدولة اجتماع جديد", body: ({ meetingTitle, periodNumber, projectName }) => `تم جدولة الاجتماع "${meetingTitle}" للفترة ${periodNumber} من المشروع "${projectName}".` },
-  "meeting.updated": { title: () => "تم تحديث الاجتماع", body: ({ meetingTitle, periodNumber, projectName }) => `تم تحديث الاجتماع "${meetingTitle}" للفترة ${periodNumber} من المشروع "${projectName}".` },
-  "period.resumed": { title: () => "استؤنفت الفترة", body: ({ periodNumber }) => `استؤنفت الفترة ${periodNumber} بعد سداد الفاتورة.` },
-  "project.created_from_contract": { title: () => "تم إنشاء مشروع جديد تلقائيًا", body: ({ projectName }) => `تم إنشاء المشروع "${projectName}" بعد توقيع العقد. يمكنك الآن إسناد المهام للفريق.` },
-  "project.file_uploaded": { title: () => "تم رفع ملف جديد", body: ({ fileName }) => `تم رفع الملف: ${fileName}.` },
-  "project.period_closed": { title: () => "أُغلقت الفترة", body: ({ periodNumber, projectName }) => `أُغلقت الفترة ${periodNumber} من المشروع "${projectName}".` },
-  "project.period_invoice_issued": { title: () => "تم إصدار فاتورة الفترة", body: ({ periodNumber, amount }) => `تم إصدار فاتورة الفترة ${periodNumber} بقيمة ${amount ?? 0} ريال سعودي.` },
-  "project.periods_generated": { title: () => "تم إنشاء فترات المشروع", body: ({ periodCount, projectName }) => `تم إنشاء ${periodCount ?? 0} فترة شهرية للمشروع "${projectName}".` },
-  "project.status_changed": { title: () => "تم تحديث حالة المشروع", body: ({ projectName, status }) => `تغيرت حالة المشروع "${projectName}" إلى ${status}.` },
-  "project.suspended": { title: () => "تم تعليق المشروع", body: ({ invoiceTitle }) => `تم تعليق المشروع بسبب عدم سداد الفاتورة "${invoiceTitle}".` },
-  "proposal.submitted": { title: () => "عرض جديد بانتظار المراجعة", body: ({ proposalTitle }) => `تم إرسال العرض "${proposalTitle}" إليك للمراجعة والرد.` },
-  "snooze.expired": { title: ({ title }) => String(title ?? "تذكير"), body: ({ body }) => String(body ?? "") },
-  "strategy.approved": { title: () => "تم اعتماد الاستراتيجية التسويقية", body: ({ taskTitle }) => `تم اعتماد الاستراتيجية التسويقية للمهمة "${taskTitle}".` },
-  "strategy.rejected": { title: () => "رُفضت الاستراتيجية التسويقية", body: ({ taskTitle }) => `رُفضت الاستراتيجية التسويقية للمهمة "${taskTitle}".` },
-  "strategy.revised": { title: () => "تم تعديل الاستراتيجية التسويقية", body: () => "أُعيد إرسال الاستراتيجية التسويقية المعدلة وهي بانتظار المراجعة." },
-  "strategy.revision_requested": { title: () => "طُلب تعديل الاستراتيجية التسويقية", body: ({ taskTitle, comment }) => `طلب العميل تعديل الاستراتيجية التسويقية للمهمة "${taskTitle}": ${comment}.` },
-  "strategy.sent": { title: () => "تم إرسال الاستراتيجية التسويقية", body: ({ taskTitle }) => `تم إرسال الاستراتيجية التسويقية للمهمة "${taskTitle}" إلى العميل.` },
-  "strategy.submitted": { title: () => "استراتيجية تسويقية جديدة", body: ({ taskTitle }) => `تم إرسال استراتيجية تسويقية جديدة للمهمة "${taskTitle}" وهي بانتظار المراجعة.` },
-  "task.assigned_to": { title: () => "تم إسناد مهمة جديدة", body: ({ taskTitle, assigneeName }) => `تم إسناد المهمة "${taskTitle}" إلى ${assigneeName}.` },
-  "task.comment_added": { title: () => "تعليق جديد على المهمة", body: ({ taskTitle }) => `تمت إضافة تعليق جديد على المهمة "${taskTitle}".` },
+export const preciseArabicTemplates: Partial<
+  Record<NotificationMessageKey, NotificationTemplate>
+> = {
+  "admin.high_workload": {
+    title: () => "عبء عمل مرتفع",
+    body: ({ activeTasks, averageTasks }) =>
+      `لديك ${formatPlainNumber(activeTasks ?? 0)} مهمة نشطة، والمتوسط ${formatPlainNumber(averageTasks ?? 0)}. يرجى مراجعة أولوياتك.`,
+  },
+  "admin.inactive_client": {
+    title: () => "عميل غير نشط",
+    body: ({ companyName }) =>
+      `العميل "${companyName}" غير نشط منذ أكثر من 30 يومًا. يرجى التواصل معه.`,
+  },
+  "admin.overdue_task": {
+    title: () => "مهمة متأخرة",
+    body: ({ taskTitle, message }) =>
+      `المهمة "${taskTitle}" ${message ?? "مستحقة اليوم"}.`,
+  },
+  "admin.request_followup": {
+    title: () => "طلب يحتاج متابعة",
+    body: ({ contactName, companyName }) =>
+      `لم يتم تحديث طلب "${contactName}" (${companyName}) منذ 14 يومًا.`,
+  },
+  "admin.stalled_project": {
+    title: () => "مشروع متعثر",
+    body: ({ projectName, status }) =>
+      `المشروع "${projectName}" متعثر، وحالته الحالية ${status}. يرجى مراجعته.`,
+  },
+  "admin.system_failures": {
+    title: () => "أعطال في النظام",
+    body: ({ webhooks, gateways }) =>
+      `تحتاج ${formatPlainNumber(webhooks ?? 0)} حالة فشل في Webhook و${formatPlainNumber(gateways ?? 0)} حالة فشل في بوابة الدفع إلى المراجعة.`,
+  },
+  "admin.unassigned_requests": {
+    title: () => "طلبات غير مسندة",
+    body: ({ count }) =>
+      `يوجد ${formatPlainNumber(count ?? 0)} طلب غير مسند. يرجى توزيعها على فريق المبيعات.`,
+  },
+  "admin.underloaded_team": {
+    title: () => "أعضاء بفترة عمل منخفضة",
+    body: ({ names }) =>
+      `الأعضاء التالية أسماؤهم لديهم عبء عمل منخفض: ${names}. يرجى إعادة توزيع المهام.`,
+  },
+  "campaign.created": {
+    title: () => "حملة جديدة",
+    body: ({ campaignName, taskTitle }) =>
+      `تم إنشاء الحملة "${campaignName}" للمهمة "${taskTitle}".`,
+  },
+  "campaign.launched": {
+    title: () => "تم إطلاق حملة جديدة",
+    body: ({ campaignName }) => `تم إطلاق الحملة "${campaignName}" لمشروعك.`,
+  },
+  "campaign.optimization_needed": {
+    title: () => "الحملة تحتاج إلى تحسين",
+    body: ({ campaignName }) =>
+      `تم وضع علامة التحسين على الحملة "${campaignName}".`,
+  },
+  "campaign.performance_updated": {
+    title: () => "تم تحديث أداء الحملة",
+    body: ({ campaignName }) => `تم تحديث نتائج الحملة "${campaignName}".`,
+  },
+  "contract.auto_canceled": {
+    title: () => "تم إلغاء العقد تلقائيًا",
+    body: ({ contractTitle, graceDays }) =>
+      `تم إلغاء العقد "${contractTitle}" تلقائيًا لعدم دفع الدفعة المقدمة خلال ${formatPlainNumber(graceDays ?? 0)} يومًا.`,
+  },
+  "contract.expired": {
+    title: () => "انتهى العقد",
+    body: ({ contractTitle, companyName }) =>
+      `انتهى العقد "${contractTitle}" مع ${companyName}. يرجى التواصل مع العميل بشأن التجديد.`,
+  },
+  "contract.expiring": {
+    title: () => "العقد على وشك الانتهاء",
+    body: ({ contractTitle, companyName, days }) =>
+      `سينتهي العقد "${contractTitle}" مع ${companyName} خلال ${formatPlainNumber(days ?? 0)} أيام.`,
+  },
+  "contract.renewal_urgent": {
+    title: () => "تجديد عقد عاجل",
+    body: ({ contractTitle, companyName, days }) =>
+      `سينتهي العقد "${contractTitle}" مع ${companyName} خلال ${formatPlainNumber(days ?? 0)} أيام ولم يتم اتخاذ إجراء.`,
+  },
+  "contract.status_changed": {
+    title: () => "تم تحديث حالة العقد",
+    body: ({ contractTitle, status }) =>
+      `تغيرت حالة العقد "${contractTitle}" إلى ${status}.`,
+  },
+  "crm.contract_review": {
+    title: () => "عقد بانتظار المراجعة",
+    body: ({ contractTitle }) => `العقد "${contractTitle}" جاهز للموافقة.`,
+  },
+  "crm.proposal_review": {
+    title: () => "عرض جديد جاهز",
+    body: ({ proposalTitle }) => `تم إرسال العرض "${proposalTitle}" للمراجعة.`,
+  },
+  "dispute.approved": {
+    title: () => "تمت الموافقة على تذكرة النزاع",
+    body: ({ title }) =>
+      `تمت الموافقة على النزاع "${title}". لديك 3 أيام لحله.`,
+  },
+  "dispute.auto_escalated": {
+    title: () => "تم تصعيد النزاع تلقائيًا",
+    body: ({ ticketNumber }) =>
+      `تم تصعيد التذكرة رقم ${formatPlainNumber(ticketNumber ?? 0)} تلقائيًا لانتهاء مهلة الرد.`,
+  },
+  "dispute.awaiting_confirmation": {
+    title: () => "تذكرة نزاع بانتظار التأكيد",
+    body: () =>
+      "أشار مدير المشروع إلى حل المشكلة. يرجى تأكيد الحل أو تصعيد التذكرة.",
+  },
+  "dispute.client_confirmed": {
+    title: () => "تم حل النزاع",
+    body: ({ ticketNumber }) =>
+      `أكد العميل حل التذكرة رقم ${formatPlainNumber(ticketNumber ?? 0)}.`,
+  },
+  "dispute.closed": {
+    title: () => "أُغلقت تذكرة النزاع",
+    body: ({ ticketNumber, client }) =>
+      client
+        ? `أُغلقت تذكرة النزاع رقم ${formatPlainNumber(ticketNumber ?? 0)}.`
+        : `أُغلقت تذكرة النزاع رقم ${formatPlainNumber(ticketNumber ?? 0)}.`,
+  },
+  "dispute.created": {
+    title: () => "تذكرة نزاع جديدة",
+    body: ({ projectName }) =>
+      `تم إنشاء تذكرة نزاع جديدة للمشروع "${projectName}".`,
+  },
+  "dispute.escalated": {
+    title: () => "تم تصعيد تذكرة النزاع",
+    body: ({ ticketNumber }) =>
+      `أبلغ العميل أن تذكرة النزاع رقم ${formatPlainNumber(ticketNumber ?? 0)} لم تُحل.`,
+  },
+  "dispute.manager_assigned": {
+    title: () => "تم تعيينك مديرًا للمشروع",
+    body: ({ projectName }) =>
+      `تم تعيينك مديرًا لمشروع "${projectName}" بسبب النزاع.`,
+  },
+  "dispute.manager_changed": {
+    title: () => "تم تغيير مدير المشروع",
+    body: ({ ticketNumber }) =>
+      `تم تغيير مدير المشروع لحل تذكرة النزاع رقم ${formatPlainNumber(ticketNumber ?? 0)}.`,
+  },
+  "dispute.manager_removed": {
+    title: () => "تمت إزالتك كمدير للمشروع",
+    body: ({ projectName }) =>
+      `تمت إزالتك كمدير لمشروع "${projectName}" بسبب النزاع.`,
+  },
+  "dispute.new_message": {
+    title: () => "رسالة نزاع جديدة",
+    body: ({ ticketNumber }) =>
+      `لديك رسالة جديدة في تذكرة النزاع رقم ${formatPlainNumber(ticketNumber ?? 0)}.`,
+  },
+  "dispute.new_ticket": {
+    title: () => "تذكرة نزاع جديدة",
+    body: ({ ticketNumber }) =>
+      `تذكرة النزاع رقم ${formatPlainNumber(ticketNumber ?? 0)} بحاجة إلى المراجعة.`,
+  },
+  "dispute.rejected": {
+    title: () => "رُفضت تذكرة النزاع",
+    body: ({ reason }) => `رُفضت تذكرة النزاع. السبب: ${reason}.`,
+  },
+  "dispute.reminder": {
+    title: ({ reminderNumber }) =>
+      `تذكير ${formatPlainNumber(reminderNumber ?? 0)}`,
+    body: ({ message }) => String(message ?? "يرجى مراجعة تذكرة النزاع."),
+  },
+  "dispute.resolved": {
+    title: () => "تم حل تذكرة النزاع",
+    body: ({ ticketNumber }) =>
+      `تم حل تذكرة النزاع رقم ${formatPlainNumber(ticketNumber ?? 0)} وأكد العميل الحل.`,
+  },
+  "invoice.automatic_created": {
+    title: () => "تم إنشاء فاتورة تلقائية",
+    body: ({ invoiceNumber, contractTitle }) =>
+      `تم إنشاء الفاتورة التلقائية ${formatPlainNumber(invoiceNumber ?? "")} للعقد "${contractTitle}".`,
+  },
+  "invoice.due_reminder": {
+    title: () => "تذكير بسداد الفاتورة",
+    body: ({ invoiceNumber, amount }) =>
+      `الفاتورة "${formatPlainNumber(invoiceNumber ?? "")}" بقيمة ${formatPlainNumber(amount ?? 0)} ريال سعودي مستحقة للسداد.`,
+  },
+  "invoice.overdue_escalation": {
+    title: () => "فواتير متأخرة لأكثر من 30 يومًا",
+    body: ({ count }) =>
+      `هناك ${formatPlainNumber(count ?? 0)} فاتورة متأخرة لأكثر من 30 يومًا وتحتاج إلى متابعة.`,
+  },
+  "invoice.payment_reminder": {
+    title: () => "تذكير بسداد الفاتورة",
+    body: ({ invoiceTitle, dayLabel, amount }) =>
+      `الفاتورة "${invoiceTitle}" مستحقة ${dayLabel}. يرجى سداد ${formatPlainNumber(amount ?? 0)} ريال سعودي.`,
+  },
+  "invoice.scheduled_created": {
+    title: () => "تم إنشاء الفاتورة",
+    body: ({ label, amount, contractTitle }) =>
+      `تم إنشاء فاتورة "${label}" بقيمة ${formatPlainNumber(amount ?? 0)} ريال سعودي للعقد "${contractTitle}".`,
+  },
+  "invoice.sent": {
+    title: () => "تم إرسال الفاتورة",
+    body: ({ invoiceNumber }) =>
+      `تم إرسال الفاتورة "${formatPlainNumber(invoiceNumber ?? "")}" للمراجعة والسداد.`,
+  },
+  "marketing_task.assigned": {
+    title: () => "تم إسناد مهمة تسويق جديدة",
+    body: ({ projectName }) =>
+      `تم إنشاء مهمة إدارة الحملات الإعلانية تلقائيًا لك في مشروع ${projectName}.`,
+  },
+  "meeting.canceled": {
+    title: () => "تم إلغاء الاجتماع",
+    body: ({ meetingTitle, projectName }) =>
+      `تم إلغاء الاجتماع "${meetingTitle}" في المشروع "${projectName}".`,
+  },
+  "meeting.pm_scheduled": {
+    title: () => "تم جدولة اجتماع جديد",
+    body: ({ meetingTitle }) => `تم جدولة الاجتماع: ${meetingTitle}.`,
+  },
+  "meeting.pm_updated": {
+    title: () => "تم تحديث الاجتماع",
+    body: ({ meetingTitle }) => `تم تحديث الاجتماع: ${meetingTitle}.`,
+  },
+  "meeting.postponed": {
+    title: () => "تم تأجيل الاجتماع",
+    body: ({ meetingTitle, projectName }) =>
+      `تم تأجيل الاجتماع "${meetingTitle}" في المشروع "${projectName}".`,
+  },
+  "meeting.scheduled": {
+    title: () => "تم جدولة اجتماع جديد",
+    body: ({ meetingTitle, periodNumber, projectName }) =>
+      `تم جدولة الاجتماع "${meetingTitle}" للفترة ${formatPlainNumber(periodNumber ?? 0)} من المشروع "${projectName}".`,
+  },
+  "meeting.updated": {
+    title: () => "تم تحديث الاجتماع",
+    body: ({ meetingTitle, periodNumber, projectName }) =>
+      `تم تحديث الاجتماع "${meetingTitle}" للفترة ${formatPlainNumber(periodNumber ?? 0)} من المشروع "${projectName}".`,
+  },
+  "period.resumed": {
+    title: () => "استؤنفت الفترة",
+    body: ({ periodNumber }) =>
+      `استؤنفت الفترة ${formatPlainNumber(periodNumber ?? 0)} بعد سداد الفاتورة.`,
+  },
+  "project.created_from_contract": {
+    title: () => "تم إنشاء مشروع جديد تلقائيًا",
+    body: ({ projectName }) =>
+      `تم إنشاء المشروع "${projectName}" بعد توقيع العقد. يمكنك الآن إسناد المهام للفريق.`,
+  },
+  "project.file_uploaded": {
+    title: () => "تم رفع ملف جديد",
+    body: ({ fileName }) => `تم رفع الملف: ${fileName}.`,
+  },
+  "project.period_closed": {
+    title: () => "أُغلقت الفترة",
+    body: ({ periodNumber, projectName }) =>
+      `أُغلقت الفترة ${formatPlainNumber(periodNumber ?? 0)} من المشروع "${projectName}".`,
+  },
+  "project.period_invoice_issued": {
+    title: () => "تم إصدار فاتورة الفترة",
+    body: ({ periodNumber, amount }) =>
+      `تم إصدار فاتورة الفترة ${formatPlainNumber(periodNumber ?? 0)} بقيمة ${formatPlainNumber(amount ?? 0)} ريال سعودي.`,
+  },
+  "project.periods_generated": {
+    title: () => "تم إنشاء فترات المشروع",
+    body: ({ periodCount, projectName }) =>
+      `تم إنشاء ${formatPlainNumber(periodCount ?? 0)} فترة شهرية للمشروع "${projectName}".`,
+  },
+  "project.status_changed": {
+    title: () => "تم تحديث حالة المشروع",
+    body: ({ projectName, status }) =>
+      `تغيرت حالة المشروع "${projectName}" إلى ${status}.`,
+  },
+  "project.suspended": {
+    title: () => "تم تعليق المشروع",
+    body: ({ invoiceTitle }) =>
+      `تم تعليق المشروع بسبب عدم سداد الفاتورة "${invoiceTitle}".`,
+  },
+  "proposal.submitted": {
+    title: () => "عرض جديد بانتظار المراجعة",
+    body: ({ proposalTitle }) =>
+      `تم إرسال العرض "${proposalTitle}" إليك للمراجعة والرد.`,
+  },
+  "snooze.expired": {
+    title: ({ itemType }) => `انتهى التأجيل: ${getSnoozeCategory(itemType)}`,
+    body: ({ itemType, companyName }) =>
+      `أصبح عنصر ${getSnoozeCategory(itemType)} الخاص بـ "${getSnoozeCompanyName(companyName)}" جاهزًا للمراجعة مرة أخرى.`,
+  },
+  "strategy.approved": {
+    title: () => "تم اعتماد الاستراتيجية التسويقية",
+    body: ({ taskTitle }) =>
+      `تم اعتماد الاستراتيجية التسويقية للمهمة "${taskTitle}".`,
+  },
+  "strategy.rejected": {
+    title: () => "رُفضت الاستراتيجية التسويقية",
+    body: ({ taskTitle }) =>
+      `رُفضت الاستراتيجية التسويقية للمهمة "${taskTitle}".`,
+  },
+  "strategy.revised": {
+    title: () => "تم تعديل الاستراتيجية التسويقية",
+    body: () =>
+      "أُعيد إرسال الاستراتيجية التسويقية المعدلة وهي بانتظار المراجعة.",
+  },
+  "strategy.revision_requested": {
+    title: () => "طُلب تعديل الاستراتيجية التسويقية",
+    body: ({ taskTitle, comment }) =>
+      `طلب العميل تعديل الاستراتيجية التسويقية للمهمة "${taskTitle}": ${comment}.`,
+  },
+  "strategy.sent": {
+    title: () => "تم إرسال الاستراتيجية التسويقية",
+    body: ({ taskTitle }) =>
+      `تم إرسال الاستراتيجية التسويقية للمهمة "${taskTitle}" إلى العميل.`,
+  },
+  "strategy.submitted": {
+    title: () => "استراتيجية تسويقية جديدة",
+    body: ({ taskTitle }) =>
+      `تم إرسال استراتيجية تسويقية جديدة للمهمة "${taskTitle}" وهي بانتظار المراجعة.`,
+  },
+  "task.assigned_to": {
+    title: () => "تم إسناد مهمة جديدة",
+    body: ({ taskTitle, assigneeName }) =>
+      `تم إسناد المهمة "${taskTitle}" إلى ${assigneeName}.`,
+  },
+  "task.comment_added": {
+    title: () => "تعليق جديد على المهمة",
+    body: ({ taskTitle }) => `تمت إضافة تعليق جديد على المهمة "${taskTitle}".`,
+  },
 };

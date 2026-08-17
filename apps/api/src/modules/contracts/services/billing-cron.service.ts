@@ -11,6 +11,11 @@ import {
 } from "@hassad/shared";
 import type { Prisma } from "@prisma/client";
 
+const ESCALATION_REMINDER_BIT = 1 << 7;
+const DEFAULT_REMINDER_OFFSETS = [5, 3, 0];
+const DOWN_PAYMENT_INVOICE_NOTE =
+  "Down-payment invoice required to activate the contract";
+
 @Injectable()
 export class BillingCronService {
   private readonly logger = new Logger(BillingCronService.name);
@@ -78,21 +83,31 @@ export class BillingCronService {
             gte: targetDate,
             lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
           },
-          reminderFlags: { not: { gte: 1 << bitIndex } },
-          paymentPlanId: { not: null },
+          contractId: { not: null },
         },
         include: {
           client: { select: { userId: true, companyName: true } },
-          contract: { select: { title: true } },
+          contract: {
+            select: {
+              title: true,
+              totalValue: true,
+              downPaymentType: true,
+              downPaymentValue: true,
+            },
+          },
+          paymentPlan: { select: { triggerType: true } },
         },
       });
 
       for (const invoice of invoices) {
+        if (!this.isReminderEligibleContractInvoice(invoice)) continue;
+        if ((invoice.reminderFlags & (1 << bitIndex)) !== 0) continue;
         const newFlags = invoice.reminderFlags | (1 << bitIndex);
-        await this.prisma.invoice.update({
-          where: { id: invoice.id },
+        const claimed = await this.prisma.invoice.updateMany({
+          where: { id: invoice.id, reminderFlags: invoice.reminderFlags },
           data: { reminderFlags: newFlags },
         });
+        if (claimed.count === 0) continue;
 
         const recipientId = invoice.client?.userId;
         if (!recipientId) continue;
@@ -105,9 +120,18 @@ export class BillingCronService {
             eventType: "INVOICE_REMINDER",
             userId: recipientId,
             messageKey: "invoice.payment_reminder",
-            messageParams: { invoiceTitle: invoice.contract?.title ?? invoice.invoiceNumber, dayLabel, amount: invoice.amount },
+            messageParams: {
+              invoiceTitle: invoice.contract?.title ?? invoice.invoiceNumber,
+              dayLabel,
+              amount: invoice.amount,
+            },
           })
-          .catch(() => undefined);
+          .catch(async () => {
+            await this.prisma.invoice.updateMany({
+              where: { id: invoice.id, reminderFlags: newFlags },
+              data: { reminderFlags: invoice.reminderFlags },
+            });
+          });
       }
     }
   }
@@ -138,14 +162,21 @@ export class BillingCronService {
       },
       include: {
         contract: {
-          select: { id: true, title: true, createdBy: true },
-          include: {
+          select: {
+            id: true,
+            title: true,
+            createdBy: true,
             client: { select: { userId: true, accountManager: true } },
           },
         },
         period: {
-          select: { id: true, projectId: true },
-          include: { project: { select: { id: true, status: true, projectManagerId: true } } },
+          select: {
+            id: true,
+            projectId: true,
+            project: {
+              select: { id: true, status: true, projectManagerId: true },
+            },
+          },
         },
       },
     });
@@ -156,7 +187,22 @@ export class BillingCronService {
       if (project.status === "ON_HOLD") continue;
 
       try {
-        await this.prisma.$transaction(async (tx) => {
+        const transitioned = await this.prisma.$transaction(async (tx) => {
+          const invoiceClaim = await tx.invoice.updateMany({
+            where: {
+              id: invoice.id,
+              triggeredSuspension: false,
+              status: {
+                in: [
+                  InvoiceStatus.DUE,
+                  InvoiceStatus.LATE,
+                  InvoiceStatus.PENDING,
+                ],
+              },
+            },
+            data: { triggeredSuspension: true, status: InvoiceStatus.LATE },
+          });
+          if (invoiceClaim.count === 0) return false;
           await tx.projectPeriod.update({
             where: { id: invoice.period!.id },
             data: {
@@ -169,7 +215,7 @@ export class BillingCronService {
               periodId: invoice.period!.id,
               fromStatus: ProjectPeriodStatus.ACTIVE,
               toStatus: ProjectPeriodStatus.SUSPENDED,
-              changedBy: "system",
+              changedBy: invoice.contract!.createdBy,
               reason: "Overdue period invoice",
             },
           });
@@ -185,27 +231,26 @@ export class BillingCronService {
               select: { status: true },
             });
             if (contract && contract.status === "ACTIVE") {
-              await tx.contract.update({
-                where: { id: invoice.contract.id },
+              const contractClaim = await tx.contract.updateMany({
+                where: { id: invoice.contract.id, status: "ACTIVE" },
                 data: { status: "ON_HOLD" },
               });
+              if (contractClaim.count === 0) return false;
               await tx.contractStatusHistory.create({
                 data: {
                   contractId: invoice.contract.id,
                   fromStatus: "ACTIVE",
                   toStatus: "ON_HOLD",
-                  changedBy: "system",
+                  changedBy: invoice.contract.createdBy,
                   reason: "Auto-suspend: overdue period invoice",
                 },
               });
             }
           }
 
-          await tx.invoice.update({
-            where: { id: invoice.id },
-            data: { triggeredSuspension: true, status: InvoiceStatus.LATE },
-          });
+          return true;
         });
+        if (!transitioned) continue;
 
         const recipientIds = [
           invoice.contract?.createdBy,
@@ -219,7 +264,9 @@ export class BillingCronService {
             .notifyUsersWithMessage({
               userIds: recipientIds,
               messageKey: "project.suspended",
-              messageParams: { invoiceTitle: invoice.contract?.title ?? invoice.invoiceNumber },
+              messageParams: {
+                invoiceTitle: invoice.contract?.title ?? invoice.invoiceNumber,
+              },
               entityId: project.id,
               entityType: "PROJECT",
               eventType: "PROJECT_SUSPENDED",
@@ -258,7 +305,6 @@ export class BillingCronService {
         },
         issueDate: { lt: cutoff },
         contractId: { not: null },
-        paymentPlan: { triggerType: PaymentPlanTriggerType.ON_SIGN },
       },
       include: {
         contract: {
@@ -268,34 +314,46 @@ export class BillingCronService {
             title: true,
             createdBy: true,
             client: { select: { userId: true, accountManager: true } },
+            totalValue: true,
+            downPaymentType: true,
+            downPaymentValue: true,
           },
         },
+        paymentPlan: { select: { triggerType: true } },
       },
     });
 
     for (const invoice of pendingInvoices) {
-      if (!invoice.contract || invoice.contract.status !== "SIGNED") continue;
+      if (
+        !invoice.contract ||
+        invoice.contract.status !== "SIGNED" ||
+        !this.isDownPaymentInvoice(invoice)
+      )
+        continue;
 
       try {
-        await this.prisma.$transaction(async (tx) => {
+        const transitioned = await this.prisma.$transaction(async (tx) => {
+          const contractClaim = await tx.contract.updateMany({
+            where: { id: invoice.contract.id, status: "SIGNED" },
+            data: { status: "CANCELLED" },
+          });
+          if (contractClaim.count === 0) return false;
           await tx.invoice.update({
             where: { id: invoice.id },
             data: { status: InvoiceStatus.CANCELLED },
-          });
-          await tx.contract.update({
-            where: { id: invoice.contract.id },
-            data: { status: "CANCELLED" },
           });
           await tx.contractStatusHistory.create({
             data: {
               contractId: invoice.contract.id,
               fromStatus: "SIGNED",
               toStatus: "CANCELLED",
-              changedBy: "system",
+              changedBy: invoice.contract.createdBy,
               reason: "Down payment unpaid past grace period",
             },
           });
+          return true;
         });
+        if (!transitioned) continue;
 
         const recipientIds = [
           invoice.contract.createdBy,
@@ -304,14 +362,19 @@ export class BillingCronService {
         ].filter(Boolean) as string[];
 
         if (recipientIds.length > 0) {
-          await this.notificationsService.notifyUsersWithMessage({
-            userIds: recipientIds,
-            messageKey: "contract.auto_canceled",
-            messageParams: { contractTitle: invoice.contract.title, graceDays },
-            entityId: invoice.contract.id,
-            entityType: "CONTRACT",
-            eventType: "CONTRACT_CANCELLED",
-          });
+          await this.notificationsService
+            .notifyUsersWithMessage({
+              userIds: recipientIds,
+              messageKey: "contract.auto_canceled",
+              messageParams: {
+                contractTitle: invoice.contract.title,
+                graceDays,
+              },
+              entityId: invoice.contract.id,
+              entityType: "CONTRACT",
+              eventType: "CONTRACT_CANCELLED",
+            })
+            .catch(() => undefined);
         }
       } catch (err) {
         this.logger.error(
@@ -333,7 +396,6 @@ export class BillingCronService {
       where: {
         dueDate: { lt: thirtyDaysAgo },
         status: { in: ["DUE", "LATE", "PENDING", "SENT"] },
-        reminderFlags: { not: { gte: 1 << 7 } }, // escalation bit (previously unused high bit)
       },
       include: {
         client: { select: { companyName: true } },
@@ -353,26 +415,77 @@ export class BillingCronService {
 
     if (financeUsers.length === 0) return;
 
-    await this.notificationsService.notifyUsersWithMessage({
-      userIds: financeUsers.map((u) => u.id),
-      messageKey: "invoice.overdue_escalation",
-      messageParams: { count: overdue.length },
-      entityId: "overdue-escalation",
-      entityType: "INVOICE",
-      eventType: "INVOICE_ESCALATED",
-    });
-
-    // Mark escalation bit so we don't re-alert
+    const claimedInvoices: typeof overdue = [];
     for (const inv of overdue) {
-      await this.prisma.invoice.update({
-        where: { id: inv.id },
-        data: { reminderFlags: inv.reminderFlags | (1 << 7) },
+      if ((inv.reminderFlags & (1 << 7)) !== 0) continue;
+      const claim = await this.prisma.invoice.updateMany({
+        where: { id: inv.id, reminderFlags: inv.reminderFlags },
+        data: { reminderFlags: inv.reminderFlags | ESCALATION_REMINDER_BIT },
       });
+      if (claim.count > 0) claimedInvoices.push(inv);
     }
+    if (claimedInvoices.length === 0) return;
+
+    await this.notificationsService
+      .notifyUsersWithMessage({
+        userIds: financeUsers.map((u) => u.id),
+        messageKey: "invoice.overdue_escalation",
+        messageParams: { count: claimedInvoices.length },
+        entityId: "overdue-escalation",
+        entityType: "INVOICE",
+        eventType: "INVOICE_ESCALATED",
+      })
+      .catch(async () => {
+        for (const inv of claimedInvoices) {
+          await this.prisma.invoice.updateMany({
+            where: {
+              id: inv.id,
+              reminderFlags: inv.reminderFlags | ESCALATION_REMINDER_BIT,
+            },
+            data: { reminderFlags: inv.reminderFlags },
+          });
+        }
+      });
+
+    // The escalation bit is claimed before notification and reset on failure.
 
     this.logger.log(
       `Escalated ${overdue.length} overdue invoice(s) to finance team`,
     );
+  }
+
+  private isReminderEligibleContractInvoice(invoice: any) {
+    return Boolean(
+      invoice.paymentPlanId || this.isLegacyScalarDownPaymentInvoice(invoice),
+    );
+  }
+
+  private isDownPaymentInvoice(invoice: any) {
+    return Boolean(
+      invoice.paymentPlan?.triggerType === PaymentPlanTriggerType.ON_SIGN ||
+      this.isLegacyScalarDownPaymentInvoice(invoice),
+    );
+  }
+
+  private isLegacyScalarDownPaymentInvoice(invoice: any) {
+    const contract = invoice.contract;
+    if (
+      !contract ||
+      invoice.paymentPlanId !== null ||
+      invoice.notes !== DOWN_PAYMENT_INVOICE_NOTE ||
+      !contract.downPaymentType ||
+      contract.downPaymentValue == null
+    ) {
+      return false;
+    }
+
+    const amount =
+      contract.downPaymentType === "PERCENT"
+        ? Math.round(
+            contract.totalValue * (contract.downPaymentValue / 100) * 100,
+          ) / 100
+        : contract.downPaymentValue;
+    return amount === invoice.amount;
   }
 
   // ── Company settings ─────────────────────────────────────────────────────────
@@ -386,7 +499,24 @@ export class BillingCronService {
 
   private async getReminderOffsetDays(): Promise<number[]> {
     const val = await this.getCompanySetting("reminder_offset_days");
-    return Array.isArray(val) ? val : [5, 3, 0];
+    if (!Array.isArray(val)) return [...DEFAULT_REMINDER_OFFSETS];
+    const offsets = [...new Set(val)];
+    if (
+      offsets.length === 0 ||
+      offsets.length > 7 ||
+      offsets.some(
+        (offset) =>
+          typeof offset !== "number" ||
+          !Number.isInteger(offset) ||
+          !Number.isFinite(offset),
+      )
+    ) {
+      this.logger.warn(
+        "Invalid reminder offsets; using defaults to preserve the escalation bit",
+      );
+      return [...DEFAULT_REMINDER_OFFSETS];
+    }
+    return offsets;
   }
 
   private async getGraceDays(): Promise<number> {

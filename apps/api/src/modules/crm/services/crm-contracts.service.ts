@@ -1,9 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ContractStatus, RequestStatus } from "@hassad/shared";
 import { randomBytes } from "crypto";
 
 import { PrismaService } from "../../../prisma/prisma.service";
-import { ApiException } from "../../../common/errors/api-error";
+import { badRequest, notFound } from "../../../common/errors/domain-errors";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { RequestsService } from "../../requests/requests.service";
 import {
@@ -14,6 +14,8 @@ import {
 
 @Injectable()
 export class CrmContractsService {
+  private readonly logger = new Logger(CrmContractsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
@@ -36,9 +38,7 @@ export class CrmContractsService {
 
     if (query.status && query.status !== "all") {
       where.status =
-        query.status === "on-hold"
-          ? "ON_HOLD"
-          : query.status.toUpperCase();
+        query.status === "on-hold" ? "ON_HOLD" : query.status.toUpperCase();
     }
 
     if (query.type) {
@@ -48,7 +48,8 @@ export class CrmContractsService {
     if (query.expiringDays) {
       const now = new Date();
       const future = new Date(
-        now.getTime() + Number.parseInt(query.expiringDays, 10) * 24 * 60 * 60 * 1000,
+        now.getTime() +
+          Number.parseInt(query.expiringDays, 10) * 24 * 60 * 60 * 1000,
       );
       where.endDate = { gte: now, lte: future };
       where.status = ContractStatus.ACTIVE;
@@ -151,7 +152,7 @@ export class CrmContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException("Contract not found");
+      throw notFound("CONTRACT_NOT_FOUND", "Contract not found");
     }
 
     const project = await this.prisma.project.findFirst({
@@ -171,7 +172,10 @@ export class CrmContractsService {
 
   async create(userId: string, dto: CrmCreateContractDto) {
     if (!dto.requestId && !dto.proposalId) {
-      throw new ApiException("CONTRACT_REFERENCE_REQUIRED", "A request or proposal reference is required", 400);
+      throw badRequest(
+        "CONTRACT_REFERENCE_REQUIRED",
+        "A request or proposal reference is required",
+      );
     }
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -184,18 +188,40 @@ export class CrmContractsService {
       let totalValue = dto.totalValue ?? 0;
       let monthlyValue = dto.monthlyValue ?? 0;
       let servicesList: unknown = undefined;
-      let proposalSnapshot: { totalPrice?: number; servicesList?: unknown; durationDays?: number; startDate?: Date | null } | null = null;
+      let proposalSnapshot: {
+        requestId?: string | null;
+        clientId?: string | null;
+        totalPrice?: number;
+        servicesList?: unknown;
+        durationDays?: number;
+        startDate?: Date | null;
+      } | null = null;
 
       if (dto.proposalId) {
         proposalSnapshot = await tx.proposal.findUnique({
           where: { id: dto.proposalId },
           select: {
+            requestId: true,
+            clientId: true,
             totalPrice: true,
             servicesList: true,
             durationDays: true,
             startDate: true,
           },
         });
+
+        if (!proposalSnapshot) {
+          throw notFound("PROPOSAL_NOT_FOUND", "Proposal not found");
+        }
+        if (
+          proposalSnapshot.requestId !== request.id ||
+          proposalSnapshot.clientId !== request.clientId
+        ) {
+          throw badRequest(
+            "CONTRACT_REFERENCE_MISMATCH",
+            "The request and proposal references do not match",
+          );
+        }
       }
 
       if (proposalSnapshot?.servicesList) {
@@ -216,7 +242,9 @@ export class CrmContractsService {
       const endDate = dto.endDate
         ? new Date(dto.endDate)
         : proposalSnapshot?.durationDays
-          ? new Date(startDate.getTime() + proposalSnapshot.durationDays * 86400000)
+          ? new Date(
+              startDate.getTime() + proposalSnapshot.durationDays * 86400000,
+            )
           : new Date(startDate.getTime() + 30 * 86400000);
 
       const contract = await tx.contract.create({
@@ -260,15 +288,22 @@ export class CrmContractsService {
 
     return {
       contract: created,
-      toast: { type: "success" as const, title: "Contract draft created", description: "Review the commercial terms before sending." },
+      toast: {
+        type: "success" as const,
+        title: "Contract draft created",
+        description: "Review the commercial terms before sending.",
+      },
     };
   }
 
-  async update(id: string, dto: CrmUpdateContractDto & { filePath?: string | null }) {
+  async update(
+    id: string,
+    dto: CrmUpdateContractDto & { filePath?: string | null },
+  ) {
     const contract = await this.prisma.contract.findUnique({ where: { id } });
 
     if (!contract) {
-      throw new NotFoundException("Contract not found");
+      throw notFound("CONTRACT_NOT_FOUND", "Contract not found");
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -311,18 +346,28 @@ export class CrmContractsService {
 
     return {
       contract: updated,
-      toast: { type: "success" as const, title: "Contract updated", description: "The commercial draft has been saved." },
+      toast: {
+        type: "success" as const,
+        title: "Contract updated",
+        description: "The commercial draft has been saved.",
+      },
     };
   }
 
   async send(id: string, userId?: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id },
-      select: { id: true, title: true, requestId: true, createdBy: true, clientId: true },
+      select: {
+        id: true,
+        title: true,
+        requestId: true,
+        createdBy: true,
+        clientId: true,
+      },
     });
 
     if (!contract) {
-      throw new NotFoundException("Contract not found");
+      throw notFound("CONTRACT_NOT_FOUND", "Contract not found");
     }
 
     const shareLinkToken = randomBytes(32).toString("hex");
@@ -349,10 +394,19 @@ export class CrmContractsService {
       return result;
     });
 
-    const client = await this.prisma.client.findUnique({
-      where: { id: contract.clientId },
-      select: { userId: true, accountManager: true, companyName: true },
-    });
+    let client: {
+      userId: string | null;
+      accountManager: string | null;
+      companyName: string;
+    } | null = null;
+    try {
+      client = await this.prisma.client.findUnique({
+        where: { id: contract.clientId },
+        select: { userId: true, accountManager: true, companyName: true },
+      });
+    } catch {
+      this.logger.warn(`Contract ${id} sent; recipient lookup skipped`);
+    }
 
     if (client?.userId) {
       this.notificationsService
@@ -369,7 +423,11 @@ export class CrmContractsService {
 
     return {
       contract: updated,
-      toast: { type: "success" as const, title: "Contract sent", description: "The contract link has been generated and shared." },
+      toast: {
+        type: "success" as const,
+        title: "Contract sent",
+        description: "The contract link has been generated and shared.",
+      },
     };
   }
 }

@@ -1,7 +1,7 @@
 import { formatPlainNumber } from "../../../common/presentation/plain-number";
 import { arabicTemplates } from "./notification-messages.ar";
 import { preciseArabicTemplates } from "./notification-messages.ar.precise";
-import { NotificationLocale } from "./notification-locale";
+import type { NotificationLocale } from "./notification-locale";
 
 export type NotificationMessageKey =
   | "task.assigned"
@@ -95,12 +95,35 @@ export type NotificationMessageKey =
   | "proposal.revision_requested"
   | "request.submitted";
 
-export type NotificationParams = Record<string, string | number | null | undefined>;
+export type NotificationParams = Record<
+  string,
+  string | number | null | undefined
+>;
 
 export type NotificationTemplate = {
   title: (params: NotificationParams) => string;
   body: (params: NotificationParams) => string;
 };
+
+const snoozeCategoryLabels: Record<string, string> = {
+  DELIVERABLE_APPROVAL: "deliverable approval",
+  INVOICE_PAYMENT: "invoice payment",
+  PROPOSAL_REVIEW: "proposal review",
+  CONTRACT_SIGN: "contract signature",
+  STRATEGY_REVIEW: "marketing strategy review",
+};
+
+function getSnoozeCategory(itemType: NotificationParams[string]) {
+  return typeof itemType === "string"
+    ? (snoozeCategoryLabels[itemType] ?? "action")
+    : "action";
+}
+
+function getSnoozeCompanyName(companyName: NotificationParams[string]) {
+  return companyName === null || companyName === undefined
+    ? "your company"
+    : String(companyName);
+}
 
 const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   "task.assigned": {
@@ -112,7 +135,8 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   },
   "task.started": {
     title: () => "Task started",
-    body: ({ actorName, taskTitle }) => `${actorName} started task "${taskTitle}".`,
+    body: ({ actorName, taskTitle }) =>
+      `${actorName} started task "${taskTitle}".`,
   },
   "task.awaiting_review": {
     title: () => "Task awaiting review",
@@ -130,7 +154,8 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   },
   "project.approved": {
     title: () => "Project approved",
-    body: ({ projectName }) => `Project "${projectName}" was approved by the client.`,
+    body: ({ projectName }) =>
+      `Project "${projectName}" was approved by the client.`,
   },
   "project.revision_requested": {
     title: () => "Client requested project revisions",
@@ -149,11 +174,13 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   },
   "project.awaiting_review": {
     title: () => "Your project is ready for review and approval",
-    body: ({ projectName }) => `Project "${projectName}" is complete and ready for your review.`,
+    body: ({ projectName }) =>
+      `Project "${projectName}" is complete and ready for your review.`,
   },
   "task.assigned_to": {
     title: () => "New task assigned",
-    body: ({ taskTitle, assigneeName }) => `Task "${taskTitle}" was assigned to ${assigneeName}.`,
+    body: ({ taskTitle, assigneeName }) =>
+      `Task "${taskTitle}" was assigned to ${assigneeName}.`,
   },
   "task.comment_added": {
     title: () => "New task comment",
@@ -166,7 +193,8 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   },
   "proposal.submitted": {
     title: () => "New proposal awaiting your review",
-    body: ({ proposalTitle }) => `A new proposal was sent to you: "${proposalTitle}". You can review and respond using the provided link.`,
+    body: ({ proposalTitle }) =>
+      `A new proposal was sent to you: "${proposalTitle}". You can review and respond using the provided link.`,
   },
   "proposal.approved": {
     title: () => "Proposal approved",
@@ -180,8 +208,8 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
     title: () => "Invoice paid",
     body: ({ invoiceNumber, amount }) =>
       amount === undefined || amount === null
-        ? `Invoice ${invoiceNumber} was paid in full.`
-        : `Invoice ${invoiceNumber} was paid in full for ${formatPlainNumber(amount)}.`,
+        ? `Invoice ${formatPlainNumber(invoiceNumber ?? "")} was paid in full.`
+        : `Invoice ${formatPlainNumber(invoiceNumber ?? "")} was paid in full for ${formatPlainNumber(amount)}.`,
   },
   "campaign.status_changed": {
     title: () => "Campaign status updated",
@@ -196,42 +224,42 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   "project.periods_generated": {
     title: () => "Project periods generated",
     body: ({ periodCount, projectName }) =>
-      `${periodCount} monthly periods were created for project "${projectName}".`,
+      `${formatPlainNumber(periodCount ?? 0)} monthly periods were created for project "${projectName}".`,
   },
   "project.period_closed": {
     title: () => "Period closed",
     body: ({ periodNumber, projectName }) =>
-      `Period ${periodNumber} for project "${projectName}" was closed.`,
+      `Period ${formatPlainNumber(periodNumber ?? 0)} for project "${projectName}" was closed.`,
   },
   "project.period_invoice_issued": {
     title: () => "Period invoice issued",
     body: ({ periodNumber, amount }) =>
-      `Invoice for period ${periodNumber} was issued for ${formatPlainNumber(amount ?? 0)} SAR.`,
+      `Invoice for period ${formatPlainNumber(periodNumber ?? 0)} was issued for ${formatPlainNumber(amount ?? 0)} SAR.`,
   },
   "meeting.scheduled": {
     title: () => "New meeting scheduled",
     body: ({ meetingTitle, periodNumber, projectName }) =>
-      `"${meetingTitle}" for period ${periodNumber} of project "${projectName}".`,
+      `"${meetingTitle}" for period ${formatPlainNumber(periodNumber ?? 0)} of project "${projectName}".`,
   },
   "meeting.updated": {
     title: () => "Meeting updated",
     body: ({ meetingTitle, periodNumber, projectName }) =>
-      `"${meetingTitle}" for period ${periodNumber} of project "${projectName}".`,
+      `"${meetingTitle}" for period ${formatPlainNumber(periodNumber ?? 0)} of project "${projectName}".`,
   },
   "meeting.canceled": {
     title: () => "Meeting canceled",
     body: ({ meetingTitle, periodNumber, projectName }) =>
-      `"${meetingTitle}" for period ${periodNumber} of project "${projectName}".`,
+      `"${meetingTitle}" for period ${formatPlainNumber(periodNumber ?? 0)} of project "${projectName}".`,
   },
   "meeting.postponed": {
     title: () => "Meeting postponed",
     body: ({ meetingTitle, periodNumber, projectName }) =>
-      `"${meetingTitle}" for period ${periodNumber} of project "${projectName}".`,
+      `"${meetingTitle}" for period ${formatPlainNumber(periodNumber ?? 0)} of project "${projectName}".`,
   },
   "contract.expiring": {
     title: () => "Contract expiring soon",
     body: ({ contractTitle, companyName, days }) =>
-      `Contract "${contractTitle}" with ${companyName} expires in ${days} days`,
+      `Contract "${contractTitle}" with ${companyName} expires in ${formatPlainNumber(days ?? 0)} days`,
   },
   "contract.expired": {
     title: () => "Contract expired",
@@ -241,7 +269,7 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   "contract.renewal_urgent": {
     title: () => "Urgent contract renewal",
     body: ({ contractTitle, companyName, days }) =>
-      `Contract "${contractTitle}" with ${companyName} expires in ${days} days and no action has been taken. Please contact the client about renewal.`,
+      `Contract "${contractTitle}" with ${companyName} expires in ${formatPlainNumber(days ?? 0)} days and no action has been taken. Please contact the client about renewal.`,
   },
   "invoice.payment_reminder": {
     title: () => "Invoice payment reminder",
@@ -261,21 +289,22 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   "contract.auto_canceled": {
     title: () => "Contract automatically cancelled",
     body: ({ contractTitle, graceDays }) =>
-      `Contract "${contractTitle}" was automatically cancelled because the down payment was not paid within ${graceDays} day(s)`,
+      `Contract "${contractTitle}" was automatically cancelled because the down payment was not paid within ${formatPlainNumber(graceDays ?? 0)} day(s)`,
   },
   "invoice.overdue_escalation": {
     title: () => "Invoices overdue by more than 30 days",
     body: ({ count }) =>
-      `${count} invoice(s) have been overdue for more than 30 days and need follow-up.`,
+      `${formatPlainNumber(count ?? 0)} invoice(s) have been overdue for more than 30 days and need follow-up.`,
   },
   "invoice.created": {
     title: () => "New invoice",
-    body: ({ amount }) => `A new invoice was created for ${formatPlainNumber(amount ?? 0)} SAR`,
+    body: ({ amount }) =>
+      `A new invoice was created for ${formatPlainNumber(amount ?? 0)} SAR`,
   },
   "invoice.automatic_created": {
     title: () => "Automatic invoice created",
     body: ({ invoiceNumber, contractTitle }) =>
-      `Automatic invoice ${invoiceNumber} was created for contract "${contractTitle}"`,
+      `Automatic invoice ${formatPlainNumber(invoiceNumber ?? "")} was created for contract "${contractTitle}"`,
   },
   "invoice.scheduled_created": {
     title: () => "Invoice created",
@@ -285,17 +314,17 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   "invoice.sent": {
     title: () => "Invoice sent",
     body: ({ invoiceNumber }) =>
-      `Invoice "${invoiceNumber}" was sent to you for review and payment`,
+      `Invoice "${formatPlainNumber(invoiceNumber ?? "")}" was sent to you for review and payment`,
   },
   "invoice.due_reminder": {
     title: () => "Invoice payment reminder",
     body: ({ invoiceNumber, amount }) =>
-      `Reminder: invoice "${invoiceNumber}" for ${formatPlainNumber(amount ?? 0)} SAR is due for payment`,
+      `Reminder: invoice "${formatPlainNumber(invoiceNumber ?? "")}" for ${formatPlainNumber(amount ?? 0)} SAR is due for payment`,
   },
   "payment.received": {
     title: () => "Payment received",
     body: ({ amount, invoiceNumber }) =>
-      `A payment of ${formatPlainNumber(amount ?? 0)} SAR was received for invoice "${invoiceNumber}"`,
+      `A payment of ${formatPlainNumber(amount ?? 0)} SAR was received for invoice "${formatPlainNumber(invoiceNumber ?? "")}"`,
   },
   "contract.activated": {
     title: () => "Contract activated",
@@ -305,7 +334,8 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
         : `Contract "${contractTitle}" was activated after receiving the down payment.`,
   },
   "contract.sent": {
-    title: ({ client }) => client ? "New contract awaiting your signature" : "Contract sent",
+    title: ({ client }) =>
+      client ? "New contract awaiting your signature" : "Contract sent",
     body: ({ actorName, contractTitle, companyName, client }) =>
       client
         ? `Contract "${contractTitle}" is ready for review and signature`
@@ -319,10 +349,11 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   "period.resumed": {
     title: () => "Period resumed",
     body: ({ periodNumber }) =>
-      `Period ${periodNumber} was resumed after the invoice was paid`,
+      `Period ${formatPlainNumber(periodNumber ?? 0)} was resumed after the invoice was paid`,
   },
   "contract.signed": {
-    title: ({ client }) => client ? "Contract signed successfully" : "Contract signed",
+    title: ({ client }) =>
+      client ? "Contract signed successfully" : "Contract signed",
     body: ({ contractTitle, companyName, client }) =>
       client
         ? `Contract "${contractTitle}" was signed successfully. Work on your project will begin soon.`
@@ -330,50 +361,222 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
           ? `Contract "${contractTitle}" was signed with ${companyName}`
           : `The client signed contract "${contractTitle}"`,
   },
-  "strategy.submitted": { title: () => "New marketing strategy", body: ({ taskTitle }) => `A new marketing strategy was submitted for task "${taskTitle}" and is awaiting your review` },
-  "strategy.sent": { title: () => "Marketing strategy sent", body: ({ taskTitle }) => `The marketing strategy for task "${taskTitle}" was sent to the client` },
-  "strategy.approved": { title: () => "Marketing strategy approved", body: ({ taskTitle }) => `The marketing strategy for task "${taskTitle}" was approved; campaigns can now be created` },
-  "strategy.revision_requested": { title: () => "Marketing strategy revision requested", body: ({ taskTitle, comment }) => `The client requested a revision to the marketing strategy for task "${taskTitle}": ${comment}` },
-  "strategy.rejected": { title: () => "Marketing strategy rejected", body: ({ taskTitle }) => `The client rejected the marketing strategy for task "${taskTitle}"` },
-  "strategy.revised": { title: () => "Marketing strategy revised", body: () => "The revised marketing strategy was resubmitted and is awaiting your review" },
-  "campaign.launched": { title: () => "New campaign launched", body: ({ campaignName }) => `Campaign "${campaignName}" was launched for your project` },
-  "campaign.created": { title: () => "New campaign", body: ({ campaignName, taskTitle }) => `New campaign "${campaignName}" was created for task "${taskTitle}"` },
-  "campaign.performance_updated": { title: () => "Campaign performance updated", body: ({ campaignName }) => `Campaign results for "${campaignName}" were updated` },
-  "campaign.optimization_needed": { title: () => "Campaign needs optimization", body: ({ campaignName }) => `Campaign "${campaignName}" was flagged for optimization` },
-  "snooze.expired": { title: ({ title }) => String(title ?? "Reminder"), body: ({ body }) => String(body ?? "") },
-  "deliverable.approved": { title: () => "Deliverable approved", body: ({ deliverableTitle, projectName }) => `Deliverable "${deliverableTitle}" was approved in project ${projectName}` },
-  "deliverable.revision_requested": { title: () => "Deliverable revision requested", body: ({ deliverableTitle, projectName }) => `Revisions were requested for deliverable "${deliverableTitle}" in project ${projectName}` },
-  "crm.contract_review": { title: () => "Contract sent for review", body: ({ contractTitle }) => `The contract "${contractTitle}" is ready for approval.` },
-  "crm.proposal_review": { title: () => "New proposal is ready", body: ({ proposalTitle }) => `A new proposal titled "${proposalTitle}" was sent for review.` },
-  "admin.stalled_project": { title: () => "Stalled project", body: ({ projectName, status }) => `Project "${projectName}" is stalled (status: ${status}). Please review it.` },
-  "admin.unassigned_requests": { title: () => "Unassigned requests", body: ({ count }) => `${count} request(s) are unassigned. Please distribute them to the sales team.` },
-  "admin.system_failures": { title: () => "System failures", body: ({ webhooks, gateways }) => `${webhooks} webhook failure(s) and ${gateways} payment gateway failure(s) need review.` },
-  "admin.inactive_client": { title: () => "Inactive client", body: ({ companyName }) => `Client "${companyName}" has been inactive for more than 30 days. Please contact them.` },
-  "admin.high_workload": { title: () => "High workload", body: ({ activeTasks, averageTasks }) => `You have ${activeTasks} active task(s) (average: ${averageTasks}). Please review your priorities.` },
-  "admin.underloaded_team": { title: () => "Underloaded team members", body: ({ names }) => `The following members have a low workload: ${names}. Please redistribute tasks.` },
-  "admin.overdue_task": { title: () => "Overdue task", body: ({ taskTitle, message }) => `Task "${taskTitle}" ${message}.` },
-  "admin.request_followup": { title: () => "Request needs follow-up", body: ({ contactName, companyName }) => `Request "${contactName}" (${companyName}) has not been updated for 14 days.` },
-  "dispute.new_ticket": { title: () => "New dispute ticket", body: ({ ticketNumber }) => `New dispute ticket #${ticketNumber} needs review` },
-  "dispute.approved": { title: () => "Dispute ticket approved", body: ({ title }) => `Dispute "${title}" was approved. You have 3 days to resolve it` },
-  "dispute.rejected": { title: () => "Your dispute ticket was rejected", body: ({ reason }) => `Your dispute ticket was rejected. Reason: ${reason}` },
-  "dispute.new_message": { title: () => "New dispute message", body: ({ ticketNumber }) => `You have a new message in dispute ticket #${ticketNumber}` },
-  "dispute.awaiting_confirmation": { title: () => "Dispute ticket update", body: () => "The project manager marked the issue as resolved. Please confirm the resolution or escalate it." },
-  "dispute.client_confirmed": { title: () => "Dispute resolved", body: ({ ticketNumber }) => `The client confirmed resolution of dispute ticket #${ticketNumber}` },
-  "dispute.resolved": { title: () => "Dispute ticket resolved", body: ({ ticketNumber }) => `Dispute ticket #${ticketNumber} was resolved; the client confirmed the resolution` },
-  "dispute.escalated": { title: () => "Dispute ticket escalated", body: ({ ticketNumber }) => `The client reported that dispute ticket #${ticketNumber} was not resolved` },
-  "dispute.auto_escalated": { title: () => "Dispute ticket automatically escalated", body: ({ ticketNumber }) => `Dispute ticket #${ticketNumber} was automatically escalated because the response deadline expired` },
-  "dispute.manager_changed": { title: () => "Project manager changed", body: ({ ticketNumber }) => `The project manager was changed to resolve dispute ticket #${ticketNumber}` },
-  "dispute.manager_removed": { title: () => "Removed as project manager", body: ({ projectName }) => `You were removed as project manager of "${projectName}" because of a dispute` },
-  "dispute.manager_assigned": { title: () => "Assigned as new project manager", body: ({ projectName }) => `You were assigned as project manager of "${projectName}"` },
-  "dispute.closed": { title: () => "Dispute ticket closed", body: ({ ticketNumber, client }) => client ? `Your dispute ticket #${ticketNumber} was closed` : `Dispute ticket #${ticketNumber} was closed` },
-  "dispute.reminder": { title: ({ reminderNumber }) => `Reminder ${reminderNumber}`, body: ({ message }) => String(message ?? "") },
-  "meeting.pm_scheduled": { title: () => "New meeting scheduled", body: ({ meetingTitle }) => String(meetingTitle ?? "") },
-  "meeting.pm_updated": { title: () => "Meeting updated", body: ({ meetingTitle }) => String(meetingTitle ?? "") },
-  "project.file_uploaded": { title: () => "New file uploaded", body: ({ fileName }) => String(fileName ?? "") },
-  "chat.new_message": { title: ({ sender }) => `New message from ${sender}`, body: ({ content }) => String(content ?? "") },
-  "proposal.client_approved": { title: () => "Client approved proposal", body: ({ proposalTitle, notes }) => `The client approved proposal "${proposalTitle}"${notes ? ` — Notes: ${notes}` : ""}` },
-  "proposal.revision_requested": { title: () => "Proposal revision requested", body: ({ proposalTitle, notes }) => `The client requested revisions to proposal "${proposalTitle}"${notes ? `: ${notes}` : ""}` },
-  "request.submitted": { title: () => "New request", body: ({ contactName, companyName }) => `A new request was received from ${contactName} - ${companyName}` },
+  "strategy.submitted": {
+    title: () => "New marketing strategy",
+    body: ({ taskTitle }) =>
+      `A new marketing strategy was submitted for task "${taskTitle}" and is awaiting your review`,
+  },
+  "strategy.sent": {
+    title: () => "Marketing strategy sent",
+    body: ({ taskTitle }) =>
+      `The marketing strategy for task "${taskTitle}" was sent to the client`,
+  },
+  "strategy.approved": {
+    title: () => "Marketing strategy approved",
+    body: ({ taskTitle }) =>
+      `The marketing strategy for task "${taskTitle}" was approved; campaigns can now be created`,
+  },
+  "strategy.revision_requested": {
+    title: () => "Marketing strategy revision requested",
+    body: ({ taskTitle, comment }) =>
+      `The client requested a revision to the marketing strategy for task "${taskTitle}": ${comment}`,
+  },
+  "strategy.rejected": {
+    title: () => "Marketing strategy rejected",
+    body: ({ taskTitle }) =>
+      `The client rejected the marketing strategy for task "${taskTitle}"`,
+  },
+  "strategy.revised": {
+    title: () => "Marketing strategy revised",
+    body: () =>
+      "The revised marketing strategy was resubmitted and is awaiting your review",
+  },
+  "campaign.launched": {
+    title: () => "New campaign launched",
+    body: ({ campaignName }) =>
+      `Campaign "${campaignName}" was launched for your project`,
+  },
+  "campaign.created": {
+    title: () => "New campaign",
+    body: ({ campaignName, taskTitle }) =>
+      `New campaign "${campaignName}" was created for task "${taskTitle}"`,
+  },
+  "campaign.performance_updated": {
+    title: () => "Campaign performance updated",
+    body: ({ campaignName }) =>
+      `Campaign results for "${campaignName}" were updated`,
+  },
+  "campaign.optimization_needed": {
+    title: () => "Campaign needs optimization",
+    body: ({ campaignName }) =>
+      `Campaign "${campaignName}" was flagged for optimization`,
+  },
+  "snooze.expired": {
+    title: ({ itemType }) => `Snooze expired: ${getSnoozeCategory(itemType)}`,
+    body: ({ itemType, companyName }) =>
+      `The ${getSnoozeCategory(itemType)} item for "${getSnoozeCompanyName(companyName)}" is ready for review again.`,
+  },
+  "deliverable.approved": {
+    title: () => "Deliverable approved",
+    body: ({ deliverableTitle, projectName }) =>
+      `Deliverable "${deliverableTitle}" was approved in project ${projectName}`,
+  },
+  "deliverable.revision_requested": {
+    title: () => "Deliverable revision requested",
+    body: ({ deliverableTitle, projectName }) =>
+      `Revisions were requested for deliverable "${deliverableTitle}" in project ${projectName}`,
+  },
+  "crm.contract_review": {
+    title: () => "Contract sent for review",
+    body: ({ contractTitle }) =>
+      `The contract "${contractTitle}" is ready for approval.`,
+  },
+  "crm.proposal_review": {
+    title: () => "New proposal is ready",
+    body: ({ proposalTitle }) =>
+      `A new proposal titled "${proposalTitle}" was sent for review.`,
+  },
+  "admin.stalled_project": {
+    title: () => "Stalled project",
+    body: ({ projectName, status }) =>
+      `Project "${projectName}" is stalled (status: ${status}). Please review it.`,
+  },
+  "admin.unassigned_requests": {
+    title: () => "Unassigned requests",
+    body: ({ count }) =>
+      `${formatPlainNumber(count ?? 0)} request(s) are unassigned. Please distribute them to the sales team.`,
+  },
+  "admin.system_failures": {
+    title: () => "System failures",
+    body: ({ webhooks, gateways }) =>
+      `${formatPlainNumber(webhooks ?? 0)} webhook failure(s) and ${formatPlainNumber(gateways ?? 0)} payment gateway failure(s) need review.`,
+  },
+  "admin.inactive_client": {
+    title: () => "Inactive client",
+    body: ({ companyName }) =>
+      `Client "${companyName}" has been inactive for more than 30 days. Please contact them.`,
+  },
+  "admin.high_workload": {
+    title: () => "High workload",
+    body: ({ activeTasks, averageTasks }) =>
+      `You have ${formatPlainNumber(activeTasks ?? 0)} active task(s) (average: ${formatPlainNumber(averageTasks ?? 0)}). Please review your priorities.`,
+  },
+  "admin.underloaded_team": {
+    title: () => "Underloaded team members",
+    body: ({ names }) =>
+      `The following members have a low workload: ${names}. Please redistribute tasks.`,
+  },
+  "admin.overdue_task": {
+    title: () => "Overdue task",
+    body: ({ taskTitle, message }) => `Task "${taskTitle}" ${message}.`,
+  },
+  "admin.request_followup": {
+    title: () => "Request needs follow-up",
+    body: ({ contactName, companyName }) =>
+      `Request "${contactName}" (${companyName}) has not been updated for 14 days.`,
+  },
+  "dispute.new_ticket": {
+    title: () => "New dispute ticket",
+    body: ({ ticketNumber }) =>
+      `New dispute ticket #${formatPlainNumber(ticketNumber ?? 0)} needs review`,
+  },
+  "dispute.approved": {
+    title: () => "Dispute ticket approved",
+    body: ({ title }) =>
+      `Dispute "${title}" was approved. You have 3 days to resolve it`,
+  },
+  "dispute.rejected": {
+    title: () => "Your dispute ticket was rejected",
+    body: ({ reason }) => `Your dispute ticket was rejected. Reason: ${reason}`,
+  },
+  "dispute.new_message": {
+    title: () => "New dispute message",
+    body: ({ ticketNumber }) =>
+      `You have a new message in dispute ticket #${formatPlainNumber(ticketNumber ?? 0)}`,
+  },
+  "dispute.awaiting_confirmation": {
+    title: () => "Dispute ticket update",
+    body: () =>
+      "The project manager marked the issue as resolved. Please confirm the resolution or escalate it.",
+  },
+  "dispute.client_confirmed": {
+    title: () => "Dispute resolved",
+    body: ({ ticketNumber }) =>
+      `The client confirmed resolution of dispute ticket #${formatPlainNumber(ticketNumber ?? 0)}`,
+  },
+  "dispute.resolved": {
+    title: () => "Dispute ticket resolved",
+    body: ({ ticketNumber }) =>
+      `Dispute ticket #${formatPlainNumber(ticketNumber ?? 0)} was resolved; the client confirmed the resolution`,
+  },
+  "dispute.escalated": {
+    title: () => "Dispute ticket escalated",
+    body: ({ ticketNumber }) =>
+      `The client reported that dispute ticket #${formatPlainNumber(ticketNumber ?? 0)} was not resolved`,
+  },
+  "dispute.auto_escalated": {
+    title: () => "Dispute ticket automatically escalated",
+    body: ({ ticketNumber }) =>
+      `Dispute ticket #${formatPlainNumber(ticketNumber ?? 0)} was automatically escalated because the response deadline expired`,
+  },
+  "dispute.manager_changed": {
+    title: () => "Project manager changed",
+    body: ({ ticketNumber }) =>
+      `The project manager was changed to resolve dispute ticket #${formatPlainNumber(ticketNumber ?? 0)}`,
+  },
+  "dispute.manager_removed": {
+    title: () => "Removed as project manager",
+    body: ({ projectName }) =>
+      `You were removed as project manager of "${projectName}" because of a dispute`,
+  },
+  "dispute.manager_assigned": {
+    title: () => "Assigned as new project manager",
+    body: ({ projectName }) =>
+      `You were assigned as project manager of "${projectName}"`,
+  },
+  "dispute.closed": {
+    title: () => "Dispute ticket closed",
+    body: ({ ticketNumber, client }) =>
+      client
+        ? `Your dispute ticket #${formatPlainNumber(ticketNumber ?? 0)} was closed`
+        : `Dispute ticket #${formatPlainNumber(ticketNumber ?? 0)} was closed`,
+  },
+  "dispute.reminder": {
+    title: ({ reminderNumber }) =>
+      `Reminder ${formatPlainNumber(reminderNumber ?? 0)}`,
+    body: ({ message }) => String(message ?? ""),
+  },
+  "meeting.pm_scheduled": {
+    title: () => "New meeting scheduled",
+    body: ({ meetingTitle }) => String(meetingTitle ?? ""),
+  },
+  "meeting.pm_updated": {
+    title: () => "Meeting updated",
+    body: ({ meetingTitle }) => String(meetingTitle ?? ""),
+  },
+  "project.file_uploaded": {
+    title: () => "New file uploaded",
+    body: ({ fileName }) => String(fileName ?? ""),
+  },
+  "chat.new_message": {
+    title: ({ sender }) => `New message from ${sender}`,
+    body: ({ content }) => String(content ?? ""),
+  },
+  "proposal.client_approved": {
+    title: () => "Client approved proposal",
+    body: ({ proposalTitle, notes }) =>
+      `The client approved proposal "${proposalTitle}"${notes ? ` — Notes: ${notes}` : ""}`,
+  },
+  "proposal.revision_requested": {
+    title: () => "Proposal revision requested",
+    body: ({ proposalTitle, notes }) =>
+      `The client requested revisions to proposal "${proposalTitle}"${notes ? `: ${notes}` : ""}`,
+  },
+  "request.submitted": {
+    title: () => "New request",
+    body: ({ contactName, companyName }) =>
+      `A new request was received from ${contactName} - ${companyName}`,
+  },
   "contract.canceled": {
     title: () => "Contract cancelled",
     body: ({ actorName, contractTitle, companyName, client }) =>
@@ -383,11 +586,17 @@ const templates: Record<NotificationMessageKey, NotificationTemplate> = {
   },
 };
 
+export const notificationMessageKeys = Object.keys(
+  templates,
+) as NotificationMessageKey[];
+
 // Arabic templates are added incrementally. Missing translations intentionally
 // fall back to the English catalog until the Arabic catalog is complete.
 const englishTemplates = templates;
 
-const localizedTemplates: Partial<Record<NotificationMessageKey, NotificationTemplate>> = arabicTemplates;
+const localizedTemplates: Partial<
+  Record<NotificationMessageKey, NotificationTemplate>
+> = arabicTemplates;
 
 export function renderNotificationMessage(
   key: NotificationMessageKey,
@@ -396,7 +605,7 @@ export function renderNotificationMessage(
 ) {
   const template =
     (locale === "ar"
-      ? preciseArabicTemplates[key] ?? localizedTemplates[key]
+      ? (preciseArabicTemplates[key] ?? localizedTemplates[key])
       : undefined) ?? englishTemplates[key];
   return {
     title: template.title(params),

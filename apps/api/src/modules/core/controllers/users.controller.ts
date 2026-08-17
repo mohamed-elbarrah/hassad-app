@@ -8,11 +8,11 @@ import {
   Delete,
   UseGuards,
   Query,
-  ForbiddenException,
 } from "@nestjs/common";
 import { UsersService, UserListFilters } from "../services/users.service";
 import { DepartmentsService } from "../services/departments.service";
 import { CreateUserDto, UpdateUserDto } from "../dto/user.dto";
+import { AssignDepartmentDto } from "../dto/rbac.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -21,6 +21,7 @@ import {
   JwtPayload,
 } from "../../../common/decorators/current-user.decorator";
 import { UserRole, TaskDepartment } from "@hassad/shared";
+import { forbidden } from "../../../common/errors/domain-errors";
 
 @Controller("users")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -51,8 +52,8 @@ export class UsersController {
       role: role || undefined,
       excludeRole: excludeRole || undefined,
       department: department || undefined,
-      page: page ? parseInt(page, 10) : undefined,
-      limit: limit ? parseInt(limit, 10) : undefined,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
     };
     return this.usersService.findAll(filters);
   }
@@ -72,7 +73,10 @@ export class UsersController {
     // Allow users to update their own profile (self-service)
     // Only admin can update other users
     if (id !== currentUser.id && currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException("You can only update your own profile");
+      throw forbidden(
+        "USER_PROFILE_UPDATE_FORBIDDEN",
+        "You can only update your own profile",
+      );
     }
 
     // Self-update: restrict fields that can be updated
@@ -92,7 +96,8 @@ export class UsersController {
       );
 
       if (hasRestrictedFields) {
-        throw new ForbiddenException(
+        throw forbidden(
+          "USER_PROFILE_FIELDS_FORBIDDEN",
           "You can only update your profile information (name, email, phone, password, avatar)",
         );
       }
@@ -124,8 +129,8 @@ export class UsersController {
   @RequirePermissions("departments.assign")
   assignDepartment(
     @Param("id") userId: string,
-    @Body("departmentId") departmentId: string,
+    @Body() dto: AssignDepartmentDto,
   ) {
-    return this.departmentsService.assignToUser(userId, departmentId);
+    return this.departmentsService.assignToUser(userId, dto.departmentId);
   }
 }

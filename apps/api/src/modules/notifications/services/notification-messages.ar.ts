@@ -3,6 +3,27 @@ import type {
   NotificationParams,
   NotificationTemplate,
 } from "./notification-messages";
+import { formatPlainNumber } from "../../../common/presentation/plain-number";
+
+const snoozeCategoryLabels: Record<string, string> = {
+  DELIVERABLE_APPROVAL: "اعتماد التسليم",
+  INVOICE_PAYMENT: "سداد الفاتورة",
+  PROPOSAL_REVIEW: "مراجعة العرض",
+  CONTRACT_SIGN: "توقيع العقد",
+  STRATEGY_REVIEW: "مراجعة الاستراتيجية التسويقية",
+};
+
+function getSnoozeCategory(itemType: NotificationParams[string]) {
+  return typeof itemType === "string"
+    ? (snoozeCategoryLabels[itemType] ?? "عنصر الإجراء")
+    : "عنصر الإجراء";
+}
+
+function getSnoozeCompanyName(companyName: NotificationParams[string]) {
+  return companyName === null || companyName === undefined
+    ? "شركتك"
+    : String(companyName);
+}
 
 /**
  * Arabic notification catalog.
@@ -40,7 +61,8 @@ export const arabicTemplates: Partial<
   },
   "project.approved": {
     title: () => "تمت الموافقة على المشروع",
-    body: ({ projectName }) => `تمت الموافقة على المشروع "${projectName}" من قبل العميل.`,
+    body: ({ projectName }) =>
+      `تمت الموافقة على المشروع "${projectName}" من قبل العميل.`,
   },
   "project.revision_requested": {
     title: () => "طلب العميل تعديلات على المشروع",
@@ -54,7 +76,8 @@ export const arabicTemplates: Partial<
   },
   "project.awaiting_review": {
     title: () => "مشروعك جاهز للمراجعة والموافقة",
-    body: ({ projectName }) => `المشروع "${projectName}" اكتمل وأصبح جاهزًا لمراجعتك.`,
+    body: ({ projectName }) =>
+      `المشروع "${projectName}" اكتمل وأصبح جاهزًا لمراجعتك.`,
   },
   "contract.sent": {
     title: ({ client }) =>
@@ -105,16 +128,20 @@ export const arabicTemplates: Partial<
   },
   "invoice.created": {
     title: () => "فاتورة جديدة",
-    body: ({ amount }) => `تم إنشاء فاتورة جديدة بقيمة ${amount ?? 0} ريال سعودي.`,
+    body: ({ amount }) =>
+      `تم إنشاء فاتورة جديدة بقيمة ${formatPlainNumber(amount ?? 0)} ريال سعودي.`,
   },
   "invoice.paid": {
     title: () => "تم دفع الفاتورة",
-    body: ({ invoiceNumber }) => `تم دفع الفاتورة ${invoiceNumber} بالكامل.`,
+    body: ({ invoiceNumber, amount }) =>
+      amount === undefined || amount === null
+        ? `تم دفع الفاتورة ${formatPlainNumber(invoiceNumber ?? "")} بالكامل.`
+        : `تم دفع الفاتورة ${formatPlainNumber(invoiceNumber ?? "")} بالكامل بقيمة ${formatPlainNumber(amount)} ريال سعودي.`,
   },
   "payment.received": {
     title: () => "تم استلام الدفعة",
     body: ({ amount, invoiceNumber }) =>
-      `تم استلام دفعة بقيمة ${amount ?? 0} ريال سعودي للفاتورة "${invoiceNumber}".`,
+      `تم استلام دفعة بقيمة ${formatPlainNumber(amount ?? 0)} ريال سعودي للفاتورة "${formatPlainNumber(invoiceNumber ?? "")}".`,
   },
   "deliverable.approved": {
     title: () => "تم اعتماد التسليم",
@@ -135,15 +162,12 @@ export const arabicTemplates: Partial<
     title: ({ sender }) => `رسالة جديدة من ${sender}`,
     body: ({ content }) => String(content ?? ""),
   },
-  "campaign.status_changed": {
-    title: () => "تحديث حالة الحملة",
-    body: ({ campaignName, status }) =>
-      `تم تغيير حالة الحملة "${campaignName}" إلى ${status}.`,
-  },
   "project.status_changed": {
     title: () => "تحديث المشروع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -152,7 +176,9 @@ export const arabicTemplates: Partial<
   "task.assigned_to": {
     title: () => "تحديث المهمة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -161,7 +187,9 @@ export const arabicTemplates: Partial<
   "task.comment_added": {
     title: () => "تحديث المهمة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -170,7 +198,9 @@ export const arabicTemplates: Partial<
   "contract.status_changed": {
     title: () => "تحديث العقد",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -179,7 +209,9 @@ export const arabicTemplates: Partial<
   "proposal.submitted": {
     title: () => "تحديث العرض",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -188,7 +220,9 @@ export const arabicTemplates: Partial<
   "dispute.created": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -197,7 +231,9 @@ export const arabicTemplates: Partial<
   "project.periods_generated": {
     title: () => "تحديث المشروع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -206,7 +242,9 @@ export const arabicTemplates: Partial<
   "project.period_closed": {
     title: () => "تحديث المشروع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -215,7 +253,9 @@ export const arabicTemplates: Partial<
   "project.period_invoice_issued": {
     title: () => "تحديث المشروع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -224,7 +264,9 @@ export const arabicTemplates: Partial<
   "meeting.scheduled": {
     title: () => "تحديث الاجتماع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -233,7 +275,9 @@ export const arabicTemplates: Partial<
   "meeting.updated": {
     title: () => "تحديث الاجتماع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -242,7 +286,9 @@ export const arabicTemplates: Partial<
   "meeting.canceled": {
     title: () => "تحديث الاجتماع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -251,7 +297,9 @@ export const arabicTemplates: Partial<
   "meeting.postponed": {
     title: () => "تحديث الاجتماع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -260,7 +308,9 @@ export const arabicTemplates: Partial<
   "contract.expiring": {
     title: () => "تحديث العقد",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -269,7 +319,9 @@ export const arabicTemplates: Partial<
   "contract.expired": {
     title: () => "تحديث العقد",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -278,7 +330,9 @@ export const arabicTemplates: Partial<
   "contract.renewal_urgent": {
     title: () => "تحديث العقد",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -287,7 +341,9 @@ export const arabicTemplates: Partial<
   "invoice.payment_reminder": {
     title: () => "تحديث الفاتورة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -296,7 +352,9 @@ export const arabicTemplates: Partial<
   "project.suspended": {
     title: () => "تحديث المشروع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -305,7 +363,9 @@ export const arabicTemplates: Partial<
   "marketing_task.assigned": {
     title: () => "تحديث مهمة التسويق",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -314,7 +374,9 @@ export const arabicTemplates: Partial<
   "contract.auto_canceled": {
     title: () => "تحديث العقد",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -323,7 +385,9 @@ export const arabicTemplates: Partial<
   "invoice.overdue_escalation": {
     title: () => "تحديث الفاتورة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -332,7 +396,9 @@ export const arabicTemplates: Partial<
   "invoice.automatic_created": {
     title: () => "تحديث الفاتورة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -341,7 +407,9 @@ export const arabicTemplates: Partial<
   "invoice.scheduled_created": {
     title: () => "تحديث الفاتورة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -350,7 +418,9 @@ export const arabicTemplates: Partial<
   "invoice.sent": {
     title: () => "تحديث الفاتورة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -359,7 +429,9 @@ export const arabicTemplates: Partial<
   "invoice.due_reminder": {
     title: () => "تحديث الفاتورة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -368,7 +440,9 @@ export const arabicTemplates: Partial<
   "project.created_from_contract": {
     title: () => "تحديث المشروع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -377,7 +451,9 @@ export const arabicTemplates: Partial<
   "period.resumed": {
     title: () => "تحديث الفترة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -386,7 +462,9 @@ export const arabicTemplates: Partial<
   "strategy.submitted": {
     title: () => "تحديث الاستراتيجية",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -395,7 +473,9 @@ export const arabicTemplates: Partial<
   "strategy.sent": {
     title: () => "تحديث الاستراتيجية",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -404,7 +484,9 @@ export const arabicTemplates: Partial<
   "strategy.approved": {
     title: () => "تحديث الاستراتيجية",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -413,7 +495,9 @@ export const arabicTemplates: Partial<
   "strategy.revision_requested": {
     title: () => "تحديث الاستراتيجية",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -422,7 +506,9 @@ export const arabicTemplates: Partial<
   "strategy.rejected": {
     title: () => "تحديث الاستراتيجية",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -431,7 +517,9 @@ export const arabicTemplates: Partial<
   "strategy.revised": {
     title: () => "تحديث الاستراتيجية",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -440,7 +528,9 @@ export const arabicTemplates: Partial<
   "campaign.launched": {
     title: () => "تحديث الحملة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -449,7 +539,9 @@ export const arabicTemplates: Partial<
   "campaign.created": {
     title: () => "تحديث الحملة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -458,25 +550,25 @@ export const arabicTemplates: Partial<
   "campaign.performance_updated": {
     title: () => "تحديث الحملة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
     },
   },
   "snooze.expired": {
-    title: () => "تذكير",
-    body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
-      return values.length > 0
-        ? `تم تحديث الإشعار: ${values.join(" - ")}`
-        : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
-    },
+    title: ({ itemType }) => `انتهى التأجيل: ${getSnoozeCategory(itemType)}`,
+    body: ({ itemType, companyName }) =>
+      `أصبح عنصر ${getSnoozeCategory(itemType)} الخاص بـ "${getSnoozeCompanyName(companyName)}" جاهزًا للمراجعة مرة أخرى.`,
   },
   "campaign.optimization_needed": {
     title: () => "تحديث الحملة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -485,7 +577,9 @@ export const arabicTemplates: Partial<
   "crm.contract_review": {
     title: () => "تحديث إدارة العملاء",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -494,7 +588,9 @@ export const arabicTemplates: Partial<
   "crm.proposal_review": {
     title: () => "تحديث إدارة العملاء",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -503,7 +599,9 @@ export const arabicTemplates: Partial<
   "admin.stalled_project": {
     title: () => "تنبيه إداري",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -512,7 +610,9 @@ export const arabicTemplates: Partial<
   "admin.unassigned_requests": {
     title: () => "تنبيه إداري",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -521,7 +621,9 @@ export const arabicTemplates: Partial<
   "admin.system_failures": {
     title: () => "تنبيه إداري",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -530,7 +632,9 @@ export const arabicTemplates: Partial<
   "admin.inactive_client": {
     title: () => "تنبيه إداري",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -539,7 +643,9 @@ export const arabicTemplates: Partial<
   "admin.high_workload": {
     title: () => "تنبيه إداري",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -548,7 +654,9 @@ export const arabicTemplates: Partial<
   "admin.underloaded_team": {
     title: () => "تنبيه إداري",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -557,7 +665,9 @@ export const arabicTemplates: Partial<
   "admin.overdue_task": {
     title: () => "تنبيه إداري",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -566,7 +676,9 @@ export const arabicTemplates: Partial<
   "admin.request_followup": {
     title: () => "تنبيه إداري",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -575,7 +687,9 @@ export const arabicTemplates: Partial<
   "dispute.new_ticket": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -584,7 +698,9 @@ export const arabicTemplates: Partial<
   "dispute.approved": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -593,7 +709,9 @@ export const arabicTemplates: Partial<
   "dispute.rejected": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -602,7 +720,9 @@ export const arabicTemplates: Partial<
   "dispute.new_message": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -611,7 +731,9 @@ export const arabicTemplates: Partial<
   "dispute.awaiting_confirmation": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -620,7 +742,9 @@ export const arabicTemplates: Partial<
   "dispute.client_confirmed": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -629,7 +753,9 @@ export const arabicTemplates: Partial<
   "dispute.resolved": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -638,7 +764,9 @@ export const arabicTemplates: Partial<
   "dispute.escalated": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -647,7 +775,9 @@ export const arabicTemplates: Partial<
   "dispute.auto_escalated": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -656,7 +786,9 @@ export const arabicTemplates: Partial<
   "dispute.manager_changed": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -665,7 +797,9 @@ export const arabicTemplates: Partial<
   "dispute.manager_removed": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -674,7 +808,9 @@ export const arabicTemplates: Partial<
   "dispute.manager_assigned": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -683,7 +819,9 @@ export const arabicTemplates: Partial<
   "dispute.closed": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -692,7 +830,9 @@ export const arabicTemplates: Partial<
   "dispute.reminder": {
     title: () => "تحديث التذكرة",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -701,7 +841,9 @@ export const arabicTemplates: Partial<
   "meeting.pm_scheduled": {
     title: () => "تحديث الاجتماع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -710,7 +852,9 @@ export const arabicTemplates: Partial<
   "meeting.pm_updated": {
     title: () => "تحديث الاجتماع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";
@@ -719,7 +863,9 @@ export const arabicTemplates: Partial<
   "project.file_uploaded": {
     title: () => "تحديث المشروع",
     body: (params: NotificationParams) => {
-      const values = Object.values(params).filter((value) => value !== undefined && value !== null && value !== "");
+      const values = Object.values(params).filter(
+        (value) => value !== undefined && value !== null && value !== "",
+      );
       return values.length > 0
         ? `تم تحديث الإشعار: ${values.join(" - ")}`
         : "تم تحديث الإشعار المرتبط بهذا الإجراء.";

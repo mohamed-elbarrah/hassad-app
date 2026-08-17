@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy, VerifyCallback } from "passport-google-oauth20";
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "../auth.service";
+import { ApiException } from "../../common/errors/api-error";
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
@@ -10,9 +11,11 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
   ) {
+    const clientId = configService.get<string>("GOOGLE_CLIENT_ID");
+    const clientSecret = configService.get<string>("GOOGLE_CLIENT_SECRET");
     super({
-      clientID: configService.get<string>("GOOGLE_CLIENT_ID") ?? "",
-      clientSecret: configService.get<string>("GOOGLE_CLIENT_SECRET") ?? "",
+      clientID: clientId || "oauth-disabled",
+      clientSecret: clientSecret || "oauth-disabled",
       callbackURL:
         configService.get<string>("GOOGLE_CALLBACK_URL") ??
         "http://localhost:3001/v1/auth/google/callback",
@@ -34,7 +37,15 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
       `${firstName} ${lastName}`.trim() || email?.split("@")[0] || "User";
 
     if (!email) {
-      return done(new UnauthorizedException("No email from Google"), false);
+      return done(
+        new ApiException(
+          "AUTH_UNAUTHORIZED",
+          "Google account did not provide an email address",
+          401,
+          { provider: "google" },
+        ),
+        false,
+      );
     }
 
     try {
@@ -46,7 +57,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
       });
       done(null, result);
     } catch (err) {
-      done(err as Error, false);
+      done(
+        err instanceof ApiException
+          ? err
+          : new ApiException(
+              "AUTH_UNAUTHORIZED",
+              "Google authentication failed",
+              401,
+            ),
+        false,
+      );
     }
   }
 }

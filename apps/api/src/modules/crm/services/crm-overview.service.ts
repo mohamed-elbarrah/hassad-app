@@ -1,8 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  BusinessType,
-  ClientSource,
-} from "@hassad/shared";
+import { BusinessType, ClientSource } from "@hassad/shared";
 import {
   ContactLogResult as PrismaContactLogResult,
   ContractStatus as PrismaContractStatus,
@@ -31,7 +28,9 @@ function toIso(value: Date | string | number | null | undefined) {
   return new Date(value).toISOString();
 }
 
-function maxIsoDate(...values: Array<Date | string | number | null | undefined>) {
+function maxIsoDate(
+  ...values: Array<Date | string | number | null | undefined>
+) {
   return values
     .filter(Boolean)
     .map((value) => new Date(value as Date | string).getTime())
@@ -54,24 +53,34 @@ function getOverviewStatusFromRequest(request: {
   const latestContract = request.contracts[0] ?? null;
   const latestContact = request.contactLogs[0] ?? null;
 
-  if (latestContract?.status === PrismaContractStatus.CANCELLED) return "CANCELLED";
+  if (latestContract?.status === PrismaContractStatus.CANCELLED)
+    return "CANCELLED";
   if (latestContract?.status === PrismaContractStatus.ACTIVE) return "ACTIVE";
-  if (latestContract?.status === PrismaContractStatus.SIGNED || request.status === PrismaRequestStatus.SIGNED) {
+  if (
+    latestContract?.status === PrismaContractStatus.SIGNED ||
+    request.status === PrismaRequestStatus.SIGNED
+  ) {
     return "SIGNED";
   }
-  if (latestContract?.status === PrismaContractStatus.SENT || request.status === PrismaRequestStatus.CONTRACT_SENT) {
+  if (
+    latestContract?.status === PrismaContractStatus.SENT ||
+    request.status === PrismaRequestStatus.CONTRACT_SENT
+  ) {
     return "CONTRACT_SENT";
   }
 
-  if (latestProposal?.status === PrismaProposalStatus.REJECTED) return "REJECTED";
-  if (latestProposal?.status === PrismaProposalStatus.APPROVED) return "APPROVED";
+  if (latestProposal?.status === PrismaProposalStatus.REJECTED)
+    return "REJECTED";
+  if (latestProposal?.status === PrismaProposalStatus.APPROVED)
+    return "APPROVED";
   if (latestProposal?.status === PrismaProposalStatus.SENT) return "SENT";
 
   switch (request.status) {
     case PrismaRequestStatus.SUBMITTED:
       return "NEW";
     case PrismaRequestStatus.QUALIFYING:
-      return latestContact && latestContact.result !== PrismaContactLogResult.RESPONDED
+      return latestContact &&
+        latestContact.result !== PrismaContactLogResult.RESPONDED
         ? "FAILED"
         : "SCHEDULED";
     case PrismaRequestStatus.PROPOSAL_IN_PROGRESS:
@@ -112,7 +121,7 @@ export class CrmOverviewService {
           },
           services: {
             include: {
-              service: { select: { name: true, nameAr: true } },
+              service: { select: { name: true } },
             },
           },
           proposals: {
@@ -175,11 +184,12 @@ export class CrmOverviewService {
         })),
       });
 
-      const serviceLine = request.services
-        .map((item) => item.service.nameAr || item.service.name)
-        .filter(Boolean)
-        .slice(0, 2)
-        .join(" + ") || "Qualification in progress";
+      const serviceLine =
+        request.services
+          .map((item) => item.service.name)
+          .filter(Boolean)
+          .slice(0, 2)
+          .join(" + ") || "Qualification in progress";
       const latestActivityAt = maxIsoDate(
         request.updatedAt,
         request.lastContactAt,
@@ -207,7 +217,8 @@ export class CrmOverviewService {
         businessName: request.businessName,
         businessType: request.businessType as BusinessType,
         source: request.source as ClientSource,
-        owner: request.assignee?.name || request.submitter?.name || "Unassigned",
+        owner:
+          request.assignee?.name || request.submitter?.name || "Unassigned",
         serviceLine,
         note,
         lastActivityAt: toIso(latestActivityAt || request.updatedAt),
@@ -241,7 +252,11 @@ export class CrmOverviewService {
           record.status,
         ].some((value) => includesText(value, normalized));
       })
-      .sort((left, right) => new Date(right.lastActivityAt).getTime() - new Date(left.lastActivityAt).getTime());
+      .sort(
+        (left, right) =>
+          new Date(right.lastActivityAt).getTime() -
+          new Date(left.lastActivityAt).getTime(),
+      );
 
     return records;
   }

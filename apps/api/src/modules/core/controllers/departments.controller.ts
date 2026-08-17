@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, UseGuards } from "@nestjs/common";
 import { DepartmentsService } from "../services/departments.service";
-import { CreateDepartmentDto } from "../dto/rbac.dto";
+import { AssignDepartmentDto, CreateDepartmentDto } from "../dto/rbac.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -24,10 +24,7 @@ export class DepartmentsController {
 
   @Post("users/:id")
   @RequirePermissions("departments.assign")
-  assignToUser(
-    @Param("id") userId: string,
-    @Body("departmentId") departmentId: string,
-  ) {
-    return this.departmentsService.assignToUser(userId, departmentId);
+  assignToUser(@Param("id") userId: string, @Body() dto: AssignDepartmentDto) {
+    return this.departmentsService.assignToUser(userId, dto.departmentId);
   }
 }

@@ -1,15 +1,23 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { PaymentPlanTriggerType, PaymentAmountType } from "@hassad/shared";
+import { Prisma } from "@prisma/client";
 import type { ContractPaymentPlan } from "@prisma/client";
 import {
   DefinePaymentPlanDto,
   PaymentPlanRowDto,
 } from "../dto/payment-plan.dto";
+import {
+  contractNotFound,
+  contractCommercialTermsImmutable,
+  contractPaymentPlanAmountInvalid,
+  contractPaymentPlanDownPaymentDuplicate,
+  contractPaymentPlanDownPaymentExceedsTotal,
+  contractPaymentPlanPercentInvalid,
+  contractPaymentPlanRowNotFound,
+  contractPaymentPlanSequenceDuplicate,
+  contractPaymentPlanSequenceInvalid,
+} from "../errors/contract-errors";
 
 /**
  * ContractPaymentPlanService
@@ -32,23 +40,25 @@ export class ContractPaymentPlanService {
   async getPlan(contractId: string): Promise<ContractPaymentPlan[]> {
     await this.assertContractExists(contractId);
     return this.prisma.contractPaymentPlan.findMany({
-      where: { contractId },
+      where: { contractId, isActive: true },
       orderBy: [{ sequence: "asc" }, { createdAt: "asc" }],
     });
   }
 
   /**
    * Replace a contract's entire payment plan (idempotent define).
-   * Existing rows are deleted and recreated inside one transaction.
+   * Existing rows are deactivated and recreated inside one transaction.
    */
   async definePlan(contractId: string, dto: DefinePaymentPlanDto) {
-    const contract = await this.assertContractExists(contractId);
-    await this.validateRows(dto.rows, contract.totalValue);
-
     const rows = this.normalizeSequences(dto.rows);
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.contractPaymentPlan.deleteMany({ where: { contractId } });
+      const contract = await this.lockContract(tx, contractId);
+      await this.validateRows(rows, contract.totalValue);
+      await tx.contractPaymentPlan.updateMany({
+        where: { contractId, isActive: true },
+        data: { isActive: false },
+      });
       await tx.contractPaymentPlan.createMany({
         data: rows.map((r) => ({
           contractId,
@@ -69,61 +79,96 @@ export class ContractPaymentPlanService {
 
   /** Append a single row to an existing plan. */
   async addRow(contractId: string, row: PaymentPlanRowDto) {
-    const contract = await this.assertContractExists(contractId);
-    await this.validateRows([row], contract.totalValue);
+    return this.prisma.$transaction(async (tx) => {
+      const contract = await this.lockContract(tx, contractId);
+      const existingOnSignRows =
+        row.triggerType === PaymentPlanTriggerType.ON_SIGN
+          ? await tx.contractPaymentPlan.count({
+              where: {
+                contractId,
+                triggerType: PaymentPlanTriggerType.ON_SIGN,
+                isActive: true,
+              },
+            })
+          : 0;
+      await this.validateRows([row], contract.totalValue, existingOnSignRows);
 
-    const maxSeq = await this.prisma.contractPaymentPlan.aggregate({
-      where: { contractId },
-      _max: { sequence: true },
-    });
-    const nextSeq = (maxSeq._max.sequence ?? -1) + 1;
-
-    return this.prisma.contractPaymentPlan.create({
-      data: {
-        contractId,
-        label: row.label,
-        sequence: row.sequence ?? nextSeq,
-        triggerType: row.triggerType,
-        amountType: row.amountType,
-        amountValue: row.amountValue,
-        isRecurring: row.isRecurring ?? false,
-        dueOffsetDays: row.dueOffsetDays ?? 0,
-      },
+      const sequence = await this.resolveSequence(tx, contractId, row.sequence);
+      return tx.contractPaymentPlan.create({
+        data: {
+          contractId,
+          label: row.label,
+          sequence,
+          triggerType: row.triggerType,
+          amountType: row.amountType,
+          amountValue: row.amountValue,
+          isRecurring: row.isRecurring ?? false,
+          dueOffsetDays: row.dueOffsetDays ?? 0,
+          isActive: true,
+        },
+      });
     });
   }
 
   /** Update a single plan row. */
-  async updateRow(rowId: string, row: PaymentPlanRowDto) {
-    const existing = await this.prisma.contractPaymentPlan.findUnique({
-      where: { id: rowId },
-      include: { contract: { select: { totalValue: true } } },
-    });
-    if (!existing) throw new NotFoundException("Plan row not found");
+  async updateRow(contractId: string, rowId: string, row: PaymentPlanRowDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const contract = await this.lockContract(tx, contractId);
+      const existing = await tx.contractPaymentPlan.findFirst({
+        where: { id: rowId, contractId, isActive: true },
+      });
+      if (!existing) throw contractPaymentPlanRowNotFound();
+      const existingOnSignRows =
+        row.triggerType === PaymentPlanTriggerType.ON_SIGN
+          ? await tx.contractPaymentPlan.count({
+              where: {
+                contractId: existing.contractId,
+                triggerType: PaymentPlanTriggerType.ON_SIGN,
+                id: { not: rowId },
+                isActive: true,
+              },
+            })
+          : 0;
+      await this.validateRows([row], contract.totalValue, existingOnSignRows);
+      const sequence = await this.resolveSequence(
+        tx,
+        existing.contractId,
+        row.sequence ?? existing.sequence,
+        rowId,
+      );
 
-    await this.validateRows([row], existing.contract.totalValue);
-
-    return this.prisma.contractPaymentPlan.update({
-      where: { id: rowId },
-      data: {
-        label: row.label,
-        sequence: row.sequence ?? existing.sequence,
-        triggerType: row.triggerType,
-        amountType: row.amountType,
-        amountValue: row.amountValue,
-        isRecurring: row.isRecurring ?? existing.isRecurring,
-        dueOffsetDays: row.dueOffsetDays ?? existing.dueOffsetDays ?? 0,
-      },
+      const updated = await tx.contractPaymentPlan.updateMany({
+        where: { id: rowId, contractId, isActive: true },
+        data: {
+          label: row.label,
+          sequence,
+          triggerType: row.triggerType,
+          amountType: row.amountType,
+          amountValue: row.amountValue,
+          isRecurring: row.isRecurring ?? existing.isRecurring,
+          dueOffsetDays: row.dueOffsetDays ?? existing.dueOffsetDays ?? 0,
+        },
+      });
+      if (updated.count === 0) throw contractPaymentPlanRowNotFound();
+      return tx.contractPaymentPlan.findUnique({ where: { id: rowId } });
     });
   }
 
-  /** Remove a single plan row (soft: sets isActive=false to preserve history links). */
-  async removeRow(rowId: string) {
-    const existing = await this.prisma.contractPaymentPlan.findUnique({
-      where: { id: rowId },
+  /** Deactivate a single plan row to preserve invoice references and history. */
+  async removeRow(contractId: string, rowId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockContract(tx, contractId);
+      const existing = await tx.contractPaymentPlan.findFirst({
+        where: { id: rowId, contractId, isActive: true },
+      });
+      if (!existing) throw contractPaymentPlanRowNotFound();
+      const removed = await tx.contractPaymentPlan.updateMany({
+        where: { id: rowId, contractId, isActive: true },
+        data: { isActive: false },
+      });
+      if (removed.count === 0) throw contractPaymentPlanRowNotFound();
+      return tx.contractPaymentPlan.findUnique({ where: { id: rowId } });
     });
-    if (!existing) throw new NotFoundException("Plan row not found");
-    // Hard delete is safe here: invoices reference it via SET NULL, so history is kept.
-    return this.prisma.contractPaymentPlan.delete({ where: { id: rowId } });
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -142,7 +187,11 @@ export class ContractPaymentPlanService {
   /** Return the ON_SIGN (down payment) plan row, or null if none. */
   async getOnSignRow(contractId: string): Promise<ContractPaymentPlan | null> {
     return this.prisma.contractPaymentPlan.findFirst({
-      where: { contractId, triggerType: PaymentPlanTriggerType.ON_SIGN },
+      where: {
+        contractId,
+        triggerType: PaymentPlanTriggerType.ON_SIGN,
+        isActive: true,
+      },
       orderBy: { sequence: "asc" },
     });
   }
@@ -152,34 +201,131 @@ export class ContractPaymentPlanService {
       where: { id: contractId },
       select: { id: true, totalValue: true, status: true },
     });
-    if (!contract) throw new NotFoundException("Contract not found");
+    if (!contract) throw contractNotFound();
     return contract;
   }
 
-  private async validateRows(rows: PaymentPlanRowDto[], totalValue: number) {
+  /** Serialize all plan mutations for a contract at the database level. */
+  private async lockContract(tx: any, contractId: string) {
+    if (typeof tx.$queryRaw === "function") {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT id FROM contracts WHERE id = ${contractId} FOR UPDATE`,
+      );
+    }
+    const contract = tx.contract?.findUnique
+      ? await tx.contract.findUnique({
+          where: { id: contractId },
+          select: { id: true, totalValue: true, status: true },
+        })
+      : await this.prisma.contract.findUnique({
+          where: { id: contractId },
+          select: { id: true, totalValue: true, status: true },
+        });
+    if (!contract) throw contractNotFound();
+    await this.assertCommercialTermsMutable(tx, contract);
+    return contract;
+  }
+
+  private async assertCommercialTermsMutable(
+    tx: any,
+    contract: { id: string; status: string },
+  ) {
+    if (
+      contract.status &&
+      contract.status !== "DRAFT" &&
+      contract.status !== "SENT"
+    ) {
+      throw contractCommercialTermsImmutable({
+        contractId: contract.id,
+        currentStatus: contract.status,
+      });
+    }
+
+    const invoice = tx.invoice?.findFirst
+      ? await tx.invoice.findFirst({
+          where: { contractId: contract.id },
+          select: { id: true },
+        })
+      : null;
+    if (invoice) {
+      throw contractCommercialTermsImmutable({
+        contractId: contract.id,
+        invoiceId: invoice.id,
+      });
+    }
+  }
+
+  async validateRows(
+    rows: PaymentPlanRowDto[],
+    totalValue: number,
+    existingOnSignRows = 0,
+  ) {
     const onSignRows = rows.filter(
       (r) => r.triggerType === PaymentPlanTriggerType.ON_SIGN,
     );
-    if (onSignRows.length > 1) {
-      throw new BadRequestException(
-        "A contract may have at most one ON_SIGN (down payment) plan row.",
-      );
+    if (onSignRows.length + existingOnSignRows > 1) {
+      throw contractPaymentPlanDownPaymentDuplicate({
+        field: "triggerType",
+        triggerType: PaymentPlanTriggerType.ON_SIGN,
+        maximum: 1,
+      });
+    }
+
+    const sequences = new Map<number, number[]>();
+    rows.forEach((row, index) => {
+      if (row.sequence === undefined || row.sequence === null) return;
+      const indexes = sequences.get(row.sequence) ?? [];
+      indexes.push(index);
+      sequences.set(row.sequence, indexes);
+    });
+    for (const [sequence, rowIndexes] of sequences) {
+      if (rowIndexes.length > 1) {
+        throw contractPaymentPlanSequenceDuplicate({
+          field: "sequence",
+          sequence,
+          rowIndexes,
+        });
+      }
     }
 
     // Count ON_SIGN rows already in DB when adding/updating a single row.
     // (For definePlan we delete first, so only the dto rows matter.)
     for (const r of rows) {
+      if (
+        r.sequence !== undefined &&
+        r.sequence !== null &&
+        (!Number.isInteger(r.sequence) || r.sequence < 0)
+      ) {
+        throw contractPaymentPlanSequenceInvalid({
+          field: "sequence",
+          integer: true,
+          value: r.sequence,
+        });
+      }
+      if (!Number.isFinite(r.amountValue)) {
+        throw contractPaymentPlanAmountInvalid({
+          field: "amountValue",
+          value: r.amountValue,
+        });
+      }
       if (r.amountType === PaymentAmountType.PERCENT) {
         if (r.amountValue < 0 || r.amountValue > 100) {
-          throw new BadRequestException(
-            `Plan row "${r.label}": PERCENT amount must be between 0 and 100.`,
-          );
+          throw contractPaymentPlanPercentInvalid({
+            field: "amountValue",
+            amountType: PaymentAmountType.PERCENT,
+            minimum: 0,
+            maximum: 100,
+            value: r.amountValue,
+          });
         }
       } else {
         if (r.amountValue < 0) {
-          throw new BadRequestException(
-            `Plan row "${r.label}": FIXED amount must be zero or greater.`,
-          );
+          throw contractPaymentPlanAmountInvalid({
+            field: "amountValue",
+            amountType: PaymentAmountType.FIXED,
+            minimum: 0,
+            value: r.amountValue,
+          });
         }
       }
 
@@ -189,19 +335,66 @@ export class ContractPaymentPlanService {
         r.amountType === PaymentAmountType.FIXED &&
         r.amountValue > totalValue
       ) {
-        throw new BadRequestException(
-          `Down payment (${r.amountValue}) cannot exceed contract total value (${totalValue}).`,
-        );
+        throw contractPaymentPlanDownPaymentExceedsTotal({
+          field: "amountValue",
+          amountType: PaymentAmountType.FIXED,
+          triggerType: PaymentPlanTriggerType.ON_SIGN,
+          value: r.amountValue,
+          totalValue,
+        });
       }
     }
   }
 
-  private normalizeSequences(rows: PaymentPlanRowDto[]) {
-    // If any sequence is missing, auto-assign 0..n; otherwise keep provided order.
-    const needsAuto = rows.some(
-      (r) => r.sequence === undefined || r.sequence === null,
+  normalizeSequences(rows: PaymentPlanRowDto[]) {
+    const used = new Set(
+      rows
+        .map((row) => row.sequence)
+        .filter((sequence): sequence is number => sequence != null),
     );
-    if (!needsAuto) return rows;
-    return rows.map((r, i) => ({ ...r, sequence: r.sequence ?? i }));
+    let nextSequence = 0;
+
+    return rows.map((row) => {
+      if (row.sequence != null) return row;
+      while (used.has(nextSequence)) nextSequence += 1;
+      const sequence = nextSequence;
+      used.add(sequence);
+      nextSequence += 1;
+      return { ...row, sequence };
+    });
+  }
+
+  private async resolveSequence(
+    tx: any,
+    contractId: string,
+    sequence?: number | null,
+    excludeRowId?: string,
+  ) {
+    if (sequence === undefined || sequence === null) {
+      const maxSequence = await tx.contractPaymentPlan.aggregate({
+        where: { contractId, isActive: true },
+        _max: { sequence: true },
+      });
+      return (maxSequence._max.sequence ?? -1) + 1;
+    }
+
+    const existing = await tx.contractPaymentPlan.findFirst({
+      where: {
+        contractId,
+        sequence,
+        isActive: true,
+        ...(excludeRowId ? { id: { not: excludeRowId } } : {}),
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw contractPaymentPlanSequenceDuplicate({
+        field: "sequence",
+        sequence,
+        existingRowId: existing.id,
+      });
+    }
+
+    return sequence;
   }
 }

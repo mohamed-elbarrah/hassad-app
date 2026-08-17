@@ -8,7 +8,7 @@ export const ClientApproveStrategySchema = z.object({
 });
 
 export const ClientRequestRevisionSchema = z.object({
-  comment: z.string().min(1, "التعليق مطلوب"),
+  comment: z.string().min(1, "Comment is required"),
 });
 
 export const MarketingStrategyQuerySchema = z.object({

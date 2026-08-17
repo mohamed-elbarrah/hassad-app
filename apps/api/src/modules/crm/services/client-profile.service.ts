@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { ApiException } from "../../../common/errors/api-error";
+import { forbidden, notFound } from "../../../common/errors/domain-errors";
 import {
   UpsertClientProfileDto,
   UpsertClientProfileV2Dto,
@@ -37,7 +33,10 @@ export class ClientProfileService {
 
     const ownedClientId = await this.resolveClientIdForUser(user.id);
     if (!ownedClientId || ownedClientId !== clientId) {
-      throw new ApiException("PROFILE_ACCESS_DENIED", "You can only access your own profile", 403);
+      throw forbidden(
+        "PROFILE_ACCESS_DENIED",
+        "You can only access your own profile",
+      );
     }
   }
 
@@ -59,7 +58,11 @@ export class ClientProfileService {
    * are excluded so internal roles only see operational context.
    * No special permission required — just authentication.
    */
-  async getTeamView(clientId: string) {
+  async getTeamView(clientId: string, user?: AuthenticatedUser) {
+    if (user) {
+      await this.assertClientOwnership(user, clientId);
+    }
+
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
       include: {
@@ -69,7 +72,10 @@ export class ClientProfileService {
     });
 
     if (!client) {
-      throw new NotFoundException(`Client with ID ${clientId} not found`);
+      throw notFound(
+        "CLIENT_NOT_FOUND",
+        `Client with ID ${clientId} not found`,
+      );
     }
 
     // Return only non-sensitive client fields + full profile
@@ -137,21 +143,21 @@ export class ClientProfileService {
         });
       }
 
-      return result;
-    });
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId,
+          userId: user.id,
+          eventType: existing
+            ? "CLIENT_PROFILE_UPDATED"
+            : "CLIENT_PROFILE_CREATED",
+          description: existing
+            ? "Client profile updated"
+            : "Client profile created",
+          metadata: { profileId: result.id },
+        },
+      });
 
-    await this.prisma.clientHistoryLog.create({
-      data: {
-        clientId,
-        userId: user.id,
-        eventType: existing
-          ? "CLIENT_PROFILE_UPDATED"
-          : "CLIENT_PROFILE_CREATED",
-        description: existing
-          ? "Client profile updated"
-          : "Client profile created",
-        metadata: { profileId: profile.id },
-      },
+      return result;
     });
 
     return profile;
@@ -230,35 +236,76 @@ export class ClientProfileService {
         });
       }
 
-      return result;
-    });
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId,
+          userId: user.id,
+          eventType: existing
+            ? "CLIENT_PROFILE_UPDATED"
+            : "CLIENT_PROFILE_CREATED",
+          description: existing
+            ? "Client profile updated (V2)"
+            : "Client profile created (V2)",
+          metadata: { profileId: result.id },
+        },
+      });
 
-    await this.prisma.clientHistoryLog.create({
-      data: {
-        clientId,
-        userId: user.id,
-        eventType: existing
-          ? "CLIENT_PROFILE_UPDATED"
-          : "CLIENT_PROFILE_CREATED",
-        description: existing
-          ? "Client profile updated (V2)"
-          : "Client profile created (V2)",
-        metadata: { profileId: profile.id },
-      },
+      return result;
     });
 
     return profile;
   }
 
-  async delete(clientId: string) {
+  async delete(clientId: string, userId: string) {
     const existing = await this.prisma.clientProfile.findUnique({
       where: { clientId },
     });
     if (!existing) {
-      throw new NotFoundException("Client profile not found");
+      throw notFound("CLIENT_NOT_FOUND", "Client profile not found");
     }
-    await this.prisma.clientProfile.delete({
-      where: { clientId },
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.clientProfile.update({
+        where: { clientId },
+        data: {
+          industry: null,
+          businessDescription: null,
+          targetAudience: null,
+          budgetRangeMin: null,
+          budgetRangeMax: null,
+          campaignGoals: null,
+          campaignOffer: null,
+          competitors: null,
+          seasonalTiming: null,
+          orderMethods: null,
+          abandonedCartSystem: null,
+          hasVisualIdentity: null,
+          brandAssets: null,
+          visualReferences: null,
+          uploadedFiles: null,
+          communicationInfo: null,
+          productInfo: null,
+          audienceInfo: null,
+          brandVoice: null,
+          customerJourney: null,
+          campaignInfo: null,
+          pastPerformance: null,
+          budgetInfo: null,
+          visualIdentityInfo: null,
+        },
+      });
+
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId,
+          userId,
+          eventType: "CLIENT_PROFILE_DELETED",
+          description: "Client profile data cleared",
+          metadata: { profileId: existing.id, operation: "soft_clear" },
+        },
+      });
     });
+
+    return { deleted: true as const };
   }
 }

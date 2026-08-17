@@ -1,6 +1,6 @@
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PassportStrategy } from "@nestjs/passport";
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Request } from "express";
 import { JwtPayload } from "../../common/decorators/current-user.decorator";
@@ -12,6 +12,15 @@ export class JwtRefreshStrategy extends PassportStrategy(
   "jwt-refresh",
 ) {
   constructor(private readonly configService: ConfigService) {
+    const secret = configService.get<string>("JWT_REFRESH_SECRET");
+    if (!secret) {
+      throw new ApiException(
+        "AUTH_REFRESH_SECRET_MISSING",
+        "Refresh token service is not configured",
+        500,
+      );
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
@@ -19,9 +28,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey:
-        configService.get<string>("JWT_REFRESH_SECRET") ??
-        "default_refresh_secret",
+      secretOrKey: secret,
       passReqToCallback: true,
     });
   }
@@ -29,7 +36,11 @@ export class JwtRefreshStrategy extends PassportStrategy(
   async validate(req: Request, payload: JwtPayload) {
     const refreshToken = req.cookies?.refreshToken;
     if (!refreshToken) {
-      throw new ApiException("AUTH_REFRESH_TOKEN_MISSING", "Refresh token is missing", 401);
+      throw new ApiException(
+        "AUTH_REFRESH_TOKEN_MISSING",
+        "Refresh token is missing",
+        401,
+      );
     }
     return { ...payload, refreshToken };
   }

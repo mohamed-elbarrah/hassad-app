@@ -1,8 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { PipelineStage, RequestStatus } from "@prisma/client";
+import { Injectable } from "@nestjs/common";
+import { RequestStatus } from "@hassad/shared";
+import { PipelineStage } from "@prisma/client";
 
 import { PrismaService } from "../../../prisma/prisma.service";
-import { ApiException } from "../../../common/errors/api-error";
+import { badRequest, notFound } from "../../../common/errors/domain-errors";
+import { RequestsService } from "../../requests/requests.service";
 
 const orderDetailClientSelect = {
   id: true,
@@ -66,9 +68,7 @@ const orderDetailServiceInclude = {
     select: {
       id: true,
       name: true,
-      nameAr: true,
       description: true,
-      descriptionAr: true,
     },
   },
 } as const;
@@ -216,7 +216,10 @@ function humanizeCrmStage(stage: string) {
 
 @Injectable()
 export class CrmOrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly requestsService: RequestsService,
+  ) {}
 
   async findOne(id: string) {
     const [request] = await Promise.all([
@@ -255,7 +258,7 @@ export class CrmOrdersService {
     ]);
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw notFound("REQUEST_NOT_FOUND", "Request not found");
     }
 
     return {
@@ -265,9 +268,9 @@ export class CrmOrdersService {
   }
 
   async createNote(id: string, authorId: string, content: string) {
-    const trimmed = content.trim();
+    const trimmed = typeof content === "string" ? content.trim() : "";
     if (!trimmed) {
-      throw new ApiException("ORDER_NOTE_REQUIRED", "Note content is required", 400);
+      throw badRequest("ORDER_NOTE_REQUIRED", "Note content is required");
     }
 
     const request = await this.prisma.request.findUnique({
@@ -277,7 +280,10 @@ export class CrmOrdersService {
     const canonicalRequest = request;
 
     if (!canonicalRequest) {
-      throw new NotFoundException("Canonical request not found for legacy CRM record");
+      throw notFound(
+        "REQUEST_CANONICAL_NOT_FOUND",
+        "Canonical request not found for legacy CRM record",
+      );
     }
 
     const note = await this.prisma.crmNote.create({
@@ -296,65 +302,84 @@ export class CrmOrdersService {
       toast: {
         type: "success" as const,
         title: "Note saved",
-        description: `Added a note to ${canonicalRequest.companyName}.`
+        description: `Added a note to ${canonicalRequest.companyName}.`,
       },
     };
   }
 
-  async updateStage(id: string, authorId: string, toStage: string, note?: string) {
-    const request = await this.prisma.request.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        companyName: true,
-        crmStage: true,
-        status: true,
-      },
-    });
-    if (!request) {
-      throw new NotFoundException('Request not found');
-    }
-
-    const currentStage = request.crmStage ?? 'NEW';
-
-    if (currentStage === toStage) {
-      throw new ApiException("ORDER_STAGE_UNCHANGED", "Order is already in this stage", 400);
-    }
-
+  async updateStage(
+    id: string,
+    authorId: string,
+    toStage: string,
+    note?: string,
+  ) {
     const content = note?.trim();
-    const requestStatus = mapCrmStageToRequestStatus(toStage);
-    const fromStageLabel = humanizeCrmStage(currentStage);
-    const toStageLabel = humanizeCrmStage(toStage);
-    const targetName = request.companyName;
+    const transition = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`
+        SELECT id
+        FROM "requests"
+        WHERE id = ${id}
+        FOR UPDATE
+      `;
 
-    await this.prisma.$transaction(async (tx) => {
-      if (request) {
-        await tx.request.update({
-          where: { id: request.id },
-          data: { crmStage: toStage as any, status: requestStatus },
-        });
-        await tx.requestStatusHistory.create({
-          data: {
-            requestId: request.id,
-            fromStatus: request.status,
-            toStatus: requestStatus,
-            changedBy: authorId,
-            note: content,
-          },
-        });
-        if (content) {
-          await tx.crmNote.create({ data: { requestId: request.id, authorId, content } });
-        }
-        return;
+      const request = await tx.request.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          companyName: true,
+          crmStage: true,
+          status: true,
+        },
+      });
+      if (!request) {
+        throw notFound("REQUEST_NOT_FOUND", "Request not found");
       }
+
+      const currentStage = request.crmStage ?? "NEW";
+      if (currentStage === toStage) {
+        throw badRequest(
+          "ORDER_STAGE_UNCHANGED",
+          "Order is already in this stage",
+        );
+      }
+
+      const requestStatus = mapCrmStageToRequestStatus(toStage);
+      await this.requestsService.updateStatus(
+        request.id,
+        requestStatus,
+        authorId,
+        content,
+        tx,
+      );
+      await tx.request.update({
+        where: { id: request.id },
+        data: { crmStage: toStage as any },
+      });
+      if (content) {
+        await tx.crmNote.create({
+          data: { requestId: request.id, authorId, content },
+        });
+      }
+
+      return {
+        request,
+        requestStatus,
+        fromStageLabel: humanizeCrmStage(currentStage),
+        toStageLabel: humanizeCrmStage(toStage),
+      };
     });
 
     return {
-      success: true,
+      action: "stage_updated" as const,
+      request: {
+        id: transition.request.id,
+        crmStage: toStage,
+        status: transition.requestStatus,
+      },
       toast: {
         type: "success" as const,
         title: "Stage updated",
-        description: `${targetName} changed from ${fromStageLabel} to ${toStageLabel}.`,
+        description: `${transition.request.companyName} changed from ${transition.fromStageLabel} to ${transition.toStageLabel}.`,
       },
     };
   }

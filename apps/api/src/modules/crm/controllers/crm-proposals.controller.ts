@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
@@ -7,7 +18,11 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { StorageService } from "../../../common/storage/storage.service";
-import { CrmCreateProposalDto, CrmProposalsWorkspaceQueryDto, CrmUpdateProposalDto } from "../dto/crm-proposals.dto";
+import {
+  CrmCreateProposalDto,
+  CrmProposalsWorkspaceQueryDto,
+  CrmUpdateProposalDto,
+} from "../dto/crm-proposals.dto";
 import { CrmProposalsService } from "../services/crm-proposals.service";
 
 @Controller("crm/proposals")
@@ -39,16 +54,18 @@ export class CrmProposalsController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const filePath = file
-      ? (await this.storageService.upload({
-          category: StorageCategory.PROPOSAL,
-          entityId: "pending",
-          file: {
-            buffer: file.buffer,
-            originalname: file.originalname,
-            mimetype: file.mimetype,
-            size: file.size,
-          },
-        })).key
+      ? (
+          await this.storageService.upload({
+            category: StorageCategory.PROPOSAL,
+            entityId: "pending",
+            file: {
+              buffer: file.buffer,
+              originalname: file.originalname,
+              mimetype: file.mimetype,
+              size: file.size,
+            },
+          })
+        ).key
       : dto.filePath;
 
     return this.service.create(userId, { ...dto, filePath });
@@ -63,16 +80,18 @@ export class CrmProposalsController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const filePath = file
-      ? (await this.storageService.upload({
-          category: StorageCategory.PROPOSAL,
-          entityId: id,
-          file: {
-            buffer: file.buffer,
-            originalname: file.originalname,
-            mimetype: file.mimetype,
-            size: file.size,
-          },
-        })).key
+      ? (
+          await this.storageService.upload({
+            category: StorageCategory.PROPOSAL,
+            entityId: id,
+            file: {
+              buffer: file.buffer,
+              originalname: file.originalname,
+              mimetype: file.mimetype,
+              size: file.size,
+            },
+          })
+        ).key
       : dto.filePath;
 
     return this.service.update(id, { ...dto, filePath });

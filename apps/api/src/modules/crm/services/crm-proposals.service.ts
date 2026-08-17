@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ProposalStatus, RequestStatus } from "@hassad/shared";
 import { randomBytes } from "crypto";
 
 import { PrismaService } from "../../../prisma/prisma.service";
-import { ApiException } from "../../../common/errors/api-error";
+import { badRequest, notFound } from "../../../common/errors/domain-errors";
 import { formatMonthDayYear } from "../../../common/presentation/english-date";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { RequestsService } from "../../requests/requests.service";
@@ -22,15 +22,33 @@ type CrmProposalRow = {
   servicesLabel: string;
   totalValue: number;
   status: ProposalStatus;
-  statusTone: "success" | "warning" | "neutral" | "active" | "attention" | "destructive";
+  statusTone:
+    | "success"
+    | "warning"
+    | "neutral"
+    | "active"
+    | "attention"
+    | "destructive";
   sentAtLabel: string;
   sentDaysAgo: number;
   responseLabel: string;
   validUntilLabel: string;
   validityDaysLeft: number;
-  validityTone: "success" | "warning" | "neutral" | "active" | "attention" | "destructive";
+  validityTone:
+    | "success"
+    | "warning"
+    | "neutral"
+    | "active"
+    | "attention"
+    | "destructive";
   contractLabel: string;
-  contractTone: "success" | "warning" | "neutral" | "active" | "attention" | "destructive";
+  contractTone:
+    | "success"
+    | "warning"
+    | "neutral"
+    | "active"
+    | "attention"
+    | "destructive";
 };
 
 function formatDate(value: Date) {
@@ -45,14 +63,21 @@ function mapStatusTone(status: ProposalStatus): CrmProposalRow["statusTone"] {
   return "neutral";
 }
 
-function mapValidityTone(daysLeft: number, validUntil: Date | null): CrmProposalRow["validityTone"] {
+function mapValidityTone(
+  daysLeft: number,
+  validUntil: Date | null,
+): CrmProposalRow["validityTone"] {
   if (!validUntil) return "neutral";
   if (daysLeft < 0) return "destructive";
   if (daysLeft <= 7) return "warning";
   return "success";
 }
 
-function buildToast(type: "success" | "error" | "info" | "warning" | "loading", title: string, description?: string) {
+function buildToast(
+  type: "success" | "error" | "info" | "warning" | "loading",
+  title: string,
+  description?: string,
+) {
   return { type, title, description };
 }
 
@@ -122,7 +147,8 @@ export class CrmProposalsService {
       return {
         id: item.id,
         title: item.title ?? "Proposal",
-        clientName: item.client?.companyName ?? item.request?.companyName ?? "—",
+        clientName:
+          item.client?.companyName ?? item.request?.companyName ?? "—",
         requestName: item.request?.companyName ?? "—",
         servicesCount: serviceNames.length,
         servicesLabel: serviceNames.join(", "),
@@ -132,9 +158,16 @@ export class CrmProposalsService {
         sentAtLabel: sentAt
           ? `Sent ${Math.max(0, Math.floor((now.getTime() - sentAt.getTime()) / 86400000))}d ago`
           : "Not sent",
-        sentDaysAgo: sentAt ? Math.max(0, Math.floor((now.getTime() - sentAt.getTime()) / 86400000)) : 0,
+        sentDaysAgo: sentAt
+          ? Math.max(
+              0,
+              Math.floor((now.getTime() - sentAt.getTime()) / 86400000),
+            )
+          : 0,
         responseLabel: String(item.status).replaceAll("_", " "),
-        validUntilLabel: validUntil ? `Valid until ${formatDate(validUntil)}` : "Validity not started",
+        validUntilLabel: validUntil
+          ? `Valid until ${formatDate(validUntil)}`
+          : "Validity not started",
         validityDaysLeft,
         validityTone: mapValidityTone(validityDaysLeft, validUntil),
         contractLabel: item.contract ? "Linked to contract" : "Not created",
@@ -142,7 +175,13 @@ export class CrmProposalsService {
       };
     });
 
-    return { items: rows, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+      items: rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: string) {
@@ -164,7 +203,7 @@ export class CrmProposalsService {
     });
 
     if (!proposal) {
-      throw new NotFoundException("Proposal not found");
+      throw notFound("PROPOSAL_NOT_FOUND", "Proposal not found");
     }
 
     const contract = await this.prisma.contract.findFirst({
@@ -177,7 +216,10 @@ export class CrmProposalsService {
 
   async create(userId: string, dto: CrmCreateProposalDto) {
     if (!dto.requestId) {
-      throw new ApiException("PROPOSAL_REQUEST_REQUIRED", "A request reference is required", 400);
+      throw badRequest(
+        "PROPOSAL_REQUEST_REQUIRED",
+        "A request reference is required",
+      );
     }
 
     const creator = await this.prisma.user.findUnique({
@@ -216,15 +258,22 @@ export class CrmProposalsService {
 
     return {
       proposal,
-      toast: buildToast("success", "Proposal draft created", "Save your changes or send it when ready."),
+      toast: buildToast(
+        "success",
+        "Proposal draft created",
+        "Save your changes or send it when ready.",
+      ),
     };
   }
 
-  async update(id: string, dto: CrmUpdateProposalDto & { filePath?: string | null }) {
+  async update(
+    id: string,
+    dto: CrmUpdateProposalDto & { filePath?: string | null },
+  ) {
     const proposal = await this.prisma.proposal.findUnique({ where: { id } });
 
     if (!proposal) {
-      throw new NotFoundException("Proposal not found");
+      throw notFound("PROPOSAL_NOT_FOUND", "Proposal not found");
     }
 
     const updated = await this.prisma.proposal.update({
@@ -247,7 +296,11 @@ export class CrmProposalsService {
 
     return {
       proposal: updated,
-      toast: buildToast("success", "Proposal updated", "The commercial draft has been saved."),
+      toast: buildToast(
+        "success",
+        "Proposal updated",
+        "The commercial draft has been saved.",
+      ),
     };
   }
 
@@ -258,7 +311,7 @@ export class CrmProposalsService {
     });
 
     if (!proposal) {
-      throw new NotFoundException("Proposal not found");
+      throw notFound("PROPOSAL_NOT_FOUND", "Proposal not found");
     }
 
     const token = randomBytes(32).toString("hex");
@@ -292,15 +345,20 @@ export class CrmProposalsService {
       return result;
     });
 
-    const recipientId = await this.prisma.request.findUnique({
-      where: { id: proposal.requestId ?? "" },
-      select: { client: { select: { userId: true } }, submittedBy: true },
-    }).then((request) => request?.client?.userId ?? request?.submittedBy ?? null).catch(() => null);
+    const recipientId = await this.prisma.request
+      .findUnique({
+        where: { id: proposal.requestId ?? "" },
+        select: { client: { select: { userId: true } }, submittedBy: true },
+      })
+      .then(
+        (request) => request?.client?.userId ?? request?.submittedBy ?? null,
+      )
+      .catch(() => null);
 
     if (recipientId) {
       this.notificationsService
         .createLocalizedNotification({
-          entityId: token,
+          entityId: proposal.id,
           entityType: "proposal",
           eventType: "PROPOSAL_SENT",
           userId: recipientId,
@@ -312,7 +370,11 @@ export class CrmProposalsService {
 
     return {
       proposal: updated,
-      toast: buildToast("success", "Proposal sent", "The proposal link has been generated and shared."),
+      toast: buildToast(
+        "success",
+        "Proposal sent",
+        "The proposal link has been generated and shared.",
+      ),
     };
   }
 }

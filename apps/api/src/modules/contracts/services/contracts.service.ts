@@ -1,13 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { OnEvent, EventEmitter2 } from "@nestjs/event-emitter";
 import { randomUUID } from "crypto";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { ApiException } from "../../../common/errors/api-error";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FinanceService } from "../../finance/services/finance.service";
 import {
@@ -39,7 +33,25 @@ import { PmAssignmentService } from "./pm-assignment.service";
 import { ContractPaymentPlanService } from "./contract-payment-plan.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
 import type { ContractStatus as ContractStatusEnum } from "@hassad/shared";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import {
+  contractHandoverNotFound,
+  contractLinkExpired,
+  contractNotFound,
+  contractNotSignedForActivation,
+  contractNotSignable,
+  contractInvalidStatusTransition,
+  contractPaymentPlanAmountInvalid,
+  contractPaymentPlanDownPaymentRequired,
+  contractCommercialTermsImmutable,
+  contractTotalInvalid,
+  contractRequestRequired,
+  contractProposalRequired,
+  contractPmRequired,
+} from "../errors/contract-errors";
+
+const DOWN_PAYMENT_INVOICE_NOTE =
+  "Down-payment invoice required to activate the contract";
 
 @Injectable()
 export class ContractsService {
@@ -68,6 +80,33 @@ export class ContractsService {
   ) {
     return tx.contractStatusHistory.create({
       data: { contractId, fromStatus, toStatus, changedBy, reason },
+    });
+  }
+
+  private async notifyRolesWithMessage(params: {
+    roles: string[];
+    messageKey: "contract.signed" | "project.created_from_contract";
+    messageParams: Record<string, string | number | null | undefined>;
+    entityId: string;
+    entityType: string;
+    eventType: string;
+  }) {
+    const users = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        role: { name: { in: params.roles } },
+      },
+      select: { id: true },
+    });
+    if (users.length === 0) return;
+
+    return this.notificationsService.notifyUsersWithMessage({
+      userIds: users.map((user) => user.id),
+      messageKey: params.messageKey,
+      messageParams: params.messageParams,
+      entityId: params.entityId,
+      entityType: params.entityType,
+      eventType: params.eventType,
     });
   }
 
@@ -115,7 +154,7 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException("Contract not found for project handover");
+      throw contractHandoverNotFound();
     }
 
     const managerCandidates = [
@@ -129,9 +168,7 @@ export class ContractsService {
     );
 
     if (!assignment) {
-      throw new BadRequestException(
-        "Cannot auto-create project without an active PM account",
-      );
+      throw contractPmRequired();
     }
 
     const projectManagerId = assignment.pmId;
@@ -195,8 +232,8 @@ export class ContractsService {
             await tx.deliverable.create({
               data: {
                 projectId: createdProject.id,
-                title: tmpl.titleAr || tmpl.title,
-                description: tmpl.descriptionAr || tmpl.description,
+                title: tmpl.title,
+                description: tmpl.description,
                 filePath: "",
                 status: TaskStatus.TODO,
                 isVisibleToClient: true,
@@ -240,21 +277,23 @@ export class ContractsService {
       .catch(() => undefined);
 
     if (fallbackUsed) {
-      this.notificationsService
-        .broadcast({
-          title: "Project manager assigned automatically",
-          message: `A project was created automatically from contract "${contract.title}" and assigned to "${assignment.pmName}" (lowest active project load: ${assignment.currentLoad}).`,
-          roles: ["ADMIN", "SALES"],
-        })
-        .catch(() => undefined);
+      this.notifyRolesWithMessage({
+        roles: ["ADMIN", "SALES"],
+        messageKey: "project.created_from_contract",
+        messageParams: { projectName: project.name },
+        entityId: project.id,
+        entityType: "PROJECT",
+        eventType: "PROJECT_CREATED_FROM_CONTRACT",
+      }).catch(() => undefined);
     } else if (assignment.isAccountManager) {
-      this.notificationsService
-        .broadcast({
-          title: "Project manager assigned",
-          message: `A project was created from contract "${contract.title}" and assigned to account manager "${assignment.pmName}" (${assignment.currentLoad} active projects).`,
-          roles: ["ADMIN"],
-        })
-        .catch(() => undefined);
+      this.notifyRolesWithMessage({
+        roles: ["ADMIN"],
+        messageKey: "project.created_from_contract",
+        messageParams: { projectName: project.name },
+        entityId: project.id,
+        entityType: "PROJECT",
+        eventType: "PROJECT_CREATED_FROM_CONTRACT",
+      }).catch(() => undefined);
     }
 
     this.directConversationService
@@ -326,12 +365,11 @@ export class ContractsService {
     });
 
     // Check if a down-payment invoice was already created at contract creation.
-    const existingInvoice = onSignRow?.id
-      ? await this.prisma.invoice.findFirst({
-          where: { contractId, paymentPlanId: onSignRow.id },
-          select: { id: true, status: true },
-        })
-      : null;
+    const existingInvoice = await this.findDownPaymentInvoice(
+      contractId,
+      onSignRow,
+      downPaymentAmount,
+    );
 
     if (existingInvoice && existingInvoice.status === InvoiceStatus.PAID) {
       // Already paid — activate immediately.
@@ -405,25 +443,52 @@ export class ContractsService {
         title: true,
         clientId: true,
         createdBy: true,
+        totalValue: true,
+        downPaymentType: true,
+        downPaymentValue: true,
         client: { select: { accountManager: true } },
       },
     });
-    if (!contract) throw new NotFoundException("Contract not found");
+    if (!contract) throw contractNotFound();
     if (contract.status === ContractStatus.ACTIVE) return contract;
     if (contract.status !== ContractStatus.SIGNED) {
-      throw new ApiException(
-        "CONTRACT_NOT_SIGNED",
-        `Contract must be SIGNED to activate (current: ${contract.status})`,
-        400,
-        { currentStatus: contract.status, requiredStatus: ContractStatus.SIGNED },
-      );
+      throw contractNotSignedForActivation(contract.status);
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const c = await tx.contract.update({
-        where: { id: contractId },
+    const onSignRow = await this.paymentPlanService.getOnSignRow(contractId);
+    const downPaymentAmount = onSignRow
+      ? this.paymentPlanService.resolveAmount(onSignRow, contract.totalValue)
+      : this.resolveDownPaymentFallback(contract);
+    if (downPaymentAmount > 0) {
+      const paidInvoice = await this.findDownPaymentInvoice(
+        contractId,
+        onSignRow,
+        downPaymentAmount,
+        InvoiceStatus.PAID,
+      );
+      if (!paidInvoice) {
+        throw contractPaymentPlanDownPaymentRequired({
+          contractId,
+          paymentPlanId: onSignRow?.id ?? null,
+        });
+      }
+    }
+
+    const transition = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.contract.updateMany({
+        where: { id: contractId, status: ContractStatus.SIGNED },
         data: { status: ContractStatus.ACTIVE },
       });
+      if (result.count === 0) {
+        const current = await tx.contract.findUnique({
+          where: { id: contractId },
+          select: { id: true, status: true },
+        });
+        if (current?.status === ContractStatus.ACTIVE) {
+          return { contract: current, changed: false };
+        }
+        throw contractNotSignedForActivation(current?.status ?? "UNKNOWN");
+      }
       await this.recordContractStatusHistory(
         tx,
         contractId,
@@ -445,26 +510,33 @@ export class ContractsService {
         data: { status: ClientStatus.ACTIVE },
       });
 
-      return c;
+      const current = await tx.contract.findUnique({
+        where: { id: contractId },
+      });
+      return { contract: current, changed: true };
     });
+
+    if (!transition.changed) return transition.contract;
 
     const projectManager = await this.prisma.project.findFirst({
       where: { contractId },
       select: { projectManagerId: true },
     });
 
-    await this.notificationsService.notifyUsersWithMessage({
-      userIds: [
-        contract.createdBy,
-        contract.client.accountManager,
-        projectManager?.projectManagerId,
-      ].filter(Boolean) as string[],
-      messageKey: "contract.activated",
-      messageParams: { contractTitle: contract.title },
-      entityId: contractId,
-      entityType: "CONTRACT",
-      eventType: "CONTRACT_ACTIVATED",
-    });
+    await this.notificationsService
+      .notifyUsersWithMessage({
+        userIds: [
+          contract.createdBy,
+          contract.client.accountManager,
+          projectManager?.projectManagerId,
+        ].filter(Boolean) as string[],
+        messageKey: "contract.activated",
+        messageParams: { contractTitle: contract.title },
+        entityId: contractId,
+        entityType: "CONTRACT",
+        eventType: "CONTRACT_ACTIVATED",
+      })
+      .catch(() => undefined);
 
     const clientUser = await this.prisma.client.findUnique({
       where: { id: contract.clientId },
@@ -499,7 +571,7 @@ export class ContractsService {
       userId,
     });
 
-    return updated;
+    return transition.contract;
   }
 
   /**
@@ -539,24 +611,24 @@ export class ContractsService {
     }
 
     // Phase 3: period invoice paid → resume suspended project/period.
-    await this.resumeFromPeriodPayment(
-      payload.invoiceId,
-      payload.userId || "system",
-    ).catch((err) => {
-      this.logger.error(
-        `Failed to resume after period invoice payment ${payload.invoiceId}: ${err?.message}`,
-      );
-    });
+    await this.resumeFromPeriodPayment(payload.invoiceId, payload.userId).catch(
+      (err) => {
+        this.logger.error(
+          `Failed to resume after period invoice payment ${payload.invoiceId}: ${err?.message}`,
+        );
+      },
+    );
   }
 
   /** Resume a suspended project/period when an overdue period invoice is paid. */
-  private async resumeFromPeriodPayment(invoiceId: string, userId: string) {
+  private async resumeFromPeriodPayment(invoiceId: string, userId?: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
       select: {
         id: true,
         triggeredSuspension: true,
         contractId: true,
+        contract: { select: { createdBy: true } },
         period: {
           select: {
             id: true,
@@ -569,6 +641,8 @@ export class ContractsService {
       },
     });
     if (!invoice || !invoice.period || !invoice.triggeredSuspension) return;
+    const historyActorId = userId ?? invoice.contract?.createdBy;
+    if (!historyActorId) return;
 
     const period = invoice.period;
     const projectStatus = await this.prisma.project.findUnique({
@@ -599,7 +673,7 @@ export class ContractsService {
           periodId: period.id,
           fromStatus: ProjectPeriodStatus.SUSPENDED,
           toStatus: targetStatus,
-          changedBy: userId,
+          changedBy: historyActorId,
           reason: "Resumed after period invoice payment",
         },
       });
@@ -616,18 +690,20 @@ export class ContractsService {
             select: { status: true },
           });
           if (contract && contract.status === "ON_HOLD") {
-            await tx.contract.update({
-              where: { id: invoice.contractId },
+            const resumed = await tx.contract.updateMany({
+              where: { id: invoice.contractId, status: "ON_HOLD" },
               data: { status: "ACTIVE" },
             });
-            await this.recordContractStatusHistory(
-              tx,
-              invoice.contractId,
-              ContractStatus.ON_HOLD,
-              ContractStatus.ACTIVE,
-              userId,
-              "Resumed after period invoice payment",
-            );
+            if (resumed.count > 0) {
+              await this.recordContractStatusHistory(
+                tx,
+                invoice.contractId,
+                ContractStatus.ON_HOLD,
+                ContractStatus.ACTIVE,
+                historyActorId,
+                "Resumed after period invoice payment",
+              );
+            }
           }
         }
       }
@@ -664,19 +740,83 @@ export class ContractsService {
     }
   }
 
-  /** An invoice is the down-payment invoice if its linked plan row is `ON_SIGN`. */
+  private async findDownPaymentInvoice(
+    contractId: string,
+    onSignRow: { id: string } | null,
+    amount: number,
+    status?: InvoiceStatus,
+  ) {
+    return this.prisma.invoice.findFirst({
+      where: {
+        contractId,
+        ...(onSignRow
+          ? { paymentPlanId: onSignRow.id }
+          : {
+              paymentPlanId: null,
+              amount,
+              notes: DOWN_PAYMENT_INVOICE_NOTE,
+            }),
+        ...(status ? { status } : {}),
+      },
+      select: { id: true, status: true },
+    });
+  }
+
+  /** An invoice is the down-payment invoice only when its exact contract linkage matches. */
   private async isDownPaymentInvoice(payload: {
     invoiceId: string;
+    contractId?: string | null;
     paymentPlanId?: string | null;
   }): Promise<boolean> {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: payload.invoiceId },
+      select: {
+        contractId: true,
+        paymentPlanId: true,
+        amount: true,
+        notes: true,
+        contract: {
+          select: {
+            totalValue: true,
+            downPaymentType: true,
+            downPaymentValue: true,
+          },
+        },
+      },
+    });
+    if (!invoice || invoice.contractId !== payload.contractId) return false;
+
     if (payload.paymentPlanId) {
       const row = await this.prisma.contractPaymentPlan.findUnique({
         where: { id: payload.paymentPlanId },
-        select: { triggerType: true },
+        select: { triggerType: true, contractId: true },
       });
-      return row?.triggerType === PaymentPlanTriggerType.ON_SIGN;
+      return (
+        invoice.paymentPlanId === payload.paymentPlanId &&
+        row?.contractId === payload.contractId &&
+        row.triggerType === PaymentPlanTriggerType.ON_SIGN
+      );
     }
-    return false;
+
+    const contract = invoice.contract;
+    if (
+      !contract ||
+      invoice.paymentPlanId !== null ||
+      invoice.notes !== DOWN_PAYMENT_INVOICE_NOTE ||
+      !contract.downPaymentType ||
+      contract.downPaymentValue == null
+    ) {
+      return false;
+    }
+    return (
+      this.paymentPlanService.resolveAmount(
+        {
+          amountType: contract.downPaymentType,
+          amountValue: contract.downPaymentValue,
+        },
+        contract.totalValue,
+      ) === invoice.amount
+    );
   }
 
   // ── Payment plan delegation (Sales defines the commercial plan) ──────────────
@@ -692,15 +832,93 @@ export class ContractsService {
     return this.paymentPlanService.addRow(contractId, row);
   }
 
-  async updatePaymentPlanRow(rowId: string, row: PaymentPlanRowDto) {
-    return this.paymentPlanService.updateRow(rowId, row);
+  async updatePaymentPlanRow(
+    contractId: string,
+    rowId: string,
+    row: PaymentPlanRowDto,
+  ) {
+    return this.paymentPlanService.updateRow(contractId, rowId, row);
   }
 
-  async removePaymentPlanRow(rowId: string) {
-    return this.paymentPlanService.removeRow(rowId);
+  async removePaymentPlanRow(contractId: string, rowId: string) {
+    return this.paymentPlanService.removeRow(contractId, rowId);
+  }
+
+  private async validateScalarDownPayment(
+    dto: CreateContractDto,
+    totalValue: number,
+  ) {
+    const hasType = dto.downPaymentType !== undefined;
+    const hasValue = dto.downPaymentValue !== undefined;
+    if (!hasType && !hasValue) return;
+
+    if (!hasType || !hasValue) {
+      throw contractPaymentPlanAmountInvalid({
+        field: hasType ? "downPaymentValue" : "downPaymentType",
+        required: true,
+      });
+    }
+
+    await this.paymentPlanService.validateRows(
+      [
+        {
+          label: "Down payment",
+          sequence: 0,
+          triggerType: PaymentPlanTriggerType.ON_SIGN,
+          amountType: dto.downPaymentType!,
+          amountValue: dto.downPaymentValue!,
+          isRecurring: false,
+          dueOffsetDays: 0,
+        },
+      ],
+      totalValue,
+    );
+  }
+
+  private validateTotalValue(totalValue: number) {
+    if (!Number.isFinite(totalValue) || totalValue < 0) {
+      throw contractTotalInvalid({
+        field: "totalValue",
+        value: totalValue,
+        minimum: 0,
+      });
+    }
+  }
+
+  private async assertCommercialTermsMutable(
+    tx: any,
+    contract: { id: string; status: string },
+  ) {
+    if (
+      contract.status &&
+      contract.status !== ContractStatus.DRAFT &&
+      contract.status !== ContractStatus.SENT
+    ) {
+      throw contractCommercialTermsImmutable({
+        contractId: contract.id,
+        currentStatus: contract.status,
+      });
+    }
+
+    const invoice = tx.invoice?.findFirst
+      ? await tx.invoice.findFirst({
+          where: { contractId: contract.id },
+          select: { id: true },
+        })
+      : null;
+    if (invoice) {
+      throw contractCommercialTermsImmutable({
+        contractId: contract.id,
+        invoiceId: invoice.id,
+      });
+    }
   }
 
   async create(userId: string, filePath: string, dto: CreateContractDto) {
+    if (!dto.requestId) {
+      throw contractRequestRequired({ field: "requestId" });
+    }
+
     const shareLinkToken = randomUUID();
 
     let servicesList: any = undefined;
@@ -720,16 +938,26 @@ export class ContractsService {
           title: true,
         },
       });
-      if (proposal) {
-        if (proposal.servicesList) {
-          servicesList = proposal.servicesList;
-        }
-        if (!dto.totalValue) totalValue = proposal.totalPrice;
-        if (proposal.durationDays) {
-          endDate = new Date(startDate);
-          endDate.setDate(endDate.getDate() + proposal.durationDays);
-        }
+      if (!proposal) {
+        throw contractProposalRequired({ field: "proposalId" });
       }
+      if (proposal.servicesList) {
+        servicesList = proposal.servicesList;
+      }
+      if (!dto.totalValue) totalValue = proposal.totalPrice;
+      if (proposal.durationDays) {
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + proposal.durationDays);
+      }
+    }
+
+    this.validateTotalValue(totalValue);
+    await this.validateScalarDownPayment(dto, totalValue);
+    const paymentPlanRows = dto.paymentPlan?.length
+      ? this.paymentPlanService.normalizeSequences(dto.paymentPlan)
+      : undefined;
+    if (paymentPlanRows) {
+      await this.paymentPlanService.validateRows(paymentPlanRows, totalValue);
     }
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -764,14 +992,23 @@ export class ContractsService {
         },
       });
 
+      await this.recordContractStatusHistory(
+        tx,
+        contract.id,
+        ContractStatus.DRAFT,
+        ContractStatus.SENT,
+        userId,
+        "Contract created",
+      );
+
       // Auto-generate payment plan rows from scalar fields if no explicit plan provided.
-      if (dto.paymentPlan && dto.paymentPlan.length > 0) {
-        for (const [i, row] of dto.paymentPlan.entries()) {
+      if (paymentPlanRows) {
+        for (const row of paymentPlanRows) {
           await tx.contractPaymentPlan.create({
             data: {
               contractId: contract.id,
               label: row.label,
-              sequence: row.sequence ?? i,
+              sequence: row.sequence!,
               triggerType: row.triggerType,
               amountType: row.amountType,
               amountValue: row.amountValue,
@@ -874,7 +1111,10 @@ export class ContractsService {
           eventType: "CONTRACT_SENT",
           userId: recipientId,
           messageKey: "contract.sent",
-          messageParams: { contractTitle: created.contract.title, client: "client" },
+          messageParams: {
+            contractTitle: created.contract.title,
+            client: "client",
+          },
         })
         .catch(() => undefined);
     }
@@ -909,7 +1149,7 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException(`Contract with ID ${id} not found`);
+      throw contractNotFound({ contractId: id });
     }
 
     return contract;
@@ -941,7 +1181,7 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException("Contract not found or the link has expired");
+      throw contractLinkExpired();
     }
 
     return contract;
@@ -959,25 +1199,25 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException("Contract not found");
+      throw contractLinkExpired();
     }
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new ApiException(
-        "CONTRACT_NOT_SIGNABLE",
-        "This contract cannot be signed in its current state",
-        400,
-      );
+      throw contractNotSignable();
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
-      const signed = await tx.contract.update({
-        where: { id: contract.id },
+      const result = await tx.contract.updateMany({
+        where: { id: contract.id, status: ContractStatus.SENT },
         data: {
           status: ContractStatus.SIGNED,
           eSigned: true,
           signedAt: new Date(),
         },
+      });
+      if (result.count === 0) throw contractNotSignable();
+      const signed = await tx.contract.findUnique({
+        where: { id: contract.id },
       });
 
       await this.recordContractStatusHistory(
@@ -1001,46 +1241,47 @@ export class ContractsService {
         );
       }
 
-      const clientUser = await this.prisma.client.findUnique({
-        where: { id: contract.clientId },
-        select: { userId: true },
-      });
-
-      this.notificationsService
-        .createLocalizedNotification({
-          entityId: signed.id,
-          entityType: "contract",
-          eventType: "CONTRACT_SIGNED",
-          userId: contract.createdBy,
-          messageKey: "contract.signed",
-          messageParams: { contractTitle: contract.title },
-        })
-        .catch(() => undefined);
-
-      if (clientUser?.userId) {
-        this.notificationsService
-          .createLocalizedNotification({
-            entityId: signed.id,
-            entityType: "contract",
-            eventType: "CONTRACT_SIGNED",
-            userId: clientUser.userId,
-            messageKey: "contract.signed",
-            messageParams: { contractTitle: contract.title, client: "client" },
-          })
-          .catch(() => undefined);
-      }
-
       return { ...signed, signedByName: dto.signedByName };
     });
 
-    await this.onContractSigned(contract.id, dto.signedByName).catch(() => {
-      this.notificationsService
-        .broadcast({
-          title: "Automatic project creation failed",
-          message: `Contract "${contract.title}" was signed, but the project or down-payment invoice could not be created automatically. Please review the status manually.`,
-          roles: ["ADMIN", "SALES"],
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: contract.clientId },
+      select: { userId: true },
+    });
+
+    await this.notificationsService
+      .createLocalizedNotification({
+        entityId: signedResult.id,
+        entityType: "contract",
+        eventType: "CONTRACT_SIGNED",
+        userId: contract.createdBy,
+        messageKey: "contract.signed",
+        messageParams: { contractTitle: contract.title },
+      })
+      .catch(() => undefined);
+
+    if (clientUser?.userId) {
+      await this.notificationsService
+        .createLocalizedNotification({
+          entityId: signedResult.id,
+          entityType: "contract",
+          eventType: "CONTRACT_SIGNED",
+          userId: clientUser.userId,
+          messageKey: "contract.signed",
+          messageParams: { contractTitle: contract.title, client: "client" },
         })
         .catch(() => undefined);
+    }
+
+    await this.onContractSigned(contract.id, dto.signedByName).catch(() => {
+      this.notifyRolesWithMessage({
+        roles: ["ADMIN", "SALES"],
+        messageKey: "contract.signed",
+        messageParams: { contractTitle: contract.title },
+        entityId: contract.id,
+        entityType: "CONTRACT",
+        eventType: "CONTRACT_SIGNED",
+      }).catch(() => undefined);
     });
 
     this.clientCounterService
@@ -1051,25 +1292,114 @@ export class ContractsService {
   }
 
   async update(id: string, dto: UpdateContractDto) {
-    return this.prisma.contract.update({
-      where: { id },
-      data: {
-        ...dto,
-        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-      },
-    });
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await this.lockContract(tx, id);
+        const current = await tx.contract.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            status: true,
+            totalValue: true,
+            downPaymentType: true,
+            downPaymentValue: true,
+          },
+        });
+        if (!current) throw contractNotFound();
+
+        if (dto.totalValue !== undefined) {
+          this.validateTotalValue(dto.totalValue);
+          await this.assertCommercialTermsMutable(tx, current);
+          const activeRows = await tx.contractPaymentPlan.findMany({
+            where: { contractId: id, isActive: true },
+          });
+          await this.paymentPlanService.validateRows(
+            activeRows as PaymentPlanRowDto[],
+            dto.totalValue,
+          );
+          if (
+            activeRows.length === 0 &&
+            current.downPaymentType &&
+            current.downPaymentValue != null
+          ) {
+            await this.paymentPlanService.validateRows(
+              [
+                {
+                  label: "Down payment",
+                  sequence: 0,
+                  triggerType: PaymentPlanTriggerType.ON_SIGN,
+                  amountType: current.downPaymentType as PaymentAmountType,
+                  amountValue: current.downPaymentValue,
+                  isRecurring: false,
+                  dueOffsetDays: 0,
+                },
+              ],
+              dto.totalValue,
+            );
+          }
+        }
+
+        return tx.contract.update({
+          where: { id },
+          data: {
+            ...dto,
+            startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+            endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+          },
+        });
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code === "P2025") {
+        throw contractNotFound();
+      }
+      throw error;
+    }
   }
 
   async send(id: string, userId?: string) {
     const contract = await this.findOne(id);
+    if (contract.status !== ContractStatus.DRAFT) {
+      throw contractInvalidStatusTransition({
+        action: "send",
+        currentStatus: contract.status,
+        allowedStatuses: [ContractStatus.DRAFT],
+      });
+    }
 
-    const updated = await this.prisma.contract.update({
-      where: { id },
-      data: {
-        status: ContractStatus.SENT,
-      },
+    const actorId = userId ?? contract.createdBy;
+    const transition = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.contract.updateMany({
+        where: { id, status: ContractStatus.DRAFT },
+        data: { status: ContractStatus.SENT },
+      });
+      if (result.count === 0) {
+        throw contractInvalidStatusTransition({
+          action: "send",
+          currentStatus: contract.status,
+          allowedStatuses: [ContractStatus.DRAFT],
+        });
+      }
+      await this.recordContractStatusHistory(
+        tx,
+        id,
+        ContractStatus.DRAFT,
+        ContractStatus.SENT,
+        actorId,
+        "Contract sent",
+      );
+      if (contract.requestId) {
+        await this.requestsService.updateStatus(
+          contract.requestId,
+          RequestStatus.CONTRACT_SENT,
+          actorId,
+          undefined,
+          tx,
+        );
+      }
+      const sent = await tx.contract.findUnique({ where: { id } });
+      return sent;
     });
+    const updated = transition;
 
     let actorName: string | undefined;
     if (userId) {
@@ -1085,18 +1415,20 @@ export class ContractsService {
       contract.createdBy,
     ].filter(Boolean) as string[];
     if (notifyUserIds.length > 0) {
-      await this.notificationsService.notifyUsersWithMessage({
-        userIds: notifyUserIds,
-        messageKey: "contract.sent",
-        messageParams: {
-          actorName: actorName ?? "System",
-          contractTitle: contract.title,
-          companyName: contract.client.companyName,
-        },
-        entityId: id,
-        entityType: "CONTRACT",
-        eventType: "CONTRACT_SENT",
-      });
+      await this.notificationsService
+        .notifyUsersWithMessage({
+          userIds: notifyUserIds,
+          messageKey: "contract.sent",
+          messageParams: {
+            actorName: actorName ?? "System",
+            contractTitle: contract.title,
+            companyName: contract.client.companyName,
+          },
+          entityId: id,
+          entityType: "CONTRACT",
+          eventType: "CONTRACT_SENT",
+        })
+        .catch(() => undefined);
     }
 
     const clientUser = await this.prisma.client.findUnique({
@@ -1116,14 +1448,6 @@ export class ContractsService {
         .catch(() => undefined);
     }
 
-    if (contract.requestId) {
-      await this.requestsService.updateStatus(
-        contract.requestId,
-        RequestStatus.CONTRACT_SENT,
-        contract.createdBy,
-      );
-    }
-
     return updated;
   }
 
@@ -1131,22 +1455,20 @@ export class ContractsService {
     const contract = await this.findOne(id);
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new ApiException(
-        "CONTRACT_NOT_SIGNABLE",
-        "This contract cannot be signed in its current state",
-        400,
-      );
+      throw contractNotSignable();
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
-      const updatedContract = await tx.contract.update({
-        where: { id },
+      const result = await tx.contract.updateMany({
+        where: { id, status: ContractStatus.SENT },
         data: {
           status: ContractStatus.SIGNED,
           eSigned: true,
           signedAt: new Date(),
         },
       });
+      if (result.count === 0) throw contractNotSignable();
+      const updatedContract = await tx.contract.findUnique({ where: { id } });
 
       await this.recordContractStatusHistory(
         tx,
@@ -1171,28 +1493,34 @@ export class ContractsService {
     });
 
     await this.onContractSigned(id, dto.signedByName).catch(() => {
-      this.notificationsService
-        .broadcast({
-          title: "Automatic project creation failed",
-          message: `Contract "${contract.title}" was signed, but the project or down-payment invoice could not be initialized automatically.`,
-          roles: ["ADMIN", "SALES"],
-        })
-        .catch(() => undefined);
+      this.notifyRolesWithMessage({
+        roles: ["ADMIN", "SALES"],
+        messageKey: "contract.signed",
+        messageParams: { contractTitle: contract.title },
+        entityId: id,
+        entityType: "CONTRACT",
+        eventType: "CONTRACT_SIGNED",
+      }).catch(() => undefined);
     });
 
     this.clientCounterService.onContractSigned(id).catch(() => undefined);
 
-    await this.notificationsService.notifyUsersWithMessage({
-      userIds: [contract.createdBy, contract.client.accountManager].filter(
-        Boolean,
-      ) as string[],
-      excludeUserIds: [userId],
-      messageKey: "contract.signed",
-      messageParams: { contractTitle: contract.title, companyName: contract.client.companyName },
-      entityId: id,
-      entityType: "CONTRACT",
-      eventType: "CONTRACT_SIGNED",
-    });
+    await this.notificationsService
+      .notifyUsersWithMessage({
+        userIds: [contract.createdBy, contract.client.accountManager].filter(
+          Boolean,
+        ) as string[],
+        excludeUserIds: [userId],
+        messageKey: "contract.signed",
+        messageParams: {
+          contractTitle: contract.title,
+          companyName: contract.client.companyName,
+        },
+        entityId: id,
+        entityType: "CONTRACT",
+        eventType: "CONTRACT_SIGNED",
+      })
+      .catch(() => undefined);
 
     return signedResult;
   }
@@ -1206,13 +1534,34 @@ export class ContractsService {
 
   async cancel(id: string, userId?: string) {
     const contract = await this.findOne(id);
+    const cancellableStatuses = [
+      ContractStatus.DRAFT,
+      ContractStatus.SENT,
+      ContractStatus.SIGNED,
+      ContractStatus.ACTIVE,
+      ContractStatus.ON_HOLD,
+    ];
+    if (!cancellableStatuses.includes(contract.status as ContractStatus)) {
+      throw contractInvalidStatusTransition({
+        action: "cancel",
+        currentStatus: contract.status,
+        allowedStatuses: cancellableStatuses,
+      });
+    }
     const actorId = userId || contract.createdBy;
     const fromStatus = contract.status as ContractStatus;
     const updated = await this.prisma.$transaction(async (tx) => {
-      const c = await tx.contract.update({
-        where: { id },
+      const result = await tx.contract.updateMany({
+        where: { id, status: fromStatus },
         data: { status: ContractStatus.CANCELLED },
       });
+      if (result.count === 0) {
+        throw contractInvalidStatusTransition({
+          action: "cancel",
+          currentStatus: contract.status,
+          allowedStatuses: cancellableStatuses,
+        });
+      }
       await this.recordContractStatusHistory(
         tx,
         id,
@@ -1221,7 +1570,16 @@ export class ContractsService {
         actorId,
         "Contract cancelled",
       );
-      return c;
+      if (contract.requestId) {
+        await this.requestsService.updateStatus(
+          contract.requestId,
+          RequestStatus.CANCELLED,
+          actorId,
+          undefined,
+          tx,
+        );
+      }
+      return tx.contract.findUnique({ where: { id } });
     });
 
     const cancelActor = await this.prisma.user.findUnique({
@@ -1230,21 +1588,23 @@ export class ContractsService {
     });
     const cancelActorName = cancelActor?.name ?? "System";
 
-    await this.notificationsService.notifyUsersWithMessage({
-      userIds: [contract.createdBy, contract.client.accountManager].filter(
-        Boolean,
-      ) as string[],
-      excludeUserIds: [actorId],
-      messageKey: "contract.canceled",
-      messageParams: {
-        actorName: cancelActorName,
-        contractTitle: contract.title,
-        companyName: contract.client.companyName,
-      },
-      entityId: id,
-      entityType: "CONTRACT",
-      eventType: "CONTRACT_CANCELLED",
-    });
+    await this.notificationsService
+      .notifyUsersWithMessage({
+        userIds: [contract.createdBy, contract.client.accountManager].filter(
+          Boolean,
+        ) as string[],
+        excludeUserIds: [actorId],
+        messageKey: "contract.canceled",
+        messageParams: {
+          actorName: cancelActorName,
+          contractTitle: contract.title,
+          companyName: contract.client.companyName,
+        },
+        entityId: id,
+        entityType: "CONTRACT",
+        eventType: "CONTRACT_CANCELLED",
+      })
+      .catch(() => undefined);
 
     const clientUser = await this.prisma.client.findUnique({
       where: { id: contract.clientId },
@@ -1258,17 +1618,9 @@ export class ContractsService {
           eventType: "CONTRACT_CANCELLED",
           userId: clientUser.userId,
           messageKey: "contract.canceled",
-          messageParams: { contractTitle: contract.title, client: "client" }
+          messageParams: { contractTitle: contract.title, client: "client" },
         })
         .catch(() => undefined);
-    }
-
-    if (contract.requestId) {
-      await this.requestsService.updateStatus(
-        contract.requestId,
-        RequestStatus.CANCELLED,
-        contract.createdBy,
-      );
     }
 
     return updated;
@@ -1328,7 +1680,13 @@ export class ContractsService {
     const contract = await this.findOne(id);
 
     return this.prisma.$transaction(async (tx) => {
-      const newVersionNumber = contract.versionNumber + 1;
+      await this.lockContract(tx, id);
+      const lockedContract = await tx.contract.findUnique({
+        where: { id },
+        select: { versionNumber: true },
+      });
+      if (!lockedContract) throw contractNotFound();
+      const newVersionNumber = lockedContract.versionNumber + 1;
 
       await tx.contractVersion.create({
         data: {
@@ -1347,5 +1705,12 @@ export class ContractsService {
         },
       });
     });
+  }
+
+  private async lockContract(tx: any, contractId: string) {
+    if (typeof tx.$queryRaw !== "function") return;
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM contracts WHERE id = ${contractId} FOR UPDATE`,
+    );
   }
 }

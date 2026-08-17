@@ -12,14 +12,13 @@ import { NotificationsService } from "../../notifications/services/notifications
  *   - Finds every `ClientSnoozedItem` whose `snoozedUntil <= now` AND
  *     `reminderSentAt IS NULL`.
  *   - For each match, emits ONE notification (dedup'd via `reminderSentAt`).
- *   - The notification body describes the item by referencing the original
- *     action-item shape (title / subtitle / actionUrl) so the user can
- *     click through to resolve it.
+ *   - The typed notification receives the stable item type and raw client
+ *     content; metadata carries the action URL for the notification drawer.
  *   - Resolves the owning `client.userId` to target the recipient; clients
  *     without a linked user are skipped silently (the action items list
  *     already filters those out).
- *   - Failures are wrapped in `.catch(() => undefined)` so a notification
- *     glitch never rolls back the `reminderSentAt` write — and vice versa.
+ *   - Notification failures are logged and leave `reminderSentAt` unset so
+ *     the next tick can retry delivery.
  *
  * What this intentionally does NOT do:
  *   - Does not mutate the underlying source entity (deliverable / invoice /
@@ -100,42 +99,33 @@ export class SnoozeReminderScheduler {
             continue;
           }
 
-          const { title, body, actionUrl } = this.describeItem(
-            row.itemType,
-            row.itemId,
-            row.client?.companyName ?? null,
-          );
+          const { actionUrl } = this.describeItem(row.itemType, row.itemId);
 
-          // Notification failure MUST NOT roll back `reminderSentAt` —
-          // AGENTS.md says notification glitches never block business data.
-          // We write `reminderSentAt` first, then fire-and-forget the
-          // notification. Worst case the user misses one nudge and the
-          // next snooze they make will re-surface the item.
-          await this.markReminderSent(row.id, now);
-
-          this.notificationsService
-            .createLocalizedNotification({
+          try {
+            await this.notificationsService.createLocalizedNotification({
               entityId: row.itemId,
               entityType: `ACTION_ITEM_${row.itemType}`,
               eventType: "ACTION_ITEM_SNOOZE_EXPIRED",
               userId: recipientId,
               messageKey: "snooze.expired",
-              messageParams: { title, body },
+              messageParams: {
+                itemType: row.itemType,
+                companyName: row.client?.companyName ?? null,
+              },
               metadata: {
                 itemType: row.itemType,
                 itemId: row.itemId,
                 actionUrl,
                 snoozedUntil: row.snoozedUntil.toISOString(),
               },
-            })
-            .then(() => notified++)
-            .catch((err) => {
-              // Log and continue. Already marked as sent above, so the
-              // cron won't re-attempt until the row is reset manually.
-              this.logger.warn(
-                `Failed to push snooze-expired notification for ${row.itemType}:${row.itemId}: ${(err as Error).message}`,
-              );
             });
+            await this.markReminderSent(row.id, now);
+            notified++;
+          } catch (err) {
+            this.logger.warn(
+              `Failed to push snooze-expired notification for ${row.itemType}:${row.itemId}: ${(err as Error).message}`,
+            );
+          }
         }
 
         if (batch.length < SnoozeReminderScheduler.BATCH_SIZE) break;
@@ -161,56 +151,34 @@ export class SnoozeReminderScheduler {
     });
   }
 
-  /**
-   * Build the user-facing copy for the snooze-expired notification.
-   * We keep this short and actionable — a title, a one-line body, and an
-   * `actionUrl` that the notification drawer can deep-link into.
-   *
-   * Static titles per item type so the user can scan their notification
-   * list and instantly know what category the nudge belongs to. The body
-   * varies slightly so two reminders back-to-back don't look identical.
-   */
+  /** Build the action URL without constructing localized notification copy. */
   private describeItem(
     itemType: string,
     itemId: string,
-    companyName: string | null,
-  ): { title: string; body: string; actionUrl: string } {
-    const greeting = companyName ? ` ${companyName}` : "";
+  ): { actionUrl: string } {
     switch (itemType) {
       case "DELIVERABLE_APPROVAL":
         return {
-          title: "Reminder: deliverable awaiting your review",
-          body: `A new deliverable${greeting} is awaiting your approval. Open it to review and decide.`,
           actionUrl: `/portal/deliverables/${itemId}`,
         };
       case "INVOICE_PAYMENT":
         return {
-          title: "Reminder: invoice awaiting payment",
-          body: `An invoice${greeting} is due again after your previous snooze. Open it to view details and pay.`,
           actionUrl: `/portal/invoices/${itemId}`,
         };
       case "PROPOSAL_REVIEW":
         return {
-          title: "Reminder: proposal awaiting your review",
-          body: `The proposal${greeting} you snoozed is ready for review. Open it to read and decide.`,
           actionUrl: `/portal/proposals/${itemId}`,
         };
       case "CONTRACT_SIGN":
         return {
-          title: "Reminder: contract awaiting your signature",
-          body: `The contract${greeting} has been awaiting your signature since it was snoozed. Open it to sign.`,
           actionUrl: `/portal/contracts/${itemId}`,
         };
       case "STRATEGY_REVIEW":
         return {
-          title: "Reminder: marketing strategy awaiting your review",
-          body: `The marketing strategy${greeting} is ready for review. Open it to approve or request revisions.`,
           actionUrl: `/portal/marketing-strategies/${itemId}`,
         };
       default:
         return {
-          title: "Reminder: action needs your attention",
-          body: `You have${greeting} a snoozed action that is now available for review.`,
           actionUrl: `/portal/actions`,
         };
     }

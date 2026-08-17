@@ -3,12 +3,13 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import {
-  NotificationMessageKey,
+  type NotificationMessageKey,
+  type NotificationParams,
   renderNotificationMessage,
 } from "./notification-messages";
 import {
   getRequestNotificationLocale,
-  NotificationLocale,
+  type NotificationLocale,
   normalizeNotificationLocale,
 } from "./notification-locale";
 
@@ -82,7 +83,7 @@ export class NotificationsService {
     eventType: string;
     userId: string;
     messageKey: NotificationMessageKey;
-    messageParams?: Record<string, string | number | null | undefined>;
+    messageParams?: NotificationParams;
     locale?: NotificationLocale;
     metadata?: Prisma.InputJsonValue;
   }) {
@@ -289,7 +290,7 @@ export class NotificationsService {
     userIds: string[];
     excludeUserIds?: string[];
     messageKey: NotificationMessageKey;
-    messageParams?: Record<string, string | number | null | undefined>;
+    messageParams?: NotificationParams;
     locale?: NotificationLocale;
     entityId?: string;
     entityType?: string;

@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Post,
@@ -20,6 +19,7 @@ import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { StorageService } from "../../../common/storage/storage.service";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { notFound } from "../../../common/errors/domain-errors";
 
 import {
   CreateConversationDto,
@@ -55,7 +55,10 @@ export class CrmChatController {
 
   @Post("conversations")
   @RequirePermissions("chat.create")
-  createConversation(@CurrentUser() user: any, @Body() dto: CreateConversationDto) {
+  createConversation(
+    @CurrentUser() user: any,
+    @Body() dto: CreateConversationDto,
+  ) {
     return this.chatService.createConversation(user.id, dto);
   }
 
@@ -76,7 +79,10 @@ export class CrmChatController {
       otherUserId,
     );
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw notFound(
+        "CHAT_DIRECT_CONVERSATION_CREATE_FAILED",
+        "Could not create direct conversation",
+      );
     }
     return conversation;
   }
@@ -163,7 +169,10 @@ export class CrmChatController {
     );
 
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw notFound(
+        "CHAT_DIRECT_CONVERSATION_CREATE_FAILED",
+        "Could not create direct conversation",
+      );
     }
 
     const attachments =
@@ -219,7 +228,12 @@ export class CrmChatController {
     @Param("messageId") messageId: string,
     @Body() dto: UpdateMessageDto,
   ) {
-    return this.chatService.updateMessage(conversationId, messageId, user.id, dto);
+    return this.chatService.updateMessage(
+      conversationId,
+      messageId,
+      user.id,
+      dto,
+    );
   }
 
   @Delete("conversations/:conversationId/messages/:messageId")
@@ -235,12 +249,18 @@ export class CrmChatController {
   @Get("targets/employees")
   @RequirePermissions("chat.read")
   searchEmployees(@Query() query: CrmChatTargetsQueryDto) {
-    return this.crmChatService.searchEmployees(query.search ?? "", query.limit ?? 6);
+    return this.crmChatService.searchEmployees(
+      query.search ?? "",
+      query.limit ?? 6,
+    );
   }
 
   @Get("targets/clients")
   @RequirePermissions("chat.read")
   searchClients(@Query() query: CrmChatTargetsQueryDto) {
-    return this.crmChatService.searchClients(query.search ?? "", query.limit ?? 6);
+    return this.crmChatService.searchClients(
+      query.search ?? "",
+      query.limit ?? 6,
+    );
   }
 }

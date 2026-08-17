@@ -30,7 +30,14 @@ export class CrmContractsWorkspaceQueryDto {
 
   @IsOptional()
   @IsIn(["all", "sent", "signed", "active", "on-hold", "expired", "cancelled"])
-  status?: "all" | "sent" | "signed" | "active" | "on-hold" | "expired" | "cancelled";
+  status?:
+    | "all"
+    | "sent"
+    | "signed"
+    | "active"
+    | "on-hold"
+    | "expired"
+    | "cancelled";
 
   @IsOptional()
   @IsString()

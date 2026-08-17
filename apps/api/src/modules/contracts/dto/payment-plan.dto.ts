@@ -10,8 +10,27 @@ import {
   ArrayMinSize,
   ValidateNested,
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { PaymentPlanTriggerType, PaymentAmountType } from "@hassad/shared";
+
+function strictNumber(value: unknown) {
+  if (typeof value === "number")
+    return Number.isFinite(value) ? value : Number.NaN;
+  if (typeof value !== "string" || value.trim() === "") return value;
+  const text = value.trim();
+  if (!/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(text)) return Number.NaN;
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
+function strictInteger(value: unknown) {
+  if (typeof value === "number")
+    return Number.isInteger(value) ? value : Number.NaN;
+  if (typeof value !== "string" || value.trim() === "") return value;
+  const text = value.trim();
+  if (!/^[+-]?\d+$/.test(text)) return Number.NaN;
+  return Number(text);
+}
 
 /** A single planned payment row on a contract's payment plan. */
 export class PaymentPlanRowDto {
@@ -23,6 +42,7 @@ export class PaymentPlanRowDto {
   label: string;
 
   @IsOptional()
+  @Transform(({ value }) => strictInteger(value))
   @IsInt()
   @Min(0)
   sequence?: number;
@@ -37,7 +57,8 @@ export class PaymentPlanRowDto {
    * Percentage of `contract.totalValue` (0-100) when `amountType = PERCENT`,
    * or a fixed amount in the contract currency (SAR) when `amountType = FIXED`.
    */
-  @IsNumber()
+  @Transform(({ value }) => strictNumber(value))
+  @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(0)
   amountValue: number;
 
@@ -46,6 +67,7 @@ export class PaymentPlanRowDto {
   isRecurring?: boolean = false;
 
   @IsOptional()
+  @Transform(({ value }) => strictInteger(value))
   @IsInt()
   @Min(0)
   dueOffsetDays?: number = 0;

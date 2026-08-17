@@ -11,6 +11,7 @@ import {
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { ClientProfileService } from "../services/client-profile.service";
 import {
   UpsertClientProfileDto,
@@ -38,8 +39,9 @@ export class ClientProfileController {
   }
 
   @Get(":id/team-view")
-  async getTeamView(@Param("id") id: string) {
-    return this.profileService.getTeamView(id);
+  @RequirePermissions("clients.read")
+  async getTeamView(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.profileService.getTeamView(id, user);
   }
 
   @Put(":id/profile")
@@ -67,7 +69,10 @@ export class ClientProfileController {
 
   @Delete(":id/profile")
   @RequirePermissions("clients.update")
-  async deleteProfile(@Param("id") id: string) {
-    return this.profileService.delete(id);
+  async deleteProfile(
+    @Param("id") id: string,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.profileService.delete(id, userId);
   }
 }

@@ -1,10 +1,11 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { ApiException } from "../../../common/errors/api-error";
+import {
+  badRequest,
+  internal,
+  notFound,
+} from "../../../common/errors/domain-errors";
 import { AutomationStatus } from "@hassad/shared";
 import {
   CreateAutomationRuleDto,
@@ -38,61 +39,100 @@ export class AutomationService {
   async executeRule(dto: ExecuteAutomationDto) {
     const { ruleId, requestId } = dto;
 
-    const rule = await this.prisma.requestAutomationRule.findUnique({
-      where: { id: ruleId },
-    });
-
-    if (!rule) {
-      throw new NotFoundException(
-        `Automation rule with ID ${ruleId} not found`,
-      );
-    }
-    if (!rule.isActive) {
-      throw new ApiException("AUTOMATION_INACTIVE", "Automation rule is inactive", 400);
-    }
-
-    const request = await this.prisma.request.findUnique({ where: { id: requestId } });
-    if (!request) {
-      throw new NotFoundException(`Request with ID ${requestId} not found`);
-    }
-
-    // Create a log entry tracking this execution
-    const log = await this.prisma.requestAutomationLog.create({
-      data: {
+    const executionError = () =>
+      internal("AUTOMATION_EXECUTION_FAILED", "Automation execution failed", {
         ruleId,
         requestId,
-        status: AutomationStatus.PENDING,
-      },
-    });
+      });
+    const persistFailure = async (logId: string) => {
+      try {
+        await this.prisma.requestAutomationLog.update({
+          where: { id: logId },
+          data: {
+            status: AutomationStatus.FAILED,
+            responseData: {
+              code: "AUTOMATION_EXECUTION_FAILED",
+              ruleId,
+              requestId,
+            } as Prisma.InputJsonValue,
+          },
+        });
+      } catch {
+        // Preserve the stable execution error if failure logging is unavailable.
+      }
+    };
+
+    let logId: string | null = null;
 
     try {
-      // Execute the action defined in actionJson
-      // Action processing dispatches based on rule.actionJson.type
-      const actionJson = rule.actionJson as Record<string, unknown>;
-      const responseData: Record<string, unknown> = {
-        actionType: actionJson["type"] ?? "unknown",
-      };
-
-      await this.prisma.requestAutomationLog.update({
-        where: { id: log.id },
-        data: {
-          status: AutomationStatus.SUCCESS,
-          responseData: responseData as Prisma.InputJsonValue,
-        },
+      const rule = await this.prisma.requestAutomationRule.findUnique({
+        where: { id: ruleId },
       });
 
-      return { success: true, logId: log.id, ruleId, requestId };
+      if (!rule) {
+        throw notFound(
+          "AUTOMATION_RULE_NOT_FOUND",
+          `Automation rule with ID ${ruleId} not found`,
+        );
+      }
+      if (!rule.isActive) {
+        throw badRequest("AUTOMATION_INACTIVE", "Automation rule is inactive");
+      }
+
+      const request = await this.prisma.request.findUnique({
+        where: { id: requestId },
+      });
+      if (!request) {
+        throw notFound(
+          "AUTOMATION_REQUEST_NOT_FOUND",
+          `Request with ID ${requestId} not found`,
+        );
+      }
+
+      // Create a log entry tracking this execution
+      const log = await this.prisma.requestAutomationLog.create({
+        data: {
+          ruleId,
+          requestId,
+          status: AutomationStatus.PENDING,
+        },
+      });
+      logId = log.id;
+
+      try {
+        // Execute the action defined in actionJson
+        // Action processing dispatches based on rule.actionJson.type
+        const actionJson = rule.actionJson as Record<string, unknown>;
+        const responseData: Record<string, unknown> = {
+          actionType: actionJson["type"] ?? "unknown",
+        };
+
+        await this.prisma.requestAutomationLog.update({
+          where: { id: log.id },
+          data: {
+            status: AutomationStatus.SUCCESS,
+            responseData: responseData as Prisma.InputJsonValue,
+          },
+        });
+
+        return {
+          action: "automation_executed" as const,
+          automation: { logId: log.id, ruleId, requestId },
+        };
+      } catch {
+        await persistFailure(log.id);
+        throw executionError();
+      }
     } catch (error) {
-      await this.prisma.requestAutomationLog.update({
-        where: { id: log.id },
-        data: {
-          status: AutomationStatus.FAILED,
-          responseData: {
-            error: (error as Error).message,
-          } as Prisma.InputJsonValue,
-        },
-      });
-      throw error;
+      if (error instanceof ApiException) {
+        throw error;
+      }
+
+      if (logId) {
+        await persistFailure(logId);
+      }
+
+      throw executionError();
     }
   }
 }

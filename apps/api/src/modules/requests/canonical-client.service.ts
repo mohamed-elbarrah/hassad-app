@@ -1,9 +1,10 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { BusinessType, ClientStatus } from "@hassad/shared";
 import { PrismaService } from "../../prisma/prisma.service";
 import { DirectConversationService } from "../chat/services/direct-conversation.service";
 import { SalesAssignmentService } from "./sales-assignment.service";
+import { conflict } from "../../common/errors/domain-errors";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
 
@@ -120,7 +121,8 @@ export class CanonicalClientService {
       params.userId &&
       existingClient.userId !== params.userId
     ) {
-      throw new ConflictException(
+      throw conflict(
+        "CLIENT_IDENTITY_CONFLICT",
         "A client profile with this identity is already linked to another user",
       );
     }
@@ -175,15 +177,19 @@ export class CanonicalClientService {
         : await db.client.findUnique({ where: { id: existingClient.id } });
 
       if (!client) {
-        throw new ConflictException("Unable to resolve canonical client");
+        throw conflict(
+          "CLIENT_CANONICAL_RESOLUTION_FAILED",
+          "Unable to resolve canonical client",
+        );
       }
 
       if (client.accountManager && client.userId) {
-        this.directConversationService
-          .getOrCreate(client.userId, client.accountManager, db, {
-            clientId: client.id,
-          })
-          .catch(() => undefined);
+        await this.directConversationService.getOrCreate(
+          client.userId,
+          client.accountManager,
+          db,
+          { clientId: client.id },
+        );
       }
 
       return { client, created: false };
@@ -201,11 +207,12 @@ export class CanonicalClientService {
     });
 
     if (accountManagerId && client.userId) {
-      this.directConversationService
-        .getOrCreate(client.userId, accountManagerId, db, {
-          clientId: client.id,
-        })
-        .catch(() => undefined);
+      await this.directConversationService.getOrCreate(
+        client.userId,
+        accountManagerId,
+        db,
+        { clientId: client.id },
+      );
     }
 
     return { client, created: true };

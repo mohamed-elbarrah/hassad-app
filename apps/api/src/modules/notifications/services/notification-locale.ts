@@ -6,7 +6,9 @@ import {
 
 export type NotificationLocale = SupportedLocale;
 
-export function normalizeNotificationLocale(value: unknown): NotificationLocale {
+export function normalizeNotificationLocale(
+  value: unknown,
+): NotificationLocale {
   return typeof value === "string"
     ? resolveBackendLocale(value)
     : normalizeLocale(value);

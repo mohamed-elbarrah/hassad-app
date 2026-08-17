@@ -11,7 +11,6 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ContractsService } from "../services/contracts.service";
@@ -33,6 +32,10 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
+import {
+  contractPdfRequired,
+  contractVersionPdfRequired,
+} from "../errors/contract-errors";
 
 @Controller("contracts")
 export class ContractsController {
@@ -54,7 +57,7 @@ export class ContractsController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) {
-      throw new BadRequestException("PDF file is required");
+      throw contractPdfRequired();
     }
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.CONTRACT,
@@ -148,7 +151,7 @@ export class ContractsController {
     @Body() dto: CreateVersionDto,
   ) {
     if (!file) {
-      throw new BadRequestException("PDF file is required for a new version");
+      throw contractVersionPdfRequired();
     }
     const uploadResult = await this.storageService.uploadForSubEntity(
       StorageCategory.CONTRACT,
@@ -211,14 +214,14 @@ export class ContractsController {
     @Param("rowId") rowId: string,
     @Body() row: PaymentPlanRowDto,
   ) {
-    return this.contractsService.updatePaymentPlanRow(rowId, row);
+    return this.contractsService.updatePaymentPlanRow(id, rowId, row);
   }
 
   @Delete(":id/payment-plan/rows/:rowId")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("contracts.manage_payment_plan")
   removePaymentPlanRow(@Param("id") id: string, @Param("rowId") rowId: string) {
-    return this.contractsService.removePaymentPlanRow(rowId);
+    return this.contractsService.removePaymentPlanRow(id, rowId);
   }
 
   // ─── Public share-link endpoints (CLIENT token-based) ─────────────────────

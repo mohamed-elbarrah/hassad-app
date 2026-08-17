@@ -2,7 +2,8 @@ import { IsIn, IsOptional, IsString } from "class-validator";
 import { BusinessType, ClientSource } from "@hassad/shared";
 
 export const CRM_OVERVIEW_BOARD_FILTERS = ["all", "leads", "orders"] as const;
-export type CrmOverviewBoardFilter = (typeof CRM_OVERVIEW_BOARD_FILTERS)[number];
+export type CrmOverviewBoardFilter =
+  (typeof CRM_OVERVIEW_BOARD_FILTERS)[number];
 
 export const CRM_OVERVIEW_KINDS = ["lead", "order"] as const;
 export type CrmOverviewKind = (typeof CRM_OVERVIEW_KINDS)[number];

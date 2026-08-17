@@ -5,11 +5,17 @@ import {
   IsBoolean,
   IsEnum,
   MinLength,
+  IsNotEmpty,
+  Matches,
 } from "class-validator";
 import { UserRole, TaskDepartment } from "@hassad/shared";
 
+const NON_WHITESPACE = /\S/;
+
 export class CreateUserDto {
   @IsString()
+  @IsNotEmpty()
+  @Matches(NON_WHITESPACE)
   name: string;
 
   @IsEmail()
@@ -30,6 +36,7 @@ export class CreateUserDto {
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
+  @Matches(NON_WHITESPACE)
   name?: string;
 
   @IsOptional()

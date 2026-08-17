@@ -1,5 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ApiException } from "../../../common/errors/api-error";
+import { internal } from "../../../common/errors/domain-errors";
+
+type PrismaExecutor = PrismaService | Prisma.TransactionClient;
 
 /**
  * Owns the denormalized counter fields on the `Client` row.
@@ -36,44 +41,50 @@ export class ClientCounterService {
    * Also writes a `CLIENT_COUNTERS_UPDATED` history log entry so PMs and
    * admins can audit when the counters were last refreshed.
    *
-   * Safe to call concurrently for the same client — Prisma's `update` is
-   * last-write-wins. The aggregation queries themselves are read-only and
-   * not subject to race conditions.
+   * Safe to call concurrently for the same client — aggregation acquires the
+   * owning client row lock before reading source tables, so concurrent source
+   * mutations and recomputes are ordered by the same database lock.
    */
-  async recomputeAll(clientId: string): Promise<void> {
-    const update = await this.aggregateClientCounters(clientId, this.prisma);
-
-    if (!update) {
-      // Client was deleted between the call and the write — nothing to do.
-      return;
-    }
-
-    await this.prisma.client.update({
-      where: { id: clientId },
-      data: update,
-    });
-
-    // Audit-log write is best-effort. The counter update above is the
-    // critical path — it must never be rolled back by an audit-log
-    // failure. The history log is wrapped in a try/catch with a silent
-    // fallback so a missing system user, a constraint violation, or any
-    // other audit-log glitch can never abort the recompute. This matches
-    // the codebase convention: "a notification failure must never roll
-    // back business data."
+  async recomputeAll(
+    clientId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<void> {
     try {
-      const systemUserId = await this.resolveSystemUserId();
-      await this.prisma.clientHistoryLog.create({
-        data: {
-          clientId,
-          userId: systemUserId,
-          eventType: "CLIENT_COUNTERS_UPDATED",
-          description: "Client counters recomputed",
-        },
-      });
-    } catch {
-      // Silent — audit-log failure is non-critical. The counter write
-      // above already succeeded and is the source of truth for the portal
-      // KPI grid.
+      const writeCountersAndHistory = async (tx: PrismaExecutor) => {
+        const update = await this.aggregateClientCounters(clientId, tx);
+        if (!update) {
+          return false;
+        }
+
+        const systemUserId = await this.resolveSystemUserId(tx);
+        await tx.client.update({
+          where: { id: clientId },
+          data: update,
+        });
+        await tx.clientHistoryLog.create({
+          data: {
+            clientId,
+            userId: systemUserId,
+            eventType: "CLIENT_COUNTERS_UPDATED",
+            description: "Client counters recomputed",
+          },
+        });
+        return true;
+      };
+
+      const recomputed = transaction
+        ? await writeCountersAndHistory(transaction)
+        : await this.prisma.$transaction((tx) => writeCountersAndHistory(tx));
+      if (!recomputed) return;
+    } catch (error) {
+      if (error instanceof ApiException) {
+        throw error;
+      }
+      throw internal(
+        "CLIENT_COUNTER_UPDATE_FAILED",
+        "Unable to update client counters",
+        { clientId },
+      );
     }
 
     this.logger.log(`Recomputed counters for client ${clientId}`);
@@ -93,12 +104,14 @@ export class ClientCounterService {
    */
   private cachedSystemUserId: string | null = null;
 
-  private async resolveSystemUserId(): Promise<string> {
+  private async resolveSystemUserId(
+    prisma: PrismaExecutor = this.prisma,
+  ): Promise<string> {
     if (this.cachedSystemUserId) {
       return this.cachedSystemUserId;
     }
 
-    const admin = await this.prisma.user.findFirst({
+    const admin = await prisma.user.findFirst({
       where: {
         isActive: true,
         role: { name: "ADMIN" },
@@ -107,11 +120,10 @@ export class ClientCounterService {
     });
 
     if (!admin) {
-      // Throwing here is caught by the try/catch in `recomputeAll()`,
-      // so the counter write above is preserved. We throw rather than
-      // hardcode a fallback string because hardcoding `"system"` is
-      // exactly the FK violation we're trying to fix.
-      throw new Error(
+      // Surface a stable error rather than hardcoding a fallback string that
+      // would create an invalid history-log foreign key.
+      throw internal(
+        "CLIENT_COUNTER_SYSTEM_USER_NOT_FOUND",
         "No active admin user found; cannot write CLIENT_COUNTERS_UPDATED audit log",
       );
     }
@@ -133,7 +145,7 @@ export class ClientCounterService {
    */
   async aggregateClientCounters(
     clientId: string,
-    prisma: PrismaService,
+    prisma: PrismaExecutor,
   ): Promise<{
     totalProjects: number;
     activeProjects: number;
@@ -145,6 +157,13 @@ export class ClientCounterService {
     lastProjectAt: Date | null;
     avgSatisfactionScore: number | null;
   } | null> {
+    await prisma.$queryRaw`
+      SELECT id
+      FROM "clients"
+      WHERE id = ${clientId}
+      FOR UPDATE
+    `;
+
     // Cheap existence check first — saves a roundtrip on a deleted client.
     const exists = await prisma.client.findUnique({
       where: { id: clientId },
@@ -156,6 +175,7 @@ export class ClientCounterService {
       projectStats,
       contractStats,
       invoiceStats,
+      paymentStats,
       satisfactionStats,
       lastProject,
     ] = await Promise.all([
@@ -170,6 +190,13 @@ export class ClientCounterService {
       }),
       prisma.invoice.aggregate({
         where: { clientId, status: { in: ["PAID", "PARTIAL"] } },
+        _sum: { amount: true },
+      }),
+      prisma.payment.aggregate({
+        where: {
+          status: "SUCCESS",
+          OR: [{ clientId }, { clientId: null, invoice: { is: { clientId } } }],
+        },
         _sum: { amount: true },
       }),
       prisma.satisfactionRating.aggregate({
@@ -193,7 +220,7 @@ export class ClientCounterService {
         projectStats.find((g) => g.status === "CANCELLED")?._count ?? 0,
       totalContractValue: contractStats._sum.totalValue ?? 0,
       totalInvoiced: invoiceStats._sum.amount ?? 0,
-      totalPaid: invoiceStats._sum.amount ?? 0,
+      totalPaid: paymentStats._sum.amount ?? 0,
       lastProjectAt: lastProject?.createdAt ?? null,
       avgSatisfactionScore: satisfactionStats._avg.score ?? null,
     };

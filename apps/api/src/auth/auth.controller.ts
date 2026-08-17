@@ -11,17 +11,23 @@ import {
 } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler"; // NEW
 import { ConfigService } from "@nestjs/config";
-import { AuthService } from "./auth.service";
-import { JwtService } from "@nestjs/jwt";
+import {
+  AuthService,
+  accessTokenLifetimeMs,
+  configuredCookieMaxAgeMs,
+  refreshTokenLifetimeMs,
+} from "./auth.service";
 import { LoginDto, UserRole } from "@hassad/shared";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { JwtRefreshGuard } from "./guards/jwt-refresh.guard";
+import { GoogleAuthGuard } from "./guards/google-auth.guard";
+import { OptionalJwtAuthGuard } from "./guards/optional-jwt-auth.guard";
 import { RolesGuard } from "./guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import {
   CurrentUser,
   JwtPayload,
 } from "../common/decorators/current-user.decorator";
-import { AuthGuard } from "@nestjs/passport";
 import { Response, Request as ExpressRequest } from "express";
 import { RegisterClientDto } from "./dto/register-client.dto";
 import { RegisterInternalDto } from "./dto/register-internal.dto";
@@ -33,7 +39,6 @@ import { EmailService } from "../common/services/email.service";
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
   ) {}
@@ -56,18 +61,23 @@ export class AuthController {
       userAgent,
     );
 
-    const rememberMe = dto.rememberMe ?? false;
+    const rememberMe = dto.rememberMe === true;
 
-    const refreshMaxAge = rememberMe
-      ? 30 * 24 * 60 * 60 * 1000 // 30 days
-      : Number(
-          this.configService.get<number>("COOKIE_REFRESH_TOKEN_MAX_AGE"),
-        ) || 7 * 24 * 60 * 60 * 1000; // 7 days default
+    const refreshMaxAge = refreshTokenLifetimeMs(
+      rememberMe,
+      configuredCookieMaxAgeMs(
+        this.configService.get<string | number>("COOKIE_REFRESH_TOKEN_MAX_AGE"),
+        7 * 24 * 60 * 60 * 1000,
+      ),
+    );
 
-    const tokenMaxAge = rememberMe
-      ? 7 * 24 * 60 * 60 * 1000 // 7 days
-      : Number(this.configService.get<number>("COOKIE_TOKEN_MAX_AGE")) ||
-        60 * 60 * 1000; // 1 hour default
+    const tokenMaxAge = accessTokenLifetimeMs(
+      rememberMe,
+      configuredCookieMaxAgeMs(
+        this.configService.get<string | number>("COOKIE_TOKEN_MAX_AGE"),
+        60 * 60 * 1000,
+      ),
+    );
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -88,22 +98,28 @@ export class AuthController {
     return { user, accessToken };
   }
 
-  @UseGuards(AuthGuard("jwt-refresh"))
+  @UseGuards(JwtRefreshGuard)
   @Post("refresh")
   async refresh(
     @Request() req: ExpressRequest & { user: JwtPayload },
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken } = await this.authService.refresh(req.user);
+    const { accessToken, rememberMe } = await this.authService.refresh(
+      req.user,
+    );
 
     res.cookie("token", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge:
-        Number(this.configService.get<number>("COOKIE_TOKEN_MAX_AGE")) ||
-        60 * 60 * 1000,
+      maxAge: accessTokenLifetimeMs(
+        rememberMe,
+        configuredCookieMaxAgeMs(
+          this.configService.get<string | number>("COOKIE_TOKEN_MAX_AGE"),
+          60 * 60 * 1000,
+        ),
+      ),
     });
 
     return { accessToken };
@@ -116,9 +132,18 @@ export class AuthController {
   }
 
   /** POST /auth/logout — clears all auth cookies */
+  @UseGuards(OptionalJwtAuthGuard)
   @Post("logout")
   @HttpCode(HttpStatus.OK)
-  async logout(@Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Request()
+    req: ExpressRequest & { user?: JwtPayload & { sessionId?: string } },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.revokeSession(req.user?.sessionId);
+    await this.authService.revokeSessionFromRefreshToken(
+      req.cookies?.refreshToken,
+    );
     res.cookie("token", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -186,14 +211,14 @@ export class AuthController {
 
   /** GET /auth/google — initiates Google OAuth flow */
   @Get("google")
-  @UseGuards(AuthGuard("google"))
+  @UseGuards(GoogleAuthGuard)
   googleAuth() {
     // Guard redirects to Google
   }
 
   /** GET /auth/google/callback — handles Google OAuth callback */
   @Get("google/callback")
-  @UseGuards(AuthGuard("google"))
+  @UseGuards(GoogleAuthGuard)
   async googleAuthRedirect(
     @Request() req: ExpressRequest & { user: any },
     @Res({ passthrough: true }) res: Response,
@@ -202,7 +227,7 @@ export class AuthController {
     const frontendUrl =
       this.configService.get<string>("FRONTEND_URL") ?? "http://localhost:3000";
 
-    if (!process.env.GOOGLE_CLIENT_ID) {
+    if (!this.configService.get<string>("GOOGLE_CLIENT_ID")) {
       return res.redirect(`${frontendUrl}/login?error=oauth_not_configured`);
     }
 
@@ -210,31 +235,22 @@ export class AuthController {
       return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
     }
 
-    const payload = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    };
-
-    const accessToken = this.jwtService.sign(payload);
-
-    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
-    const refreshToken = refreshSecret
-      ? this.jwtService.sign(payload, {
-          secret: refreshSecret,
-          expiresIn: "7d",
-        })
-      : "";
+    const ip =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+      req.ip;
+    const userAgent = req.headers["user-agent"];
+    const { accessToken, refreshToken } =
+      await this.authService.issueOAuthTokens(user.id, ip, userAgent);
 
     res.cookie("token", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge:
-        Number(this.configService.get<number>("COOKIE_TOKEN_MAX_AGE")) ||
+      maxAge: configuredCookieMaxAgeMs(
+        this.configService.get<string | number>("COOKIE_TOKEN_MAX_AGE"),
         60 * 60 * 1000,
+      ),
     });
 
     res.cookie("refreshToken", refreshToken, {
@@ -242,10 +258,10 @@ export class AuthController {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge:
-        Number(
-          this.configService.get<number>("COOKIE_REFRESH_TOKEN_MAX_AGE"),
-        ) || 7 * 24 * 60 * 60 * 1000,
+      maxAge: configuredCookieMaxAgeMs(
+        this.configService.get<string | number>("COOKIE_REFRESH_TOKEN_MAX_AGE"),
+        7 * 24 * 60 * 60 * 1000,
+      ),
     });
 
     const redirectUrl = user.role === "CLIENT" ? "/portal" : "/admin";

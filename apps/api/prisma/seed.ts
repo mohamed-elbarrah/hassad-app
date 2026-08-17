@@ -303,8 +303,12 @@ async function main() {
 
   // Bank transfer payment option; online gateways are configured separately.
   await prisma.paymentGateway.upsert({
-    where: { id: "gw-bank-transfer" },
-    update: { name: "bank_transfer", type: "MANUAL", isActive: true },
+    where: { name: "bank_transfer" },
+    update: {
+      type: "MANUAL",
+      isActive: true,
+      configJson: { bankAccountId: "bank-alrajhi-main" },
+    },
     create: {
       id: "gw-bank-transfer",
       name: "bank_transfer",

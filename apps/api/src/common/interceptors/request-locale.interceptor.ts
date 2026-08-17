@@ -7,7 +7,7 @@ import {
 import { Observable } from "rxjs";
 import { Request, Response } from "express";
 import {
-  resolveBackendLocale,
+  resolveRequestLocale,
   runWithBackendLocale,
 } from "../localization/request-locale";
 
@@ -19,8 +19,9 @@ export class RequestLocaleInterceptor implements NestInterceptor {
     const http = context.switchToHttp();
     const request = http.getRequest<Request>();
     const response = http.getResponse<Response>();
-    const locale = resolveBackendLocale(
-      request.headers["x-locale"] ?? request.headers["accept-language"],
+    const locale = resolveRequestLocale(
+      request.headers["x-locale"],
+      request.headers["accept-language"],
     );
 
     response.setHeader("Content-Language", locale);

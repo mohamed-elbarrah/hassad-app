@@ -1,12 +1,12 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { ApiException } from "../../../common/errors/api-error";
+import {
+  badRequest,
+  conflict,
+  internal,
+  notFound,
+} from "../../../common/errors/domain-errors";
 import {
   CreateClientDto,
   UpdateClientDto,
@@ -34,14 +34,17 @@ export class ClientsService {
           where: { email: dto.email.trim().toLowerCase() },
         });
         if (existingUser) {
-          throw new ApiException("CLIENT_EMAIL_ALREADY_EXISTS", "A user with this email already exists", 409);
+          throw conflict(
+            "CLIENT_EMAIL_ALREADY_EXISTS",
+            "A user with this email already exists",
+          );
         }
 
         const role = await tx.role.findFirst({
           where: { name: "CLIENT" },
         });
         if (!role) {
-          throw new ApiException("CLIENT_ROLE_NOT_FOUND", "CLIENT role not found", 500);
+          throw internal("CLIENT_ROLE_NOT_FOUND", "CLIENT role not found");
         }
 
         const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -171,28 +174,30 @@ export class ClientsService {
     });
 
     if (!client) {
-      throw new NotFoundException(`Client with ID ${id} not found`);
+      throw notFound("CLIENT_NOT_FOUND", `Client with ID ${id} not found`);
     }
 
     return client;
   }
 
   async update(id: string, userId: string, dto: UpdateClientDto) {
-    const client = await this.prisma.client.update({
-      where: { id },
-      data: dto,
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const client = await tx.client.update({
+        where: { id },
+        data: dto,
+      });
 
-    await this.prisma.clientHistoryLog.create({
-      data: {
-        clientId: id,
-        userId,
-        eventType: "CLIENT_UPDATED",
-        description: "Client record updated",
-      },
-    });
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId: id,
+          userId,
+          eventType: "CLIENT_UPDATED",
+          description: "Client record updated",
+        },
+      });
 
-    return client;
+      return client;
+    });
   }
 
   async getActivity(id: string) {
@@ -206,10 +211,9 @@ export class ClientsService {
   }
 
   async handover(id: string, userId: string, dto: HandoverClientDto) {
-    throw new ApiException(
+    throw badRequest(
       "CLIENT_HANDOVER_DISABLED",
       "Direct client handover is disabled. Create projects from signed contracts so the request workflow remains canonical.",
-      400,
     );
   }
 }

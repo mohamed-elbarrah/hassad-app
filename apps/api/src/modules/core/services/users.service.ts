@@ -1,8 +1,5 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { CreateUserDto, UpdateUserDto } from "../dto/user.dto";
@@ -12,6 +9,11 @@ import {
   RequestStatus,
   ProjectStatus,
 } from "@hassad/shared";
+import {
+  badRequest,
+  conflict,
+  notFound,
+} from "../../../common/errors/domain-errors";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -30,24 +32,87 @@ export class UsersService {
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
-  private async resolveRoleId(roleName: UserRole): Promise<string> {
-    const role = await this.prisma.role.findFirst({
+  private async resolveRoleId(
+    roleName: UserRole,
+    db: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<string> {
+    const role = await db.role.findFirst({
       where: { name: roleName },
     });
     if (!role) {
-      throw new BadRequestException(`Role "${roleName}" not found`);
+      throw badRequest("USER_ROLE_NOT_FOUND", `Role "${roleName}" not found`, {
+        role: roleName,
+      });
     }
     return role.id;
   }
 
-  private async resolveDepartmentId(deptName: TaskDepartment): Promise<string> {
-    const dept = await this.prisma.department.findFirst({
+  private async resolveDepartmentId(
+    deptName: TaskDepartment,
+    db: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<string> {
+    const dept = await db.department.findFirst({
       where: { name: deptName },
     });
     if (!dept) {
-      throw new BadRequestException(`Department "${deptName}" not found`);
+      throw badRequest(
+        "USER_DEPARTMENT_NOT_FOUND",
+        `Department "${deptName}" not found`,
+        { department: deptName },
+      );
     }
     return dept.id;
+  }
+
+  private isPrismaError(error: unknown, code: string): boolean {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === code
+    );
+  }
+
+  private prismaErrorTarget(error: unknown): string[] {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return [];
+    const target = error.meta?.target;
+    return Array.isArray(target) ? target.map(String) : [];
+  }
+
+  private throwMutationPrismaError(
+    error: unknown,
+    email: string | undefined,
+    userId: string | undefined,
+  ): never {
+    if (this.isPrismaError(error, "P2002")) {
+      const target = this.prismaErrorTarget(error);
+      if (target.includes("email")) {
+        throw conflict(
+          "USER_EMAIL_ALREADY_EXISTS",
+          "A user with this email already exists",
+          { email },
+        );
+      }
+      if (target.includes("user_id") && target.includes("department_id")) {
+        throw conflict(
+          "USER_DEPARTMENT_ALREADY_ASSIGNED",
+          "This department is already assigned to the user",
+          { userId },
+        );
+      }
+      throw conflict("USER_MUTATION_CONFLICT", "The user could not be saved");
+    }
+    if (this.isPrismaError(error, "P2003")) {
+      throw notFound(
+        "USER_REFERENCE_NOT_FOUND",
+        "A user role or department reference is no longer available",
+        { userId },
+      );
+    }
+    if (userId && this.isPrismaError(error, "P2025")) {
+      throw notFound("USER_NOT_FOUND", `User with ID ${userId} not found`, {
+        userId,
+      });
+    }
+    throw error;
   }
 
   /** Normalise a raw Prisma user row into a safe API shape. */
@@ -89,36 +154,58 @@ export class UsersService {
 
   async create(dto: CreateUserDto) {
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-    const roleId = await this.resolveRoleId(dto.role);
 
-    const user = await this.prisma.user.create({
-      data: {
-        name: dto.name,
-        email: dto.email,
-        passwordHash,
-        roleId,
-      },
-      include: {
-        role: true,
-        departments: { include: { department: true } },
-      },
-    });
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const roleId = await this.resolveRoleId(dto.role, tx);
+        const deptId = dto.department
+          ? await this.resolveDepartmentId(dto.department, tx)
+          : undefined;
+        const existingUser = await tx.user.findUnique({
+          where: { email: dto.email },
+          select: { id: true },
+        });
 
-    // Assign department if provided
-    if (dto.department) {
-      const deptId = await this.resolveDepartmentId(dto.department);
-      await this.prisma.userDepartment.create({
-        data: { userId: user.id, departmentId: deptId },
+        if (existingUser) {
+          throw conflict(
+            "USER_EMAIL_ALREADY_EXISTS",
+            "A user with this email already exists",
+            { email: dto.email },
+          );
+        }
+
+        const user = await tx.user.create({
+          data: {
+            name: dto.name,
+            email: dto.email,
+            passwordHash,
+            roleId,
+          },
+          include: {
+            role: true,
+            departments: { include: { department: true } },
+          },
+        });
+
+        if (deptId) {
+          await tx.userDepartment.create({
+            data: { userId: user.id, departmentId: deptId },
+          });
+          const updated = await tx.user.findUnique({
+            where: { id: user.id },
+            include: {
+              role: true,
+              departments: { include: { department: true } },
+            },
+          });
+          return this.normalise(updated);
+        }
+
+        return this.normalise(user);
       });
-      // Re-fetch to get department in response
-      const updated = await this.prisma.user.findUnique({
-        where: { id: user.id },
-        include: { role: true, departments: { include: { department: true } } },
-      });
-      return this.normalise(updated);
+    } catch (error) {
+      this.throwMutationPrismaError(error, dto.email, undefined);
     }
-
-    return this.normalise(user);
   }
 
   async findAll(filters: UserListFilters = {}) {
@@ -130,6 +217,21 @@ export class UsersService {
       page = 1,
       limit = 20,
     } = filters;
+
+    if (
+      !Number.isInteger(page) ||
+      page < 1 ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 100
+    ) {
+      throw badRequest(
+        "USER_PAGINATION_INVALID",
+        "Page must be at least 1 and limit must be between 1 and 100",
+        { page, limit },
+      );
+    }
+
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -202,69 +304,97 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw notFound("USER_NOT_FOUND", `User with ID ${id} not found`, {
+        userId: id,
+      });
     }
 
     return this.normalise(user);
   }
 
   async update(id: string, dto: UpdateUserDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!existingUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    const data: any = {};
-
-    if (dto.name !== undefined) data.name = dto.name;
-    if (dto.email !== undefined) data.email = dto.email;
-    if (dto.isActive !== undefined) data.isActive = dto.isActive;
-    if (dto.phoneWhatsapp !== undefined) data.phoneWhatsapp = dto.phoneWhatsapp;
-    if (dto.avatarUrl !== undefined) data.avatarUrl = dto.avatarUrl;
-
-    if (dto.password) {
-      data.passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-    }
-
-    if (dto.role) {
-      data.roleId = await this.resolveRoleId(dto.role);
-    }
-
-    const user = await this.prisma.user.update({
-      where: { id },
-      data,
-      include: {
-        role: true,
-        departments: { include: { department: true } },
-      },
-    });
-
-    // Handle department update
-    if (dto.department !== undefined) {
-      // Remove all existing dept assignments
-      await this.prisma.userDepartment.deleteMany({ where: { userId: id } });
-
-      if (dto.department !== null) {
-        const deptId = await this.resolveDepartmentId(dto.department);
-        await this.prisma.userDepartment.create({
-          data: { userId: id, departmentId: deptId },
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const existingUser = await tx.user.findUnique({
+          where: { id },
         });
-      }
 
-      const updated = await this.prisma.user.findUnique({
-        where: { id },
-        include: { role: true, departments: { include: { department: true } } },
+        if (!existingUser) {
+          throw notFound("USER_NOT_FOUND", `User with ID ${id} not found`, {
+            userId: id,
+          });
+        }
+
+        if (dto.email !== undefined && dto.email !== existingUser.email) {
+          const emailOwner = await tx.user.findUnique({
+            where: { email: dto.email },
+            select: { id: true },
+          });
+          if (emailOwner && emailOwner.id !== id) {
+            throw conflict(
+              "USER_EMAIL_ALREADY_EXISTS",
+              "A user with this email already exists",
+              { email: dto.email },
+            );
+          }
+        }
+
+        const roleId = dto.role
+          ? await this.resolveRoleId(dto.role, tx)
+          : undefined;
+        const deptId =
+          dto.department !== undefined && dto.department !== null
+            ? await this.resolveDepartmentId(dto.department, tx)
+            : undefined;
+        const data: any = {};
+
+        if (dto.name !== undefined) data.name = dto.name;
+        if (dto.email !== undefined) data.email = dto.email;
+        if (dto.isActive !== undefined) data.isActive = dto.isActive;
+        if (dto.phoneWhatsapp !== undefined)
+          data.phoneWhatsapp = dto.phoneWhatsapp;
+        if (dto.avatarUrl !== undefined) data.avatarUrl = dto.avatarUrl;
+        if (dto.password) {
+          data.passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+        }
+        if (roleId) data.roleId = roleId;
+
+        const user = await tx.user.update({
+          where: { id },
+          data,
+          include: {
+            role: true,
+            departments: { include: { department: true } },
+          },
+        });
+
+        if (dto.department !== undefined) {
+          await tx.userDepartment.deleteMany({ where: { userId: id } });
+          if (deptId) {
+            await tx.userDepartment.create({
+              data: { userId: id, departmentId: deptId },
+            });
+          }
+
+          const updated = await tx.user.findUnique({
+            where: { id },
+            include: {
+              role: true,
+              departments: { include: { department: true } },
+            },
+          });
+          return this.normalise(updated);
+        }
+
+        return this.normalise(user);
       });
-      return this.normalise(updated);
+    } catch (error) {
+      this.throwMutationPrismaError(error, dto.email, id);
     }
-
-    return this.normalise(user);
   }
 
   async deactivate(id: string) {
+    await this.assertExists(id);
     const user = await this.prisma.user.update({
       where: { id },
       data: { isActive: false },
@@ -274,6 +404,7 @@ export class UsersService {
   }
 
   async reactivate(id: string) {
+    await this.assertExists(id);
     const user = await this.prisma.user.update({
       where: { id },
       data: { isActive: true },
@@ -284,6 +415,18 @@ export class UsersService {
 
   async remove(id: string) {
     return this.deactivate(id);
+  }
+
+  private async assertExists(id: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!user) {
+      throw notFound("USER_NOT_FOUND", `User with ID ${id} not found`, {
+        userId: id,
+      });
+    }
   }
 
   // ── Admin stats ───────────────────────────────────────────────────────────────

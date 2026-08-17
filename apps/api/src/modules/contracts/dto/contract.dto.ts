@@ -14,6 +14,25 @@ import { Transform, Type } from "class-transformer";
 import { ContractType, PaymentAmountType } from "@hassad/shared";
 import { PaymentPlanRowDto } from "./payment-plan.dto";
 
+function strictNumber(value: unknown) {
+  if (typeof value === "number")
+    return Number.isFinite(value) ? value : Number.NaN;
+  if (typeof value !== "string" || value.trim() === "") return value;
+  const text = value.trim();
+  if (!/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(text)) return Number.NaN;
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
+function strictInteger(value: unknown) {
+  if (typeof value === "number")
+    return Number.isInteger(value) ? value : Number.NaN;
+  if (typeof value !== "string" || value.trim() === "") return value;
+  const text = value.trim();
+  if (!/^[+-]?\d+$/.test(text)) return Number.NaN;
+  return Number(text);
+}
+
 export class CreateContractDto {
   @IsUUID()
   requestId: string;
@@ -38,13 +57,14 @@ export class CreateContractDto {
 
   /** Sent as multipart text; @Transform converts to number */
   @IsOptional()
-  @Transform(({ value }) => parseFloat(value))
-  @IsNumber()
+  @Transform(({ value }) => strictNumber(value))
+  @IsNumber({ allowNaN: false, allowInfinity: false })
   monthlyValue?: number;
 
   @IsOptional()
-  @Transform(({ value }) => parseFloat(value))
-  @IsNumber()
+  @Transform(({ value }) => strictNumber(value))
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
   totalValue?: number;
 
   // ── Billing plan (Phase 1: down-payment activation gate) ─────────────────────
@@ -55,14 +75,14 @@ export class CreateContractDto {
 
   /** Down payment value: percentage (0-100) when PERCENT, SAR amount when FIXED. */
   @IsOptional()
-  @Transform(({ value }) => parseFloat(value))
-  @IsNumber()
+  @Transform(({ value }) => strictNumber(value))
+  @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(0)
   downPaymentValue?: number;
 
   /** Bounded retainer length in months (null/omitted = indefinite rolling retainer). */
   @IsOptional()
-  @Transform(({ value }) => parseInt(value, 10))
+  @Transform(({ value }) => strictInteger(value))
   @IsInt()
   @Min(1)
   numberOfMonths?: number;
@@ -89,11 +109,14 @@ export class UpdateContractDto {
   endDate?: string;
 
   @IsOptional()
-  @IsNumber()
+  @Transform(({ value }) => strictNumber(value))
+  @IsNumber({ allowNaN: false, allowInfinity: false })
   monthlyValue?: number;
 
   @IsOptional()
-  @IsNumber()
+  @Transform(({ value }) => strictNumber(value))
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
   totalValue?: number;
 
   @IsOptional()

@@ -7,10 +7,14 @@ import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { JwtRefreshStrategy } from "./strategies/jwt-refresh.strategy";
+import { JwtRefreshGuard } from "./guards/jwt-refresh.guard";
+import { GoogleAuthGuard } from "./guards/google-auth.guard";
+import { OptionalJwtAuthGuard } from "./guards/optional-jwt-auth.guard";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { RolesGuard } from "./guards/roles.guard";
 import { EmailService } from "../common/services/email.service";
 import { RequestsModule } from "../modules/requests/requests.module";
+import { ApiException } from "../common/errors/api-error";
 
 @Module({
   imports: [
@@ -20,7 +24,25 @@ import { RequestsModule } from "../modules/requests/requests.module";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>("JWT_SECRET") ?? "default_secret",
+        secret: (() => {
+          const secret = configService.get<string>("JWT_SECRET");
+          const refreshSecret = configService.get<string>("JWT_REFRESH_SECRET");
+          if (!secret) {
+            throw new ApiException(
+              "AUTH_UNAUTHORIZED",
+              "Authentication configuration is not available",
+              500,
+            );
+          }
+          if (!refreshSecret) {
+            throw new ApiException(
+              "AUTH_REFRESH_SECRET_MISSING",
+              "Refresh token service is not configured",
+              500,
+            );
+          }
+          return secret;
+        })(),
         signOptions: {
           expiresIn: (configService.get<string>("JWT_EXPIRES_IN") ||
             "1h") as unknown as number,
@@ -34,9 +56,12 @@ import { RequestsModule } from "../modules/requests/requests.module";
     EmailService,
     JwtStrategy,
     JwtRefreshStrategy,
+    JwtRefreshGuard,
+    GoogleAuthGuard,
+    OptionalJwtAuthGuard,
     RolesGuard,
     Reflector,
-    ...(process.env.GOOGLE_CLIENT_ID ? [GoogleStrategy] : []),
+    GoogleStrategy,
   ],
   exports: [AuthService, EmailService],
 })

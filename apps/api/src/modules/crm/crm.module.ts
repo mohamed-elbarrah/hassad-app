@@ -26,7 +26,12 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { RequestsModule } from "../requests/requests.module";
 
 @Module({
-  imports: [ChatModule, NotificationsModule, RequestsModule, MulterModule.register({ storage: memoryStorage() })],
+  imports: [
+    ChatModule,
+    NotificationsModule,
+    RequestsModule,
+    MulterModule.register({ storage: memoryStorage() }),
+  ],
   controllers: [
     ClientsController,
     AutomationController,
