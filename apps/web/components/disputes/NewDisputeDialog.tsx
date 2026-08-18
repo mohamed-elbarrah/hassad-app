@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DisputeCategoryIcon } from "./DisputeCategoryIcon";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { useGetPortalProjectsQuery } from "@/features/portal/portalApi";
@@ -126,8 +127,9 @@ export function NewDisputeDialog({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
-        className="max-w-lg p-0 overflow-hidden"
+        className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden bg-background p-0 sm:max-h-[calc(100dvh-4rem)]"
         dir="rtl"
+        showClose={false}
         // Prevent accidental form loss while a request is in-flight
         // (audit issue #10). Always-on while loading; while idle we
         // still want a confirmation, but we keep it lightweight via
@@ -141,7 +143,7 @@ export function NewDisputeDialog({
           if (isLoading) e.preventDefault();
         }}
       >
-        <DialogHeader className="p-6 pb-0">
+        <DialogHeader className="shrink-0 border-b bg-muted/40 p-6 pb-4 text-center sm:text-center">
           <DialogTitle className="text-xl font-semibold text-foreground">
             فتح تذكرة نزاع جديدة
           </DialogTitle>
@@ -152,11 +154,11 @@ export function NewDisputeDialog({
           )}
         </DialogHeader>
 
-        <div className="flex flex-col gap-6 p-6">
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-6">
           {/* Project Selection (only if no initial projectId) */}
           {showProjectSelector && (
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">
+              <label htmlFor="dispute-project" className="text-sm font-medium text-foreground">
                 المشروع *
               </label>
               {isLoadingProjects ? (
@@ -174,7 +176,7 @@ export function NewDisputeDialog({
                       setErrors((e) => ({ ...e, project: "" }));
                     }}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger id="dispute-project" className="w-full" aria-invalid={!!errors.project}>
                       <SelectValue placeholder="اختر المشروع..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -198,32 +200,40 @@ export function NewDisputeDialog({
 
           {/* Category Selection */}
           <div className="flex flex-col gap-3">
-            <label className="text-sm font-medium text-foreground">
+            <span id="dispute-category-label" className="text-sm font-medium text-foreground">
               نوع النزاع *
-            </label>
-            <div className="grid grid-cols-2 gap-2">
+            </span>
+            <RadioGroup
+              value={category ?? ""}
+              onValueChange={(value) => {
+                setCategory(value as DisputeCategory);
+                setErrors((e) => ({ ...e, category: "" }));
+              }}
+              disabled={isLoading}
+              aria-labelledby="dispute-category-label"
+              aria-invalid={!!errors.category}
+              className="grid grid-cols-2 gap-2"
+            >
               {CATEGORIES.map((cat) => (
-                <button
+                <label
                   key={cat.value}
-                  type="button"
-                  onClick={() => {
-                    setCategory(cat.value);
-                    setErrors((e) => ({ ...e, category: "" }));
-                  }}
-                  disabled={isLoading}
+                  htmlFor={`dispute-category-${cat.value}`}
                   className={cn(
-                    "flex items-center gap-2 rounded-xl border-[1.5px] p-3 text-right transition-all",
-                    category === cat.value
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/40",
-                    isLoading && "opacity-50 cursor-not-allowed",
+                    "flex cursor-pointer items-center gap-2 rounded-md border p-3 text-right transition-colors hover:border-primary/40",
+                    category === cat.value && "border-primary bg-primary/10",
+                    isLoading && "cursor-not-allowed opacity-50",
                   )}
                 >
+                  <RadioGroupItem
+                    id={`dispute-category-${cat.value}`}
+                    value={cat.value}
+                    className="sr-only"
+                  />
                   <DisputeCategoryIcon category={cat.value} size="sm" />
                   <span className="text-sm text-foreground">{cat.label}</span>
-                </button>
+                </label>
               ))}
-            </div>
+            </RadioGroup>
             {errors.category && (
               <p className="flex items-center gap-1 text-xs text-danger-600">
                 <AlertCircle className="h-3 w-3" />
@@ -234,10 +244,11 @@ export function NewDisputeDialog({
 
           {/* Title Input */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">
+            <label htmlFor="dispute-title" className="text-sm font-medium text-foreground">
               عنوان النزاع *
             </label>
             <Input
+              id="dispute-title"
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
@@ -245,6 +256,7 @@ export function NewDisputeDialog({
               }}
               placeholder="أدخل عنوان مختصر للمشكلة..."
               disabled={isLoading}
+              aria-invalid={!!errors.title}
               className={cn(errors.title ? "border-destructive" : undefined)}
             />
             {errors.title && (
@@ -257,10 +269,11 @@ export function NewDisputeDialog({
 
           {/* Description Input */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">
+            <label htmlFor="dispute-description" className="text-sm font-medium text-foreground">
               تفاصيل النزاع *
             </label>
             <Textarea
+              id="dispute-description"
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
@@ -269,6 +282,7 @@ export function NewDisputeDialog({
               placeholder="اشرح المشكلة بالتفصيل..."
               disabled={isLoading}
               rows={4}
+              aria-invalid={!!errors.description}
               className={cn("resize-none", errors.description ? "border-destructive" : undefined)}
             />
             {errors.description && (
@@ -296,7 +310,7 @@ export function NewDisputeDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex-row-reverse gap-3 border-t p-4 sm:justify-start">
+        <DialogFooter className="shrink-0 flex-row-reverse gap-3 border-t bg-muted/40 p-4 sm:justify-start">
           <Button
             variant="outline"
             onClick={handleClose}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState, useRef, useEffect } from "react";
-import { Upload, X, FileText } from "lucide-react";
+import { useCallback, useId, useRef, useState, useEffect } from "react";
+import { FileText, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatFileSize } from "@/lib/format";
 
@@ -33,6 +34,7 @@ export function FileDropzone({
 }: FileDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadId = useId();
   const urlMapRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
@@ -47,11 +49,10 @@ export function FileDropzone({
     (file: File): string | null => {
       if (!acceptedTypes.includes(file.type)) {
         return `نوع الملف غير مدعوم. الأنواع المدعومة: ${acceptedTypes
-          .map((t) => t.split("/")[1])
+          .map((type) => type.split("/")[1])
           .join(", ")}`;
       }
-      const sizeMB = file.size / (1024 * 1024);
-      if (sizeMB > maxSizeMB) {
+      if (file.size / (1024 * 1024) > maxSizeMB) {
         return `حجم الملف كبير جداً. الحد الأقصى: ${maxSizeMB} ميجابايت`;
       }
       return null;
@@ -64,11 +65,8 @@ export function FileDropzone({
       const validFiles: File[] = [];
       for (const file of newFiles) {
         const error = validateFile(file);
-        if (error) {
-          toast.error(error);
-        } else {
-          validFiles.push(file);
-        }
+        if (error) toast.error(error);
+        else validFiles.push(file);
       }
       if (!validFiles.length) return;
 
@@ -82,19 +80,18 @@ export function FileDropzone({
   );
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
+    (event: React.DragEvent<HTMLLabelElement>) => {
+      event.preventDefault();
       setIsDragging(false);
-      addFiles(Array.from(e.dataTransfer.files));
+      addFiles(Array.from(event.dataTransfer.files));
     },
     [addFiles],
   );
 
   const handleFileInput = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const selected = Array.from(e.target.files || []);
-      addFiles(selected);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      addFiles(Array.from(event.target.files ?? []));
+      event.target.value = "";
     },
     [addFiles],
   );
@@ -108,115 +105,102 @@ export function FileDropzone({
         URL.revokeObjectURL(url);
         urlMapRef.current.delete(key);
       }
-      onFilesChange(files.filter((_, i) => i !== index));
+      onFilesChange(files.filter((_, fileIndex) => fileIndex !== index));
     },
     [files, onFilesChange],
   );
 
-  const isImage = (file: File) => file.type.startsWith("image/");
-
   return (
-    <div className="space-y-3" dir="rtl">
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
+    <div className="flex flex-col gap-3" dir="rtl">
+      <label
+        htmlFor={uploadId}
+        onDragOver={(event) => {
+          event.preventDefault();
           setIsDragging(true);
         }}
-        onDragLeave={(e) => {
-          e.preventDefault();
+        onDragLeave={(event) => {
+          event.preventDefault();
           setIsDragging(false);
         }}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            fileInputRef.current?.click();
-          }
-        }}
-        role="button"
-        tabIndex={0}
         className={cn(
-          "relative border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer",
-          "hover:border-secondary-400 hover:bg-secondary-50/30",
+          "relative flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors",
+          "hover:border-primary hover:bg-muted/50",
           isDragging
-            ? "border-secondary-500 bg-secondary-50/50"
-            : "border-neutral-300 bg-neutral-50",
+            ? "border-primary bg-primary/10"
+            : "border-border bg-muted/20",
+          files.length >= maxFiles && "cursor-not-allowed opacity-60",
         )}
       >
         <input
           ref={fileInputRef}
+          id={uploadId}
           type="file"
           multiple
           accept={acceptedTypes.join(",")}
           onChange={handleFileInput}
-          className="hidden"
+          className="sr-only"
           disabled={files.length >= maxFiles}
         />
-        <div className="flex flex-col items-center gap-2 text-center">
-          <div
-            className={cn(
-              "w-14 h-14 rounded-full flex items-center justify-center",
-              isDragging
-                ? "bg-secondary-100 text-secondary-600"
-                : "bg-neutral-200 text-neutral-500",
-            )}
-          >
-            <Upload className="w-7 h-7" />
-          </div>
-          <p className="text-sm font-medium text-natural-100">
-            {isDragging ? "أفلت الملفات هنا" : "اسحب وأفلت الملفات هنا"}
-          </p>
-          <p className="text-xs text-neutral-500">
-            أو انقر لاختيار الملفات — الحد الأقصى {maxFiles} ملفات، {maxSizeMB}
-            ميجابايت لكل ملف
-          </p>
-        </div>
-      </div>
+        <span className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <Upload className="size-7" aria-hidden="true" />
+        </span>
+        <span className="text-sm font-medium text-foreground">
+          {isDragging ? "أفلت الملفات هنا" : "اسحب وأفلت الملفات هنا"}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          أو انقر لاختيار الملفات — الحد الأقصى {maxFiles} ملفات، {maxSizeMB}
+          ميجابايت لكل ملف
+        </span>
+      </label>
 
-      {files.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {files.map((file, index) => (
-            <div
-              key={`${file.name}-${file.size}-${index}`}
-              className="flex items-center gap-3 p-2.5 bg-white border border-neutral-200 rounded-xl"
-            >
-              {isImage(file) ? (
-                <img
-                  src={(() => {
-                    const key = `${file.name}-${file.size}-${file.lastModified}`;
-                    if (!urlMapRef.current.has(key)) {
-                      urlMapRef.current.set(key, URL.createObjectURL(file));
-                    }
-                    return urlMapRef.current.get(key)!;
-                  })()}
-                  alt={file.name}
-                  className="w-10 h-10 object-cover rounded-lg"
-                />
-              ) : (
-                <div className="w-10 h-10 bg-neutral-100 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-neutral-400" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-natural-100 truncate">
-                  {file.name}
-                </p>
-                <p className="text-xs text-neutral-500">
-                  {formatFileSize(file.size)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => removeFile(index)}
-                className="p-1.5 hover:bg-danger-50 rounded-lg transition-colors"
+      {files.length > 0 ? (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {files.map((file, index) => {
+            const key = `${file.name}-${file.size}-${file.lastModified}`;
+            const isImage = file.type.startsWith("image/");
+            if (isImage && !urlMapRef.current.has(key)) {
+              urlMapRef.current.set(key, URL.createObjectURL(file));
+            }
+
+            return (
+              <div
+                key={`${key}-${index}`}
+                className="flex min-w-0 items-center gap-3 rounded-md border bg-muted/20 p-2.5"
               >
-                <X className="w-4 h-4 text-danger-500" />
-              </button>
-            </div>
-          ))}
+                {isImage ? (
+                  <img
+                    src={urlMapRef.current.get(key)}
+                    alt={file.name}
+                    className="size-10 rounded-md object-cover"
+                  />
+                ) : (
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <FileText className="size-5" aria-hidden="true" />
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(file.size)}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeFile(index)}
+                  aria-label={`حذف ${file.name}`}
+                >
+                  <Trash2 data-icon="inline-start" />
+                </Button>
+              </div>
+            );
+          })}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

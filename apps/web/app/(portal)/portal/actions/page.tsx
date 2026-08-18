@@ -11,7 +11,6 @@ import {
   Clock,
   ExternalLink,
   Hourglass,
-  Settings,
 } from "lucide-react";
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -177,7 +176,8 @@ export default function PortalActionsPage() {
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as "now" | "snoozed")}
       >
-        <TabsList className="h-auto w-fit flex-wrap [&_svg]:size-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <TabsList className="h-auto w-fit flex-wrap [&_svg]:size-4">
           <TabsTrigger value="now" className="gap-2">
             <Bell />
             الآن
@@ -194,42 +194,31 @@ export default function PortalActionsPage() {
               </Badge>
             )}
           </TabsTrigger>
-        </TabsList>
+          </TabsList>
+          {activeTab === "now" ? (
+            <Select
+              value={typeFilter}
+              onValueChange={(value) => {
+                setTypeFilter(value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue placeholder="كل الأنواع" />
+              </SelectTrigger>
+              <SelectContent>
+                {TYPE_FILTER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
+        </div>
 
         <TabsContent value="now" className="mt-4 flex flex-col gap-6">
           <Card>
-            <CardHeader className="gap-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-center gap-3">
-                  <Settings className="size-5 text-muted-foreground" />
-                  <div className="flex flex-col gap-1">
-                    <CardTitle className="text-lg">الإجراءات المعلقة</CardTitle>
-                    <CardDescription>
-                      راجع ما يتطلب تدخلك واتخذ الإجراء المناسب
-                    </CardDescription>
-                  </div>
-                </div>
-                <Select
-                  value={typeFilter}
-                  onValueChange={(value) => {
-                    setTypeFilter(value);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="w-full lg:w-[220px]">
-                    <SelectValue placeholder="كل الأنواع" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TYPE_FILTER_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-
             {isLoading ? (
               <CardContent className="flex flex-col gap-3 pt-6">
                 {Array.from({ length: PAGE_SIZE }).map((_, i) => (
