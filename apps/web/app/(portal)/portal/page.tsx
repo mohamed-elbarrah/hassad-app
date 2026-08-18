@@ -24,6 +24,17 @@ import {
 } from "lucide-react";
 
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { formatNumber, formatPortalDate } from "@/lib/format";
+import {
+  portalActionSubtitle,
+  portalActionTitle,
+  portalActivityText,
+  portalErrorMessage,
+  portalProjectStatusLabel,
+  portalRequestStageLabel,
+  portalRequestStatusLabel,
+  portalTeamRoleLabel,
+} from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
 import { useSnoozeActionItem } from "@/hooks/useSnoozeActionItem";
 import {
@@ -213,11 +224,14 @@ export default function PortalPage() {
     skip: !clientId,
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
-  const { data: teamMembersData, isLoading: teamMembersLoading } =
-    useGetTeamMembersQuery(undefined, {
-      skip: !clientId,
-      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-    });
+  const {
+    data: teamMembersData,
+    error: teamMembersError,
+    isLoading: teamMembersLoading,
+  } = useGetTeamMembersQuery(undefined, {
+    skip: !clientId,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
 
   const projects = projectProgress?.projects ?? [];
   const pendingRequests = pendingRequestsData?.data ?? [];
@@ -281,7 +295,7 @@ export default function PortalPage() {
             ) : projectError ? (
               <SectionEmpty
                 icon={Activity}
-                title="تعذر تحميل بيانات المشاريع"
+                title={portalErrorMessage(projectError)}
               />
             ) : projects.length ? (
               <div className="flex flex-col gap-4">
@@ -297,7 +311,7 @@ export default function PortalPage() {
                     <CardContent className="flex items-center justify-between gap-3 pt-6">
                       <span className="font-medium">{project.name}</span>
                       <ProjectStatusBadge
-                        label={project.statusAr}
+                        label={portalProjectStatusLabel(project.status)}
                         status={project.status}
                       />
                     </CardContent>
@@ -326,15 +340,15 @@ export default function PortalPage() {
                 <Skeleton className="h-20 w-full" />
               </div>
             ) : activityError ? (
-              <SectionEmpty icon={Clock} title="تعذر تحميل التحديثات" />
+              <SectionEmpty
+                icon={Clock}
+                title={portalErrorMessage(activityError)}
+              />
             ) : activityItems.length ? (
               <div className="flex flex-col gap-3">
                 {activityItems.slice(0, 3).map((item) => {
                   const Icon = ACTIVITY_ICON_MAP[item.icon] ?? FileText;
-                  const date = new Date(item.date).toLocaleDateString(
-                    "ar-SA-u-nu-latn",
-                    { day: "numeric", month: "long", year: "numeric" },
-                  );
+                  const date = formatPortalDate(item.date) ?? "—";
                   return (
                     <Card key={item.id}>
                       <CardContent className="flex items-center gap-3 pt-6">
@@ -344,7 +358,9 @@ export default function PortalPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="truncate font-medium">{item.text}</p>
+                          <p className="truncate font-medium">
+                            {portalActivityText(item)}
+                          </p>
                           <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
                             <CalendarDays className="size-3" />
                             {date}
@@ -373,7 +389,10 @@ export default function PortalPage() {
                 <Skeleton className="h-44 w-full" />
               </div>
             ) : actionItemsError ? (
-              <SectionEmpty icon={Settings} title="تعذر تحميل الإجراءات" />
+              <SectionEmpty
+                icon={Settings}
+                title={portalErrorMessage(actionItemsError)}
+              />
             ) : actionItems.length ? (
               <div className="flex flex-col gap-3">
                 {actionItems.slice(0, 3).map((item) => {
@@ -391,9 +410,11 @@ export default function PortalPage() {
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="font-medium">{item.title}</p>
+                            <p className="font-medium">
+                              {portalActionTitle(item)}
+                            </p>
                             <p className="text-sm text-muted-foreground">
-                              {item.subtitle}
+                              {portalActionSubtitle(item)}
                             </p>
                           </div>
                         </div>
@@ -435,7 +456,7 @@ export default function PortalPage() {
             ) : campaignError ? (
               <SectionEmpty
                 icon={TrendingUp}
-                title="تعذر تحميل بيانات الحملة"
+                title={portalErrorMessage(campaignError)}
               />
             ) : campaignSummary &&
               (campaignSummary.totalVisits > 0 ||
@@ -444,12 +465,12 @@ export default function PortalPage() {
                 {[
                   {
                     label: "الزيارات",
-                    value: `${campaignSummary.totalVisits.toLocaleString("ar-SA-u-nu-latn")} زيارة`,
+                    value: `${formatNumber(campaignSummary.totalVisits)} زيارة`,
                     icon: Users,
                   },
                   {
                     label: "التحويلات",
-                    value: `${campaignSummary.totalConversions.toLocaleString("ar-SA-u-nu-latn")} تحويل`,
+                    value: `${formatNumber(campaignSummary.totalConversions)} تحويل`,
                     icon: Filter,
                   },
                   {
@@ -507,7 +528,7 @@ export default function PortalPage() {
             ) : pendingRequestsError ? (
               <SectionEmpty
                 icon={ClipboardList}
-                title="تعذر تحميل الطلبات الحالية"
+                title={portalErrorMessage(pendingRequestsError)}
               />
             ) : pendingRequests.length ? (
               <div className="flex flex-col gap-3">
@@ -523,16 +544,16 @@ export default function PortalPage() {
                             {request.contactName}
                           </p>
                         </div>
-                        <Badge variant="secondary">{request.statusLabel}</Badge>
+                        <Badge variant="secondary">
+                          {portalRequestStatusLabel(request.status)}
+                        </Badge>
                       </div>
                       <p className="mt-3 text-sm text-muted-foreground">
-                        {request.stageLabel}
+                        {portalRequestStageLabel(request.stage)}
                       </p>
                       <p className="mt-2 text-xs text-muted-foreground">
                         تاريخ الطلب:{" "}
-                        {new Date(request.createdAt).toLocaleDateString(
-                          "ar-SA-u-nu-latn",
-                        )}
+                        {formatPortalDate(request.createdAt) ?? "—"}
                       </p>
                     </CardContent>
                   </Card>
@@ -552,6 +573,11 @@ export default function PortalPage() {
                 <Skeleton className="h-36 w-full" />
                 <Skeleton className="h-36 w-full" />
               </div>
+            ) : teamMembersError ? (
+              <SectionEmpty
+                icon={Users}
+                title={portalErrorMessage(teamMembersError)}
+              />
             ) : teamMembersData?.members?.length ? (
               <div className="flex flex-col gap-3">
                 {teamMembersData.members.map((member) => (
@@ -572,7 +598,7 @@ export default function PortalPage() {
                             {member.name}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {member.role}
+                            {portalTeamRoleLabel(member.roleCode)}
                           </p>
                         </div>
                         {member.isOnline ? <Badge>متصل</Badge> : null}

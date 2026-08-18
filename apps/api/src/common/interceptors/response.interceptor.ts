@@ -8,9 +8,9 @@ import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 
 export interface Response<T> {
-  success: boolean;
+  success: true;
   data: T;
-  error: any;
+  meta?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -21,9 +21,8 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
   ): Observable<Response<T>> {
     return next.handle().pipe(
       map((data) => ({
-        success: true,
+        success: true as const,
         data,
-        error: null,
       })),
     );
   }

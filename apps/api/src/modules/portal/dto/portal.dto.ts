@@ -8,14 +8,41 @@ import {
   IsEnum,
   IsBoolean,
   IsNumber,
+  IsInt,
+  IsNotEmpty,
   MaxLength,
   Min,
+  Max,
 } from "class-validator";
 
 export enum ReportGranularity {
   DAY = "day",
   WEEK = "week",
   MONTH = "month",
+}
+
+export enum SnoozeActionItemType {
+  DELIVERABLE_APPROVAL = "DELIVERABLE_APPROVAL",
+  INVOICE_PAYMENT = "INVOICE_PAYMENT",
+  PROPOSAL_REVIEW = "PROPOSAL_REVIEW",
+  CONTRACT_SIGN = "CONTRACT_SIGN",
+  STRATEGY_REVIEW = "STRATEGY_REVIEW",
+}
+
+export class SnoozeActionItemDto {
+  @IsEnum(SnoozeActionItemType)
+  itemType: SnoozeActionItemType;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  itemId: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  hours?: number;
 }
 
 export class ReportTimelineQueryDto {

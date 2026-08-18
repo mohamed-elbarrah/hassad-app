@@ -15,6 +15,8 @@ import {
 import { ProjectStatus } from "@hassad/shared";
 
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { formatShortDate } from "@/lib/format";
+import { portalErrorMessage, portalProjectStatusLabel } from "@/lib/i18n";
 import { useGetPortalProjectsQuery } from "@/features/portal/portalApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,7 +89,7 @@ export default function PortalProjectsPage() {
   const [status, setStatus] = useState<string>("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const { data, isLoading, isError } = useGetPortalProjectsQuery(
+  const { data, error, isLoading, isError } = useGetPortalProjectsQuery(
     { status: status || undefined, page, limit: PAGE_SIZE },
     { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
@@ -204,10 +206,8 @@ export default function PortalProjectsPage() {
                 <EmptyMedia variant="icon">
                   <FolderOpen />
                 </EmptyMedia>
-                <EmptyTitle>حدث خطأ أثناء تحميل المشاريع</EmptyTitle>
-                <EmptyDescription>
-                  يرجى المحاولة لاحقاً أو تحديث الصفحة.
-                </EmptyDescription>
+                <EmptyTitle>{portalErrorMessage(error)}</EmptyTitle>
+                <EmptyDescription>يرجى المحاولة لاحقاً.</EmptyDescription>
               </EmptyHeader>
             </Empty>
           </CardContent>
@@ -234,7 +234,7 @@ export default function PortalProjectsPage() {
                       ) : null}
                     </div>
                     <ProjectBadge
-                      label={project.statusAr}
+                      label={portalProjectStatusLabel(project.status)}
                       status={project.status}
                     />
                   </div>
@@ -252,15 +252,11 @@ export default function PortalProjectsPage() {
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="size-3.5" />
-                      {new Date(project.startDate).toLocaleDateString(
-                        "ar-SA-u-nu-latn",
-                      )}
+                      {formatShortDate(project.startDate)}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="size-3.5" />
-                      {new Date(project.endDate).toLocaleDateString(
-                        "ar-SA-u-nu-latn",
-                      )}
+                      {formatShortDate(project.endDate)}
                     </span>
                   </div>
                   <Button asChild variant="outline" className="mt-auto">

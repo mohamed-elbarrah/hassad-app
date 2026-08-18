@@ -38,14 +38,6 @@ import { randomBytes } from "crypto";
 import { StorageService } from "../../../common/storage/storage.service";
 import { MarketingStrategyService } from "../../marketing/services/marketing-strategy.service";
 
-const TASK_STATUS_AR_MAP: Record<string, string> = {
-  TODO: "لم يبدأ",
-  IN_PROGRESS: "جاري العمل",
-  IN_REVIEW: "قيد المراجعة",
-  DONE: "مكتمل",
-  REVISION: "تعديل مطلوب",
-};
-
 @Injectable()
 export class PortalService {
   constructor(
@@ -62,26 +54,6 @@ export class PortalService {
       clientId,
       tags,
     );
-  }
-
-  private getPendingRequestStageLabel(status: string) {
-    switch (status) {
-      case "PROPOSAL_IN_PROGRESS":
-        return "يتم إعداد العرض الفني لطلبك.";
-      case "PROPOSAL_SENT":
-      case "NEGOTIATION":
-        return "العرض الفني متاح الآن للمراجعة والمتابعة.";
-      case "CONTRACT_PREPARATION":
-        return "يتم تجهيز العقد والملف المالي.";
-      case "CONTRACT_SENT":
-        return "العقد جاهز للتوقيع من خلال البوابة.";
-      case "SIGNED":
-        return "تم توقيع العقد وجارٍ تحويل الطلب إلى مشروع.";
-      case "QUALIFYING":
-      case "SUBMITTED":
-      default:
-        return "طلبك قيد المراجعة من فريق المبيعات.";
-    }
   }
 
   async getDashboard(clientId: string) {
@@ -189,7 +161,7 @@ export class PortalService {
     const members: Array<{
       id: string;
       name: string;
-      role: string;
+      roleCode: "SALES" | "PM" | "ACCOUNT_MANAGER";
       roleType: "SALES" | "PM" | "ACCOUNT_MANAGER";
       isOnline: boolean;
       avatarUrl?: string | null;
@@ -224,7 +196,7 @@ export class PortalService {
         members.push({
           id: request.assignee.id,
           name: request.assignee.name,
-          role: "المشرف",
+          roleCode: "SALES",
           roleType: "SALES",
           isOnline: request.assignee.isActive ?? false,
           avatarUrl: request.assignee.avatarUrl,
@@ -253,7 +225,7 @@ export class PortalService {
         members.push({
           id: accountManagerUser.id,
           name: accountManagerUser.name,
-          role: "مدير الحساب",
+          roleCode: "ACCOUNT_MANAGER",
           roleType: "ACCOUNT_MANAGER",
           isOnline: accountManagerUser.isActive ?? false,
           avatarUrl: accountManagerUser.avatarUrl,
@@ -292,7 +264,7 @@ export class PortalService {
           members.push({
             id: project.manager.id,
             name: project.manager.name,
-            role: "مدير المشروع",
+            roleCode: "PM",
             roleType: "PM",
             isOnline: project.manager.isActive ?? false,
             avatarUrl: project.manager.avatarUrl,
@@ -329,9 +301,6 @@ export class PortalService {
         id: p.id,
         name: p.name,
         status: p.status,
-        statusAr:
-          PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ??
-          p.status,
         progress: p.completionPercentage,
         startDate: p.startDate,
         endDate: p.endDate,
@@ -399,9 +368,6 @@ export class PortalService {
         id: p.id,
         name: p.name,
         status: p.status,
-        statusAr:
-          PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ??
-          p.status,
         progress: p.completionPercentage,
         startDate: p.startDate,
         endDate: p.endDate,
@@ -791,8 +757,7 @@ export class PortalService {
         contactName: request.contactName,
         notes: request.notes,
         status: request.status,
-        statusLabel: "طلب قيد الانتظار",
-        stageLabel: this.getPendingRequestStageLabel(request.status),
+        stage: request.status,
         createdAt: request.createdAt,
         updatedAt: request.updatedAt,
         services: request.services.map((service) => ({
@@ -878,7 +843,8 @@ export class PortalService {
           id: `del-${d.id}`,
           type: "DELIVERABLE_APPROVAL",
           title: d.title,
-          subtitle: `مشروع: ${d.project.name}`,
+          subtitleCode: "PROJECT",
+          subtitleParams: { projectName: d.project.name },
           actionUrl: `/portal/deliverables/${d.id}`,
           priority: "high",
           createdAt: d.createdAt,
@@ -918,8 +884,10 @@ export class PortalService {
         items.push({
           id: `inv-${inv.id}`,
           type: "INVOICE_PAYMENT",
-          title: `فاتورة ${inv.invoiceNumber}`,
-          subtitle: `المبلغ: ${inv.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س${daysUntilDue <= 3 ? " — مستحقة قريباً" : ""}`,
+          titleCode: "INVOICE",
+          titleParams: { invoiceNumber: inv.invoiceNumber },
+          subtitleCode: "INVOICE_AMOUNT",
+          subtitleParams: { amount: inv.amount, dueSoon: daysUntilDue <= 3 },
           actionUrl: `/portal/invoices/${inv.id}`,
           dueDate: inv.dueDate,
           priority,
@@ -939,7 +907,7 @@ export class PortalService {
           id: `con-${c.id}`,
           type: "CONTRACT_SIGN",
           title: c.title,
-          subtitle: "عقد بانتظار توقيعك",
+          subtitleCode: "CONTRACT_SIGN",
           actionUrl: c.shareLinkToken
             ? `/portal/contracts/${c.shareLinkToken}`
             : "/portal/contracts",
@@ -963,7 +931,7 @@ export class PortalService {
           id: `prop-${p.id}`,
           type: "PROPOSAL_REVIEW",
           title: p.title,
-          subtitle: "عرض فني بانتظار مراجعتك",
+          subtitleCode: "PROPOSAL_REVIEW",
           actionUrl: p.shareLinkToken
             ? `/portal/proposals/${p.shareLinkToken}`
             : "/portal/proposals",
@@ -995,8 +963,10 @@ export class PortalService {
         items.push({
           id: `strat-${s.id}`,
           type: "STRATEGY_REVIEW",
-          title: `دراسة تسويقية — ${s.task?.project?.name ?? ""}`,
-          subtitle: `دراسة تسويقية للمهمة "${s.task?.title ?? ""}" بانتظار مراجعتك`,
+          titleCode: "MARKETING_STRATEGY",
+          titleParams: { projectName: s.task?.project?.name ?? "" },
+          subtitleCode: "MARKETING_STRATEGY_TASK",
+          subtitleParams: { taskTitle: s.task?.title ?? "" },
           actionUrl: `/portal/marketing-strategies/${s.id}`,
           priority: "high",
           createdAt: s.sentAt ?? s.createdAt,
@@ -1080,8 +1050,14 @@ export class PortalService {
 
     const enriched: any[] = [];
     for (const s of snoozed) {
+      const item = await this.resolveActionItemShape(
+        clientId,
+        s.itemType,
+        s.itemId,
+      );
+      if (!item) continue;
       enriched.push({
-        ...(await this.resolveActionItemShape(clientId, s.itemType, s.itemId)),
+        ...item,
         snoozedUntil: s.snoozedUntil,
         reminderSentAt: s.reminderSentAt,
         isActive: s.snoozedUntil > now,
@@ -1105,8 +1081,11 @@ export class PortalService {
   ): Promise<{
     id: string;
     type: string;
-    title: string;
-    subtitle: string;
+    title?: string;
+    titleCode?: string;
+    titleParams?: Record<string, unknown>;
+    subtitleCode?: string;
+    subtitleParams?: Record<string, unknown>;
     actionUrl: string;
     priority: string;
     createdAt: Date | null;
@@ -1124,7 +1103,8 @@ export class PortalService {
           id: `del-${d.id}`,
           type: "DELIVERABLE_APPROVAL",
           title: d.title,
-          subtitle: `مشروع: ${d.project.name}`,
+          subtitleCode: "PROJECT",
+          subtitleParams: { projectName: d.project.name },
           actionUrl: `/portal/deliverables/${d.id}`,
           priority: d.status === "IN_REVIEW" ? "high" : "normal",
           createdAt: d.createdAt,
@@ -1147,8 +1127,10 @@ export class PortalService {
         return {
           id: `inv-${inv.id}`,
           type: "INVOICE_PAYMENT",
-          title: `فاتورة ${inv.invoiceNumber}`,
-          subtitle: `المبلغ: ${inv.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س${daysUntilDue <= 3 ? " — مستحقة قريباً" : ""}`,
+          titleCode: "INVOICE",
+          titleParams: { invoiceNumber: inv.invoiceNumber },
+          subtitleCode: "INVOICE_AMOUNT",
+          subtitleParams: { amount: inv.amount, dueSoon: daysUntilDue <= 3 },
           actionUrl: `/portal/invoices/${inv.id}`,
           priority,
           createdAt: inv.createdAt,
@@ -1163,7 +1145,7 @@ export class PortalService {
           id: `con-${c.id}`,
           type: "CONTRACT_SIGN",
           title: c.title,
-          subtitle: "عقد بانتظار توقيعك",
+          subtitleCode: "CONTRACT_SIGN",
           actionUrl: c.shareLinkToken
             ? `/portal/contracts/${c.shareLinkToken}`
             : "/portal/contracts",
@@ -1183,7 +1165,7 @@ export class PortalService {
           id: `prop-${p.id}`,
           type: "PROPOSAL_REVIEW",
           title: p.title,
-          subtitle: "عرض فني بانتظار مراجعتك",
+          subtitleCode: "PROPOSAL_REVIEW",
           actionUrl: p.shareLinkToken
             ? `/portal/proposals/${p.shareLinkToken}`
             : "/portal/proposals",
@@ -1207,8 +1189,10 @@ export class PortalService {
         return {
           id: `strat-${s.id}`,
           type: "STRATEGY_REVIEW",
-          title: `دراسة تسويقية — ${s.task?.project?.name ?? ""}`,
-          subtitle: `دراسة تسويقية للمهمة "${s.task?.title ?? ""}" بانتظار مراجعتك`,
+          titleCode: "MARKETING_STRATEGY",
+          titleParams: { projectName: s.task?.project?.name ?? "" },
+          subtitleCode: "MARKETING_STRATEGY_TASK",
+          subtitleParams: { taskTitle: s.task?.title ?? "" },
           actionUrl: `/portal/marketing-strategies/${s.id}`,
           priority: "high",
           createdAt: s.sentAt ?? s.createdAt,
@@ -1251,7 +1235,7 @@ export class PortalService {
             clientId,
             userId: client.userId,
             eventType: "ACTION_ITEM_SNOOZED",
-            description: `العميل أخفى إجراءً من النوع ${itemType} لمدة ${hours} ساعة (${this.itemTypeAr(itemType)}).`,
+            description: "ACTION_ITEM_SNOOZED",
             metadata: {
               itemType,
               itemId,
@@ -1268,27 +1252,6 @@ export class PortalService {
     return result;
   }
 
-  /**
-   * Map the internal `itemType` enum to its Arabic display label so the
-   * `ClientHistoryLog.description` is human-readable on the PM/admin side.
-   */
-  private itemTypeAr(itemType: string): string {
-    switch (itemType) {
-      case "DELIVERABLE_APPROVAL":
-        return "مراجعة تسليم";
-      case "INVOICE_PAYMENT":
-        return "دفع فاتورة";
-      case "PROPOSAL_REVIEW":
-        return "مراجعة عرض";
-      case "CONTRACT_SIGN":
-        return "توقيع عقد";
-      case "STRATEGY_REVIEW":
-        return "مراجعة دراسة تسويقية";
-      default:
-        return itemType;
-    }
-  }
-
   async unsnoozeActionItem(clientId: string, itemType: string, itemId: string) {
     try {
       await this.prisma.clientSnoozedItem.delete({
@@ -1299,7 +1262,7 @@ export class PortalService {
     } catch {
       // Already removed — no-op
     }
-    return { success: true };
+    return {};
   }
 
   async getActivityFeed(clientId: string) {
@@ -1336,7 +1299,8 @@ export class PortalService {
         items.push({
           id: `del-approve-${d.id}`,
           date: d.approvedAt,
-          text: `تم اعتماد "${d.title}"`,
+          type: "DELIVERABLE_APPROVED",
+          data: { title: d.title },
           icon: "check",
         });
       }
@@ -1344,14 +1308,16 @@ export class PortalService {
         items.push({
           id: `del-revision-${d.id}`,
           date: d.createdAt,
-          text: `طلب تعديل على "${d.title}"`,
+          type: "DELIVERABLE_REVISION_REQUESTED",
+          data: { title: d.title },
           icon: "palette",
         });
       }
       items.push({
         id: `del-upload-${d.id}`,
         date: d.createdAt,
-        text: `تم رفع "${d.title}"`,
+        type: "DELIVERABLE_UPLOADED",
+        data: { title: d.title },
         icon: "file",
       });
     }
@@ -1367,7 +1333,8 @@ export class PortalService {
       items.push({
         id: `camp-${c.id}`,
         date: c.createdAt,
-        text: `تم إطلاق حملة "${c.name}"`,
+        type: "CAMPAIGN_LAUNCHED",
+        data: { name: c.name },
         icon: "trending",
       });
     }
@@ -1383,7 +1350,8 @@ export class PortalService {
       items.push({
         id: `pay-${p.id}`,
         date: p.date,
-        text: `تم دفع ${p.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س`,
+        type: "PAYMENT_COMPLETED",
+        data: { amount: p.amount },
         icon: "dollar",
       });
     }
@@ -1404,7 +1372,7 @@ export class PortalService {
       items.push({
         id: `hist-${h.id}`,
         date: h.occurredAt,
-        text: h.description,
+        type: h.eventType,
         icon: "file",
       });
     }

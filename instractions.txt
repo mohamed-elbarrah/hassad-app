@@ -1,0 +1,53 @@
+Read @AGENTS.md fully and carefully before touching anything. Every rule and instruction
+in it is binding — none are optional, none are guidelines you can round off. This
+includes the backend→frontend data contract and consumption rules already defined there.
+
+SCOPE FOR THIS SESSION:
+Dashboard: portal / client dahsboard
+Page: home page or verview
+
+We work page by page inside one dashboard until the whole dashboard is done, then move
+to the next dashboard. Stay inside this page's scope. If you spot AGENTS.md violations
+on another page or another dashboard, note them in your response — don't fix them now.
+
+BEFORE YOU WRITE OR EDIT ANYTHING — UNDERSTAND, THEN CONFIRM:
+1. Read the page's current code and trace what it actually does: which files it touches,
+   which endpoint(s) it calls, and whether any of those endpoints belong to a different
+   dashboard.
+2. List every AGENTS.md rule you believe applies to this page, and every point where the
+   current code violates one.
+3. Ask me any question you need answered before you can proceed correctly — an
+   ambiguous rule, a shared file you're unsure who owns, an unclear data contract,
+   anything you'd otherwise have to guess.
+4. Wait for my answers before making any change. Do not treat this as optional to save
+   time — a wrong assumption here costs more than a question does.
+
+Once confirmed, the rule inside this scope is absolute — frontend and backend,
+architecture and logic, no exceptions:
+- If a file or piece of code you touch already violates AGENTS.md, you fix it to comply
+  as part of this task. You do not skip it, you do not leave it "as is because it
+  already works", and you do not patch around it.
+- "Touch" means: any file you edit, and any file directly coupled to what you're changing
+  (a shared type, a service it calls, a component that consumes it).
+- Do not create new files, patterns, or abstractions unless AGENTS.md requires them or
+  the existing structure genuinely can't host the fix. Verify the current implementation
+  first — don't assume how it works, check it.
+
+BACKEND — ENDPOINT OWNERSHIP (recurring problem, fix on sight):
+This dashboard's pages must only consume endpoints that belong to this dashboard.
+If the page you're fixing currently calls an endpoint owned by a different dashboard —
+even though it "works" today — that is a violation, not an exception. Give this
+dashboard its own endpoint returning the same data (same contract the frontend
+already relies on), following AGENTS.md's conventions, instead of reaching into
+another dashboard's routes. "It already works" is never a reason to leave it as is.
+
+IF SOMETHING NEW COMES UP MID-TASK THAT'S AMBIGUOUS, OR AGENTS.md CONFLICTS WITH
+WHAT YOU FIND IN THE CODE: stop and ask. Do not guess, do not silently pick an
+interpretation.
+
+BEFORE YOU FINISH, CONFIRM:
+- Every touched file complies with AGENTS.md — no exceptions made, including endpoint
+  ownership
+- No functional/behavioral regression for the end user
+- No unnecessary new files or duplicated logic introduced
+- Anything you deliberately left out of scope is listed, not silently ignored

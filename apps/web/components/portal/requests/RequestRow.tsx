@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { formatDate } from "@/lib/format";
+import { portalRequestStageLabel } from "@/lib/i18n";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
   getRequestAction,
@@ -89,7 +91,7 @@ export function RequestRow({ request }: RequestRowProps) {
             dateTime={request.createdAt}
           >
             <Calendar className="size-3.5 shrink-0" />
-            {new Date(request.createdAt).toLocaleDateString("ar-SA-u-nu-latn")}
+            {formatDate(request.createdAt, "ar-SA-u-nu-latn")}
           </time>
         </TableCell>
         <TableCell>
@@ -171,7 +173,7 @@ function RequestDetail({ request }: { request: PortalRequestSummary }) {
               : "حالة الطلب"}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {request.stageLabel}
+            {portalRequestStageLabel(request.stage)}
           </p>
           {description ? (
             <Card className="mt-4">

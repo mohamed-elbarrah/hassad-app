@@ -6,6 +6,12 @@ import {
   useSnoozeActionItemMutation,
   useUnsnoozeActionItemMutation,
 } from "@/features/portal/portalApi";
+import {
+  portalSnoozeErrorMessage,
+  portalSnoozeSuccessMessage,
+  portalUnsnoozeErrorMessage,
+  portalUnsnoozeSuccessMessage,
+} from "@/lib/i18n";
 
 const SNOOZE_PREFIX_RE = /^(del|inv|prop|con|strat)-/;
 
@@ -21,9 +27,9 @@ export function useSnoozeActionItem() {
     async (itemType: string, itemId: string) => {
       try {
         await snooze({ itemType, itemId: stripPrefix(itemId) }).unwrap();
-        toast.success("تم تأجيل التذكير");
+        toast.success(portalSnoozeSuccessMessage());
       } catch {
-        toast.error("حدث خطأ أثناء تأجيل التذكير");
+        toast.error(portalSnoozeErrorMessage());
       }
     },
     [snooze],
@@ -33,9 +39,9 @@ export function useSnoozeActionItem() {
     async (itemType: string, itemId: string) => {
       try {
         await unsnooze({ itemType, itemId: stripPrefix(itemId) }).unwrap();
-        toast.success("تم إلغاء التأجيل");
+        toast.success(portalUnsnoozeSuccessMessage());
       } catch {
-        toast.error("حدث خطأ أثناء إلغاء التأجيل");
+        toast.error(portalUnsnoozeErrorMessage());
       }
     },
     [unsnooze],

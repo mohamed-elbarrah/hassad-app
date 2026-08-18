@@ -51,7 +51,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSnoozeActionItem } from "@/hooks/useSnoozeActionItem";
 import { useAppSelector } from "@/lib/hooks";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import {
+  portalActionSubtitle,
+  portalActionTitle,
+  portalErrorMessage,
+} from "@/lib/i18n";
 import {
   useGetActionItemsQuery,
   useGetSnoozedActionItemsQuery,
@@ -92,12 +98,7 @@ function getTypeLabel(type: string): string {
 
 /** Friendly "23 Aug 2026, 14:30" formatter using Arabic-locale Latin digits. */
 function formatReminderTime(iso: string): string {
-  return new Date(iso).toLocaleString("ar-SA-u-nu-latn", {
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTime(iso, "ar-SA-u-nu-latn");
 }
 
 export default function PortalActionsPage() {
@@ -110,7 +111,7 @@ export default function PortalActionsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
 
-  const { data, isLoading, isError, refetch } = useGetActionItemsQuery(
+  const { data, error, isLoading, isError, refetch } = useGetActionItemsQuery(
     {
       type: typeFilter === "all" ? undefined : typeFilter,
       page,
@@ -125,6 +126,7 @@ export default function PortalActionsPage() {
   const {
     data: snoozedData,
     isLoading: snoozedLoading,
+    error: snoozedQueryError,
     isError: snoozedError,
     refetch: refetchSnoozed,
   } = useGetSnoozedActionItemsQuery(
@@ -146,7 +148,9 @@ export default function PortalActionsPage() {
   const handleSnooze = async (item: {
     id: string;
     type: string;
-    title: string;
+    title?: string;
+    titleCode?: string;
+    titleParams?: Record<string, unknown>;
   }) => {
     setBusyId(item.id);
     await snoozeItem(item.type, item.id);
@@ -179,7 +183,10 @@ export default function PortalActionsPage() {
         </CardHeader>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "now" | "snoozed")}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as "now" | "snoozed")}
+      >
         <TabsList className="h-auto w-fit flex-wrap [&_svg]:size-4">
           <TabsTrigger value="now" className="gap-2">
             <Bell />
@@ -243,8 +250,8 @@ export default function PortalActionsPage() {
               <CardContent className="pt-6">
                 <PortalEmptyState
                   icon={AlertCircle}
-                  title="تعذر تحميل الإجراءات"
-                  description="حدث خطأ أثناء تحميل الإجراءات."
+                  title={portalErrorMessage(error)}
+                  description="يرجى المحاولة مرة أخرى."
                   actionLabel="إعادة المحاولة"
                   onAction={() => refetch()}
                 />
@@ -279,10 +286,10 @@ export default function PortalActionsPage() {
                     return (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">
-                          {item.title}
+                          {portalActionTitle(item)}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                          {item.subtitle}
+                          {portalActionSubtitle(item)}
                         </TableCell>
                         <TableCell>
                           <Badge variant={priorityCfg.variant}>
@@ -298,9 +305,7 @@ export default function PortalActionsPage() {
                           {item.dueDate ? (
                             <span className="flex items-center gap-1">
                               <Clock className="size-3.5" />
-                              {new Date(item.dueDate).toLocaleDateString(
-                                "ar-SA-u-nu-latn",
-                              )}
+                              {formatDate(item.dueDate, "ar-SA-u-nu-latn")}
                             </span>
                           ) : (
                             "—"
@@ -342,7 +347,9 @@ export default function PortalActionsPage() {
                   <PaginationPrevious
                     text="السابق"
                     disabled={page === 1}
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
                   />
                 </PaginationItem>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(
@@ -395,8 +402,8 @@ export default function PortalActionsPage() {
               <CardContent className="pt-6">
                 <PortalEmptyState
                   icon={AlertCircle}
-                  title="تعذر تحميل الإجراءات المؤجلة"
-                  description="حدث خطأ أثناء تحميل الإجراءات المؤجلة."
+                  title={portalErrorMessage(snoozedQueryError)}
+                  description="يرجى المحاولة مرة أخرى."
                   actionLabel="إعادة المحاولة"
                   onAction={() => refetchSnoozed()}
                 />
@@ -431,10 +438,10 @@ export default function PortalActionsPage() {
                     return (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">
-                          {item.title}
+                          {portalActionTitle(item)}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                          {item.subtitle}
+                          {portalActionSubtitle(item)}
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">

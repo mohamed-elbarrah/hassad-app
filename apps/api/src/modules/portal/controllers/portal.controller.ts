@@ -25,6 +25,7 @@ import {
   SaveDraftDto,
   ReportTimelineQueryDto,
   RequestProjectRevisionDto,
+  SnoozeActionItemDto,
 } from "../dto/portal.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -56,8 +57,13 @@ export class PortalController {
     maxLimit: number = 100,
   ): number {
     const limit = Number(query);
-    if (isNaN(limit) || limit < 1) return defaultLimit;
+    if (!Number.isInteger(limit) || limit < 1) return defaultLimit;
     return Math.min(limit, maxLimit);
+  }
+
+  private parsePage(query: string | undefined): number {
+    const page = Number(query);
+    return Number.isInteger(page) && page >= 1 ? page : 1;
   }
 
   /** Resolve clientId from JWT payload or DB lookup for CLIENT users */
@@ -176,7 +182,7 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getTeamMembers(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return { members: [] };
+    if (!clientId) throw new ForbiddenException();
     return this.portalService.getClientTeamMembers(clientId);
   }
 
@@ -202,7 +208,7 @@ export class PortalController {
       dateTo,
       sortBy,
       sortOrder: sortOrder === "asc" ? "asc" : "desc",
-      page: Number(page) || 1,
+      page: this.parsePage(page),
       limit: this.parseLimit(limit, 20), // CHANGED - was Number(limit) || 20
     });
   }
@@ -244,7 +250,7 @@ export class PortalController {
     if (!clientId) return { data: [], total: 0, page: 1, limit: 20 };
     return this.portalService.getInvoices(clientId, {
       status,
-      page: Number(page) || 1,
+      page: this.parsePage(page),
       limit: this.parseLimit(limit, 20), // CHANGED - was Number(limit) || 20
     });
   }
@@ -542,10 +548,10 @@ export class PortalController {
     @Query("limit") limit?: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return { data: [], total: 0, page: 1, limit: 6 };
+    if (!clientId) throw new ForbiddenException();
     return this.portalService.getProjects(clientId, {
       status,
-      page: Number(page) || 1,
+      page: this.parsePage(page),
       limit: this.parseLimit(limit, 6), // CHANGED - was Number(limit) || 6
     });
   }
@@ -571,9 +577,9 @@ export class PortalController {
     @Query("limit") limit?: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return { data: [], total: 0, page: 1, limit: 6 };
+    if (!clientId) throw new ForbiddenException();
     return this.portalService.getRequests(clientId, {
-      page: Number(page) || 1,
+      page: this.parsePage(page),
       limit: this.parseLimit(limit, 6), // CHANGED - was Number(limit) || 6
     });
   }
@@ -582,7 +588,7 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getProjectProgress(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return null;
+    if (!clientId) throw new ForbiddenException();
     return this.portalService.getProjectProgress(clientId);
   }
 
@@ -595,10 +601,10 @@ export class PortalController {
     @Query("limit") limit?: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return { items: [], total: 0, page: 1, limit: 20 };
+    if (!clientId) throw new ForbiddenException();
     return this.portalService.getActionItems(clientId, {
       type: type || undefined,
-      page: Number(page) || 1,
+      page: this.parsePage(page),
       limit: this.parseLimit(limit, 20), // CHANGED - was Number(limit) || 20
     });
   }
@@ -607,7 +613,7 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getActivityFeed(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return { items: [] };
+    if (!clientId) throw new ForbiddenException();
     return this.portalService.getActivityFeed(clientId);
   }
 
@@ -615,13 +621,7 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getCampaignSummary(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId)
-      return {
-        totalVisits: 0,
-        totalConversions: 0,
-        avgRoas: 0,
-        improvementPercent: 0,
-      };
+    if (!clientId) throw new ForbiddenException();
     return this.portalService.getCampaignSummary(clientId);
   }
 
@@ -668,10 +668,10 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async snoozeActionItem(
     @CurrentUser() user: any,
-    @Body() body: { itemType: string; itemId: string; hours?: number },
+    @Body() body: SnoozeActionItemDto,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return { success: false };
+    if (!clientId) throw new ForbiddenException();
     return this.portalService.snoozeActionItem(
       clientId,
       body.itemType,
@@ -688,7 +688,7 @@ export class PortalController {
     @Param("itemId") itemId: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return { success: false };
+    if (!clientId) throw new ForbiddenException();
     return this.portalService.unsnoozeActionItem(clientId, itemType, itemId);
   }
 

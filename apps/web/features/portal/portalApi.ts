@@ -100,7 +100,6 @@ export interface ProjectSummary {
   id: string;
   name: string;
   status: string;
-  statusAr: string;
   progress: number;
   startDate: string;
   endDate: string;
@@ -143,8 +142,12 @@ export interface ActionItem {
     | "PROPOSAL_REVIEW"
     | "CONTRACT_SIGN"
     | "STRATEGY_REVIEW";
-  title: string;
-  subtitle: string;
+  title?: string;
+  titleCode?: string;
+  titleParams?: Record<string, unknown>;
+  subtitle?: string;
+  subtitleCode?: string;
+  subtitleParams?: Record<string, unknown>;
   actionUrl: string;
   dueDate?: string;
   priority: "high" | "normal" | "low";
@@ -165,7 +168,8 @@ export interface SnoozedActionItem extends ActionItem {
 export interface ActivityFeedItem {
   id: string;
   date: string;
-  text: string;
+  type: string;
+  data?: Record<string, unknown>;
   icon: "palette" | "file" | "trending" | "check" | "dollar";
 }
 
@@ -250,8 +254,7 @@ export interface PortalRequestSummary {
   contactName: string;
   notes?: string | null;
   status: string;
-  statusLabel: string;
-  stageLabel: string;
+  stage: string;
   createdAt: string;
   updatedAt: string;
   services: PortalRequestServiceSummary[];
@@ -545,7 +548,7 @@ export interface DownloadUrlResponse {
 export interface TeamMember {
   id: string;
   name: string;
-  role: string;
+  roleCode: "SALES" | "PM" | "ACCOUNT_MANAGER";
   roleType: "SALES" | "PM" | "ACCOUNT_MANAGER";
   isOnline: boolean;
   avatarUrl?: string | null;
@@ -782,7 +785,7 @@ export const portalApi = createApi({
       invalidatesTags: ["ActionItems", "ActivityFeed"], // NEW
     }),
     unsnoozeActionItem: builder.mutation<
-      { success: boolean },
+      Record<string, never>,
       { itemType: string; itemId: string }
     >({
       query: ({ itemType, itemId }) => ({
