@@ -1,5 +1,6 @@
 // apps/web/lib/i18n.ts
 //
+import { PROJECT_STATUS_AR } from "@hassad/shared";
 import { formatNumber } from "@/lib/format";
 
 // Domain display labels and lookup helpers.
@@ -63,16 +64,6 @@ export function authErrorMessage(error: unknown): string {
   );
 }
 
-const PORTAL_PROJECT_STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "نشط",
-  PLANNING: "تخطيط",
-  ON_HOLD: "معلق",
-  AWAITING_REVIEW: "بانتظار المراجعة",
-  NEEDS_REVISION: "مطلوب تعديلات",
-  COMPLETED: "مكتمل",
-  CANCELLED: "ملغى",
-};
-
 const PORTAL_REQUEST_STATUS_LABELS: Record<string, string> = {
   SUBMITTED: "مستلم",
   QUALIFYING: "قيد التأهيل",
@@ -123,7 +114,10 @@ export function portalTeamRoleLabel(roleCode: string): string {
 }
 
 export function portalProjectStatusLabel(status: string): string {
-  return PORTAL_PROJECT_STATUS_LABELS[status] ?? "حالة غير معروفة";
+  return (
+    PROJECT_STATUS_AR[status as keyof typeof PROJECT_STATUS_AR] ??
+    "حالة غير معروفة"
+  );
 }
 
 export function portalRequestStatusLabel(status: string): string {

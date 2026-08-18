@@ -275,12 +275,6 @@ export default function PortalProjectPeriodsPage() {
       {project && <ProjectHeader project={project} />}
 
       {selectedPeriod && (
-        // Top section: HeroCard (60%) + StatCards (40%) side-by-side on
-        // tablet+, stacked on mobile. The 5-column grid with col-span-3 /
-        // col-span-2 split is the standard 60/40 pattern in Tailwind —
-        // no magic numbers, no per-breakpoint overrides, no `grid-cols-12`
-        // ceremony. `items-start` lets each card size to its own content
-        // rather than stretching to match the other (UX polish #10).
         <div
           className="grid grid-cols-1 items-start gap-5 md:grid-cols-5"
           dir="rtl"
@@ -288,16 +282,21 @@ export default function PortalProjectPeriodsPage() {
           <div className="md:col-span-3">
             <HeroCard
               period={selectedPeriod}
-              totalPeriods={periods.length}
               periods={periods}
-              selectedPeriodId={selectedPeriod.id}
               onSelectPeriod={(period) => setSelectedPeriodId(period.id)}
               onDownloadReport={downloadPeriodReport}
-              onViewInvoice={() => setActiveTab("invoices")}
             />
           </div>
           <div className="md:col-span-2">
-            <StatCards stats={selectedPeriod.stats} />
+            <section
+              className="flex flex-col gap-3"
+              aria-labelledby="period-stats-title"
+            >
+              <h2 id="period-stats-title" className="text-base font-semibold">
+                ملخص الفترة الحالية
+              </h2>
+              <StatCards stats={selectedPeriod.stats} />
+            </section>
           </div>
         </div>
       )}

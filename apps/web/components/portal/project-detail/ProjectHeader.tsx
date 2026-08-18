@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Ticket } from "lucide-react";
+import { ArrowRight, FolderKanban, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import type { PortalProjectDetail } from "@/features/portal/portalApi";
 import type { CreateDisputeInput } from "@hassad/shared";
-import { ProjectSummaryCard, type ProjectDetailEntity } from "@/components/project-detail/ProjectDetailPattern";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NewDisputeDialog } from "@/components/disputes";
+import { portalErrorMessage } from "@/lib/i18n";
 import { useCreateDisputeMutation } from "@/features/portal/portalApi";
 
 interface ProjectHeaderProps {
@@ -17,51 +18,13 @@ interface ProjectHeaderProps {
 }
 
 /**
- * Page header for the project detail page.
- *
- * Layout follows the standard portal detail-page pattern used by
- * `/portal/contracts/[id]`, `/portal/campaigns/[id]`, and
- * `/portal/proposals/[token]`:
- *
- *   1. Breadcrumb row — `<Link>` + ghost ActionButton labelled "المشاريع"
- *      separated by `/` from the current page title.
- *   2. Content row    — title + status badge on the left, primary action
- *      ("فتح تذكرة") on the right.
- *
- * The breadcrumb is owned here rather than in the page so the header stays
- * a single self-contained unit. The `compact` variant exists for callers
- * that already render their own breadcrumb (none today, kept for symmetry
- * with the design-system breadcrumb used elsewhere).
+ * Uses the shared portal page-header pattern: a compact breadcrumb,
+ * consistent title/description hierarchy, project metadata, and a single
+ * contextual action.
  */
 export function ProjectHeader({ project }: ProjectHeaderProps) {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
-  const projectEntity: ProjectDetailEntity = {
-    id: project.id,
-    name: project.name,
-    description: project.description,
-    status: project.status,
-    priority: project.priority,
-    clientId: project.client.id,
-    startDate: project.startDate,
-    endDate: project.endDate,
-    completionPercentage: project.completionPercentage,
-    updatedAt: project.updatedAt,
-    isArchived: false,
-    client: {
-      id: project.client.id,
-      companyName: project.client.companyName,
-    },
-    manager: project.manager
-      ? {
-          id: project.manager.id,
-          name: project.manager.name,
-          email: undefined,
-        }
-      : null,
-    contract: null,
-  };
-
   const handleCreateDispute = async (
     data: CreateDisputeInput,
     files?: File[],
@@ -73,15 +36,13 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
       });
       setDisputeOpen(false);
     } catch (error) {
-      const message =
-        error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
-      toast.error("خطأ", { description: message });
+      toast.error("خطأ", { description: portalErrorMessage(error) });
     }
   };
 
   return (
-    <div className="flex flex-col gap-4" dir="rtl">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-3" dir="rtl">
+      <div className="flex items-center gap-2 text-sm">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/portal/projects">
             <ArrowRight data-icon="inline-start" />
@@ -89,32 +50,42 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
           </Link>
         </Button>
         <span className="text-muted-foreground">/</span>
-        <span className="max-w-xs truncate text-sm font-medium">
+        <span className="max-w-xs truncate text-muted-foreground">
           {project.name}
         </span>
       </div>
 
-      <ProjectSummaryCard
-        project={projectEntity}
-        badges={[
-          <Badge key="portal" variant="outline">
-            بوابة العميل
-          </Badge>,
-          <Badge key="progress" variant="secondary">
-            التقدم {project.completionPercentage}%
-          </Badge>,
-        ]}
+      <PageHeader
+        title={project.name}
+        description={
+          project.description ||
+          "ملخص واضح للتنفيذ التجاري والتشغيلي لهذا المشروع."
+        }
+        icon={FolderKanban}
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setDisputeOpen(true)}
-          >
-            <Ticket data-icon="inline-start" />
-            فتح تذكرة
-          </Button>
+          <>
+            <Badge variant="outline">بوابة العميل</Badge>
+            <Badge variant="secondary">
+              التقدم {project.completionPercentage}%
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDisputeOpen(true)}
+            >
+              <Ticket data-icon="inline-start" />
+              فتح تذكرة
+            </Button>
+          </>
         }
       />
+
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="outline">العميل: {project.client.companyName}</Badge>
+        <Badge variant="outline">
+          مدير المشروع: {project.manager?.name || "غير محدد"}
+        </Badge>
+      </div>
 
       <NewDisputeDialog
         isOpen={disputeOpen}

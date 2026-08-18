@@ -11,6 +11,8 @@ import type {
   DisputePriority,
   MarketingStrategyStatus,
   Client,
+  ProjectStatus,
+  TaskPriority,
 } from "@hassad/shared";
 import type { ClientProfileV2 } from "@/features/clients/clientsApi";
 
@@ -99,7 +101,7 @@ export interface DisputeListResponse {
 export interface ProjectSummary {
   id: string;
   name: string;
-  status: string;
+  status: ProjectStatus;
   progress: number;
   startDate: string;
   endDate: string;
@@ -369,9 +371,8 @@ export interface ReviewProject {
   id: string;
   name: string;
   description?: string | null;
-  status: string;
-  statusAr: string;
-  priority: string;
+  status: ProjectStatus;
+  priority: TaskPriority;
   startDate: string;
   endDate: string;
   completionPercentage: number;
@@ -514,9 +515,8 @@ export interface PortalProjectDetail {
   id: string;
   name: string;
   description?: string | null;
-  status: string;
-  statusAr: string;
-  priority: string;
+  status: ProjectStatus;
+  priority: TaskPriority;
   startDate: string;
   endDate: string;
   completionPercentage: number;
@@ -527,7 +527,9 @@ export interface PortalProjectDetail {
   client: {
     id: string;
     companyName: string;
-    user: { name: string; email: string; phoneWhatsapp: string | null } | null;
+    contactName: string | null;
+    email: string | null;
+    phoneWhatsapp: string | null;
   };
 }
 
@@ -692,7 +694,12 @@ export const portalApi = createApi({
     }),
     getPortalProjects: builder.query<
       PortalProjectList,
-      { status?: string; page?: number; limit?: number }
+      {
+        status?: ProjectStatus;
+        search?: string;
+        page?: number;
+        limit?: number;
+      }
     >({
       query: (params) => ({ url: "/portal/projects", params }),
       providesTags: ["PortalProjects"],

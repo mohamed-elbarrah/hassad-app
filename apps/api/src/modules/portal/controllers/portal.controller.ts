@@ -26,6 +26,7 @@ import {
   ReportTimelineQueryDto,
   RequestProjectRevisionDto,
   SnoozeActionItemDto,
+  PortalProjectsQueryDto,
 } from "../dto/portal.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -577,9 +578,7 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getPortalProjects(
     @CurrentUser() user: any,
-    @Query("status") status?: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
+    @Query() query: PortalProjectsQueryDto,
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId)
@@ -588,9 +587,10 @@ export class PortalController {
         details: {},
       });
     return this.portalService.getProjects(clientId, {
-      status,
-      page: this.parsePage(page),
-      limit: this.parseLimit(limit, 6), // CHANGED - was Number(limit) || 6
+      status: query.status,
+      search: query.search,
+      page: query.page,
+      limit: query.limit,
     });
   }
 
@@ -857,8 +857,17 @@ export class PortalController {
 
   @Get("portal/projects/:id/revisions")
   @RequirePermissions("portal.read")
-  async getProjectRevisions(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.portalService.getProjectRevisions(id);
+  async getProjectRevisions(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
+    return this.portalService.getProjectRevisions(id, clientId);
   }
 
   // NOTE: declared after the static `portal/projects/review` route so the `:id`
@@ -984,7 +993,7 @@ export class PortalController {
   async approveStrategy(
     @Param("id") id: string,
     @CurrentUser() user: any,
-    @Body() dto: ClientApproveStrategyDto,
+    @Body() _dto: ClientApproveStrategyDto,
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId)

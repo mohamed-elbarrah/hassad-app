@@ -14,6 +14,8 @@ import {
   Min,
   Max,
 } from "class-validator";
+import { Type } from "class-transformer";
+import { ProjectStatus } from "@hassad/shared";
 
 export enum ReportGranularity {
   DAY = "day",
@@ -43,6 +45,30 @@ export class SnoozeActionItemDto {
   @Min(1)
   @Max(168)
   hours?: number;
+}
+
+export class PortalProjectsQueryDto {
+  @IsOptional()
+  @IsEnum(ProjectStatus)
+  status?: ProjectStatus;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit = 6;
 }
 
 export class ReportTimelineQueryDto {

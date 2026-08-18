@@ -33,7 +33,6 @@ import {
   ProjectStatus,
   CampaignStatus,
   RequestStatus,
-  PROJECT_STATUS_AR,
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
 import { StorageService } from "../../../common/storage/storage.service";
@@ -338,10 +337,20 @@ export class PortalService {
 
   async getProjects(
     clientId: string,
-    query: { status?: string; page: number; limit: number },
+    query: {
+      status?: ProjectStatus;
+      search?: string;
+      page: number;
+      limit: number;
+    },
   ) {
-    const where: any = { clientId, isArchived: false };
-    if (query.status) where.status = query.status;
+    const search = query.search?.trim();
+    const where: Prisma.ProjectWhereInput = {
+      clientId,
+      isArchived: false,
+      ...(query.status ? { status: query.status } : {}),
+      ...(search ? { name: { contains: search, mode: "insensitive" } } : {}),
+    };
 
     const [data, total] = await Promise.all([
       this.prisma.project.findMany({
@@ -593,9 +602,6 @@ export class PortalService {
       name: project.name,
       description: project.description,
       status: project.status,
-      statusAr:
-        PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] ??
-        project.status,
       priority: project.priority,
       startDate: project.startDate,
       endDate: project.endDate,
@@ -2881,9 +2887,6 @@ export class PortalService {
 
     return projects.map((p) => ({
       ...p,
-      statusAr:
-        PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ??
-        p.status,
       taskCount: p._count.tasks,
       deliverableCount: p._count.deliverables,
       _count: undefined,
@@ -3057,9 +3060,9 @@ export class PortalService {
     return updated;
   }
 
-  async getProjectRevisions(projectId: string) {
+  async getProjectRevisions(projectId: string, clientId: string) {
     return this.prisma.projectRevisionRequest.findMany({
-      where: { projectId },
+      where: { projectId, clientId },
       include: {
         client: { select: { id: true, companyName: true } },
       },

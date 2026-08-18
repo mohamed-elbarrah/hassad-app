@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -43,6 +43,7 @@ import {
   Pagination,
   PaginationContent,
   PaginationItem,
+  PaginationEllipsis,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
@@ -56,15 +57,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const STATUS_OPTIONS = [
-  { label: "نشط", value: ProjectStatus.ACTIVE },
-  { label: "تخطيط", value: ProjectStatus.PLANNING },
-  { label: "معلق", value: ProjectStatus.ON_HOLD },
-  { label: "بانتظار المراجعة", value: ProjectStatus.AWAITING_REVIEW },
-  { label: "مطلوب تعديلات", value: ProjectStatus.NEEDS_REVISION },
-  { label: "مكتمل", value: ProjectStatus.COMPLETED },
-  { label: "ملغى", value: ProjectStatus.CANCELLED },
-] as const;
+const STATUS_OPTIONS = Object.values(ProjectStatus) as ProjectStatus[];
 
 const PAGE_SIZE = 9;
 
@@ -78,6 +71,41 @@ function ProjectBadge({ label, status }: { label: string; status: string }) {
   return <Badge variant={variant}>{label}</Badge>;
 }
 
+function getPaginationItems(
+  currentPage: number,
+  totalPages: number,
+): Array<number | "ellipsis-start" | "ellipsis-end"> {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, "ellipsis-end", totalPages];
+  }
+
+  if (currentPage >= totalPages - 3) {
+    return [
+      1,
+      "ellipsis-start",
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ];
+  }
+
+  return [
+    1,
+    "ellipsis-start",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "ellipsis-end",
+    totalPages,
+  ];
+}
+
 function ProjectsSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -89,22 +117,31 @@ function ProjectsSkeleton() {
 }
 
 export default function PortalProjectsPage() {
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<ProjectStatus | "">("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [search]);
+
   const { data, error, isLoading, isError } = useGetPortalProjectsQuery(
-    { status: status || undefined, page, limit: PAGE_SIZE },
+    {
+      status: status || undefined,
+      search: debouncedSearch || undefined,
+      page,
+      limit: PAGE_SIZE,
+    },
     { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
   const projects = data?.data ?? [];
   const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return query
-      ? projects.filter((project) => project.name.toLowerCase().includes(query))
-      : projects;
-  }, [projects, search]);
-  const hasActiveFilter = Boolean(search || status);
+  const hasActiveFilter = Boolean(search.trim() || status);
 
   return (
     <main dir="rtl" className="flex flex-col gap-6">
@@ -116,8 +153,12 @@ export default function PortalProjectsPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-md">
+          <Label htmlFor="project-search" className="sr-only">
+            البحث في المشاريع
+          </Label>
           <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            id="project-search"
             className="ps-9 pe-9"
             placeholder="ابحث عن مشروع..."
             value={search}
@@ -164,11 +205,11 @@ export default function PortalProjectsPage() {
               <Separator />
               <div className="flex flex-col gap-1">
                 {STATUS_OPTIONS.map((option) => {
-                  const id = `project-status-${option.value}`;
-                  const selected = status === option.value;
+                  const id = `project-status-${option}`;
+                  const selected = status === option;
                   return (
                     <Label
-                      key={option.value}
+                      key={option}
                       htmlFor={id}
                       className={cn(
                         "flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm",
@@ -180,11 +221,11 @@ export default function PortalProjectsPage() {
                         id={id}
                         checked={selected}
                         onCheckedChange={() => {
-                          setStatus(selected ? "" : option.value);
+                          setStatus(selected ? "" : option);
                           setPage(1);
                         }}
                       />
-                      {option.label}
+                      {portalProjectStatusLabel(option)}
                     </Label>
                   );
                 })}
@@ -222,10 +263,10 @@ export default function PortalProjectsPage() {
             </Empty>
           </CardContent>
         </Card>
-      ) : filtered.length ? (
+      ) : projects.length ? (
         <>
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((project) => (
+            {projects.map((project) => (
               <Card key={project.id} className="flex flex-col">
                 <CardHeader className="gap-3">
                   <div className="flex items-start justify-between gap-3">
@@ -284,6 +325,8 @@ export default function PortalProjectsPage() {
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
+                    direction="rtl"
+                    aria-label="الانتقال إلى الصفحة السابقة"
                     text="السابق"
                     disabled={page === 1}
                     onClick={() =>
@@ -291,21 +334,27 @@ export default function PortalProjectsPage() {
                     }
                   />
                 </PaginationItem>
-                {Array.from(
-                  { length: totalPages },
-                  (_, index) => index + 1,
-                ).map((number) => (
-                  <PaginationItem key={number}>
-                    <PaginationLink
-                      isActive={number === page}
-                      onClick={() => setPage(number)}
-                    >
-                      {number}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
+                {getPaginationItems(page, totalPages).map((item) =>
+                  typeof item === "number" ? (
+                    <PaginationItem key={item}>
+                      <PaginationLink
+                        isActive={item === page}
+                        onClick={() => setPage(item)}
+                        aria-label={`الانتقال إلى الصفحة ${item}`}
+                      >
+                        {item}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={item}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ),
+                )}
                 <PaginationItem>
                   <PaginationNext
+                    direction="rtl"
+                    aria-label="الانتقال إلى الصفحة التالية"
                     text="التالي"
                     disabled={page === totalPages}
                     onClick={() =>
