@@ -105,6 +105,13 @@ const PORTAL_ACTION_LABELS: Record<string, string> = {
   STRATEGY_REVIEW: "مراجعة الدراسة التسويقية",
 };
 
+export function portalServiceName(names: {
+  default: string;
+  ar?: string | null;
+}): string {
+  return names.ar ?? names.default;
+}
+
 export function portalTeamRoleLabel(roleCode: string): string {
   return (
     {

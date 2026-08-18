@@ -63,18 +63,29 @@ function PaginationLink({
   );
 }
 
+type PaginationDirection = "ltr" | "rtl";
+
+type DirectionalPaginationProps = React.ComponentProps<
+  typeof PaginationLink
+> & {
+  direction?: PaginationDirection;
+  text?: string;
+};
+
 function PaginationPrevious({
   className,
+  direction = "ltr",
   text = "Previous",
   ...props
-}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+}: DirectionalPaginationProps) {
+  const Icon = direction === "rtl" ? ChevronRight : ChevronLeft;
   return (
     <PaginationLink
       aria-label="Go to previous page"
       className={cn("gap-1", className)}
       {...props}
     >
-      <ChevronLeft className="h-4 w-4" />
+      <Icon className="h-4 w-4" />
       <span className="hidden sm:block">{text}</span>
     </PaginationLink>
   );
@@ -82,9 +93,11 @@ function PaginationPrevious({
 
 function PaginationNext({
   className,
+  direction = "ltr",
   text = "Next",
   ...props
-}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+}: DirectionalPaginationProps) {
+  const Icon = direction === "rtl" ? ChevronLeft : ChevronRight;
   return (
     <PaginationLink
       aria-label="Go to next page"
@@ -92,7 +105,7 @@ function PaginationNext({
       {...props}
     >
       <span className="hidden sm:block">{text}</span>
-      <ChevronRight className="h-4 w-4" />
+      <Icon className="h-4 w-4" />
     </PaginationLink>
   );
 }

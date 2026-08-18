@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { portalErrorMessage } from "@/lib/i18n";
 import { User, Mail, Phone, Lock, Camera, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -73,6 +74,7 @@ interface AccountFormProps {
       name?: string;
       email?: string;
       phoneWhatsapp?: string;
+      currentPassword?: string;
       password?: string;
       avatarUrl?: string;
     };
@@ -154,7 +156,7 @@ export function AccountForm({
         setPreviewUrl(avatarUrl);
         toast.success("تم رفع الصورة بنجاح");
       } catch (error) {
-        toast.error("فشل رفع الصورة");
+        toast.error(portalErrorMessage(error));
         setPreviewUrl(user.avatarUrl);
       } finally {
         setIsUploading(false);
@@ -168,6 +170,7 @@ export function AccountForm({
         name?: string;
         email?: string;
         phoneWhatsapp?: string;
+        currentPassword?: string;
         password?: string;
         avatarUrl?: string;
       } = {};
@@ -184,6 +187,7 @@ export function AccountForm({
 
       // Include password if changing
       if (hasPasswordChange) {
+        body.currentPassword = values.currentPassword;
         body.password = values.newPassword;
       }
 
@@ -206,7 +210,7 @@ export function AccountForm({
 
       toast.success("تم تحديث البيانات بنجاح");
     } catch (error) {
-      toast.error("فشل تحديث البيانات. يرجى المحاولة مرة أخرى.");
+      toast.error(portalErrorMessage(error));
     }
   };
 
@@ -224,9 +228,7 @@ export function AccountForm({
             className="group relative shrink-0 cursor-pointer"
           >
             <Avatar className="h-16 w-16 rounded-full">
-              {previewUrl && (
-                <AvatarImage src={previewUrl} alt={user.name} />
-              )}
+              {previewUrl && <AvatarImage src={previewUrl} alt={user.name} />}
               <AvatarFallback className="bg-muted text-xl text-foreground">
                 {getInitials(user.name)}
               </AvatarFallback>
@@ -330,10 +332,16 @@ export function AccountForm({
           type="submit"
           size="lg"
           className="w-full"
-          isLoading={isLoading}
-          disabled={!isDirty}
+          disabled={!isDirty || isLoading}
         >
-          {isLoading ? "جاري الحفظ..." : "حفظ التغييرات"}
+          {isLoading ? (
+            <>
+              <Loader2 className="animate-spin" data-icon="inline-start" />
+              جاري الحفظ...
+            </>
+          ) : (
+            "حفظ التغييرات"
+          )}
         </Button>
       </div>
     </form>

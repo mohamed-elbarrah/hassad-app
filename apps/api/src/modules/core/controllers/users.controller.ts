@@ -9,6 +9,7 @@ import {
   UseGuards,
   Query,
   ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
 import { UsersService, UserListFilters } from "../services/users.service";
 import { DepartmentsService } from "../services/departments.service";
@@ -72,29 +73,52 @@ export class UsersController {
     // Allow users to update their own profile (self-service)
     // Only admin can update other users
     if (id !== currentUser.id && currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException("You can only update your own profile");
+      throw new ForbiddenException({
+        code: "USER_PROFILE_UPDATE_FORBIDDEN",
+        details: {},
+      });
+    }
+
+    if (
+      id === currentUser.id &&
+      updateUserDto.password &&
+      !updateUserDto.currentPassword
+    ) {
+      throw new BadRequestException({
+        code: "CURRENT_PASSWORD_REQUIRED",
+        details: {},
+      });
     }
 
     // Self-update: restrict fields that can be updated
     if (id === currentUser.id && currentUser.role !== UserRole.ADMIN) {
-      // Users can only update: name, email, phoneWhatsapp, password, avatarUrl
+      // Users can only update: name, email, phoneWhatsapp, password, currentPassword, avatarUrl
       // Cannot update: role, department, isActive
       const allowedFields = [
         "name",
         "email",
         "phoneWhatsapp",
         "password",
+        "currentPassword",
         "avatarUrl",
       ];
+      if (updateUserDto.password && !updateUserDto.currentPassword) {
+        throw new BadRequestException({
+          code: "CURRENT_PASSWORD_REQUIRED",
+          details: {},
+        });
+      }
+
       const requestedFields = Object.keys(updateUserDto);
       const hasRestrictedFields = requestedFields.some(
         (field) => !allowedFields.includes(field),
       );
 
       if (hasRestrictedFields) {
-        throw new ForbiddenException(
-          "You can only update your profile information (name, email, phone, password, avatar)",
-        );
+        throw new ForbiddenException({
+          code: "USER_PROFILE_FIELD_FORBIDDEN",
+          details: {},
+        });
       }
     }
 

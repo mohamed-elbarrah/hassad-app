@@ -11,6 +11,7 @@ import {
   Delete,
   Patch,
   NotFoundException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ChatService } from "../services/chat.service";
@@ -70,7 +71,10 @@ export class ChatController {
       otherUserId,
     );
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw new NotFoundException({
+        code: "DIRECT_CONVERSATION_CREATE_FAILED",
+        details: {},
+      });
     }
     return conversation;
   }
@@ -89,10 +93,16 @@ export class ChatController {
   ) {
     const conversation = await this.projectGroupChatService.ensure(projectId);
     if (!conversation) {
-      throw new NotFoundException("Project group chat not found");
+      throw new NotFoundException({
+        code: "PROJECT_GROUP_CHAT_NOT_FOUND",
+        details: {},
+      });
     }
     if (!conversation.participants.some((p) => p.userId === user.id)) {
-      throw new NotFoundException("You are not a member of this group chat");
+      throw new ForbiddenException({
+        code: "CHAT_MEMBERSHIP_REQUIRED",
+        details: {},
+      });
     }
     return conversation;
   }
@@ -199,7 +209,10 @@ export class ChatController {
     );
 
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw new NotFoundException({
+        code: "DIRECT_CONVERSATION_CREATE_FAILED",
+        details: {},
+      });
     }
 
     const attachments =

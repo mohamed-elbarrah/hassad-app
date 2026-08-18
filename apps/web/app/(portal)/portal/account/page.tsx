@@ -11,13 +11,9 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AccountForm } from "@/components/design-system/AccountForm";
+import { PageHeader } from "@/components/common/PageHeader";
 import { ProfileEditV2 } from "@/components/portal/ProfileEditV2";
 import { ClientContextPanel } from "@/components/client-detail/ClientDetailPattern";
 import { Settings, User, Pencil, ArrowRight } from "lucide-react";
@@ -62,6 +58,7 @@ export default function PortalAccountPage() {
       name?: string;
       email?: string;
       phoneWhatsapp?: string;
+      currentPassword?: string;
       password?: string;
       avatarUrl?: string;
     };
@@ -136,9 +133,9 @@ export default function PortalAccountPage() {
     return (
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground">
+          <h2 className="text-xl font-bold text-foreground">
             {isEditing ? "تعديل الملف التعريفي" : "الملف التعريفي"}
-          </h1>
+          </h2>
           {isEditing ? (
             <Button
               variant="outline"
@@ -192,15 +189,11 @@ export default function PortalAccountPage() {
 
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <Settings className="h-6 w-6 text-primary" />
-          الإعدادات
-        </h1>
-        <p className="text-muted-foreground">
-          إدارة بيانات حسابك والملف التعريفي لنشاطك التجاري.
-        </p>
-      </div>
+      <PageHeader
+        icon={Settings}
+        title="الإعدادات"
+        description="إدارة بيانات حسابك والملف التعريفي لنشاطك التجاري."
+      />
 
       <Tabs defaultValue="credentials" dir="rtl">
         <TabsList>

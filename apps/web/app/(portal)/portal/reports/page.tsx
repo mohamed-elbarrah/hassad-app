@@ -11,6 +11,7 @@ import {
   PieChart,
 } from "lucide-react";
 
+import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -186,18 +187,11 @@ export default function PortalReportsPage() {
 
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-start gap-3">
-            <BarChart3 className="size-6 text-muted-foreground" />
-            <div className="flex flex-col gap-1">
-              <CardTitle>التقارير</CardTitle>
-              <CardDescription>
-                لوحة تحليلات شاملة لأداء حملاتك الإعلانية، الزيارات، التحويلات،
-                والعائد على الإنفاق.
-              </CardDescription>
-            </div>
-          </div>
+      <PageHeader
+        title="التقارير"
+        description="لوحة تحليلات شاملة لأداء حملاتك الإعلانية، الزيارات، التحويلات، والعائد على الإنفاق."
+        icon={BarChart3}
+        actions={
           <Select
             value={timeRange}
             onValueChange={(value) => setTimeRange(value as TimeRange)}
@@ -215,8 +209,8 @@ export default function PortalReportsPage() {
               </SelectGroup>
             </SelectContent>
           </Select>
-        </CardHeader>
-      </Card>
+        }
+      />
 
       {!clientId && (
         <Empty>

@@ -50,13 +50,9 @@ export function mapRequestStatusToUI(status: string): UIStatus {
 }
 
 /**
- * Per-status Arabic label for the badge cell and summary chips.
- *
- * The backend returns `statusLabel: "طلب قيد الانتظار"` for every pending
- * request — too generic for a table where each row needs a meaningful
- * label. The frontend computes the right label here. This stays in sync
- * with the backend's `getPendingRequestStageLabel` (which returns the
- * `stageLabel` field, a longer descriptive sentence).
+ * Per-status presentation label for the badge cell and summary chips.
+ * The API returns the machine-readable request status; this module owns its
+ * localized presentation.
  */
 export function getRequestStatusLabel(status: string): string {
   switch (status) {
@@ -81,7 +77,7 @@ export function getRequestStatusLabel(status: string): string {
     case RequestStatus.CANCELLED:
       return "ملغي";
     default:
-      return status;
+      return "حالة غير معروفة";
   }
 }
 
@@ -95,37 +91,27 @@ export type RequestAction =
   | { kind: "review-proposal"; href: string }
   | { kind: "sign-contract"; href: string }
   | { kind: "in-progress" }
-  | { kind: "completed" };
+  | { kind: "completed" }
+  | { kind: "unavailable" };
 
 export function getRequestAction(request: PortalRequestSummary): RequestAction {
-  // Contract awaiting client signature is the highest-priority action.
-  if (
-    request.status === RequestStatus.CONTRACT_SENT &&
-    request.latestContract?.url
-  ) {
-    return { kind: "sign-contract", href: request.latestContract.url };
+  switch (request.nextAction.code) {
+    case "SIGN_CONTRACT":
+      return request.nextAction.href
+        ? { kind: "sign-contract", href: request.nextAction.href }
+        : { kind: "completed" };
+    case "REVIEW_PROPOSAL":
+      return request.nextAction.href
+        ? { kind: "review-proposal", href: request.nextAction.href }
+        : { kind: "completed" };
+    case "IN_PROGRESS":
+      return { kind: "in-progress" };
+    case "ACTION_UNAVAILABLE":
+      return { kind: "unavailable" };
+    case "COMPLETED":
+    default:
+      return { kind: "completed" };
   }
-
-  // Proposal ready for review/negotiation.
-  if (
-    (request.status === RequestStatus.PROPOSAL_SENT ||
-      request.status === RequestStatus.NEGOTIATION) &&
-    request.latestProposal?.url
-  ) {
-    return { kind: "review-proposal", href: request.latestProposal.url };
-  }
-
-  // Sales team is working on it — no client action.
-  if (
-    request.status === RequestStatus.SUBMITTED ||
-    request.status === RequestStatus.QUALIFYING ||
-    request.status === RequestStatus.PROPOSAL_IN_PROGRESS ||
-    request.status === RequestStatus.CONTRACT_PREPARATION
-  ) {
-    return { kind: "in-progress" };
-  }
-
-  return { kind: "completed" };
 }
 
 /**
@@ -141,6 +127,8 @@ export function getRequestActionLabel(action: RequestAction): string {
       return "جاري العمل";
     case "completed":
       return "مكتمل";
+    case "unavailable":
+      return "الإجراء غير متاح حالياً";
   }
 }
 

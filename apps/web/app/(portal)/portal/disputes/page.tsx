@@ -14,18 +14,14 @@ import {
 import { toast } from "sonner";
 import { DisputeStatus } from "@hassad/shared";
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { portalErrorMessage } from "@/lib/i18n";
 import {
   useCreateDisputeMutation,
   useGetClientDisputesQuery,
 } from "@/features/portal/portalApi";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -62,14 +58,15 @@ export default function PortalDisputesPage() {
   const [activeTab, setActiveTab] = useState("");
   const [isNewDisputeOpen, setIsNewDisputeOpen] = useState(!!projectIdFromUrl);
 
-  const { data, isLoading, isError, refetch, isFetching } = useGetClientDisputesQuery(
-    {
-      status: (activeTab || undefined) as DisputeStatus | undefined,
-      page,
-      limit: PAGE_SIZE,
-    },
-    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
-  );
+  const { data, isLoading, isError, refetch, isFetching } =
+    useGetClientDisputesQuery(
+      {
+        status: (activeTab || undefined) as DisputeStatus | undefined,
+        page,
+        limit: PAGE_SIZE,
+      },
+      { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
+    );
 
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
   const disputes = useMemo(() => data?.data ?? [], [data?.data]);
@@ -93,28 +90,19 @@ export default function PortalDisputesPage() {
       toast.success("تم إرسال التذكرة");
       setIsNewDisputeOpen(false);
       refetch();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
-      toast.error(message);
+    } catch (error) {
+      toast.error(portalErrorMessage(error));
     }
   };
 
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <ShieldAlert />
-            </div>
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl">نزاعاتي</CardTitle>
-              <CardDescription>
-                افتح تذكرة جديدة أو تابع حالة التذاكر الحالية من شاشة واحدة.
-              </CardDescription>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title="نزاعاتي"
+        description="افتح تذكرة جديدة أو تابع حالة التذاكر الحالية من شاشة واحدة."
+        icon={ShieldAlert}
+        actions={
+          <>
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw data-icon="inline-start" />
               {isFetching ? "جارٍ التحديث" : "تحديث"}
@@ -123,14 +111,20 @@ export default function PortalDisputesPage() {
               <Plus data-icon="inline-start" />
               تذكرة جديدة
             </Button>
-          </div>
-        </CardHeader>
-      </Card>
+          </>
+        }
+      />
 
       <Card>
         <CardHeader className="gap-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setPage(1); }}>
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => {
+                setActiveTab(value);
+                setPage(1);
+              }}
+            >
               <TabsList className="h-auto flex-wrap">
                 {STATUS_TABS.map((tab) => (
                   <TabsTrigger key={tab.value} value={tab.value}>

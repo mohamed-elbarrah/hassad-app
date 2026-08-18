@@ -1,4 +1,4 @@
-export { RequestRow, getRequestDescription } from "./RequestRow";
+export { RequestRow } from "./RequestRow";
 export {
   RequestsToolbar,
   type RequestsToolbarFilters,

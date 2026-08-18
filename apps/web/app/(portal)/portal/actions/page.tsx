@@ -14,6 +14,7 @@ import {
   Settings,
 } from "lucide-react";
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { PageHeader } from "@/components/common/PageHeader";
 import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -166,22 +167,11 @@ export default function PortalActionsPage() {
 
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <CheckCircle2 />
-            </div>
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl">إجراءات تتطلب تدخلك</CardTitle>
-              <CardDescription>
-                جميع الإجراءات التي تحتاج مراجعتك أو موافقتك ضمن نفس تجربة
-                العميل الموحدة.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        title="إجراءات تتطلب تدخلك"
+        description="جميع الإجراءات التي تحتاج مراجعتك أو موافقتك ضمن نفس تجربة العميل الموحدة."
+        icon={CheckCircle2}
+      />
 
       <Tabs
         value={activeTab}

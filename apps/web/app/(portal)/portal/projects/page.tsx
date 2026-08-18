@@ -15,8 +15,10 @@ import {
 import { ProjectStatus } from "@hassad/shared";
 
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { PageHeader } from "@/components/common/PageHeader";
 import { formatShortDate } from "@/lib/format";
 import { portalErrorMessage, portalProjectStatusLabel } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { useGetPortalProjectsQuery } from "@/features/portal/portalApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +38,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -105,18 +108,11 @@ export default function PortalProjectsPage() {
 
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <FolderOpen className="size-5 text-muted-foreground" />
-            <CardTitle>مشاريعي</CardTitle>
-          </div>
-          <CardDescription>
-            تتبع جميع مشاريعك، راقب الحالة الحالية، واستعرض نسبة التقدم لكل
-            مشروع.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        title="مشاريعي"
+        description="تتبع جميع مشاريعك، راقب الحالة الحالية، واستعرض نسبة التقدم لكل مشروع."
+        icon={FolderOpen}
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-md">
@@ -156,30 +152,44 @@ export default function PortalProjectsPage() {
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            align="start"
-            className="flex flex-col gap-3"
+            align="end"
+            sideOffset={8}
+            collisionPadding={16}
+            className="flex w-max max-w-[calc(100vw-2rem)] flex-col gap-3 p-4"
             dir="rtl"
           >
-            <div>
-              <p className="font-medium">حالة المشروع</p>
+            <fieldset className="flex flex-col gap-3">
+              <legend className="font-medium">حالة المشروع</legend>
               <p className="text-sm text-muted-foreground">اختر حالة واحدة.</p>
-            </div>
-            <Separator />
-            {STATUS_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                className="flex cursor-pointer items-center gap-2 text-sm"
-              >
-                <Checkbox
-                  checked={status === option.value}
-                  onCheckedChange={() => {
-                    setStatus(status === option.value ? "" : option.value);
-                    setPage(1);
-                  }}
-                />
-                {option.label}
-              </label>
-            ))}
+              <Separator />
+              <div className="flex flex-col gap-1">
+                {STATUS_OPTIONS.map((option) => {
+                  const id = `project-status-${option.value}`;
+                  const selected = status === option.value;
+                  return (
+                    <Label
+                      key={option.value}
+                      htmlFor={id}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm",
+                        "hover:bg-accent hover:text-accent-foreground",
+                        selected && "bg-accent text-accent-foreground",
+                      )}
+                    >
+                      <Checkbox
+                        id={id}
+                        checked={selected}
+                        onCheckedChange={() => {
+                          setStatus(selected ? "" : option.value);
+                          setPage(1);
+                        }}
+                      />
+                      {option.label}
+                    </Label>
+                  );
+                })}
+              </div>
+            </fieldset>
             {status ? (
               <Button
                 variant="ghost"

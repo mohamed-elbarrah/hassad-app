@@ -235,8 +235,20 @@ export interface PortalProjectList {
 export interface PortalRequestServiceSummary {
   id: string;
   quantity: number;
-  name: string;
-  nameAr?: string | null;
+  names: {
+    default: string;
+    ar?: string | null;
+  };
+}
+
+export interface PortalRequestAction {
+  code:
+    | "SIGN_CONTRACT"
+    | "REVIEW_PROPOSAL"
+    | "IN_PROGRESS"
+    | "COMPLETED"
+    | "ACTION_UNAVAILABLE";
+  href: string | null;
 }
 
 export interface PortalRequestDocumentSummary {
@@ -252,7 +264,7 @@ export interface PortalRequestSummary {
   id: string;
   companyName: string;
   contactName: string;
-  notes?: string | null;
+  description?: string | null;
   status: string;
   stage: string;
   createdAt: string;
@@ -260,6 +272,7 @@ export interface PortalRequestSummary {
   services: PortalRequestServiceSummary[];
   latestProposal?: PortalRequestDocumentSummary | null;
   latestContract?: PortalRequestDocumentSummary | null;
+  nextAction: PortalRequestAction;
 }
 
 export interface PortalRequestList {
@@ -267,6 +280,7 @@ export interface PortalRequestList {
   total: number;
   page: number;
   limit: number;
+  statusCounts: Record<string, number>;
 }
 
 export interface PortalInvoiceSummary {
@@ -685,7 +699,13 @@ export const portalApi = createApi({
     }),
     getPortalRequests: builder.query<
       PortalRequestList,
-      { page?: number; limit?: number } | void
+      {
+        page?: number;
+        limit?: number;
+        search?: string;
+        statuses?: string;
+        includeCancelled?: boolean;
+      } | void
     >({
       query: (params) =>
         params

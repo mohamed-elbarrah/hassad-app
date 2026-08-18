@@ -201,7 +201,12 @@ function PortalNotificationMenu() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-80">
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        collisionPadding={16}
+        className="w-80"
+      >
         <DropdownMenuLabel>الإشعارات</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isLoading ? (

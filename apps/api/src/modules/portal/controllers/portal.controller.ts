@@ -142,7 +142,10 @@ export class PortalController {
       period.projectId !== projectId ||
       period.project.clientId !== clientId
     ) {
-      throw new NotFoundException("Report not available");
+      throw new NotFoundException({
+        code: "REPORT_NOT_AVAILABLE",
+        details: {},
+      });
     }
   }
 
@@ -165,7 +168,7 @@ export class PortalController {
       file.projectId !== projectId ||
       file.project.clientId !== clientId
     ) {
-      throw new NotFoundException("File not found");
+      throw new NotFoundException({ code: "FILE_NOT_FOUND", details: {} });
     }
   }
 
@@ -182,7 +185,11 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getTeamMembers(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getClientTeamMembers(clientId);
   }
 
@@ -264,7 +271,7 @@ export class PortalController {
     @UploadedFile() file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new ForbiddenException("File is required");
+      throw new ForbiddenException({ code: "FILE_REQUIRED", details: {} });
     }
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.DELIVERABLE,
@@ -284,7 +291,10 @@ export class PortalController {
   async findDeliverable(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
     return this.portalService.findDeliverable(id);
   }
@@ -294,7 +304,10 @@ export class PortalController {
   async approveDeliverable(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
     return this.portalService.approveDeliverable(id, user.id);
   }
@@ -304,7 +317,10 @@ export class PortalController {
   async rejectDeliverable(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
     return this.portalService.rejectDeliverable(id);
   }
@@ -318,7 +334,10 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
     return this.portalService.createRevision(id, user.id, dto);
   }
@@ -328,7 +347,10 @@ export class PortalController {
   async getRevisions(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
-      throw new ForbiddenException();
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
     return this.portalService.getRevisions(id);
   }
@@ -344,7 +366,10 @@ export class PortalController {
       clientId &&
       !(await this.verifyClientOwnsProject(clientId, projectId))
     ) {
-      throw new ForbiddenException();
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
     return this.portalService.findDeliverablesByProject(projectId);
   }
@@ -357,7 +382,10 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && clientId !== clientIdFromUrl) {
-      throw new ForbiddenException();
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
     return this.portalService.findDeliverablesByClient(clientIdFromUrl);
   }
@@ -371,11 +399,11 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("العميل غير موجود");
+      throw new ForbiddenException({ code: "CLIENT_NOT_FOUND", details: {} });
     }
 
     if (!files || files.length === 0) {
-      throw new ForbiddenException("لم يتم إرسال أي ملفات");
+      throw new ForbiddenException({ code: "FILES_REQUIRED", details: {} });
     }
 
     const uploadedFiles: {
@@ -427,7 +455,7 @@ export class PortalController {
   async getMyIntakeForm(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("العميل غير موجود");
+      throw new ForbiddenException({ code: "CLIENT_NOT_FOUND", details: {} });
     }
     return this.portalService.getIntakeForm(clientId);
   }
@@ -440,7 +468,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("العميل غير موجود");
+      throw new ForbiddenException({ code: "CLIENT_NOT_FOUND", details: {} });
     }
 
     return this.portalService.createIntakeForm(
@@ -458,7 +486,7 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) {
-      throw new ForbiddenException("العميل غير موجود");
+      throw new ForbiddenException({ code: "CLIENT_NOT_FOUND", details: {} });
     }
 
     return this.portalService.saveDraft(clientId, dto);
@@ -475,7 +503,10 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && clientId !== clientIdFromUrl) {
-      throw new ForbiddenException();
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
 
     const uploadedFileKeys: {
@@ -518,7 +549,10 @@ export class PortalController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && clientId !== clientIdFromUrl) {
-      throw new ForbiddenException();
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
     return this.portalService.getIntakeForm(clientIdFromUrl);
   }
@@ -548,7 +582,11 @@ export class PortalController {
     @Query("limit") limit?: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getProjects(clientId, {
       status,
       page: this.parsePage(page),
@@ -563,7 +601,11 @@ export class PortalController {
     @Param("id", ParseUUIDPipe) projectId: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     // Service throws NotFoundException for not-found / not-owned — let it
     // bubble so the client sees a real 404, not a misleading []. (Audit #9)
     return this.portalService.getProjectPeriods(clientId, projectId);
@@ -575,12 +617,25 @@ export class PortalController {
     @CurrentUser() user: any,
     @Query("page") page?: string,
     @Query("limit") limit?: string,
+    @Query("search") search?: string,
+    @Query("statuses") statuses?: string,
+    @Query("includeCancelled") includeCancelled?: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getRequests(clientId, {
       page: this.parsePage(page),
-      limit: this.parseLimit(limit, 6), // CHANGED - was Number(limit) || 6
+      limit: this.parseLimit(limit, 6),
+      search,
+      statuses: statuses
+        ?.split(",")
+        .map((status) => status.trim())
+        .filter(Boolean),
+      includeCancelled: includeCancelled === "true",
     });
   }
 
@@ -588,7 +643,11 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getProjectProgress(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getProjectProgress(clientId);
   }
 
@@ -601,7 +660,11 @@ export class PortalController {
     @Query("limit") limit?: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getActionItems(clientId, {
       type: type || undefined,
       page: this.parsePage(page),
@@ -613,7 +676,11 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getActivityFeed(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getActivityFeed(clientId);
   }
 
@@ -621,7 +688,11 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getCampaignSummary(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getCampaignSummary(clientId);
   }
 
@@ -671,7 +742,11 @@ export class PortalController {
     @Body() body: SnoozeActionItemDto,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.snoozeActionItem(
       clientId,
       body.itemType,
@@ -688,7 +763,11 @@ export class PortalController {
     @Param("itemId") itemId: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.unsnoozeActionItem(clientId, itemType, itemId);
   }
 
@@ -740,7 +819,11 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getProjectReviewDetail(id, clientId);
   }
 
@@ -748,7 +831,11 @@ export class PortalController {
   @RequirePermissions("portal.approve_deliverables")
   async approveProject(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.approveProject(id, clientId);
   }
 
@@ -760,7 +847,11 @@ export class PortalController {
     @Body() dto: RequestProjectRevisionDto,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.requestProjectRevision(id, clientId, dto);
   }
 
@@ -779,7 +870,11 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getProjectDetail(clientId, id);
   }
 
@@ -791,7 +886,11 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     // Defense in depth: validate the URL projectId matches the period's
     // owning project. The service already checks client ownership via the
     // period, but the URL contract should be enforced too. (Audit issue #3)
@@ -807,7 +906,11 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     // Defense in depth: validate the URL projectId matches the file's
     // owning project. (Audit issue #3)
     await this.verifyFileBelongsToProject(clientId, projectId, fileId);
@@ -821,7 +924,11 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getInvoiceDetail(clientId, id);
   }
 
@@ -839,7 +946,11 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.resolveDeliverableForReview(clientId, id);
   }
 
@@ -860,7 +971,11 @@ export class PortalController {
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.getClientStrategyOne(id, clientId);
   }
 
@@ -872,12 +987,20 @@ export class PortalController {
     @Body() dto: ClientApproveStrategyDto,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
       select: { userId: true },
     });
-    if (!client?.userId) throw new ForbiddenException();
+    if (!client?.userId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.approveStrategy(id, client.userId);
   }
 
@@ -889,12 +1012,20 @@ export class PortalController {
     @Body() dto: StrategyRevisionDto,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
       select: { userId: true },
     });
-    if (!client?.userId) throw new ForbiddenException();
+    if (!client?.userId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     return this.portalService.requestStrategyRevision(
       id,
       client.userId,
@@ -906,7 +1037,11 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async downloadStrategy(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new ForbiddenException();
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
 
     // Verify client owns this strategy
     const strategy = await this.prisma.marketingStrategy.findUnique({
@@ -915,7 +1050,10 @@ export class PortalController {
     });
 
     if (!strategy || strategy.clientId !== clientId) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     const url = await this.storageService.getPresignedUrl(strategy.filePath);

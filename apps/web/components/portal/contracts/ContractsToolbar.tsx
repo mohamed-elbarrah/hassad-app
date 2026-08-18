@@ -67,7 +67,13 @@ export function ContractsToolbar({
             {label}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="flex flex-col gap-3" dir="rtl">
+        <PopoverContent
+          align="end"
+          sideOffset={8}
+          collisionPadding={16}
+          className="flex w-max max-w-[calc(100vw-2rem)] flex-col gap-3 p-4"
+          dir="rtl"
+        >
           <div className="flex items-center justify-between">
             <p className="font-medium">تحديد الفترة</p>
             <Button

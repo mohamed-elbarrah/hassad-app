@@ -32,6 +32,7 @@ import {
   ProposalStatus,
   ProjectStatus,
   CampaignStatus,
+  RequestStatus,
   PROJECT_STATUS_AR,
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
@@ -393,7 +394,7 @@ export class PortalService {
     // Consistent 404 for both not-found and not-owned, so callers can't
     // distinguish the two (prevents IDOR probing). (Audit issue #9)
     if (!project || project.clientId !== clientId) {
-      throw new NotFoundException("Project not found");
+      throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
     }
 
     const periods = await this.prisma.projectPeriod.findMany({
@@ -582,7 +583,10 @@ export class PortalService {
       },
     });
     if (!project || project.client.id !== clientId) {
-      throw new NotFoundException("Project not found or access denied");
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+        details: {},
+      });
     }
     return {
       id: project.id,
@@ -635,7 +639,8 @@ export class PortalService {
         },
       },
     });
-    if (!invoice) throw new NotFoundException("Invoice not found");
+    if (!invoice)
+      throw new NotFoundException({ code: "INVOICE_NOT_FOUND", details: {} });
     const paidAmount = invoice.payments
       .filter((p) => p.status === "SUCCESS")
       .reduce((sum, p) => sum + p.amount, 0);
@@ -660,7 +665,10 @@ export class PortalService {
       period.project.clientId !== clientId ||
       !period.reportFilePath
     ) {
-      throw new NotFoundException("Report not available");
+      throw new NotFoundException({
+        code: "REPORT_NOT_AVAILABLE",
+        details: {},
+      });
     }
     // Use the existence-checked presigner: a stale `reportFilePath` (e.g.
     // file deleted from R2 but DB row still pointing at it) used to silently
@@ -669,7 +677,11 @@ export class PortalService {
     const url = await this.storageService.getPresignedUrlIfExists(
       period.reportFilePath,
     );
-    if (!url) throw new NotFoundException("Report file is no longer available");
+    if (!url)
+      throw new NotFoundException({
+        code: "REPORT_FILE_NOT_AVAILABLE",
+        details: {},
+      });
     return { url };
   }
 
@@ -680,22 +692,87 @@ export class PortalService {
       include: { project: { select: { clientId: true } } },
     });
     if (!file || file.project.clientId !== clientId) {
-      throw new NotFoundException("File not found");
+      throw new NotFoundException({ code: "FILE_NOT_FOUND", details: {} });
     }
     const url = await this.storageService.getPresignedUrlIfExists(
       file.filePath,
     );
-    if (!url) throw new NotFoundException("File is no longer available");
+    if (!url)
+      throw new NotFoundException({ code: "FILE_NOT_AVAILABLE", details: {} });
     return { url };
   }
 
-  async getRequests(clientId: string, query: { page: number; limit: number }) {
-    const where: any = {
+  private parseRequestDescription(notes: string | null): string | null {
+    if (!notes) return null;
+    try {
+      const parsed = JSON.parse(notes) as { description?: unknown };
+      return typeof parsed.description === "string" && parsed.description.trim()
+        ? parsed.description.trim()
+        : null;
+    } catch {
+      const value = notes.trim();
+      return value && !value.startsWith("{") && !value.startsWith("[")
+        ? value
+        : null;
+    }
+  }
+
+  async getRequests(
+    clientId: string,
+    query: {
+      page: number;
+      limit: number;
+      search?: string;
+      statuses?: string[];
+      includeCancelled?: boolean;
+    },
+  ) {
+    const baseWhere: Prisma.RequestWhereInput = {
       clientId,
-      status: { notIn: ["PROJECT_CREATED", "CANCELLED"] },
+      status: {
+        notIn: query.includeCancelled
+          ? ["PROJECT_CREATED"]
+          : ["PROJECT_CREATED", "CANCELLED"],
+      },
+    };
+    const search = query.search?.trim();
+    if (search) {
+      baseWhere.OR = [
+        { companyName: { contains: search, mode: "insensitive" } },
+        { contactName: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        {
+          services: {
+            some: {
+              service: {
+                OR: [
+                  { name: { contains: search, mode: "insensitive" } },
+                  { nameAr: { contains: search, mode: "insensitive" } },
+                ],
+              },
+            },
+          },
+        },
+      ];
+    }
+
+    const requestedStatuses = (query.statuses ?? []).filter(
+      (status): status is RequestStatus =>
+        Object.values(RequestStatus).includes(status as RequestStatus),
+    );
+    const excludedStatuses = query.includeCancelled
+      ? [RequestStatus.PROJECT_CREATED]
+      : [RequestStatus.PROJECT_CREATED, RequestStatus.CANCELLED];
+    const statusFilter = requestedStatuses.filter(
+      (status) => !excludedStatuses.includes(status),
+    );
+    const hasStatusFilter = query.statuses !== undefined;
+    const where: Prisma.RequestWhereInput = {
+      ...baseWhere,
+      ...(hasStatusFilter ? { status: { in: statusFilter } } : {}),
     };
 
-    const [data, total] = await Promise.all([
+    const [data, total, statusCounts] = await Promise.all([
       this.prisma.request.findMany({
         where,
         select: {
@@ -745,6 +822,11 @@ export class PortalService {
         take: query.limit,
       }),
       this.prisma.request.count({ where }),
+      this.prisma.request.groupBy({
+        by: ["status"],
+        where: baseWhere,
+        _count: { _all: true },
+      }),
     ]);
 
     const items = data.map((request) => {
@@ -755,16 +837,18 @@ export class PortalService {
         id: request.id,
         companyName: request.companyName,
         contactName: request.contactName,
-        notes: request.notes,
         status: request.status,
         stage: request.status,
+        description: this.parseRequestDescription(request.notes),
         createdAt: request.createdAt,
         updatedAt: request.updatedAt,
         services: request.services.map((service) => ({
           id: service.id,
           quantity: service.quantity,
-          name: service.service.name,
-          nameAr: service.service.nameAr,
+          names: {
+            default: service.service.name,
+            ar: service.service.nameAr,
+          },
         })),
         latestProposal: latestProposal
           ? {
@@ -788,10 +872,57 @@ export class PortalService {
                 : null,
             }
           : null,
+        nextAction: this.getRequestNextAction(
+          request.status,
+          latestProposal?.shareLinkToken,
+          latestContract?.shareLinkToken,
+        ),
       };
     });
 
-    return { data: items, total, page: query.page, limit: query.limit };
+    return {
+      data: items,
+      total,
+      page: query.page,
+      limit: query.limit,
+      statusCounts: Object.fromEntries(
+        statusCounts.map((entry) => [entry.status, entry._count._all]),
+      ),
+    };
+  }
+
+  private getRequestNextAction(
+    status: string,
+    proposalToken?: string,
+    contractToken?: string,
+  ) {
+    if (status === "CONTRACT_SENT") {
+      return contractToken
+        ? {
+            code: "SIGN_CONTRACT",
+            href: `/portal/contracts/${contractToken}`,
+          }
+        : { code: "ACTION_UNAVAILABLE", href: null };
+    }
+    if (status === "PROPOSAL_SENT" || status === "NEGOTIATION") {
+      return proposalToken
+        ? {
+            code: "REVIEW_PROPOSAL",
+            href: `/portal/proposals/${proposalToken}`,
+          }
+        : { code: "ACTION_UNAVAILABLE", href: null };
+    }
+    if (
+      [
+        "SUBMITTED",
+        "QUALIFYING",
+        "PROPOSAL_IN_PROGRESS",
+        "CONTRACT_PREPARATION",
+      ].includes(status)
+    ) {
+      return { code: "IN_PROGRESS", href: null };
+    }
+    return { code: "COMPLETED", href: null };
   }
 
   async getActionItems(
@@ -1006,7 +1137,10 @@ export class PortalService {
       },
     });
     if (!deliverable || deliverable.project.clientId !== clientId) {
-      throw new NotFoundException("Deliverable not found");
+      throw new NotFoundException({
+        code: "DELIVERABLE_NOT_FOUND",
+        details: {},
+      });
     }
     return { projectId: deliverable.projectId };
   }
@@ -1496,7 +1630,10 @@ export class PortalService {
     });
 
     if (!contract) {
-      throw new NotFoundException("العقد غير موجود");
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: {},
+      });
     }
 
     return contract;
@@ -1660,7 +1797,10 @@ export class PortalService {
     });
 
     if (!deliverable) {
-      throw new NotFoundException(`Deliverable with ID ${id} not found`);
+      throw new NotFoundException({
+        code: "DELIVERABLE_NOT_FOUND",
+        details: { id },
+      });
     }
 
     if (deliverable.filePath) {
@@ -2077,7 +2217,7 @@ export class PortalService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
     const analytics = this.kpiSnapshotsToAnalytics(campaign.kpiSnapshots);
@@ -2779,7 +2919,10 @@ export class PortalService {
     });
 
     if (!project || project.clientId !== clientId) {
-      throw new NotFoundException("Project not found or access denied");
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+        details: {},
+      });
     }
 
     if (project.files && project.files.length > 0) {
@@ -2801,11 +2944,17 @@ export class PortalService {
     });
 
     if (!project || project.clientId !== clientId) {
-      throw new NotFoundException("Project not found or access denied");
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+        details: {},
+      });
     }
 
     if (project.status !== ProjectStatus.AWAITING_REVIEW) {
-      throw new BadRequestException("المشروع ليس بحالة انتظار المراجعة");
+      throw new BadRequestException({
+        code: "PROJECT_NOT_AWAITING_REVIEW",
+        details: {},
+      });
     }
 
     const updated = await this.prisma.project.update({
@@ -2856,11 +3005,17 @@ export class PortalService {
     });
 
     if (!project || project.clientId !== clientId) {
-      throw new NotFoundException("Project not found or access denied");
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+        details: {},
+      });
     }
 
     if (project.status !== ProjectStatus.AWAITING_REVIEW) {
-      throw new BadRequestException("المشروع ليس بحالة انتظار المراجعة");
+      throw new BadRequestException({
+        code: "PROJECT_NOT_AWAITING_REVIEW",
+        details: {},
+      });
     }
 
     const [updated] = await this.prisma.$transaction([
@@ -2947,7 +3102,10 @@ export class PortalService {
     });
 
     if (!strategy || strategy.clientId !== clientId) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     return strategy;
@@ -2962,7 +3120,10 @@ export class PortalService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     // Verify client owns this strategy
@@ -2972,7 +3133,10 @@ export class PortalService {
     });
 
     if (!client?.userId || client.userId !== clientUserId) {
-      throw new BadRequestException("غير مصرح بهذا الإجراء");
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_ACTION_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     return this.marketingStrategyService.approve(id, clientUserId);
@@ -2988,7 +3152,10 @@ export class PortalService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     // Verify client owns this strategy
@@ -2998,7 +3165,10 @@ export class PortalService {
     });
 
     if (!client?.userId || client.userId !== clientUserId) {
-      throw new BadRequestException("غير مصرح بهذا الإجراء");
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_ACTION_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     return this.marketingStrategyService.requestRevision(

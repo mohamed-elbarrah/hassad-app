@@ -2,6 +2,7 @@
 
 import { Filter, Search, X } from "lucide-react";
 import { ProposalStatus } from "@hassad/shared";
+import { cn } from "@/lib/utils";
 import type { ProposalListItem } from "@/features/proposals/proposalsApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 
 const OPTIONS = [
   { value: ProposalStatus.SENT, label: "بانتظار المراجعة" },
@@ -79,14 +81,30 @@ export function ProposalsToolbar({
             ) : null}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="flex flex-col gap-3" dir="rtl">
+        <PopoverContent
+          align="end"
+          sideOffset={8}
+          collisionPadding={16}
+          className="flex w-max max-w-[calc(100vw-2rem)] flex-col gap-3 p-4"
+          dir="rtl"
+        >
+          <div>
+            <p className="font-medium">حالة العرض</p>
+            <p className="text-sm text-muted-foreground">اختر حالة أو أكثر.</p>
+          </div>
+          <Separator />
           {OPTIONS.map((option) => {
             const id = `proposal-${option.value}`;
             return (
               <Label
                 key={option.value}
                 htmlFor={id}
-                className="flex cursor-pointer items-center gap-2"
+                className={cn(
+                  "flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  selected.includes(option.value) &&
+                    "bg-accent text-accent-foreground",
+                )}
               >
                 <Checkbox
                   id={id}

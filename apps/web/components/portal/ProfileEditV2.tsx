@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
+import { portalErrorMessage } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import {
   useGetClientProfileV2Query,
@@ -96,7 +97,7 @@ export function ProfileEditV2({
       setIsDirty(false);
       onSuccess?.();
     } catch (error) {
-      toast.error(error.message || "حدث خطأ أثناء الحفظ");
+      toast.error(portalErrorMessage(error));
     }
   }, [clientId, personalInfo, formData, upsertProfile, updateUser, onSuccess]);
 
@@ -231,12 +232,15 @@ export function ProfileEditV2({
         <Button
           type="button"
           onClick={handleSave}
-          disabled={!isDirty}
-          isLoading={isSaving}
+          disabled={!isDirty || isSaving}
           data-icon="inline-start"
           className="gap-2"
         >
-          {!isSaving && <Save className="h-4 w-4" />}
+          {isSaving ? (
+            <Loader2 className="animate-spin" data-icon="inline-start" />
+          ) : (
+            <Save data-icon="inline-start" />
+          )}
           {isSaving ? "جاري الحفظ..." : "حفظ التغييرات"}
         </Button>
       </div>

@@ -18,10 +18,12 @@ import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
+import { PageHeader } from "@/components/common/PageHeader";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { Button } from "@/components/ui/button";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { MessageSquare } from "lucide-react";
+import { portalErrorMessage } from "@/lib/i18n";
 
 export default function PortalChatPage() {
   void useAppSelector((s) => s.auth);
@@ -33,8 +35,13 @@ export default function PortalChatPage() {
   const openSales = searchParams.get("openSales") === "true";
   const openUserId = searchParams.get("userId");
 
-  const { data: conversationsData, isLoading: convLoading } =
-    useGetConversationsQuery({ type: "DIRECT", limit: 50 });
+  const {
+    data: conversationsData,
+    isLoading: convLoading,
+    isError: convError,
+    error: conversationsError,
+    refetch: refetchConversations,
+  } = useGetConversationsQuery({ type: "DIRECT", limit: 50 });
 
   const [fetchDirectConv] = useLazyGetDirectConversationQuery();
   const { data: teamMembersData } = useGetTeamMembersQuery(undefined, {
@@ -66,7 +73,9 @@ export default function PortalChatPage() {
               ]),
             );
           })
-          .catch(() => {});
+          .catch((error) => {
+            toast.error(portalErrorMessage(error));
+          });
       }
       return;
     }
@@ -90,7 +99,9 @@ export default function PortalChatPage() {
               ]),
             );
           })
-          .catch(() => {});
+          .catch((error) => {
+            toast.error(portalErrorMessage(error));
+          });
         return;
       }
     }
@@ -110,7 +121,13 @@ export default function PortalChatPage() {
     dispatch,
   ]);
 
-  const { data: messagesData, isLoading: msgLoading } = useGetMessagesQuery(
+  const {
+    data: messagesData,
+    isLoading: msgLoading,
+    isError: messagesError,
+    error: messagesQueryError,
+    refetch: refetchMessages,
+  } = useGetMessagesQuery(
     { conversationId: selectedId!, limit: 100 },
     { skip: !selectedId },
   );
@@ -164,7 +181,7 @@ export default function PortalChatPage() {
           content,
         }).unwrap();
       } catch (err) {
-        toast.error(err?.data?.message || "فشل في إرسال الرسالة");
+        toast.error(portalErrorMessage(err));
       }
     },
     [selectedId, sendMessage],
@@ -172,19 +189,25 @@ export default function PortalChatPage() {
 
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <MessageSquare className="h-6 w-6 text-primary" />
-          المحادثات
-        </h1>
-        <p className="text-muted-foreground">
-          من هنا يمكنك التواصل مع المشرفين ومدراء المشاريع المسؤولين عن حسابك.
-        </p>
-      </div>
+      <PageHeader
+        icon={MessageSquare}
+        title="المحادثات"
+        description="من هنا يمكنك التواصل مع المشرفين ومدراء المشاريع المسؤولين عن حسابك."
+      />
 
       <div className="h-[calc(100vh-15rem)] lg:h-[calc(100vh-13rem)]">
-        {conversations.length === 0 && !convLoading ? (
-          <div className="flex h-full flex-col items-center justify-center rounded-2xl border-[1.5px] border-dashed border-border bg-muted/30">
+        {convError ? (
+          <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-border bg-muted/30">
+            <PortalEmptyState
+              icon={MessageSquare}
+              title={portalErrorMessage(conversationsError)}
+              description="يرجى المحاولة مرة أخرى."
+              actionLabel="إعادة المحاولة"
+              onAction={() => refetchConversations()}
+            />
+          </div>
+        ) : conversations.length === 0 && !convLoading ? (
+          <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-border bg-muted/30">
             <PortalEmptyState
               icon={MessageSquare}
               title="لا توجد محادثات"
@@ -220,11 +243,23 @@ export default function PortalChatPage() {
                   conversation={selectedConversation}
                   isTyping={typingUser}
                 />
-                <ChatWindow
-                  messages={displayedMessages}
-                  isLoading={msgLoading}
-                  typingUser={typingUser}
-                />
+                {messagesError ? (
+                  <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+                    <PortalEmptyState
+                      icon={MessageSquare}
+                      title={portalErrorMessage(messagesQueryError)}
+                      description="تعذر تحميل رسائل المحادثة."
+                      actionLabel="إعادة المحاولة"
+                      onAction={() => refetchMessages()}
+                    />
+                  </div>
+                ) : (
+                  <ChatWindow
+                    messages={displayedMessages}
+                    isLoading={msgLoading}
+                    typingUser={typingUser}
+                  />
+                )}
                 <MessageInput
                   onSend={handleSend}
                   onTyping={() => selectedId && emitTyping(selectedId)}

@@ -202,7 +202,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: { id } });
     }
 
     return this.normalise(user);
@@ -214,7 +214,7 @@ export class UsersService {
     });
 
     if (!existingUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: { id } });
     }
 
     const data: any = {};
@@ -226,6 +226,15 @@ export class UsersService {
     if (dto.avatarUrl !== undefined) data.avatarUrl = dto.avatarUrl;
 
     if (dto.password) {
+      if (
+        dto.currentPassword &&
+        !(await bcrypt.compare(dto.currentPassword, existingUser.passwordHash))
+      ) {
+        throw new BadRequestException({
+          code: "CURRENT_PASSWORD_INVALID",
+          details: {},
+        });
+      }
       data.passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     }
 

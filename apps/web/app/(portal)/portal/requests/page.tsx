@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Package } from "lucide-react";
+import { ClipboardList, Package } from "lucide-react";
 
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useGetPortalRequestsQuery } from "@/features/portal/portalApi";
@@ -10,20 +10,9 @@ import {
   RequestsToolbar,
   type RequestsToolbarFilters,
 } from "@/components/portal/requests";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card, CardContent } from "@/components/ui/card";
+import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
 import {
   Pagination,
   PaginationContent,
@@ -40,7 +29,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { resolveStatusGroup } from "@/lib/utils/requestStatus";
+import {
+  REQUEST_STATUS_GROUPS,
+  type RequestStatusGroup,
+} from "@/lib/utils/requestStatus";
+import { portalErrorMessage } from "@/lib/i18n";
 
 const PAGE_SIZE = 6;
 
@@ -60,40 +53,41 @@ export default function PortalRequestsPage() {
     query: "",
     statusGroups: [],
   });
-  const { data, isLoading, isError } = useGetPortalRequestsQuery(
-    { page, limit: PAGE_SIZE },
-    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
+  const statusValues = useMemo(
+    () => filters.statusGroups.flatMap((group) => REQUEST_STATUS_GROUPS[group]),
+    [filters.statusGroups],
   );
+  const { data, error, isLoading, isError, refetch } =
+    useGetPortalRequestsQuery(
+      {
+        page,
+        limit: PAGE_SIZE,
+        search: filters.query.trim() || undefined,
+        statuses: statusValues.length ? statusValues.join(",") : undefined,
+        includeCancelled: true,
+      },
+      { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
+    );
 
   const requests = data?.data ?? [];
   const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
   const countsByGroup = useMemo(() => {
-    const counts = new Map<ReturnType<typeof resolveStatusGroup>, number>();
-    requests.forEach((request) => {
-      const group = resolveStatusGroup(request.status);
-      counts.set(group, (counts.get(group) ?? 0) + 1);
-    });
+    const counts = new Map<RequestStatusGroup, number>();
+    for (const [group, statuses] of Object.entries(REQUEST_STATUS_GROUPS) as [
+      Exclude<RequestStatusGroup, "all">,
+      readonly string[],
+    ][]) {
+      counts.set(
+        group,
+        statuses.reduce(
+          (total, status) => total + (data?.statusCounts[status] ?? 0),
+          0,
+        ),
+      );
+    }
     return counts;
-  }, [requests]);
-  const view = useMemo(() => {
-    const query = filters.query.trim().toLowerCase();
-    return requests.filter((request) => {
-      if (
-        filters.statusGroups.length &&
-        !filters.statusGroups.includes(resolveStatusGroup(request.status))
-      )
-        return false;
-      if (!query) return true;
-      return [
-        request.companyName,
-        request.contactName,
-        ...request.services.map((service) => service.nameAr ?? service.name),
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    });
-  }, [filters, requests]);
+  }, [data?.statusCounts]);
+  const view = requests;
   const hasActiveFilter =
     filters.statusGroups.length > 0 || filters.query.length > 0;
   const updateFilters = (next: RequestsToolbarFilters) => {
@@ -103,15 +97,11 @@ export default function PortalRequestsPage() {
 
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>طلباتي</CardTitle>
-          <CardDescription>
-            متابعة طلبات الخدمات التي قمت بتقديمها. سيتم تحويل الطلب إلى مشروع
-            بعد توقيع العقد.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        icon={ClipboardList}
+        title="طلباتي"
+        description="متابعة طلبات الخدمات التي قمت بتقديمها. سيتم تحويل الطلب إلى مشروع بعد توقيع العقد."
+      />
       <RequestsToolbar
         value={filters}
         onChange={updateFilters}
@@ -122,15 +112,13 @@ export default function PortalRequestsPage() {
           <RequestsTableSkeleton />
         ) : isError ? (
           <CardContent className="pt-6">
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Package />
-                </EmptyMedia>
-                <EmptyTitle>حدث خطأ أثناء تحميل الطلبات</EmptyTitle>
-                <EmptyDescription>حاول تحديث الصفحة مرة أخرى.</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <PortalEmptyState
+              icon={Package}
+              title={portalErrorMessage(error)}
+              description="يرجى المحاولة مرة أخرى."
+              actionLabel="إعادة المحاولة"
+              onAction={() => refetch()}
+            />
           </CardContent>
         ) : view.length ? (
           <Table>
@@ -154,23 +142,19 @@ export default function PortalRequestsPage() {
           </Table>
         ) : (
           <CardContent className="pt-6">
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Package />
-                </EmptyMedia>
-                <EmptyTitle>
-                  {hasActiveFilter
-                    ? "لا توجد طلبات تطابق البحث"
-                    : "لا توجد طلبات حالياً"}
-                </EmptyTitle>
-                <EmptyDescription>
-                  {hasActiveFilter
-                    ? "جرّب تغيير الفلتر أو مسح البحث لعرض جميع الطلبات."
-                    : "عند إرسال طلب جديد، سيظهر هنا لمتابعة حالته حتى اكتمال التوقيع."}
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <PortalEmptyState
+              icon={Package}
+              title={
+                hasActiveFilter
+                  ? "لا توجد طلبات تطابق البحث"
+                  : "لا توجد طلبات حالياً"
+              }
+              description={
+                hasActiveFilter
+                  ? "جرّب تغيير الفلتر أو مسح البحث لعرض جميع الطلبات."
+                  : "عند إرسال طلب جديد، سيظهر هنا لمتابعة حالته حتى اكتمال التوقيع."
+              }
+            />
           </CardContent>
         )}
       </Card>
@@ -179,6 +163,7 @@ export default function PortalRequestsPage() {
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
+                direction="rtl"
                 text="السابق"
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
                 disabled={page === 1}
@@ -198,6 +183,7 @@ export default function PortalRequestsPage() {
             )}
             <PaginationItem>
               <PaginationNext
+                direction="rtl"
                 text="التالي"
                 onClick={() =>
                   setPage((current) => Math.min(totalPages, current + 1))

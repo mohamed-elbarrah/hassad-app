@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -151,16 +152,22 @@ export class ChatService {
     const conversation = await this.findConversationRecord(id);
 
     if (!conversation) {
-      throw new NotFoundException(`Conversation with ID ${id} not found`);
+      throw new NotFoundException({
+        code: "CONVERSATION_NOT_FOUND",
+        details: { id },
+      });
     }
 
     if (
       userId &&
-      !conversation.participants.some((participant) => participant.userId === userId)
+      !conversation.participants.some(
+        (participant) => participant.userId === userId,
+      )
     ) {
-      throw new ForbiddenException(
-        "You are not a participant in this conversation",
-      );
+      throw new ForbiddenException({
+        code: "CONVERSATION_PARTICIPATION_FORBIDDEN",
+        details: {},
+      });
     }
 
     return this.mapConversation(conversation);
@@ -170,9 +177,10 @@ export class ChatService {
     const participantIds = Array.from(new Set([userId, ...dto.participantIds]));
 
     if (dto.type === ConversationType.DIRECT && participantIds.length !== 2) {
-      throw new ForbiddenException(
-        "Direct conversations must have exactly two participants",
-      );
+      throw new BadRequestException({
+        code: "DIRECT_CONVERSATION_PARTICIPANT_COUNT_INVALID",
+        details: {},
+      });
     }
 
     const conversation = await this.prisma.conversation.create({
@@ -196,12 +204,16 @@ export class ChatService {
     dto: AddParticipantDto,
     currentUserId: string,
   ) {
-    const conversation = await this.findConversationRecord(conversationId, currentUserId);
+    const conversation = await this.findConversationRecord(
+      conversationId,
+      currentUserId,
+    );
 
     if (conversation.type === ConversationType.DIRECT) {
-      throw new ForbiddenException(
-        "Cannot add participants to a direct conversation",
-      );
+      throw new ForbiddenException({
+        code: "DIRECT_CONVERSATION_PARTICIPANT_MUTATION_FORBIDDEN",
+        details: {},
+      });
     }
 
     const existing = await this.prisma.conversationParticipant.findFirst({
@@ -214,7 +226,10 @@ export class ChatService {
       });
     }
 
-    const updated = await this.findConversationRecord(conversationId, currentUserId);
+    const updated = await this.findConversationRecord(
+      conversationId,
+      currentUserId,
+    );
     return this.mapConversation(updated);
   }
 
@@ -223,19 +238,26 @@ export class ChatService {
     userId: string,
     currentUserId: string,
   ) {
-    const conversation = await this.findConversationRecord(conversationId, currentUserId);
+    const conversation = await this.findConversationRecord(
+      conversationId,
+      currentUserId,
+    );
 
     if (conversation.type === ConversationType.DIRECT) {
-      throw new ForbiddenException(
-        "Cannot remove participants from a direct conversation",
-      );
+      throw new ForbiddenException({
+        code: "DIRECT_CONVERSATION_PARTICIPANT_MUTATION_FORBIDDEN",
+        details: {},
+      });
     }
 
     await this.prisma.conversationParticipant.deleteMany({
       where: { conversationId, userId },
     });
 
-    const updated = await this.findConversationRecord(conversationId, currentUserId);
+    const updated = await this.findConversationRecord(
+      conversationId,
+      currentUserId,
+    );
     return this.mapConversation(updated);
   }
 
@@ -244,7 +266,10 @@ export class ChatService {
     targetUserId: string,
     dto: CreateMessageDto,
   ) {
-    const conversation = await this.ensureDirectConversation(senderId, targetUserId);
+    const conversation = await this.ensureDirectConversation(
+      senderId,
+      targetUserId,
+    );
 
     return this.createMessage(senderId, {
       ...dto,
@@ -362,15 +387,21 @@ export class ChatService {
     });
 
     if (!message || message.conversationId !== conversationId) {
-      throw new NotFoundException("Message not found");
+      throw new NotFoundException({ code: "MESSAGE_NOT_FOUND", details: {} });
     }
 
     if (message.senderId !== userId) {
-      throw new ForbiddenException("You can only edit your own messages");
+      throw new ForbiddenException({
+        code: "MESSAGE_EDIT_FORBIDDEN",
+        details: {},
+      });
     }
 
     if (message.deletedAt) {
-      throw new ForbiddenException("Deleted messages cannot be edited");
+      throw new ForbiddenException({
+        code: "DELETED_MESSAGE_EDIT_FORBIDDEN",
+        details: {},
+      });
     }
 
     await this.prisma.message.update({
@@ -392,7 +423,11 @@ export class ChatService {
     return normalized;
   }
 
-  async deleteMessage(conversationId: string, messageId: string, userId: string) {
+  async deleteMessage(
+    conversationId: string,
+    messageId: string,
+    userId: string,
+  ) {
     await this.findConversationRecord(conversationId, userId);
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
@@ -405,11 +440,14 @@ export class ChatService {
     });
 
     if (!message || message.conversationId !== conversationId) {
-      throw new NotFoundException("Message not found");
+      throw new NotFoundException({ code: "MESSAGE_NOT_FOUND", details: {} });
     }
 
     if (message.senderId !== userId) {
-      throw new ForbiddenException("You can only delete your own messages");
+      throw new ForbiddenException({
+        code: "MESSAGE_DELETE_FORBIDDEN",
+        details: {},
+      });
     }
 
     if (!message.deletedAt) {
@@ -454,7 +492,10 @@ export class ChatService {
     return Promise.all(messages.map((message) => this.mapMessage(message)));
   }
 
-  private async ensureDirectConversation(senderId: string, targetUserId: string) {
+  private async ensureDirectConversation(
+    senderId: string,
+    targetUserId: string,
+  ) {
     const targetUser = await this.prisma.user.findUnique({
       where: { id: targetUserId },
       select: {
@@ -466,7 +507,10 @@ export class ChatService {
     });
 
     if (!targetUser) {
-      throw new NotFoundException("Target user not found");
+      throw new NotFoundException({
+        code: "CHAT_TARGET_USER_NOT_FOUND",
+        details: {},
+      });
     }
 
     const conversation = await this.directConversationService.getOrCreate(
@@ -479,7 +523,10 @@ export class ChatService {
     );
 
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw new NotFoundException({
+        code: "DIRECT_CONVERSATION_CREATE_FAILED",
+        details: {},
+      });
     }
 
     return conversation;
@@ -499,7 +546,10 @@ export class ChatService {
     });
 
     if (!parent || parent.conversationId !== conversationId) {
-      throw new NotFoundException("Reply target message not found");
+      throw new NotFoundException({
+        code: "REPLY_TARGET_NOT_FOUND",
+        details: {},
+      });
     }
 
     return parent.id;
@@ -519,16 +569,22 @@ export class ChatService {
     });
 
     if (!conversation) {
-      throw new NotFoundException(`Conversation with ID ${id} not found`);
+      throw new NotFoundException({
+        code: "CONVERSATION_NOT_FOUND",
+        details: { id },
+      });
     }
 
     if (
       userId &&
-      !conversation.participants.some((participant) => participant.userId === userId)
+      !conversation.participants.some(
+        (participant) => participant.userId === userId,
+      )
     ) {
-      throw new ForbiddenException(
-        "You are not a participant in this conversation",
-      );
+      throw new ForbiddenException({
+        code: "CONVERSATION_PARTICIPATION_FORBIDDEN",
+        details: {},
+      });
     }
 
     return conversation;
@@ -563,7 +619,10 @@ export class ChatService {
         avatarUrl: participant.user.avatarUrl,
         isActive: participant.user.isActive,
         lastLoginAt: participant.user.lastLoginAt?.toISOString() ?? null,
-        lastSeenAt: this.presenceService.lastSeenAt(participant.user.id, participant.user.lastSeenAt)?.toISOString() ?? null,
+        lastSeenAt:
+          this.presenceService
+            .lastSeenAt(participant.user.id, participant.user.lastSeenAt)
+            ?.toISOString() ?? null,
         isOnline: this.presenceService.isOnline(participant.user.id),
       })),
     };
@@ -576,7 +635,7 @@ export class ChatService {
     });
 
     if (!message) {
-      throw new NotFoundException("Message not found");
+      throw new NotFoundException({ code: "MESSAGE_NOT_FOUND", details: {} });
     }
 
     return this.mapMessage(message);
@@ -605,7 +664,10 @@ export class ChatService {
         avatarUrl: message.sender.avatarUrl,
         isActive: message.sender.isActive,
         lastLoginAt: message.sender.lastLoginAt?.toISOString() ?? null,
-        lastSeenAt: this.presenceService.lastSeenAt(message.sender.id, message.sender.lastSeenAt)?.toISOString() ?? null,
+        lastSeenAt:
+          this.presenceService
+            .lastSeenAt(message.sender.id, message.sender.lastSeenAt)
+            ?.toISOString() ?? null,
         isOnline: this.presenceService.isOnline(message.sender.id),
       },
       deletedBy: message.deletedBy
@@ -656,8 +718,9 @@ export class ChatService {
     if (recipients.length === 0) return;
 
     const sender =
-      conversation.participants.find((participant: any) => participant.userId === senderId)
-        ?.user?.name ?? "عضو";
+      conversation.participants.find(
+        (participant: any) => participant.userId === senderId,
+      )?.user?.name ?? "عضو";
     const truncatedContent =
       content.length > 100 ? `${content.substring(0, 97)}...` : content;
     const suffix =

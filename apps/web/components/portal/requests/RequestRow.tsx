@@ -4,8 +4,8 @@ import { useState } from "react";
 import {
   Calendar,
   CheckCircle2,
-  ChevronDown,
   Clock,
+  Eye,
   ExternalLink,
   FileText,
   PenTool,
@@ -17,9 +17,17 @@ import type { PortalRequestSummary } from "@/features/portal/portalApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/format";
-import { portalRequestStageLabel } from "@/lib/i18n";
+import { portalRequestStageLabel, portalServiceName } from "@/lib/i18n";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
   getRequestAction,
@@ -45,14 +53,14 @@ function RequestStatusBadge({ status }: { status: string }) {
 }
 
 export function RequestRow({ request }: RequestRowProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const action = getRequestAction(request);
   const services = request.services
-    .map((service) => service.nameAr ?? service.name)
+    .map((service) => portalServiceName(service.names))
     .join("، ");
   const servicesPreview = request.services
     .slice(0, 2)
-    .map((service) => service.nameAr ?? service.name)
+    .map((service) => portalServiceName(service.names))
     .join("، ");
   const servicesMore =
     request.services.length > 2 ? ` +${request.services.length - 2}` : "";
@@ -95,26 +103,34 @@ export function RequestRow({ request }: RequestRowProps) {
           </time>
         </TableCell>
         <TableCell>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={() => setExpanded((value) => !value)}
-            aria-expanded={expanded}
-            aria-label={expanded ? "إخفاء التفاصيل" : "عرض التفاصيل"}
-          >
-            <ChevronDown className={expanded ? "rotate-180" : undefined} />
-          </Button>
+          <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+            <DialogTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8"
+                aria-label={`عرض تفاصيل الطلب ${request.companyName}، رقم ${request.id}`}
+              >
+                <Eye />
+              </Button>
+            </DialogTrigger>
+            <DialogContent
+              dir="rtl"
+              className="max-h-[85vh] overflow-y-auto sm:max-w-2xl"
+              closeLabel="إغلاق"
+            >
+              <DialogHeader className="text-right sm:text-right">
+                <DialogTitle>{request.companyName}</DialogTitle>
+                <DialogDescription>
+                  تفاصيل الطلب ومتابعة حالته الحالية.
+                </DialogDescription>
+              </DialogHeader>
+              <RequestDetail request={request} />
+            </DialogContent>
+          </Dialog>
         </TableCell>
       </TableRow>
-      {expanded ? (
-        <TableRow>
-          <TableCell colSpan={6}>
-            <RequestDetail request={request} />
-          </TableCell>
-        </TableRow>
-      ) : null}
     </>
   );
 }
@@ -151,6 +167,7 @@ function RequestActionCell({
         </span>
       );
     case "completed":
+    case "unavailable":
       return (
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <CheckCircle2 className="size-4" />
@@ -161,7 +178,7 @@ function RequestActionCell({
 }
 
 function RequestDetail({ request }: { request: PortalRequestSummary }) {
-  const description = getRequestDescription(request.notes);
+  const description = request.description;
 
   return (
     <Card className="bg-muted/30">
@@ -193,15 +210,26 @@ function RequestDetail({ request }: { request: PortalRequestSummary }) {
               <p className="text-sm font-medium">
                 الخدمات المطلوبة ({request.services.length})
               </p>
-              <div className="flex flex-wrap gap-2">
+              <ul className="flex flex-col gap-2">
                 {request.services.map((service) => (
-                  <Badge key={service.id} variant="outline">
-                    <FileText />
-                    {service.nameAr ?? service.name}
-                    {service.quantity > 1 ? ` ×${service.quantity}` : ""}
-                  </Badge>
+                  <li
+                    key={service.id}
+                    className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <FileText className="shrink-0 text-muted-foreground" />
+                      <span className="truncate">
+                        {portalServiceName(service.names)}
+                      </span>
+                    </span>
+                    {service.quantity > 1 ? (
+                      <span className="shrink-0 text-muted-foreground">
+                        ×{service.quantity}
+                      </span>
+                    ) : null}
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           ) : null}
           <div className="flex flex-col gap-3">
@@ -242,20 +270,3 @@ function RequestDetail({ request }: { request: PortalRequestSummary }) {
     </Card>
   );
 }
-
-function getRequestDescription(notes?: string | null): string | null {
-  if (!notes) return null;
-  try {
-    const parsed = JSON.parse(notes) as { description?: string };
-    return typeof parsed?.description === "string" && parsed.description.trim()
-      ? parsed.description.trim()
-      : null;
-  } catch {
-    const trimmed = notes.trim();
-    return trimmed.startsWith("{") || trimmed.startsWith("[")
-      ? null
-      : trimmed || null;
-  }
-}
-
-export { getRequestDescription };

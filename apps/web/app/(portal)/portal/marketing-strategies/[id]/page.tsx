@@ -12,17 +12,14 @@ import {
   MARKETING_STRATEGY_STATUS_AR,
   MarketingStrategyStatus,
 } from "@hassad/shared";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { portalErrorMessage } from "@/lib/i18n";
+import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
 import type { LucideIcon } from "lucide-react";
 import {
   FileText,
@@ -33,6 +30,7 @@ import {
   ArrowRight,
   Download,
   MessageSquare,
+  LoaderCircle,
 } from "lucide-react";
 
 const STATUS_ICON: Record<string, LucideIcon> = {
@@ -43,10 +41,7 @@ const STATUS_ICON: Record<string, LucideIcon> = {
   REJECTED: XCircle,
 };
 
-const STATUS_CLASSES: Record<
-  string,
-  { icon: string; badge: string }
-> = {
+const STATUS_CLASSES: Record<string, { icon: string; badge: string }> = {
   DRAFT: {
     icon: "bg-neutral-100 text-neutral-600",
     badge: "border-neutral-200 bg-neutral-100 text-neutral-600",
@@ -74,7 +69,13 @@ export default function MarketingStrategyDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const { data: strategy, isLoading } = useGetClientStrategyQuery(id);
+  const {
+    data: strategy,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetClientStrategyQuery(id);
   const [approveStrategy, { isLoading: isApproving }] =
     useApproveStrategyMutation();
   const [requestRevision, { isLoading: isRequestingRevision }] =
@@ -88,7 +89,7 @@ export default function MarketingStrategyDetailPage() {
       await approveStrategy(id).unwrap();
       toast.success("تمت الموافقة على الدراسة التسويقية بنجاح");
     } catch (err) {
-      toast.error(err?.data?.message || "حدث خطأ أثناء الموافقة");
+      toast.error(portalErrorMessage(err));
     }
   };
 
@@ -103,7 +104,7 @@ export default function MarketingStrategyDetailPage() {
       setShowRevisionForm(false);
       setRevisionComment("");
     } catch (err) {
-      toast.error(err?.data?.message || "حدث خطأ أثناء إرسال طلب التعديل");
+      toast.error(portalErrorMessage(err));
     }
   };
 
@@ -125,9 +126,12 @@ export default function MarketingStrategyDetailPage() {
 
   if (!strategy) {
     return (
-      <main dir="rtl" className="flex flex-col gap-6 p-6">
-        <p className="text-muted-foreground">الدراسة التسويقية غير موجودة</p>
-      </main>
+      <DetailErrorState
+        title={
+          isError ? portalErrorMessage(error) : "الدراسة التسويقية غير موجودة"
+        }
+        onRetry={isError ? refetch : undefined}
+      />
     );
   }
 
@@ -213,13 +217,19 @@ export default function MarketingStrategyDetailPage() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <Button
-                  data-icon="inline-start"
                   onClick={handleApprove}
-                  isLoading={isApproving}
+                  disabled={isApproving}
                   className="gap-2"
                 >
-                  <CheckCircle2 className="h-4 w-4" />
-                  موافقة
+                  {isApproving ? (
+                    <LoaderCircle
+                      className="animate-spin"
+                      data-icon="inline-start"
+                    />
+                  ) : (
+                    <CheckCircle2 data-icon="inline-start" />
+                  )}
+                  {isApproving ? "جارٍ الحفظ..." : "موافقة"}
                 </Button>
                 <Button
                   data-icon="inline-start"
@@ -245,10 +255,20 @@ export default function MarketingStrategyDetailPage() {
                   <div className="flex items-center gap-2">
                     <Button
                       onClick={handleRequestRevision}
-                      isLoading={isRequestingRevision}
+                      disabled={isRequestingRevision}
                       size="sm"
                     >
-                      إرسال طلب التعديل
+                      {isRequestingRevision ? (
+                        <>
+                          <LoaderCircle
+                            className="animate-spin"
+                            data-icon="inline-start"
+                          />
+                          جارٍ إرسال الطلب...
+                        </>
+                      ) : (
+                        "إرسال طلب التعديل"
+                      )}
                     </Button>
                     <Button
                       onClick={() => {

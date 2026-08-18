@@ -1,10 +1,19 @@
+ here we will move page and we have to check couple things as @AGENTS.md mentioned.. we check for:           
+ 1: backend we check if the indpoints these used by this page are own to current dashbaord or not, if not    
+ we have to build new endpoint with same behavior but for this dashboard..                                   
+ 2: we check if backend follow contract instead inline messages and errors responcs as the rule defined..    
+ 3: after that we check the architictur frontend is clean and scaled or need to improve and rfactor it..     
+ 4: the UI should use shadcn ui and not duplacted components thats do same jobs cuz this hard for scaling    
+ or maintining as well..                                                                                     
+ 5: detect bad ui for UX and improve it for best UX..  
+
 Read @AGENTS.md fully and carefully before touching anything. Every rule and instruction
 in it is binding — none are optional, none are guidelines you can round off. This
 includes the backend→frontend data contract and consumption rules already defined there.
 
 SCOPE FOR THIS SESSION:
 Dashboard: portal / client dahsboard
-Page: home page or verview
+Page: /portal/projects
 
 We work page by page inside one dashboard until the whole dashboard is done, then move
 to the next dashboard. Stay inside this page's scope. If you spot AGENTS.md violations

@@ -7,14 +7,9 @@ import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useGetMyPortalProposalsQuery } from "@/features/portal/portalApi";
 import { ProposalsToolbar } from "@/components/portal/proposals";
 import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -60,17 +55,11 @@ export default function PortalProposalsPage() {
   const active = Boolean(search || activeFilters.status?.length);
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <FileText className="size-5 text-muted-foreground" />
-            <CardTitle>العروض الفنية</CardTitle>
-          </div>
-          <CardDescription>
-            استعرض العروض الفنية المقدمة لك وراجع تفاصيلها قبل الموافقة.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        title="العروض الفنية"
+        description="استعرض العروض الفنية المقدمة لك وراجع تفاصيلها قبل الموافقة."
+        icon={FileText}
+      />
       <ProposalsToolbar
         search={search}
         onSearchChange={setSearch}

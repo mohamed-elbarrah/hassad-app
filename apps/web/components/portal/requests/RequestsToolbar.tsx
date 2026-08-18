@@ -13,7 +13,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import type { RequestStatusGroup } from "@/lib/utils/requestStatus";
+import { cn } from "@/lib/utils";
+import {
+  REQUEST_STATUS_GROUP_LABELS,
+  type RequestStatusGroup,
+} from "@/lib/utils/requestStatus";
 
 export interface RequestsToolbarFilters {
   query: string;
@@ -26,16 +30,14 @@ interface RequestsToolbarProps {
   countsByGroup: ReadonlyMap<RequestStatusGroup, number>;
 }
 
-const STATUS_OPTIONS: Array<{
-  value: Exclude<RequestStatusGroup, "all">;
-  label: string;
-}> = [
-  { value: "received", label: "مستلم" },
-  { value: "preparing", label: "قيد الإعداد" },
-  { value: "awaiting-you", label: "بانتظار توقيعك" },
-  { value: "signed", label: "موقّع" },
-  { value: "cancelled", label: "ملغي" },
-];
+const STATUS_OPTIONS = Object.keys(REQUEST_STATUS_GROUP_LABELS)
+  .filter(
+    (value): value is Exclude<RequestStatusGroup, "all"> => value !== "all",
+  )
+  .map((value) => ({
+    value,
+    label: REQUEST_STATUS_GROUP_LABELS[value],
+  }));
 
 export function RequestsToolbar({
   value,
@@ -91,38 +93,47 @@ export function RequestsToolbar({
             ) : null}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="flex flex-col gap-3" dir="rtl">
-          <div>
-            <p className="font-medium">حالة الطلب</p>
+        <PopoverContent
+          align="end"
+          sideOffset={8}
+          collisionPadding={16}
+          className="flex w-max max-w-[calc(100vw-2rem)] flex-col gap-3 p-4"
+          dir="rtl"
+        >
+          <fieldset className="flex flex-col gap-3">
+            <legend className="font-medium">حالة الطلب</legend>
             <p className="text-sm text-muted-foreground">اختر حالة أو أكثر.</p>
-          </div>
-          <Separator />
-          <div className="flex flex-col gap-3">
-            {STATUS_OPTIONS.map((option) => {
-              const id = `request-status-${option.value}`;
-              return (
-                <div
-                  key={option.value}
-                  className="flex items-center justify-between gap-3"
-                >
+            <Separator />
+            <div className="flex flex-col gap-1">
+              {STATUS_OPTIONS.map((option) => {
+                const id = `request-status-${option.value}`;
+                const selected = value.statusGroups.includes(option.value);
+                return (
                   <Label
+                    key={option.value}
                     htmlFor={id}
-                    className="flex cursor-pointer items-center gap-2"
+                    className={cn(
+                      "flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      selected && "bg-accent text-accent-foreground",
+                    )}
                   >
-                    <Checkbox
-                      id={id}
-                      checked={value.statusGroups.includes(option.value)}
-                      onCheckedChange={() => toggleStatus(option.value)}
-                    />
-                    {option.label}
+                    <span className="flex items-center gap-2">
+                      <Checkbox
+                        id={id}
+                        checked={selected}
+                        onCheckedChange={() => toggleStatus(option.value)}
+                      />
+                      {option.label}
+                    </span>
+                    <Badge variant={selected ? "secondary" : "outline"}>
+                      {countsByGroup.get(option.value) ?? 0}
+                    </Badge>
                   </Label>
-                  <Badge variant="outline">
-                    {countsByGroup.get(option.value) ?? 0}
-                  </Badge>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </fieldset>
           {value.statusGroups.length ? (
             <Button
               variant="ghost"

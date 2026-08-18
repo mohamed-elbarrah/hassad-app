@@ -6,6 +6,8 @@ import {
   MarketingStrategyStatus,
 } from "@hassad/shared";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/common/PageHeader";
+import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
@@ -17,6 +19,7 @@ import {
   AlertCircle,
   XCircle,
 } from "lucide-react";
+import { portalErrorMessage } from "@/lib/i18n";
 
 const STATUS_ICON: Record<string, LucideIcon> = {
   DRAFT: FileText,
@@ -26,10 +29,7 @@ const STATUS_ICON: Record<string, LucideIcon> = {
   REJECTED: XCircle,
 };
 
-const STATUS_CLASSES: Record<
-  string,
-  { icon: string; badge: string }
-> = {
+const STATUS_CLASSES: Record<string, { icon: string; badge: string }> = {
   DRAFT: {
     icon: "bg-neutral-100 text-neutral-600",
     badge: "border-neutral-200 bg-neutral-100 text-neutral-600",
@@ -53,7 +53,13 @@ const STATUS_CLASSES: Record<
 };
 
 export default function MarketingStrategiesPage() {
-  const { data: strategies = [], isLoading } = useGetClientStrategiesQuery();
+  const {
+    data: strategies = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetClientStrategiesQuery();
 
   if (isLoading) {
     return (
@@ -65,12 +71,18 @@ export default function MarketingStrategiesPage() {
   }
 
   return (
-    <main dir="rtl" className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">الدراسات التسويقية</h1>
-      </div>
+    <main dir="rtl" className="flex flex-col gap-6">
+      <PageHeader title="الدراسات التسويقية" icon={FileText} />
 
-      {strategies.length === 0 ? (
+      {isError ? (
+        <PortalEmptyState
+          icon={AlertCircle}
+          title={portalErrorMessage(error)}
+          description="يرجى المحاولة مرة أخرى."
+          actionLabel="إعادة المحاولة"
+          onAction={() => refetch()}
+        />
+      ) : strategies.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
@@ -92,8 +104,7 @@ export default function MarketingStrategiesPage() {
                 ?.icon ?? "bg-neutral-100 text-neutral-600";
             const badgeClass =
               STATUS_CLASSES[strategy.status ?? MarketingStrategyStatus.DRAFT]
-                ?.badge ??
-              "border-neutral-200 bg-neutral-100 text-neutral-600";
+                ?.badge ?? "border-neutral-200 bg-neutral-100 text-neutral-600";
 
             return (
               <Link
@@ -106,8 +117,7 @@ export default function MarketingStrategiesPage() {
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${iconClass}`}
                     >
                       {(() => {
-                        const Icon =
-                          STATUS_ICON[strategy.status] ?? FileText;
+                        const Icon = STATUS_ICON[strategy.status] ?? FileText;
                         return <Icon className="h-5 w-5" />;
                       })()}
                     </div>

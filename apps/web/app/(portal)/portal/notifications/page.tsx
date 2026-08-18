@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { NotificationEventType } from "@hassad/shared";
 import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ import {
   type PortalNotificationItem,
 } from "@/features/portal-notifications/portalNotificationsApi";
 import { cn } from "@/lib/utils";
+import { portalErrorMessage } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/format";
 
 type FilterTab = "all" | "action" | "info";
@@ -237,8 +239,8 @@ export default function PortalNotificationsPage() {
   async function handleMarkRead(id: string) {
     try {
       await markAsRead(id).unwrap();
-    } catch (err) {
-      toast.error(err?.data?.message || "فشل في وضع علامة مقروءة");
+    } catch (error) {
+      toast.error(portalErrorMessage(error));
     }
   }
 
@@ -255,28 +257,19 @@ export default function PortalNotificationsPage() {
 
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Bell />
-            </div>
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl">الإشعارات</CardTitle>
-              <CardDescription>
-                جميع الإشعارات الواردة، الإجراءات المطلوبة منك، والمعلومات
-                العامة حول مشاريعك.
-              </CardDescription>
-            </div>
-          </div>
-          {unreadCount > 0 && (
+      <PageHeader
+        title="الإشعارات"
+        description="جميع الإشعارات الواردة، الإجراءات المطلوبة منك، والمعلومات العامة حول مشاريعك."
+        icon={Bell}
+        actions={
+          unreadCount > 0 ? (
             <Button variant="outline" onClick={() => markAllAsRead()}>
               <CheckCheck data-icon="inline-start" />
               تعليم الكل كمقروء
             </Button>
-          )}
-        </CardHeader>
-      </Card>
+          ) : null
+        }
+      />
 
       <Card>
         <CardHeader className="gap-4">
@@ -323,7 +316,9 @@ export default function PortalNotificationsPage() {
             <PortalEmptyState
               icon={Bell}
               title={
-                filter === "action" ? "لا توجد إجراءات مطلوبة" : "لا توجد إشعارات"
+                filter === "action"
+                  ? "لا توجد إجراءات مطلوبة"
+                  : "لا توجد إشعارات"
               }
               description={
                 filter === "all"

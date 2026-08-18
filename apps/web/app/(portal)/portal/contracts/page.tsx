@@ -10,14 +10,9 @@ import {
   type DateRange,
 } from "@/components/portal/contracts";
 import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -73,17 +68,11 @@ export default function PortalContractsPage() {
   };
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <FileText className="size-5 text-muted-foreground" />
-            <CardTitle>العقود</CardTitle>
-          </div>
-          <CardDescription>
-            استعرض جميع عقودك الحالية، حالتها، قيمتها، وتواريخ البدء والانتهاء.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        title="العقود"
+        description="استعرض جميع عقودك الحالية، حالتها، قيمتها، وتواريخ البدء والانتهاء."
+        icon={FileText}
+      />
       <ContractsToolbar
         search={search}
         onSearchChange={updateSearch}
