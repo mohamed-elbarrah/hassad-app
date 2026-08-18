@@ -1,21 +1,22 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { UserRole } from "@hassad/shared";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useLoginMutation } from "@/features/auth/authApi";
 import { useAppDispatch } from "@/lib/hooks";
 import { setCredentials } from "@/features/auth/authSlice";
+import { authErrorMessage } from "@/lib/i18n";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { AuthInput } from "./AuthInput";
 import { AuthButton } from "./AuthButton";
-
 import { Link } from "./AuthLink";
-import { authErrorMessage } from "@/lib/i18n";
 
-// We'll define our own schema since LoginSchema from shared might not match
 const loginFormSchema = z.object({
   email: z.string().email("البريد الإلكتروني غير صالح"),
   password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
@@ -33,6 +34,7 @@ export function LoginForm() {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormValues>({
@@ -53,126 +55,86 @@ export function LoginForm() {
   async function onSubmit(values: LoginFormValues) {
     try {
       setGlobalError(null);
-      const data = await login({
-        email: values.email,
-        password: values.password,
-        rememberMe: values.rememberMe,
-      }).unwrap();
+      const data = await login(values).unwrap();
       dispatch(setCredentials({ user: data.user }));
 
       const callbackUrl = searchParams.get("callbackUrl");
-      if (callbackUrl) {
-        router.push(callbackUrl);
-      } else {
-        router.push(ROLE_ROUTES[data.user.role as UserRole] ?? "/dashboard");
-      }
-    } catch (err: unknown) {
-      setGlobalError(
-        authErrorMessage(err, "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى."),
+      router.push(
+        callbackUrl || ROLE_ROUTES[data.user.role as UserRole] || "/dashboard",
       );
+    } catch (err: unknown) {
+      setGlobalError(authErrorMessage(err));
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      {/* Global Error */}
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
       {globalError && (
-        <div className="p-3 rounded-xl bg-danger-100/50 text-danger-500 text-sm font-medium text-center border border-danger-200">
-          {globalError}
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>{globalError}</AlertDescription>
+        </Alert>
       )}
 
-      {/* Email Field */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-secondary-500 text-right">
-          البريد الالكتروني
-        </label>
-        <div className="relative">
-          <input
-            {...register("email")}
-            type="email"
-            placeholder="ادخل البريد الالكتروني هنا"
-            className="w-full h-12 px-4 pr-12 text-sm text-secondary-500 bg-white border border-neutral-200 rounded-xl placeholder:text-neutral-200 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors duration-200 text-right"
-            disabled={isLoading}
-          />
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-            <svg
-              className="w-5 h-5 text-neutral-200"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="20" height="16" x="2" y="4" rx="2" />
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-            </svg>
-          </div>
-        </div>
-        {errors.email && (
-          <p className="text-xs text-danger-500 text-right">
-            {errors.email.message}
-          </p>
-        )}
-      </div>
+      <AuthInput
+        {...register("email")}
+        id="login-email"
+        label="البريد الإلكتروني"
+        icon="mail"
+        type="email"
+        placeholder="ادخل البريد الإلكتروني هنا"
+        error={errors.email?.message}
+        disabled={isLoading}
+        autoComplete="email"
+      />
 
-      {/* Password Field */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-secondary-500 text-right">
-          كلمة المرور
-        </label>
-        <AuthInput
-          {...register("password")}
-          label=""
-          type="password"
-          showPasswordToggle
-          placeholder="••••••••"
-          error={errors.password?.message}
-          disabled={isLoading}
-        />
-      </div>
+      <AuthInput
+        {...register("password")}
+        id="login-password"
+        label="كلمة المرور"
+        icon="lock"
+        type="password"
+        showPasswordToggle
+        placeholder="••••••••"
+        error={errors.password?.message}
+        disabled={isLoading}
+        autoComplete="current-password"
+      />
 
-      {/* Remember Me + Forgot Password Row */}
-      <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            {...register("rememberMe")}
-            type="checkbox"
-            className="w-4 h-4 rounded border-neutral-200 text-secondary-500 focus:ring-secondary-500/20"
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Controller
+            name="rememberMe"
+            control={control}
+            render={({ field }) => (
+              <Checkbox
+                id="remember-me"
+                checked={Boolean(field.value)}
+                onCheckedChange={field.onChange}
+                disabled={isLoading}
+                className="border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+              />
+            )}
           />
-          <span className="text-sm text-secondary-500">
+          <Label
+            htmlFor="remember-me"
+            className="cursor-pointer text-foreground"
+          >
             تذكرني للمرة القادمة
-          </span>
-        </label>
-        <Link href="/forgot-password" className="text-sm">
+          </Label>
+        </div>
+        <Link href="/forgot-password" className="h-auto px-0">
           نسيت كلمة المرور؟
         </Link>
       </div>
 
-      {/* Submit Button */}
       <AuthButton
         type="submit"
         variant="primary"
         fullWidth
         disabled={isLoading}
-        className="mt-2"
       >
         {isLoading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
       </AuthButton>
-
-      {/* Divider */}
-      {/* <AuthDivider text="أو" /> */}
-
-      {/* Social Login */}
-      {/* <AuthSocialRow /> */}
-
-      {/* Footer */}
-      {/* <AuthFooter
-        text="ليس لديك حساب حاليا؟"
-        buttonText="انشاء حساب"
-        href="/signup"
-      /> */}
     </form>
   );
 }

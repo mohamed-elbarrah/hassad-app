@@ -1,15 +1,25 @@
 "use client";
 
 import * as React from "react";
+import { Mail, Lock, Eye, EyeOff, Phone, UserRound } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
-interface AuthInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface AuthInputProps extends React.ComponentProps<typeof Input> {
   label: string;
   icon?: "mail" | "lock" | "phone" | "user";
   showPasswordToggle?: boolean;
   error?: string;
 }
+
+const icons = {
+  mail: Mail,
+  lock: Lock,
+  phone: Phone,
+  user: UserRound,
+};
 
 export const AuthInput = React.forwardRef<HTMLInputElement, AuthInputProps>(
   (
@@ -20,97 +30,66 @@ export const AuthInput = React.forwardRef<HTMLInputElement, AuthInputProps>(
       error,
       className,
       type,
+      id,
       ...props
     },
     ref,
   ) => {
     const [showPassword, setShowPassword] = React.useState(false);
-    const inputType = showPasswordToggle
-      ? showPassword
-        ? "text"
-        : "password"
-      : type;
-
-    const iconMap = {
-      mail: <Mail className="w-5 h-5 text-neutral-200" />,
-      lock: <Lock className="w-5 h-5 text-neutral-200" />,
-      phone: (
-        <svg
-          className="w-5 h-5 text-neutral-200"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-        </svg>
-      ),
-      user: (
-        <svg
-          className="w-5 h-5 text-neutral-200"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-      ),
-    };
+    const inputType = showPasswordToggle && showPassword ? "text" : type;
+    const Icon = icon ? icons[icon] : null;
 
     return (
-      <div className="w-full space-y-2">
-        <label className="block text-sm font-medium text-secondary-500 text-right">
+      <div className="flex w-full flex-col gap-2">
+        <Label htmlFor={id} className="text-right text-foreground">
           {label}
-        </label>
+        </Label>
         <div className="relative">
-          <input
+          <Input
             ref={ref}
+            id={id}
             type={inputType}
+            aria-invalid={error ? true : undefined}
             className={cn(
-              "w-full h-12 px-4 text-sm text-secondary-500 bg-white",
-              "border border-neutral-200 rounded-xl",
-              "placeholder:text-neutral-200",
-              "focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20",
-              "transition-colors duration-200",
-              "text-right",
-              icon && "pr-12",
+              "h-12 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground text-right",
+              "border-input focus-visible:border-primary focus-visible:ring-primary/20",
+              Icon && "pr-12",
               showPasswordToggle && "pl-12",
-              error &&
-                "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20",
+              error && "border-destructive focus-visible:ring-destructive",
               className,
             )}
             {...props}
           />
 
-          {/* Right icon (inside input, right side for RTL) */}
-          {icon && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-              {iconMap[icon]}
-            </div>
+          {Icon && (
+            <Icon
+              aria-hidden="true"
+              className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
+            />
           )}
 
-          {/* Password toggle (left side for RTL) */}
           {showPasswordToggle && (
-            <button
+            <Button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-200 hover:text-neutral-300 transition-colors"
+              variant="ghost"
+              size="icon"
+              aria-label={
+                showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
+              }
+              onClick={() => setShowPassword((visible) => !visible)}
+              className="absolute left-1 top-1/2 size-10 -translate-y-1/2 text-muted-foreground"
             >
               {showPassword ? (
-                <EyeOff className="w-5 h-5" />
+                <EyeOff aria-hidden="true" />
               ) : (
-                <Eye className="w-5 h-5" />
+                <Eye aria-hidden="true" />
               )}
-            </button>
+            </Button>
           )}
         </div>
-        {error && <p className="text-xs text-danger-500 text-right">{error}</p>}
+        {error && (
+          <p className="text-right text-xs text-destructive">{error}</p>
+        )}
       </div>
     );
   },

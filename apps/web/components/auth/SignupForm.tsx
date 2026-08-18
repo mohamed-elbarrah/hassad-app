@@ -1,10 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { CheckCircle2 } from "lucide-react";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { BusinessType } from "@hassad/shared";
 import { useRegisterMutation } from "@/features/auth/authApi";
 import { AuthInput } from "./AuthInput";
@@ -12,8 +21,8 @@ import { AuthButton } from "./AuthButton";
 import { AuthDivider } from "./AuthDivider";
 import { AuthSocialRow } from "./AuthSocialRow";
 import { AuthFooter } from "./AuthFooter";
-import { useRouter } from "next/navigation";
-import { authErrorMessage } from "@/lib/i18n";
+import { Link } from "./AuthLink";
+import { authErrorMessage, authSuccessMessage } from "@/lib/i18n";
 
 const signupSchema = z
   .object({
@@ -44,10 +53,10 @@ const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
 export function SignupForm() {
   const [register, { isLoading }] = useRegisterMutation();
   const [submitted, setSubmitted] = useState(false);
-  const router = useRouter();
 
   const {
     register: formRegister,
+    control,
     handleSubmit,
     formState: { errors },
   } = useForm<SignupFormValues>({
@@ -64,7 +73,7 @@ export function SignupForm() {
 
   async function onSubmit(values: SignupFormValues) {
     try {
-      await register({
+      const result = await register({
         name: values.name,
         email: values.email,
         password: values.password,
@@ -72,57 +81,37 @@ export function SignupForm() {
         businessType: values.businessType,
       }).unwrap();
       setSubmitted(true);
-      toast.success("تم إنشاء حسابك بنجاح!");
+      toast.success(authSuccessMessage(result.code));
     } catch (err: unknown) {
-      toast.error(
-        authErrorMessage(
-          err,
-          "حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مجدداً.",
-        ),
-      );
+      toast.error(authErrorMessage(err));
     }
   }
 
   if (submitted) {
     return (
-      <div className="text-center space-y-6 py-8">
-        <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto">
-          <svg
-            className="w-8 h-8 text-success-500"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
+      <div className="flex flex-col gap-6 py-8 text-center">
+        <div className="size-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+          <CheckCircle2 aria-hidden="true" className="size-8 text-primary" />
         </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold text-success-500">
-            تم التسجيل بنجاح
-          </h2>
-          <p className="text-sm text-neutral-300">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-bold text-primary">تم التسجيل بنجاح</h2>
+          <p className="text-sm text-muted-foreground">
             تم إنشاء حسابك. سيتواصل معك فريق المبيعات قريباً.
           </p>
         </div>
-        <AuthButton
-          variant="primary"
-          fullWidth
-          onClick={() => router.push("/login")}
-        >
+        <Link href="/login" className="w-full">
           تسجيل الدخول
-        </AuthButton>
+        </Link>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
       {/* Name Field */}
       <AuthInput
         {...formRegister("name")}
+        id="signup-name"
         label="الاسم الكامل"
         icon="user"
         placeholder="محمد أحمد"
@@ -133,6 +122,7 @@ export function SignupForm() {
       {/* Email Field */}
       <AuthInput
         {...formRegister("email")}
+        id="signup-email"
         label="البريد الإلكتروني"
         icon="mail"
         type="email"
@@ -142,9 +132,10 @@ export function SignupForm() {
       />
 
       {/* Phone + Business Type Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <AuthInput
           {...formRegister("phone")}
+          id="signup-phone"
           label="رقم الجوال"
           icon="phone"
           type="tel"
@@ -153,24 +144,41 @@ export function SignupForm() {
           disabled={isLoading}
         />
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-secondary-500 text-right">
-            نوع النشاط التجاري
-          </label>
-          <select
-            {...formRegister("businessType")}
-            className="w-full h-12 px-4 text-sm text-secondary-500 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors duration-200 text-right appearance-none"
-            disabled={isLoading}
+        <div className="flex flex-col gap-2">
+          <Label
+            htmlFor="signup-business-type"
+            className="text-right text-foreground"
           >
-            <option value="">اختر نوع النشاط</option>
-            {Object.values(BusinessType).map((type) => (
-              <option key={type} value={type}>
-                {BUSINESS_TYPE_LABELS[type]}
-              </option>
-            ))}
-          </select>
+            نوع النشاط التجاري
+          </Label>
+          <Controller
+            name="businessType"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isLoading}
+              >
+                <SelectTrigger
+                  id="signup-business-type"
+                  aria-invalid={errors.businessType ? true : undefined}
+                  className="h-12 rounded-xl bg-background text-right text-foreground"
+                >
+                  <SelectValue placeholder="اختر نوع النشاط" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(BusinessType).map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {BUSINESS_TYPE_LABELS[type]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.businessType && (
-            <p className="text-xs text-danger-500 text-right">
+            <p className="text-right text-xs text-destructive">
               {errors.businessType.message}
             </p>
           )}
@@ -178,9 +186,10 @@ export function SignupForm() {
       </div>
 
       {/* Password Fields Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <AuthInput
           {...formRegister("password")}
+          id="signup-password"
           label="كلمة المرور"
           type="password"
           showPasswordToggle
@@ -191,6 +200,7 @@ export function SignupForm() {
 
         <AuthInput
           {...formRegister("confirmPassword")}
+          id="signup-confirm-password"
           label="تأكيد كلمة المرور"
           type="password"
           showPasswordToggle

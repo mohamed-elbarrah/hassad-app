@@ -1,20 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { CheckCircle2, CircleX } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { AuthButton } from "@/components/auth/AuthButton";
 import { Link } from "@/components/auth/AuthLink";
 import { useResetPasswordMutation } from "@/features/auth/authApi";
-import { authErrorMessage } from "@/lib/i18n";
+import { authErrorMessage, authSuccessMessage } from "@/lib/i18n";
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [resetPassword, { isLoading }] = useResetPasswordMutation();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -37,70 +37,42 @@ export function ResetPasswordForm() {
     }
 
     try {
-      await resetPassword({ token, password }).unwrap();
+      const result = await resetPassword({ token, password }).unwrap();
       setSubmitted(true);
-      toast.success("تم إعادة تعيين كلمة المرور بنجاح!");
+      toast.success(authSuccessMessage(result.code));
     } catch (err: unknown) {
-      toast.error(authErrorMessage(err, "حدث خطأ. يرجى المحاولة مجدداً."));
+      toast.error(authErrorMessage(err));
     }
   }
 
   if (submitted) {
     return (
-      <div className="text-center space-y-6 py-8">
-        <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto">
-          <svg
-            className="w-8 h-8 text-success-500"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
+      <div className="flex flex-col gap-6 py-8 text-center">
+        <div className="size-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+          <CheckCircle2 aria-hidden="true" className="size-8 text-primary" />
         </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold text-success-500">
-            تم التعيين بنجاح
-          </h2>
-          <p className="text-sm text-neutral-300">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-bold text-primary">تم التعيين بنجاح</h2>
+          <p className="text-sm text-muted-foreground">
             تم إعادة تعيين كلمة المرور. يمكنك الآن تسجيل الدخول.
           </p>
         </div>
-        <AuthButton
-          variant="primary"
-          fullWidth
-          onClick={() => router.push("/login")}
-        >
+        <Link href="/login" className="w-full">
           تسجيل الدخول
-        </AuthButton>
+        </Link>
       </div>
     );
   }
 
   if (!token) {
     return (
-      <div className="text-center space-y-6 py-8">
-        <div className="w-16 h-16 bg-danger-100 rounded-full flex items-center justify-center mx-auto">
-          <svg
-            className="w-8 h-8 text-danger-500"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" y1="9" x2="9" y2="15" />
-            <line x1="9" y1="9" x2="15" y2="15" />
-          </svg>
+      <div className="flex flex-col gap-6 py-8 text-center">
+        <div className="size-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
+          <CircleX aria-hidden="true" className="size-8 text-destructive" />
         </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold text-danger-500">رابط غير صالح</h2>
-          <p className="text-sm text-neutral-300">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-xl font-bold text-destructive">رابط غير صالح</h2>
+          <p className="text-sm text-muted-foreground">
             الرابط منتهي الصلاحية أو غير صالح. يرجى طلب رابط جديد.
           </p>
         </div>
@@ -110,8 +82,9 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <AuthInput
+        id="reset-password"
         label="كلمة المرور الجديدة"
         type="password"
         showPasswordToggle
@@ -123,6 +96,7 @@ export function ResetPasswordForm() {
       />
 
       <AuthInput
+        id="reset-password-confirmation"
         label="تأكيد كلمة المرور"
         type="password"
         showPasswordToggle

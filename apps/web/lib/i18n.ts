@@ -25,7 +25,16 @@ export function contractTypeLabel(type: string | null | undefined): string {
   return CONTRACT_TYPE_LABELS[type] ?? type;
 }
 
+const AUTH_SUCCESS_MESSAGES: Record<string, string> = {
+  UNKNOWN_SUCCESS: "تمت العملية بنجاح.",
+  USER_REGISTERED: "تم إنشاء حسابك بنجاح!",
+  PASSWORD_RESET_REQUEST_ACCEPTED: "تم إرسال رابط إعادة التعيين!",
+  PASSWORD_RESET: "تم إعادة تعيين كلمة المرور بنجاح!",
+  SIGNED_OUT: "تم تسجيل الخروج بنجاح.",
+};
+
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  UNKNOWN_ERROR: "حدث خطأ. يرجى المحاولة مرة أخرى.",
   INVALID_CREDENTIALS: "فشل تسجيل الدخول. يرجى التحقق من بياناتك.",
   ACCOUNT_LOCKED: "تم قفل الحساب مؤقتاً. يرجى المحاولة لاحقاً.",
   ACCOUNT_SUSPENDED: "هذا الحساب موقوف.",
@@ -37,8 +46,17 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   INVALID_TOKEN: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
 };
 
-export function authErrorMessage(error: unknown, fallback: string): string {
+export function authSuccessMessage(code: string | undefined): string {
+  return (
+    (code && AUTH_SUCCESS_MESSAGES[code]) ||
+    AUTH_SUCCESS_MESSAGES.UNKNOWN_SUCCESS
+  );
+}
+
+export function authErrorMessage(error: unknown): string {
   const code = (error as { data?: { error?: { code?: string } } })?.data?.error
     ?.code;
-  return (code && AUTH_ERROR_MESSAGES[code]) || fallback;
+  return (
+    (code && AUTH_ERROR_MESSAGES[code]) || AUTH_ERROR_MESSAGES.UNKNOWN_ERROR
+  );
 }

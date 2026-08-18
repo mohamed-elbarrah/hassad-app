@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface AuthCarouselProps {
   className?: string;
@@ -36,32 +38,36 @@ export function AuthCarousel({ className }: AuthCarouselProps) {
 
   return (
     <div
-      className={`flex flex-col items-center justify-center max-w-md text-center space-y-8 ${className || ""}`}
+      className={cn(
+        "flex max-w-md flex-col items-center justify-center gap-8 text-center",
+        className,
+      )}
     >
-      {/* Slide Image or mockup */}
-
-      {/* Slide Text */}
-      <div className="space-y-4 min-h-[140px] px-4">
-        <h2 className="text-2xl font-bold text-secondary-500 leading-tight">
+      <div className="flex min-h-[140px] flex-col gap-4 px-4">
+        <h2 className="text-2xl font-bold leading-tight text-foreground">
           {slides[current].title}
         </h2>
-        <p className="text-sm text-neutral-300 leading-relaxed">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           {slides[current].description}
         </p>
       </div>
 
-      {/* Pagination Dots */}
-      <div className="flex items-center gap-3">
-        {slides.map((_, idx) => (
-          <button
-            key={idx}
+      <div className="flex items-center gap-3" aria-label="شرائح تسجيل الدخول">
+        {slides.map((slide, idx) => (
+          <Button
+            key={slide.title}
+            type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => setCurrent(idx)}
-            className={`transition-all duration-300 rounded-full ${
+            aria-label={`الشريحة ${idx + 1}`}
+            aria-pressed={idx === current}
+            className={cn(
+              "h-3 rounded-full p-0 hover:bg-muted-foreground/50",
               idx === current
-                ? "w-8 h-3 bg-secondary-500"
-                : "w-3 h-3 bg-neutral-200 hover:bg-neutral-300"
-            }`}
-            aria-label={`Slide ${idx + 1}`}
+                ? "w-8 bg-primary hover:bg-primary/90"
+                : "w-3 bg-muted-foreground/30",
+            )}
           />
         ))}
       </div>
