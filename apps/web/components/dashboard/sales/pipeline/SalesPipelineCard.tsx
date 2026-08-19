@@ -150,8 +150,68 @@ function getServicePreview(request: RequestItem) {
   return `${names.slice(0, 2).join("، ")} +${names.length - 2}`;
 }
 
-export function SalesPipelineCard({ request }: { request: RequestItem }) {
+interface SalesPipelineCardProps {
+  request: RequestItem;
+  onCreateProposal?: (request: RequestItem) => void;
+  onEditProposal?: (request: RequestItem) => void;
+  onCreateContract?: (request: RequestItem) => void;
+  onEditContract?: (request: RequestItem) => void;
+}
+
+export function SalesPipelineCard({
+  request,
+  onCreateProposal,
+  onEditProposal,
+  onCreateContract,
+  onEditContract,
+}: SalesPipelineCardProps) {
   const action = getSalesPipelineAction(request);
+  const relatedProposalId = request.proposals?.[0]?.id;
+  const relatedContractId = request.contracts?.[0]?.id;
+
+  const workflowAction =
+    request.status === RequestStatus.PROPOSAL_IN_PROGRESS
+      ? relatedProposalId && onEditProposal
+        ? { label: "فتح العرض", onClick: onEditProposal, icon: FileText }
+        : onCreateProposal
+          ? { label: "إنشاء عرض", onClick: onCreateProposal, icon: FileText }
+          : null
+      : request.status === RequestStatus.PROPOSAL_SENT ||
+          request.status === RequestStatus.NEGOTIATION
+        ? relatedProposalId && onEditProposal
+          ? { label: "فتح العرض", onClick: onEditProposal, icon: FileText }
+          : onCreateProposal
+            ? { label: "إنشاء عرض", onClick: onCreateProposal, icon: FileText }
+            : null
+        : request.status === RequestStatus.CONTRACT_PREPARATION
+          ? relatedContractId && onEditContract
+            ? {
+                label: "فتح العقد",
+                onClick: onEditContract,
+                icon: FileSignature,
+              }
+            : onCreateContract
+              ? {
+                  label: "إنشاء عقد",
+                  onClick: onCreateContract,
+                  icon: FileSignature,
+                }
+              : null
+          : request.status === RequestStatus.CONTRACT_SENT
+            ? relatedContractId && onEditContract
+              ? {
+                  label: "فتح العقد",
+                  onClick: onEditContract,
+                  icon: FileSignature,
+                }
+              : onCreateContract
+                ? {
+                    label: "إنشاء عقد",
+                    onClick: onCreateContract,
+                    icon: FileSignature,
+                  }
+                : null
+            : null;
   const displayName =
     request.contactName || request.client?.companyName || request.companyName;
   const isClosed = isClosedRequest(request.status);
@@ -212,17 +272,30 @@ export function SalesPipelineCard({ request }: { request: RequestItem }) {
 
       <div className="flex items-center justify-between gap-2 border-t pt-2 text-[11px] text-muted-foreground">
         <span>آخر تحديث {formatRelativeTime(request.updatedAt)}</span>
-        <Button
-          asChild
-          variant={isClosed ? "outline" : "default"}
-          size="sm"
-          className="h-8 px-3 text-xs"
-        >
-          <Link href={action.href}>
-            <action.icon data-icon="inline-start" />
-            {action.label}
-          </Link>
-        </Button>
+        {workflowAction ? (
+          <Button
+            type="button"
+            variant={isClosed ? "outline" : "default"}
+            size="sm"
+            className="h-8 px-3 text-xs"
+            onClick={() => workflowAction.onClick(request)}
+          >
+            <workflowAction.icon data-icon="inline-start" />
+            {workflowAction.label}
+          </Button>
+        ) : (
+          <Button
+            asChild
+            variant={isClosed ? "outline" : "default"}
+            size="sm"
+            className="h-8 px-3 text-xs"
+          >
+            <Link href={action.href}>
+              <action.icon data-icon="inline-start" />
+              {action.label}
+            </Link>
+          </Button>
+        )}
       </div>
     </div>
   );

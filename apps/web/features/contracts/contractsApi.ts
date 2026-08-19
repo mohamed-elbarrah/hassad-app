@@ -1,7 +1,14 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import { getApiBaseUrl } from "@/lib/utils";
-import type { ContractStatus, ContractType, InvoiceStatus, PaymentMethod, ServiceItem, PaymentAmountType } from "@hassad/shared";
+import type {
+  ContractStatus,
+  ContractType,
+  InvoiceStatus,
+  PaymentMethod,
+  ServiceItem,
+  PaymentAmountType,
+} from "@hassad/shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +51,7 @@ export interface InvoiceSummary {
 
 export interface ContractItem {
   id: string;
+  requestId?: string | null;
   clientId: string;
   proposalId?: string | null;
   createdBy: string;

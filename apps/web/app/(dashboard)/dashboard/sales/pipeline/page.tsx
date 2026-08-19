@@ -34,6 +34,11 @@ import {
   type SalesPipelineGroup,
   type SalesPipelineItem,
 } from "@/features/sales/salesApi";
+import { useGetProposalByIdQuery } from "@/features/proposals/proposalsApi";
+import { useGetContractByIdQuery } from "@/features/contracts/contractsApi";
+import { ProposalFormDialog } from "@/components/dashboard/sales/ProposalFormDialog";
+import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
+import { Dialog } from "@/components/design-system/Dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +88,11 @@ import { salesPipelineErrorMessage } from "@/lib/i18n";
 
 type PipelineView = "kanban" | "table";
 type PipelineFilterGroup = "all" | SalesPipelineGroup;
+type PipelineWorkflowDialog =
+  | { type: "proposal"; mode: "create"; requestId: string }
+  | { type: "proposal"; mode: "edit"; proposalId: string }
+  | { type: "contract"; mode: "create"; requestId: string }
+  | { type: "contract"; mode: "edit"; contractId: string };
 
 const STATUS_GROUP_OPTIONS: PipelineFilterGroup[] = [
   "all",
@@ -194,12 +204,33 @@ export default function PipelinePage() {
   const [statusGroup, setStatusGroup] = useState<PipelineFilterGroup>("all");
   const [page, setPage] = useState(1);
   const [boardItems, setBoardItems] = useState<SalesPipelineItem[]>([]);
+  const [workflowDialog, setWorkflowDialog] =
+    useState<PipelineWorkflowDialog | null>(null);
   const deferredSearch = useDeferredValue(search);
   const [updatePipelineStatus, { isLoading: isUpdatingStatus }] =
     useUpdateSalesPipelineStatusMutation();
 
   const apiStatusGroup: SalesPipelineGroup | undefined =
     statusGroup === "all" ? undefined : statusGroup;
+
+  const proposalEditId =
+    workflowDialog?.type === "proposal" && workflowDialog.mode === "edit"
+      ? workflowDialog.proposalId
+      : "";
+  const contractEditId =
+    workflowDialog?.type === "contract" && workflowDialog.mode === "edit"
+      ? workflowDialog.contractId
+      : "";
+  const {
+    data: proposalForEdit,
+    isFetching: isProposalEditFetching,
+    isError: isProposalEditError,
+  } = useGetProposalByIdQuery(proposalEditId, { skip: !proposalEditId });
+  const {
+    data: contractForEdit,
+    isFetching: isContractEditFetching,
+    isError: isContractEditError,
+  } = useGetContractByIdQuery(contractEditId, { skip: !contractEditId });
 
   const { currentData, isLoading, isError, isFetching, refetch } =
     useGetSalesPipelineQuery(
@@ -263,6 +294,31 @@ export default function PipelinePage() {
   );
 
   const boardRequests = requests;
+
+  function openProposalDialog(request: SalesPipelineItem) {
+    const proposalId = request.proposals?.[0]?.id;
+    setWorkflowDialog(
+      proposalId
+        ? { type: "proposal", mode: "edit", proposalId }
+        : { type: "proposal", mode: "create", requestId: request.id },
+    );
+  }
+
+  function openContractDialog(request: SalesPipelineItem) {
+    const contractId = request.contracts?.[0]?.id;
+    setWorkflowDialog(
+      contractId
+        ? { type: "contract", mode: "edit", contractId }
+        : { type: "contract", mode: "create", requestId: request.id },
+    );
+  }
+
+  function handleWorkflowDialogChange(open: boolean) {
+    if (!open) {
+      setWorkflowDialog(null);
+      void refetch();
+    }
+  }
 
   async function handleDragEnd(
     itemId: string,
@@ -498,7 +554,13 @@ export default function PipelinePage() {
                     items={boardRequests}
                     getItemStage={(request) => request.status}
                     renderCard={(request) => (
-                      <SalesPipelineCard request={request} />
+                      <SalesPipelineCard
+                        request={request}
+                        onCreateProposal={openProposalDialog}
+                        onEditProposal={openProposalDialog}
+                        onCreateContract={openContractDialog}
+                        onEditContract={openContractDialog}
+                      />
                     )}
                     onDragEnd={handleDragEnd}
                     canDragItem={(request) =>
@@ -628,12 +690,37 @@ export default function PipelinePage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-left">
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link href={action.href}>
-                                <ArrowUpLeft data-icon="inline-start" />
+                            {request.status ===
+                              RequestStatus.PROPOSAL_IN_PROGRESS ||
+                            request.status === RequestStatus.PROPOSAL_SENT ||
+                            request.status === RequestStatus.NEGOTIATION ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openProposalDialog(request)}
+                              >
+                                <action.icon data-icon="inline-start" />
                                 فتح
-                              </Link>
-                            </Button>
+                              </Button>
+                            ) : request.status ===
+                                RequestStatus.CONTRACT_PREPARATION ||
+                              request.status === RequestStatus.CONTRACT_SENT ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openContractDialog(request)}
+                              >
+                                <action.icon data-icon="inline-start" />
+                                فتح
+                              </Button>
+                            ) : (
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link href={action.href}>
+                                  <ArrowUpLeft data-icon="inline-start" />
+                                  فتح
+                                </Link>
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
@@ -696,6 +783,94 @@ export default function PipelinePage() {
           )}
         </CardContent>
       </Card>
+
+      {workflowDialog?.type === "proposal" &&
+      workflowDialog.mode === "create" ? (
+        <ProposalFormDialog
+          mode="create"
+          preSelectedRequestId={workflowDialog.requestId}
+          open
+          onOpenChange={handleWorkflowDialogChange}
+        />
+      ) : null}
+
+      {workflowDialog?.type === "proposal" &&
+      workflowDialog.mode === "edit" &&
+      !proposalForEdit ? (
+        <Dialog
+          open
+          onOpenChange={handleWorkflowDialogChange}
+          title="فتح العرض"
+        >
+          <div className="flex flex-col gap-4 py-4 text-sm text-muted-foreground">
+            <p>
+              {isProposalEditFetching
+                ? "جارٍ تحميل بيانات العرض..."
+                : isProposalEditError
+                  ? "تعذر تحميل بيانات العرض. يمكنك إغلاق النافذة والمحاولة مرة أخرى."
+                  : "جارٍ تجهيز بيانات العرض..."}
+            </p>
+            {!isProposalEditFetching && (
+              <Button onClick={() => handleWorkflowDialogChange(false)}>
+                إغلاق
+              </Button>
+            )}
+          </div>
+        </Dialog>
+      ) : workflowDialog?.type === "proposal" &&
+        workflowDialog.mode === "edit" &&
+        proposalForEdit ? (
+        <ProposalFormDialog
+          mode="edit"
+          proposal={proposalForEdit}
+          open
+          onOpenChange={handleWorkflowDialogChange}
+        />
+      ) : null}
+
+      {workflowDialog?.type === "contract" &&
+      workflowDialog.mode === "create" ? (
+        <CreateContractDialog
+          mode="create"
+          preSelectedRequestId={workflowDialog.requestId}
+          open
+          onOpenChange={handleWorkflowDialogChange}
+        />
+      ) : null}
+
+      {workflowDialog?.type === "contract" &&
+      workflowDialog.mode === "edit" &&
+      !contractForEdit ? (
+        <Dialog
+          open
+          onOpenChange={handleWorkflowDialogChange}
+          title="فتح العقد"
+        >
+          <div className="flex flex-col gap-4 py-4 text-sm text-muted-foreground">
+            <p>
+              {isContractEditFetching
+                ? "جارٍ تحميل بيانات العقد..."
+                : isContractEditError
+                  ? "تعذر تحميل بيانات العقد. يمكنك إغلاق النافذة والمحاولة مرة أخرى."
+                  : "جارٍ تجهيز بيانات العقد..."}
+            </p>
+            {!isContractEditFetching && (
+              <Button onClick={() => handleWorkflowDialogChange(false)}>
+                إغلاق
+              </Button>
+            )}
+          </div>
+        </Dialog>
+      ) : workflowDialog?.type === "contract" &&
+        workflowDialog.mode === "edit" &&
+        contractForEdit ? (
+        <CreateContractDialog
+          mode="edit"
+          contract={contractForEdit}
+          open
+          onOpenChange={handleWorkflowDialogChange}
+        />
+      ) : null}
     </div>
   );
 }
