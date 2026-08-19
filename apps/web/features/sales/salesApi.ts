@@ -15,6 +15,7 @@ export interface SalesPipelineFilters {
   statusGroup?: SalesPipelineGroup;
   page?: number;
   limit?: number;
+  view?: "board" | "table";
 }
 
 export interface SalesPipelineStage {

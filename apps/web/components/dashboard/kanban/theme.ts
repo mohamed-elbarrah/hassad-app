@@ -7,82 +7,86 @@ export interface KanbanToneClasses {
   badgeClass: string;
 }
 
-function createToneClasses(
-  tone: KanbanToneClasses,
-): KanbanToneClasses {
+function createToneClasses(tone: KanbanToneClasses): KanbanToneClasses {
   return tone;
 }
 
 export const KANBAN_TONES = {
   neutral: createToneClasses({
-    dotClass: "bg-badge-gray-text",
-    bandClass: "bg-badge-gray-bg",
-    surfaceClass: "bg-badge-gray-bg/60",
-    countClass: "bg-badge-gray-bg text-badge-gray-text",
-    fillClass: "bg-badge-gray-text",
-    badgeClass:
-      "border-border bg-badge-gray-bg text-badge-gray-text/90",
+    dotClass: "bg-muted-foreground",
+    bandClass: "bg-muted",
+    surfaceClass: "bg-muted/60",
+    countClass: "bg-muted text-muted-foreground",
+    fillClass: "bg-muted-foreground",
+    badgeClass: "border-border bg-muted text-muted-foreground",
   }),
   blue: createToneClasses({
-    dotClass: "bg-action-blue",
-    bandClass: "bg-action-blue-soft",
-    surfaceClass: "bg-action-blue-soft/60",
-    countClass: "bg-action-blue-soft text-action-blue",
-    fillClass: "bg-action-blue",
+    dotClass: "bg-blue-500",
+    bandClass: "bg-blue-50 dark:bg-blue-950/30",
+    surfaceClass: "bg-blue-50/60 dark:bg-blue-950/20",
+    countClass:
+      "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    fillClass: "bg-blue-500",
     badgeClass:
-      "border-action-blue/20 bg-action-blue-soft text-action-blue",
+      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300",
   }),
   cyan: createToneClasses({
-    dotClass: "bg-action-cyan",
-    bandClass: "bg-action-cyan-soft",
-    surfaceClass: "bg-action-cyan-soft/60",
-    countClass: "bg-action-cyan-soft text-action-cyan",
-    fillClass: "bg-action-cyan",
+    dotClass: "bg-cyan-500",
+    bandClass: "bg-cyan-50 dark:bg-cyan-950/30",
+    surfaceClass: "bg-cyan-50/60 dark:bg-cyan-950/20",
+    countClass:
+      "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
+    fillClass: "bg-cyan-500",
     badgeClass:
-      "border-action-cyan/20 bg-action-cyan-soft text-action-cyan",
+      "border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-300",
   }),
   purple: createToneClasses({
-    dotClass: "bg-action-purple",
-    bandClass: "bg-action-purple-soft",
-    surfaceClass: "bg-action-purple-soft/60",
-    countClass: "bg-action-purple-soft text-action-purple",
-    fillClass: "bg-action-purple",
+    dotClass: "bg-violet-500",
+    bandClass: "bg-violet-50 dark:bg-violet-950/30",
+    surfaceClass: "bg-violet-50/60 dark:bg-violet-950/20",
+    countClass:
+      "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+    fillClass: "bg-violet-500",
     badgeClass:
-      "border-action-purple/20 bg-action-purple-soft text-action-purple",
+      "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300",
   }),
   yellow: createToneClasses({
-    dotClass: "bg-badge-yellow-text",
-    bandClass: "bg-badge-yellow-bg",
-    surfaceClass: "bg-badge-yellow-bg/60",
-    countClass: "bg-badge-yellow-bg text-badge-yellow-text",
-    fillClass: "bg-badge-yellow-text",
+    dotClass: "bg-amber-500",
+    bandClass: "bg-amber-50 dark:bg-amber-950/30",
+    surfaceClass: "bg-amber-50/60 dark:bg-amber-950/20",
+    countClass:
+      "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    fillClass: "bg-amber-500",
     badgeClass:
-      "border-badge-yellow-bg bg-badge-yellow-bg text-badge-yellow-text",
+      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
   }),
   orange: createToneClasses({
-    dotClass: "bg-badge-orange-text",
-    bandClass: "bg-badge-orange-bg",
-    surfaceClass: "bg-badge-orange-bg/60",
-    countClass: "bg-badge-orange-bg text-badge-orange-text",
-    fillClass: "bg-badge-orange-text",
+    dotClass: "bg-orange-500",
+    bandClass: "bg-orange-50 dark:bg-orange-950/30",
+    surfaceClass: "bg-orange-50/60 dark:bg-orange-950/20",
+    countClass:
+      "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+    fillClass: "bg-orange-500",
     badgeClass:
-      "border-badge-orange-bg bg-badge-orange-bg text-badge-orange-text",
+      "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300",
   }),
   green: createToneClasses({
-    dotClass: "bg-badge-green-text",
-    bandClass: "bg-badge-green-bg",
-    surfaceClass: "bg-badge-green-bg/60",
-    countClass: "bg-badge-green-bg text-badge-green-text",
-    fillClass: "bg-badge-green-text",
+    dotClass: "bg-emerald-500",
+    bandClass: "bg-emerald-50 dark:bg-emerald-950/30",
+    surfaceClass: "bg-emerald-50/60 dark:bg-emerald-950/20",
+    countClass:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    fillClass: "bg-emerald-500",
     badgeClass:
-      "border-badge-green-bg bg-badge-green-bg text-badge-green-text",
+      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
   }),
   red: createToneClasses({
-    dotClass: "bg-destructive",
-    bandClass: "bg-destructive/10",
-    surfaceClass: "bg-destructive/5",
-    countClass: "bg-destructive/10 text-destructive",
-    fillClass: "bg-destructive",
-    badgeClass: "border-destructive/20 bg-destructive/10 text-destructive",
+    dotClass: "bg-red-500",
+    bandClass: "bg-red-50 dark:bg-red-950/30",
+    surfaceClass: "bg-red-50/60 dark:bg-red-950/20",
+    countClass: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+    fillClass: "bg-red-500",
+    badgeClass:
+      "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300",
   }),
 } as const;

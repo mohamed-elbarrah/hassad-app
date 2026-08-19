@@ -44,8 +44,8 @@ export function KanbanCard({
     <Card
       ref={setNodeRef}
       className={cn(
-        "group border-border p-4 transition-all duration-150",
-        canDrag && "hover:border-secondary-500/20 hover:shadow-sm",
+        "group border-border p-2.5 transition-all duration-150",
+        canDrag && "hover:border-primary/20 hover:shadow-sm",
         !canDrag && "cursor-default opacity-80",
         (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
         isOverlay && "shadow-lg",

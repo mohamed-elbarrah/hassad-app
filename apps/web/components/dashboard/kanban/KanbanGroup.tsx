@@ -18,8 +18,11 @@ interface KanbanGroupProps {
  */
 export function KanbanGroup({ label, totalCount, children }: KanbanGroupProps) {
   return (
-    <Card className="flex min-w-[340px] flex-1 flex-col overflow-hidden" dir="rtl">
-      <CardHeader className="flex flex-row items-center justify-between gap-3 p-4">
+    <Card
+      className="flex w-[280px] min-w-[280px] shrink-0 flex-col overflow-hidden"
+      dir="rtl"
+    >
+      <CardHeader className="flex flex-row items-center justify-between gap-3 p-3">
         <CardTitle className="min-w-0 truncate text-sm font-semibold">
           {label}
         </CardTitle>
@@ -28,9 +31,7 @@ export function KanbanGroup({ label, totalCount, children }: KanbanGroupProps) {
         </Badge>
       </CardHeader>
       <Separator />
-      <CardContent className="flex flex-1 flex-col gap-3 p-3">
-        {children}
-      </CardContent>
+      <CardContent className="flex flex-col gap-2 p-2">{children}</CardContent>
     </Card>
   );
 }

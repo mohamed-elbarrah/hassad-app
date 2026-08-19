@@ -1,6 +1,12 @@
 "use client";
 
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import {
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -19,6 +25,7 @@ import { KanbanBoard } from "@/components/dashboard/kanban";
 import { createSalesPipelineConfig } from "@/components/dashboard/sales/pipeline/config";
 import {
   getRequestStatusBadgeVariant,
+  getSalesPipelineAction,
   SalesPipelineCard,
 } from "@/components/dashboard/sales/pipeline/SalesPipelineCard";
 import {
@@ -53,7 +60,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -95,48 +101,6 @@ const STATUS_GROUP_LABELS: Record<PipelineFilterGroup, string> = {
   WON: "الصفقات المحسومة",
   CANCELLED: "الطلبات الملغاة",
 };
-
-function getPipelineAction(request: SalesPipelineItem) {
-  const proposalId = request.proposals?.[0]?.id;
-  const contractId = request.contracts?.[0]?.id;
-
-  switch (request.status) {
-    case RequestStatus.PROPOSAL_IN_PROGRESS:
-    case RequestStatus.PROPOSAL_SENT:
-    case RequestStatus.NEGOTIATION:
-      return proposalId
-        ? {
-            label:
-              request.status === RequestStatus.NEGOTIATION
-                ? "فتح العرض"
-                : "مراجعة العرض",
-            href: `/dashboard/sales/proposals/${proposalId}`,
-          }
-        : {
-            label: "فتح الطلب",
-            href: `/dashboard/sales/requests/${request.id}`,
-          };
-    case RequestStatus.CONTRACT_PREPARATION:
-    case RequestStatus.CONTRACT_SENT:
-      return contractId
-        ? {
-            label:
-              request.status === RequestStatus.CONTRACT_SENT
-                ? "فتح العقد"
-                : "متابعة العقد",
-            href: `/dashboard/sales/contracts/${contractId}`,
-          }
-        : {
-            label: "فتح الطلب",
-            href: `/dashboard/sales/requests/${request.id}`,
-          };
-    default:
-      return {
-        label: "فتح الطلب",
-        href: `/dashboard/sales/requests/${request.id}`,
-      };
-  }
-}
 
 function getServiceCount(request: SalesPipelineItem) {
   return request.services?.length ?? 0;
@@ -229,25 +193,51 @@ export default function PipelinePage() {
   const [view, setView] = useState<PipelineView>("kanban");
   const [statusGroup, setStatusGroup] = useState<PipelineFilterGroup>("all");
   const [page, setPage] = useState(1);
+  const [boardItems, setBoardItems] = useState<SalesPipelineItem[]>([]);
   const deferredSearch = useDeferredValue(search);
-  const [updatePipelineStatus] = useUpdateSalesPipelineStatusMutation();
+  const [updatePipelineStatus, { isLoading: isUpdatingStatus }] =
+    useUpdateSalesPipelineStatusMutation();
 
   const apiStatusGroup: SalesPipelineGroup | undefined =
     statusGroup === "all" ? undefined : statusGroup;
 
-  const { data, isLoading, isError, isFetching, refetch } =
+  const { currentData, isLoading, isError, isFetching, refetch } =
     useGetSalesPipelineQuery(
       {
-        limit: 50,
+        limit: view === "kanban" ? 500 : 50,
         page,
+        view: view === "kanban" ? "board" : "table",
         search: deferredSearch.trim() || undefined,
         statusGroup: apiStatusGroup,
       },
       { pollingInterval: 30_000 },
     );
 
-  const requests = useMemo(() => data?.items ?? [], [data?.items]);
-  const summary = data?.summary ?? {
+  useEffect(() => {
+    if (!currentData?.items) return;
+
+    if (view === "kanban") {
+      setBoardItems((current) => {
+        if (page === 1) return currentData.items;
+        const incoming = new Map(
+          currentData.items.map((item) => [item.id, item]),
+        );
+        const existingIds = new Set(current.map((item) => item.id));
+        return [
+          ...current.map((item) => incoming.get(item.id) ?? item),
+          ...currentData.items.filter((item) => !existingIds.has(item.id)),
+        ];
+      });
+    } else {
+      setBoardItems([]);
+    }
+  }, [currentData?.items, page, view]);
+
+  const requests = useMemo(
+    () => (view === "kanban" ? boardItems : (currentData?.items ?? [])),
+    [boardItems, currentData?.items, view],
+  );
+  const summary = currentData?.summary ?? {
     openDeals: 0,
     proposalFlow: 0,
     contractFlow: 0,
@@ -256,20 +246,20 @@ export default function PipelinePage() {
   const terminalStatuses = useMemo(
     () =>
       new Set(
-        data?.stages
+        currentData?.stages
           .filter((stage) => stage.isTerminal)
           .map((stage) => stage.code) ?? [],
       ),
-    [data?.stages],
+    [currentData?.stages],
   );
 
   const boardConfig = useMemo(
     () =>
       createSalesPipelineConfig({
         includeCancelled: statusGroup === "CANCELLED",
-        stages: data?.stages,
+        stages: currentData?.stages,
       }),
-    [data?.stages, statusGroup],
+    [currentData?.stages, statusGroup],
   );
 
   const boardRequests = requests;
@@ -427,6 +417,7 @@ export default function PipelinePage() {
                   startTransition(() => {
                     setSearch(nextValue);
                     setPage(1);
+                    setBoardItems([]);
                   });
                 }}
                 placeholder="ابحث باسم العميل أو الشركة أو رقم الواتساب"
@@ -439,6 +430,7 @@ export default function PipelinePage() {
               onValueChange={(value) => {
                 setStatusGroup(value as PipelineFilterGroup);
                 setPage(1);
+                setBoardItems([]);
               }}
             >
               <SelectTrigger aria-label="تصفية مراحل خط المبيعات">
@@ -458,7 +450,11 @@ export default function PipelinePage() {
 
             <Tabs
               value={view}
-              onValueChange={(value) => setView(value as PipelineView)}
+              onValueChange={(value) => {
+                setView(value as PipelineView);
+                setPage(1);
+                setBoardItems([]);
+              }}
             >
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="kanban">
@@ -473,46 +469,62 @@ export default function PipelinePage() {
             </Tabs>
 
             <div className="flex items-center justify-end">
-              <Badge variant="outline">
-                {formatNumber(data?.meta.total ?? 0)} فرصة
-              </Badge>
+              <div className="flex items-center gap-2">
+                {view === "kanban" &&
+                  (currentData?.meta.total ?? 0) > requests.length && (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                    >
+                      عرض {formatNumber(requests.length)} من{" "}
+                      {formatNumber(currentData?.meta.total)}
+                    </Badge>
+                  )}
+                <Badge variant="outline">
+                  {isUpdatingStatus
+                    ? "جارٍ حفظ التغيير..."
+                    : `${formatNumber(currentData?.meta.total ?? 0)} فرصة`}
+                </Badge>
+              </div>
             </div>
           </div>
 
           {view === "kanban" ? (
             <Card className="overflow-hidden border-dashed">
               <CardContent className="p-0">
-                <ScrollArea className="w-full">
-                  <div className="min-w-max p-4">
-                    <KanbanBoard
-                      config={boardConfig}
-                      items={boardRequests}
-                      getItemStage={(request) => request.status}
-                      renderCard={(request) => (
-                        <SalesPipelineCard request={request} />
-                      )}
-                      onDragEnd={handleDragEnd}
-                      canDragItem={(request) =>
-                        request.capabilities.canUpdateStatus &&
-                        !terminalStatuses.has(request.status)
-                      }
-                      canDropItem={(request, destinationStage) =>
-                        request.allowedNextStatuses.includes(
-                          destinationStage as RequestStatus,
-                        )
-                      }
-                      isLoading={isLoading}
-                      isError={isError}
-                      errorMessage="حدث خطأ أثناء تحميل الفرص"
-                      emptyMessage="لا توجد فرص مطابقة للبحث أو الفلتر الحالي"
-                    />
-                  </div>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+                <div className="p-3">
+                  <KanbanBoard
+                    config={boardConfig}
+                    items={boardRequests}
+                    getItemStage={(request) => request.status}
+                    renderCard={(request) => (
+                      <SalesPipelineCard request={request} />
+                    )}
+                    onDragEnd={handleDragEnd}
+                    canDragItem={(request) =>
+                      !isUpdatingStatus &&
+                      !isFetching &&
+                      request.capabilities.canUpdateStatus &&
+                      !terminalStatuses.has(request.status)
+                    }
+                    canDropItem={(request, destinationStage) =>
+                      request.allowedNextStatuses.includes(
+                        destinationStage as RequestStatus,
+                      )
+                    }
+                    onInvalidDrop={() =>
+                      toast.info("لا يمكن نقل الفرصة إلى هذه المرحلة")
+                    }
+                    isLoading={isLoading}
+                    isError={isError}
+                    errorMessage="حدث خطأ أثناء تحميل الفرص"
+                    emptyMessage="لا توجد فرص مطابقة للبحث أو الفلتر الحالي"
+                  />
+                </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="overflow-hidden rounded-xl border">
+            <div className="overflow-x-auto rounded-xl border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -544,7 +556,7 @@ export default function PipelinePage() {
                     </TableRow>
                   ) : (
                     requests.map((request) => {
-                      const action = getPipelineAction(request);
+                      const action = getSalesPipelineAction(request);
 
                       return (
                         <TableRow key={request.id}>
@@ -632,7 +644,25 @@ export default function PipelinePage() {
             </div>
           )}
 
-          {(data?.meta.totalPages ?? 0) > 1 && (
+          {view === "kanban" &&
+            (currentData?.meta.total ?? 0) > boardItems.length && (
+              <div className="flex items-center justify-center border-t pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isFetching}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  {isFetching
+                    ? "جارٍ تحميل المزيد..."
+                    : `تحميل المزيد (${formatNumber(
+                        (currentData?.meta.total ?? 0) - boardItems.length,
+                      )})`}
+                </Button>
+              </div>
+            )}
+
+          {view === "table" && (currentData?.meta.totalPages ?? 0) > 1 && (
             <div className="flex items-center justify-between gap-3 border-t pt-4">
               <Button
                 variant="outline"
@@ -643,15 +673,20 @@ export default function PipelinePage() {
                 السابق
               </Button>
               <span className="text-sm text-muted-foreground">
-                صفحة {page} من {data?.meta.totalPages}
+                صفحة {page} من {currentData?.meta.totalPages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page >= (data?.meta.totalPages ?? 1) || isFetching}
+                disabled={
+                  page >= (currentData?.meta.totalPages ?? 1) || isFetching
+                }
                 onClick={() =>
                   setPage((current) =>
-                    Math.min(data?.meta.totalPages ?? current, current + 1),
+                    Math.min(
+                      currentData?.meta.totalPages ?? current,
+                      current + 1,
+                    ),
                   )
                 }
               >

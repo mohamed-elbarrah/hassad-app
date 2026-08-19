@@ -38,6 +38,7 @@ type DbClient = Prisma.TransactionClient | PrismaService;
 type RequestListFilters = RequestQueryDto & {
   statusGroup?: RequestPipelineGroup;
   excludeCancelled?: boolean;
+  view?: "board" | "table";
 };
 
 const USER_SUMMARY_SELECT = {
@@ -145,6 +146,7 @@ export class RequestsService {
           },
         },
         proposals: {
+          orderBy: { createdAt: "desc" },
           select: {
             id: true,
             status: true,
@@ -152,6 +154,7 @@ export class RequestsService {
           },
         },
         contracts: {
+          orderBy: { createdAt: "desc" },
           select: {
             id: true,
             status: true,
@@ -224,8 +227,9 @@ export class RequestsService {
     filters?: RequestListFilters,
     canUpdateStatus = false,
   ) {
+    const boardView = filters?.view === "board";
     const page = filters?.page ?? 1;
-    const limit = filters?.limit ?? 50;
+    const limit = boardView ? 500 : (filters?.limit ?? 50);
     const excludeCancelled = !filters?.statusGroup && !filters?.status;
     const where = this.buildRequestWhere({ ...filters, excludeCancelled });
     const summaryWhere = this.buildRequestWhere({
@@ -239,7 +243,12 @@ export class RequestsService {
 
     const [items, total, openDeals, proposalFlow, contractFlow, wonThisMonth] =
       await Promise.all([
-        this.findAll({ ...filters, page, limit, excludeCancelled }),
+        this.findAll({
+          ...filters,
+          page,
+          limit,
+          excludeCancelled,
+        }),
         this.prisma.request.count({ where }),
         this.prisma.request.count({
           where: {

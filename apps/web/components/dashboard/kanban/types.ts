@@ -82,6 +82,8 @@ export interface KanbanBoardProps<T extends { id: string }> {
   canDragItem?: (item: T) => boolean;
   /** Return false to prevent dropping an item into a destination stage */
   canDropItem?: (item: T, destinationStage: string) => boolean;
+  /** Called when a user releases a card on an invalid destination */
+  onInvalidDrop?: (item: T, destinationStage: string) => void;
 
   // ── Optional render overrides ─────────────────────────────────────────
   renderLoadingSkeleton?: () => React.ReactNode;

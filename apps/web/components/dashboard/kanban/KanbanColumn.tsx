@@ -13,6 +13,8 @@ interface KanbanColumnProps<T extends { id: string }> {
   items: T[];
   renderCard: (item: T, options: { isOverlay: boolean }) => React.ReactNode;
   canDragItem?: (item: T) => boolean;
+  activeItem: T | null;
+  canDropItem?: (item: T, destinationStage: string) => boolean;
 }
 
 /**
@@ -27,12 +29,18 @@ export function KanbanColumn<T extends { id: string }>({
   items,
   renderCard,
   canDragItem,
+  activeItem,
+  canDropItem,
 }: KanbanColumnProps<T>) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
+  const isDropAllowed =
+    !activeItem || !canDropItem || canDropItem(activeItem, stage);
   const stageConfig = config.stages[stage];
 
   if (!stageConfig) {
-    globalThis.console.warn(`[KanbanColumn] Missing stage config for "${stage}"`);
+    globalThis.console.warn(
+      `[KanbanColumn] Missing stage config for "${stage}"`,
+    );
     return null;
   }
 
@@ -41,12 +49,14 @@ export function KanbanColumn<T extends { id: string }>({
       ref={setNodeRef}
       className={cn(
         "w-full flex flex-col overflow-hidden transition-all duration-150",
-        isOver && "ring-2 ring-secondary-500/30 ring-offset-2 scale-[1.01]",
+        activeItem && !isDropAllowed && "opacity-50",
+        activeItem && isDropAllowed && "ring-1 ring-primary/20",
+        isOver && isDropAllowed && "ring-2 ring-primary/60 ring-offset-1",
       )}
     >
       <div
         className={cn(
-          "flex w-full items-center justify-between gap-2 px-3 py-3",
+          "flex w-full items-center justify-between gap-2 px-2.5 py-2",
           stageConfig.bandClass,
         )}
       >
@@ -71,7 +81,7 @@ export function KanbanColumn<T extends { id: string }>({
 
       <CardContent
         className={cn(
-          "flex min-h-20 flex-1 flex-col gap-2 p-2",
+          "flex min-h-14 max-h-[calc(100vh-18rem)] flex-col gap-2 overflow-y-auto p-1.5",
           stageConfig.surfaceClass,
         )}
       >
@@ -87,9 +97,13 @@ export function KanbanColumn<T extends { id: string }>({
         ))}
 
         {items.length === 0 && (
-          <div className="flex min-h-16 flex-1 items-center justify-center">
-            <p className="select-none text-center text-xs text-muted-foreground">
-              {stageConfig.emptyLabel || "لا يوجد"}
+          <div className="flex min-h-10 items-center justify-center rounded-md border border-dashed border-border/70">
+            <p className="select-none text-center text-[11px] text-muted-foreground">
+              {activeItem
+                ? isDropAllowed
+                  ? "إفلات هنا"
+                  : "غير متاح"
+                : stageConfig.emptyLabel || "لا يوجد"}
             </p>
           </div>
         )}

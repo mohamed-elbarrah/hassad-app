@@ -107,6 +107,7 @@ export function KanbanBoard<T extends { id: string }>({
   emptyMessage,
   canDragItem,
   canDropItem,
+  onInvalidDrop,
   renderLoadingSkeleton,
 }: KanbanBoardProps<T>) {
   const [activeItem, setActiveItem] = useState<T | null>(null);
@@ -154,11 +155,14 @@ export function KanbanBoard<T extends { id: string }>({
       const currentStage = active.data.current?.status as string;
 
       if (!item || newStage === currentStage) return;
-      if (canDropItem && !canDropItem(item, newStage)) return;
+      if (canDropItem && !canDropItem(item, newStage)) {
+        onInvalidDrop?.(item, newStage);
+        return;
+      }
 
       await onDragEnd(itemId, currentStage, newStage);
     },
-    [canDropItem, items, onDragEnd],
+    [canDropItem, items, onDragEnd, onInvalidDrop],
   );
 
   // ── Loading state ─────────────────────────────────────────────────────
@@ -217,13 +221,28 @@ export function KanbanBoard<T extends { id: string }>({
     <DndContext
       sensors={sensors}
       onDragStart={handleDragStart}
+      onDragCancel={() => setActiveItem(null)}
       onDragEnd={handleDragEnd}
     >
       <ScrollArea className="w-full">
         <div className="flex min-w-max gap-4 pb-2 pt-1" dir="rtl">
           {hasGroups
-            ? renderGroupedLayout(config, itemsByStage, renderCard, canDragItem)
-            : renderFlatLayout(config, itemsByStage, renderCard, canDragItem)}
+            ? renderGroupedLayout(
+                config,
+                itemsByStage,
+                renderCard,
+                canDragItem,
+                activeItem,
+                canDropItem,
+              )
+            : renderFlatLayout(
+                config,
+                itemsByStage,
+                renderCard,
+                canDragItem,
+                activeItem,
+                canDropItem,
+              )}
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
@@ -242,6 +261,8 @@ function renderGroupedLayout<T extends { id: string }>(
   itemsByStage: Map<string, T[]>,
   renderCard: (item: T, options: { isOverlay: boolean }) => React.ReactNode,
   canDragItem?: (item: T) => boolean,
+  activeItem: T | null = null,
+  canDropItem?: (item: T, destinationStage: string) => boolean,
 ) {
   return config.groups.map((group) => {
     const groupCount = group.stages.reduce(
@@ -259,6 +280,8 @@ function renderGroupedLayout<T extends { id: string }>(
             items={itemsByStage.get(stage) ?? []}
             renderCard={renderCard}
             canDragItem={canDragItem}
+            activeItem={activeItem}
+            canDropItem={canDropItem}
           />
         ))}
       </KanbanGroup>
@@ -273,6 +296,8 @@ function renderFlatLayout<T extends { id: string }>(
   itemsByStage: Map<string, T[]>,
   renderCard: (item: T, options: { isOverlay: boolean }) => React.ReactNode,
   canDragItem?: (item: T) => boolean,
+  activeItem: T | null = null,
+  canDropItem?: (item: T, destinationStage: string) => boolean,
 ) {
   return config.stageOrder.map((stage) => (
     <KanbanStandaloneColumn
@@ -282,6 +307,8 @@ function renderFlatLayout<T extends { id: string }>(
       items={itemsByStage.get(stage) ?? []}
       renderCard={renderCard}
       canDragItem={canDragItem}
+      activeItem={activeItem}
+      canDropItem={canDropItem}
     />
   ));
 }

@@ -14,6 +14,8 @@ interface KanbanStandaloneColumnProps<T extends { id: string }> {
   items: T[];
   renderCard: (item: T, options: { isOverlay: boolean }) => React.ReactNode;
   canDragItem?: (item: T) => boolean;
+  activeItem: T | null;
+  canDropItem?: (item: T, destinationStage: string) => boolean;
 }
 
 /**
@@ -29,8 +31,12 @@ export function KanbanStandaloneColumn<T extends { id: string }>({
   items,
   renderCard,
   canDragItem,
+  activeItem,
+  canDropItem,
 }: KanbanStandaloneColumnProps<T>) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
+  const isDropAllowed =
+    !activeItem || !canDropItem || canDropItem(activeItem, stage);
   const stageConfig = config.stages[stage];
 
   if (!stageConfig) {
@@ -45,7 +51,9 @@ export function KanbanStandaloneColumn<T extends { id: string }>({
       ref={setNodeRef}
       className={cn(
         "flex min-w-[340px] flex-1 flex-col overflow-hidden transition-all duration-150",
-        isOver && "ring-2 ring-secondary-500/30 ring-offset-2 scale-[1.01]",
+        activeItem && !isDropAllowed && "opacity-50",
+        activeItem && isDropAllowed && "ring-1 ring-primary/20",
+        isOver && isDropAllowed && "ring-2 ring-primary/60 ring-offset-1",
       )}
       dir="rtl"
     >
@@ -71,7 +79,7 @@ export function KanbanStandaloneColumn<T extends { id: string }>({
       <Separator />
       <CardContent
         className={cn(
-          "flex flex-1 flex-col gap-2 p-3",
+          "flex max-h-[calc(100vh-18rem)] flex-col gap-2 overflow-y-auto p-2.5",
           stageConfig.surfaceClass,
         )}
       >
@@ -88,8 +96,12 @@ export function KanbanStandaloneColumn<T extends { id: string }>({
 
         {items.length === 0 && (
           <div className="flex flex-1 items-center justify-center min-h-16">
-            <p className="text-xs text-center text-muted-foreground select-none">
-              {stageConfig.emptyLabel || "لا يوجد"}
+            <p className="text-center text-[11px] text-muted-foreground select-none">
+              {activeItem
+                ? isDropAllowed
+                  ? "إفلات هنا"
+                  : "غير متاح"
+                : stageConfig.emptyLabel || "لا يوجد"}
             </p>
           </div>
         )}

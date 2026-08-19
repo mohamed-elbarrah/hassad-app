@@ -1,5 +1,4 @@
 import { Type } from "class-transformer";
-import { RequestQueryDto } from "../../requests/dto/request-query.dto";
 import type { RequestPipelineGroup } from "../../requests/request-workflow";
 import {
   IsIn,
@@ -11,7 +10,30 @@ import {
   Min,
 } from "class-validator";
 
-export class SalesPipelineQueryDto extends RequestQueryDto {
+export class SalesPipelineQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  limit?: number;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(["board", "table"])
+  view?: "board" | "table";
+
   @IsOptional()
   @IsString()
   @IsIn(["INTAKE", "PROPOSAL", "CONTRACT", "WON", "CANCELLED"])

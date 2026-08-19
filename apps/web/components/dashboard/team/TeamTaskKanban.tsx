@@ -20,10 +20,22 @@ import { TeamTaskKanbanCardContent } from "@/components/dashboard/kanban/cards/T
 const TASK_STATUS_TRANSITIONS: Partial<
   Record<TaskStatus, Partial<Record<string, TaskStatus[]>>>
 > = {
-  [TaskStatus.TODO]: { TEAM: [TaskStatus.IN_PROGRESS] },
-  [TaskStatus.IN_PROGRESS]: { TEAM: [TaskStatus.IN_REVIEW] },
-  [TaskStatus.IN_REVIEW]: { PM: [TaskStatus.DONE, TaskStatus.REVISION] },
-  [TaskStatus.REVISION]: { TEAM: [TaskStatus.IN_PROGRESS] },
+  [TaskStatus.TODO]: {
+    TEAM: [TaskStatus.IN_PROGRESS],
+    ADMIN: [TaskStatus.IN_PROGRESS],
+  },
+  [TaskStatus.IN_PROGRESS]: {
+    TEAM: [TaskStatus.IN_REVIEW],
+    ADMIN: [TaskStatus.IN_REVIEW],
+  },
+  [TaskStatus.IN_REVIEW]: {
+    PM: [TaskStatus.DONE, TaskStatus.REVISION],
+    ADMIN: [TaskStatus.DONE, TaskStatus.REVISION],
+  },
+  [TaskStatus.REVISION]: {
+    TEAM: [TaskStatus.IN_PROGRESS],
+    ADMIN: [TaskStatus.IN_PROGRESS],
+  },
 };
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -42,10 +54,11 @@ export function TeamTaskKanban({
   onStatusChange,
 }: TeamTaskKanbanProps) {
   const { user } = useAppSelector((state) => state.auth);
-  const [startTask] = useStartTaskMutation();
-  const [submitTask] = useSubmitTaskMutation();
-  const [approveTask] = useApproveTaskMutation();
-  const [rejectTask] = useRejectTaskMutation();
+  const [startTask, { isLoading: isStarting }] = useStartTaskMutation();
+  const [submitTask, { isLoading: isSubmitting }] = useSubmitTaskMutation();
+  const [approveTask, { isLoading: isApproving }] = useApproveTaskMutation();
+  const [rejectTask, { isLoading: isRejecting }] = useRejectTaskMutation();
+  const isUpdating = isStarting || isSubmitting || isApproving || isRejecting;
   const [localTasks, setLocalTasks] = useState<TaskWithProject[]>(tasks);
 
   useEffect(() => {
@@ -63,10 +76,20 @@ export function TeamTaskKanban({
     [user],
   );
 
+  const canDropItem = useCallback(
+    (task: TaskWithProject, destinationStage: string) => {
+      if (!user) return false;
+      if (user.role === UserRole.ADMIN) return true;
+      const allowed = TASK_STATUS_TRANSITIONS[task.status]?.[user.role] ?? [];
+      return allowed.includes(destinationStage as TaskStatus);
+    },
+    [user],
+  );
+
   // ── Drag end handler with optimistic updates ─────────────────────────
   const handleDragEnd = useCallback(
     async (itemId: string, fromStage: string, toStage: string) => {
-      if (!user) return;
+      if (!user || isUpdating) return;
 
       const currentStatus = fromStage as TaskStatus;
       const newStatus = toStage as TaskStatus;
@@ -151,6 +174,7 @@ export function TeamTaskKanban({
       approveTask,
       rejectTask,
       onStatusChange,
+      isUpdating,
     ],
   );
 
@@ -170,7 +194,9 @@ export function TeamTaskKanban({
       renderCard={renderCard}
       onDragEnd={handleDragEnd}
       isLoading={isLoading}
-      canDragItem={canDragItem}
+      canDragItem={(task) => !isUpdating && canDragItem(task)}
+      canDropItem={canDropItem}
+      onInvalidDrop={() => toast.error("لا يمكنك نقل المهمة إلى هذه الحالة")}
       emptyMessage={
         "لم يتم إسناد أي مهمة إليك بعد. سيتم عرض المهام هنا عند إسنادها."
       }
