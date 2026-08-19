@@ -24,56 +24,27 @@ import {
   CreateRequestDto,
 } from "./dto/request.dto";
 import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
+import type { RequestQueryDto } from "./dto/request-query.dto";
 import type { CrmCreateRequestIntakeDto } from "../crm/dto/crm-requests.dto";
+import {
+  getAllowedRequestTransitions,
+  getCrmStageForRequestStatus,
+  getStatusesForPipelineGroup,
+  REQUEST_PIPELINE_STAGES,
+  type RequestPipelineGroup,
+} from "./request-workflow";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
+type RequestListFilters = RequestQueryDto & {
+  statusGroup?: RequestPipelineGroup;
+  excludeCancelled?: boolean;
+};
 
 const USER_SUMMARY_SELECT = {
   id: true,
   name: true,
   email: true,
 } as const;
-
-const REQUEST_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
-  [RequestStatus.SUBMITTED]: [
-    RequestStatus.QUALIFYING,
-    RequestStatus.CANCELLED,
-  ],
-  [RequestStatus.QUALIFYING]: [
-    RequestStatus.PROPOSAL_IN_PROGRESS,
-    RequestStatus.CANCELLED,
-  ],
-  [RequestStatus.PROPOSAL_IN_PROGRESS]: [
-    RequestStatus.PROPOSAL_SENT,
-    RequestStatus.CANCELLED,
-  ],
-  [RequestStatus.PROPOSAL_SENT]: [
-    RequestStatus.NEGOTIATION,
-    RequestStatus.PROPOSAL_IN_PROGRESS,
-    RequestStatus.CONTRACT_PREPARATION,
-    RequestStatus.CANCELLED,
-  ],
-  [RequestStatus.NEGOTIATION]: [
-    RequestStatus.PROPOSAL_IN_PROGRESS,
-    RequestStatus.CONTRACT_PREPARATION,
-    RequestStatus.CANCELLED,
-  ],
-  [RequestStatus.CONTRACT_PREPARATION]: [
-    RequestStatus.CONTRACT_SENT,
-    RequestStatus.CANCELLED,
-  ],
-  [RequestStatus.CONTRACT_SENT]: [
-    RequestStatus.CONTRACT_PREPARATION,
-    RequestStatus.SIGNED,
-    RequestStatus.CANCELLED,
-  ],
-  [RequestStatus.SIGNED]: [
-    RequestStatus.PROJECT_CREATED,
-    RequestStatus.CANCELLED,
-  ],
-  [RequestStatus.PROJECT_CREATED]: [],
-  [RequestStatus.CANCELLED]: [],
-};
 
 @Injectable()
 export class RequestsService {
@@ -92,27 +63,29 @@ export class RequestsService {
     fromStatus: RequestStatus,
     toStatus: RequestStatus,
   ) {
-    const allowedTransitions = REQUEST_TRANSITIONS[fromStatus] ?? [];
+    const allowedTransitions = getAllowedRequestTransitions(fromStatus);
 
     if (!allowedTransitions.includes(toStatus)) {
-      throw new BadRequestException(
-        `Invalid request status transition from ${fromStatus} to ${toStatus}`,
-      );
+      throw new BadRequestException({
+        code: "INVALID_REQUEST_STATUS_TRANSITION",
+        details: { fromStatus, toStatus },
+      });
     }
   }
 
-  async findAll(filters?: {
-    status?: string;
-    search?: string;
-    assignedSalesId?: string;
-    clientId?: string;
-    limit?: number;
-    page?: number;
-  }) {
+  private buildRequestWhere(
+    filters?: RequestListFilters,
+  ): Prisma.RequestWhereInput {
     const where: Prisma.RequestWhereInput = {};
 
-    if (filters?.status) {
-      where.status = filters.status as RequestStatus;
+    if (filters?.statusGroup) {
+      where.status = {
+        in: [...getStatusesForPipelineGroup(filters.statusGroup)],
+      };
+    } else if (filters?.status) {
+      where.status = filters.status;
+    } else if (filters?.excludeCancelled) {
+      where.status = { not: RequestStatus.CANCELLED };
     }
 
     if (filters?.assignedSalesId) {
@@ -123,13 +96,23 @@ export class RequestsService {
       where.clientId = filters.clientId;
     }
 
-    if (filters?.search) {
+    const search = filters?.search?.trim();
+    if (search) {
       where.OR = [
-        { companyName: { contains: filters.search, mode: "insensitive" } },
-        { contactName: { contains: filters.search, mode: "insensitive" } },
-        { email: { contains: filters.search, mode: "insensitive" } },
+        { companyName: { contains: search, mode: "insensitive" } },
+        { contactName: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { phoneWhatsapp: { contains: search, mode: "insensitive" } },
       ];
     }
+
+    return where;
+  }
+
+  async findAll(filters?: RequestListFilters) {
+    const where = this.buildRequestWhere(filters);
+    const limit = filters?.limit ?? 100;
+    const page = filters?.page ?? 1;
 
     return this.prisma.request.findMany({
       where,
@@ -194,12 +177,151 @@ export class RequestsService {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: filters?.limit ? Number(filters.limit) : undefined,
-      skip:
-        filters?.limit && filters?.page
-          ? (Number(filters.page) - 1) * Number(filters.limit)
-          : undefined,
+      take: limit,
+      skip: limit ? (page - 1) * limit : undefined,
     });
+  }
+
+  async canUserUpdateStatus(user: {
+    id: string;
+    role?: string;
+    permissions?: string[];
+  }) {
+    if (
+      user.role === "ADMIN" ||
+      user.permissions?.includes("requests.update")
+    ) {
+      return true;
+    }
+
+    const record = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        role: {
+          select: {
+            name: true,
+            permissions: { select: { permission: { select: { name: true } } } },
+          },
+        },
+        permissions: { select: { permission: { select: { name: true } } } },
+      },
+    });
+
+    if (!record) return false;
+
+    return (
+      record.role.name === "ADMIN" ||
+      record.role.permissions.some(
+        ({ permission }) => permission.name === "requests.update",
+      ) ||
+      record.permissions.some(
+        ({ permission }) => permission.name === "requests.update",
+      )
+    );
+  }
+
+  async findSalesPipeline(
+    filters?: RequestListFilters,
+    canUpdateStatus = false,
+  ) {
+    const page = filters?.page ?? 1;
+    const limit = filters?.limit ?? 50;
+    const excludeCancelled = !filters?.statusGroup && !filters?.status;
+    const where = this.buildRequestWhere({ ...filters, excludeCancelled });
+    const summaryWhere = this.buildRequestWhere({
+      ...filters,
+      excludeCancelled: !filters?.statusGroup && !filters?.status,
+    });
+
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const [items, total, openDeals, proposalFlow, contractFlow, wonThisMonth] =
+      await Promise.all([
+        this.findAll({ ...filters, page, limit, excludeCancelled }),
+        this.prisma.request.count({ where }),
+        this.prisma.request.count({
+          where: {
+            AND: [
+              summaryWhere,
+              {
+                status: {
+                  notIn: [
+                    RequestStatus.CANCELLED,
+                    RequestStatus.PROJECT_CREATED,
+                  ],
+                },
+              },
+            ],
+          },
+        }),
+        this.prisma.request.count({
+          where: {
+            AND: [
+              summaryWhere,
+              {
+                status: {
+                  in: [
+                    RequestStatus.PROPOSAL_IN_PROGRESS,
+                    RequestStatus.PROPOSAL_SENT,
+                    RequestStatus.NEGOTIATION,
+                  ],
+                },
+              },
+            ],
+          },
+        }),
+        this.prisma.request.count({
+          where: {
+            AND: [
+              summaryWhere,
+              {
+                status: {
+                  in: [
+                    RequestStatus.CONTRACT_PREPARATION,
+                    RequestStatus.CONTRACT_SENT,
+                  ],
+                },
+              },
+            ],
+          },
+        }),
+        this.prisma.request.count({
+          where: {
+            AND: [
+              summaryWhere,
+              {
+                status: {
+                  in: [RequestStatus.SIGNED, RequestStatus.PROJECT_CREATED],
+                },
+                updatedAt: { gte: monthStart },
+              },
+            ],
+          },
+        }),
+      ]);
+
+    return {
+      __standardResponse: true as const,
+      data: {
+        items: items.map((item) => ({
+          ...item,
+          allowedNextStatuses: getAllowedRequestTransitions(
+            item.status as RequestStatus,
+          ),
+          capabilities: { canUpdateStatus },
+        })),
+        stages: REQUEST_PIPELINE_STAGES,
+        summary: { openDeals, proposalFlow, contractFlow, wonThisMonth },
+      },
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string) {
@@ -286,7 +408,10 @@ export class RequestsService {
     });
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id },
+      });
     }
 
     return request;
@@ -299,6 +424,12 @@ export class RequestsService {
     note?: string,
     tx?: Prisma.TransactionClient,
   ) {
+    if (!tx) {
+      return this.prisma.$transaction((transaction) =>
+        this.updateStatus(requestId, toStatus, changedBy, note, transaction),
+      );
+    }
+
     const db = this.getDbClient(tx);
     const request = await db.request.findUnique({
       where: { id: requestId },
@@ -306,7 +437,10 @@ export class RequestsService {
     });
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id: requestId },
+      });
     }
 
     if (request.status === toStatus) {
@@ -315,10 +449,32 @@ export class RequestsService {
 
     this.assertValidTransition(request.status as RequestStatus, toStatus);
 
-    const updatedRequest = await db.request.update({
-      where: { id: requestId },
-      data: { status: toStatus },
+    const updateResult = await db.request.updateMany({
+      where: { id: requestId, status: request.status },
+      data: {
+        status: toStatus,
+        crmStage: getCrmStageForRequestStatus(toStatus),
+      },
     });
+
+    if (updateResult.count !== 1) {
+      throw new ConflictException({
+        code: "REQUEST_STATUS_CHANGED",
+        details: { id: requestId },
+      });
+    }
+
+    const updatedRequest = await db.request.findUnique({
+      where: { id: requestId },
+      select: { id: true, status: true, crmStage: true },
+    });
+
+    if (!updatedRequest) {
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id: requestId },
+      });
+    }
 
     await db.requestStatusHistory.create({
       data: {
@@ -338,8 +494,9 @@ export class RequestsService {
     toStatus: RequestStatus,
     changedBy: string,
     note?: string,
+    tx?: Prisma.TransactionClient,
   ) {
-    return this.updateStatus(requestId, toStatus, changedBy, note);
+    return this.updateStatus(requestId, toStatus, changedBy, note, tx);
   }
 
   async createPortalRequest(
@@ -435,18 +592,25 @@ export class RequestsService {
     });
 
     if (!createdRequest) {
-      throw new BadRequestException("Unable to create request");
+      throw new BadRequestException({
+        code: "REQUEST_CREATION_FAILED",
+        details: {},
+      });
     }
 
     if (createdRequest.assignee) {
       await this.notificationsService
         .notifyUsers({
           userIds: [createdRequest.assignee.id],
-          title: "طلب جديد",
-          message: `تم استلام طلب جديد من ${createdRequest.contactName} - ${createdRequest.companyName}`,
+          title: "REQUEST_SUBMITTED",
+          message: "REQUEST_SUBMITTED",
           entityId: createdRequest.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",
+          metadata: {
+            contactName: createdRequest.contactName,
+            companyName: createdRequest.companyName,
+          },
         })
         .catch(() => undefined);
     }
@@ -460,12 +624,16 @@ export class RequestsService {
       include: { manager: true },
     });
     if (!client) {
-      throw new NotFoundException("Client not found");
+      throw new NotFoundException({
+        code: "CLIENT_NOT_FOUND",
+        details: { id: dto.clientId },
+      });
     }
     if (client.status === "STOPPED") {
-      throw new BadRequestException(
-        "Cannot create request for a stopped client",
-      );
+      throw new BadRequestException({
+        code: "STOPPED_CLIENT_REQUEST_FORBIDDEN",
+        details: { clientId: dto.clientId },
+      });
     }
 
     let salesId = client.accountManager;
@@ -511,7 +679,7 @@ export class RequestsService {
           fromStatus: null,
           toStatus: RequestStatus.SUBMITTED,
           changedBy: userId,
-          note: "Request created for existing client",
+          note: "REQUEST_CREATED_FOR_EXISTING_CLIENT",
         },
       });
 
@@ -520,7 +688,7 @@ export class RequestsService {
           clientId: dto.clientId,
           userId,
           eventType: "CLIENT_REQUEST_CREATED",
-          description: "New request created for existing client",
+          description: "CLIENT_REQUEST_CREATED",
           metadata: { requestId: req.id },
         },
       });
@@ -553,18 +721,25 @@ export class RequestsService {
     });
 
     if (!request) {
-      throw new BadRequestException("Unable to create request");
+      throw new BadRequestException({
+        code: "REQUEST_CREATION_FAILED",
+        details: {},
+      });
     }
 
     if (request.assignee) {
       await this.notificationsService
         .notifyUsers({
           userIds: [request.assignee.id],
-          title: "طلب جديد",
-          message: `تم استلام طلب جديد من ${request.contactName} - ${request.companyName}`,
+          title: "REQUEST_SUBMITTED",
+          message: "REQUEST_SUBMITTED",
           entityId: request.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",
+          metadata: {
+            contactName: request.contactName,
+            companyName: request.companyName,
+          },
         })
         .catch(() => undefined);
     }
@@ -574,15 +749,24 @@ export class RequestsService {
 
   async createCrmIntake(userId: string, dto: CrmCreateRequestIntakeDto) {
     if (!dto.services.length) {
-      throw new BadRequestException("At least one service is required");
+      throw new BadRequestException({
+        code: "REQUEST_SERVICE_REQUIRED",
+        details: { field: "services" },
+      });
     }
 
     if (dto.mode === "existing" && !dto.existingClient?.clientId) {
-      throw new BadRequestException("Existing client is required");
+      throw new BadRequestException({
+        code: "EXISTING_CLIENT_REQUIRED",
+        details: { field: "existingClient.clientId" },
+      });
     }
 
     if (dto.mode === "new" && !dto.newClient) {
-      throw new BadRequestException("New client data is required");
+      throw new BadRequestException({
+        code: "NEW_CLIENT_REQUIRED",
+        details: { field: "newClient" },
+      });
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -606,10 +790,16 @@ export class RequestsService {
         });
 
         if (!client) {
-          throw new NotFoundException("Client not found");
+          throw new NotFoundException({
+            code: "CLIENT_NOT_FOUND",
+            details: { id: dto.existingClient.clientId },
+          });
         }
         if (client.status === ClientStatus.STOPPED) {
-          throw new BadRequestException("Cannot create request for a stopped client");
+          throw new BadRequestException({
+            code: "STOPPED_CLIENT_REQUEST_FORBIDDEN",
+            details: { clientId: client.id },
+          });
         }
 
         clientId = client.id;
@@ -629,12 +819,18 @@ export class RequestsService {
         });
 
         if (existingUser) {
-          throw new ConflictException("A user with this email already exists");
+          throw new ConflictException({
+            code: "USER_EMAIL_ALREADY_EXISTS",
+            details: { email: newClient.email.trim().toLowerCase() },
+          });
         }
 
         const role = await tx.role.findFirst({ where: { name: "CLIENT" } });
         if (!role) {
-          throw new BadRequestException("CLIENT role not found");
+          throw new BadRequestException({
+            code: "CLIENT_ROLE_NOT_FOUND",
+            details: {},
+          });
         }
 
         const passwordHash = await bcrypt.hash(newClient.password, 12);
@@ -648,14 +844,15 @@ export class RequestsService {
           },
         });
 
-        const resolvedClient = await this.canonicalClientService.upsertCanonicalClient(tx, {
-          userId: user.id,
-          companyName: newClient.companyName,
-          businessName: newClient.businessName,
-          businessType: newClient.businessType,
-          preferredManagerId: newClient.accountManager ?? null,
-          status: ClientStatus.LEAD,
-        });
+        const resolvedClient =
+          await this.canonicalClientService.upsertCanonicalClient(tx, {
+            userId: user.id,
+            companyName: newClient.companyName,
+            businessName: newClient.businessName,
+            businessType: newClient.businessType,
+            preferredManagerId: newClient.accountManager ?? null,
+            status: ClientStatus.LEAD,
+          });
 
         clientId = resolvedClient.client.id;
         clientCreated = resolvedClient.created;
@@ -669,12 +866,16 @@ export class RequestsService {
         assignedSalesId = resolvedClient.client.accountManager ?? null;
         source = dto.source ?? ClientSource.PLATFORM;
       } else {
-        throw new BadRequestException("Existing client or new client payload is required");
+        throw new BadRequestException({
+          code: "CLIENT_PAYLOAD_REQUIRED",
+          details: { mode: dto.mode },
+        });
       }
 
       const finalSalesId = assignedSalesId
         ? assignedSalesId
-        : (await this.salesAssignmentService.findBestSales([], clientId, tx))?.salesId ?? null;
+        : ((await this.salesAssignmentService.findBestSales([], clientId, tx))
+            ?.salesId ?? null);
 
       const request = await tx.request.create({
         data: {
@@ -700,7 +901,9 @@ export class RequestsService {
           fromStatus: null,
           toStatus: RequestStatus.SUBMITTED,
           changedBy: userId,
-          note: clientCreated ? "Request created with a newly created CRM client" : "Request created for existing CRM client",
+          note: clientCreated
+            ? "REQUEST_CREATED_WITH_NEW_CRM_CLIENT"
+            : "REQUEST_CREATED_FOR_EXISTING_CRM_CLIENT",
         },
       });
 
@@ -717,10 +920,12 @@ export class RequestsService {
         data: {
           clientId,
           userId,
-          eventType: clientCreated ? "CLIENT_CREATED" : "CLIENT_REQUEST_CREATED",
+          eventType: clientCreated
+            ? "CLIENT_CREATED"
+            : "CLIENT_REQUEST_CREATED",
           description: clientCreated
-            ? "Client created from CRM intake"
-            : "Request created for existing CRM client",
+            ? "CLIENT_CREATED_FROM_CRM_INTAKE"
+            : "REQUEST_CREATED_FOR_EXISTING_CRM_CLIENT",
           metadata: { requestId: request.id },
         },
       });
@@ -751,18 +956,23 @@ export class RequestsService {
       });
 
       if (!createdRequest) {
-        throw new BadRequestException("Unable to create CRM intake request");
+        throw new BadRequestException({
+          code: "CRM_INTAKE_REQUEST_CREATION_FAILED",
+          details: {},
+        });
       }
 
       return {
         request: createdRequest,
-        client: { id: clientId, created: clientCreated, companyName: requestClientLabel },
-        toast: {
-          type: "success" as const,
-          title: clientCreated ? "Client and request created" : "Request created",
-          description: clientCreated
-            ? "The client credentials were created and the intake request was submitted."
-            : "The intake request was submitted for the selected client.",
+        client: {
+          id: clientId,
+          created: clientCreated,
+          companyName: requestClientLabel,
+        },
+        result: {
+          code: clientCreated
+            ? "CRM_CLIENT_AND_REQUEST_CREATED"
+            : "CRM_REQUEST_CREATED",
         },
       };
     });
@@ -777,15 +987,22 @@ export class RequestsService {
     tx?: Prisma.TransactionClient,
   ) {
     const db = this.getDbClient(tx);
-    const requestId = params.requestId ?? (params.proposalId
-      ? (await db.proposal.findUnique({
-          where: { id: params.proposalId },
-          select: { requestId: true },
-        }))?.requestId
-      : null);
+    const requestId =
+      params.requestId ??
+      (params.proposalId
+        ? (
+            await db.proposal.findUnique({
+              where: { id: params.proposalId },
+              select: { requestId: true },
+            })
+          )?.requestId
+        : null);
 
     if (!requestId) {
-      throw new BadRequestException("A request reference is required");
+      throw new BadRequestException({
+        code: "REQUEST_REFERENCE_REQUIRED",
+        details: {},
+      });
     }
 
     const request = await db.request.findUnique({
@@ -794,7 +1011,12 @@ export class RequestsService {
         client: { select: { id: true, companyName: true, userId: true } },
       },
     });
-    if (!request) throw new NotFoundException("Request not found");
+    if (!request) {
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id: requestId },
+      });
+    }
     return request;
   }
 
@@ -809,7 +1031,10 @@ export class RequestsService {
     });
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id: requestId },
+      });
     }
 
     const log = await this.prisma.requestContactLog.create({
@@ -842,13 +1067,17 @@ export class RequestsService {
     });
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id: requestId },
+      });
     }
 
     return this.prisma.requestContactLog.findMany({
       where: { requestId },
       include: { user: { select: USER_SUMMARY_SELECT } },
       orderBy: { contactedAt: "desc" },
+      take: 100,
     });
   }
 }

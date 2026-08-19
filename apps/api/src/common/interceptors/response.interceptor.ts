@@ -13,6 +13,12 @@ export interface Response<T> {
   meta?: Record<string, unknown>;
 }
 
+type ResponseWithMeta = {
+  __standardResponse: true;
+  data: unknown;
+  meta: Record<string, unknown>;
+};
+
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
   intercept(
@@ -20,10 +26,26 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
     next: CallHandler,
   ): Observable<Response<T>> {
     return next.handle().pipe(
-      map((data) => ({
-        success: true as const,
-        data,
-      })),
+      map((data) => {
+        if (
+          typeof data === "object" &&
+          data !== null &&
+          "__standardResponse" in data &&
+          (data as { __standardResponse?: unknown }).__standardResponse === true
+        ) {
+          const response = data as ResponseWithMeta;
+          return {
+            success: true as const,
+            data: response.data,
+            meta: response.meta,
+          } as Response<T>;
+        }
+
+        return {
+          success: true as const,
+          data,
+        } as Response<T>;
+      }),
     );
   }
 }

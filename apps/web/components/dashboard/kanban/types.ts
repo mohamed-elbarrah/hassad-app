@@ -80,6 +80,8 @@ export interface KanbanBoardProps<T extends { id: string }> {
   // ── Optional behaviour ────────────────────────────────────────────────
   /** Return false to prevent dragging an item (e.g. permission check) */
   canDragItem?: (item: T) => boolean;
+  /** Return false to prevent dropping an item into a destination stage */
+  canDropItem?: (item: T, destinationStage: string) => boolean;
 
   // ── Optional render overrides ─────────────────────────────────────────
   renderLoadingSkeleton?: () => React.ReactNode;

@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   Min,
   ValidateNested,
 } from "class-validator";
@@ -72,6 +73,7 @@ export class UpdateRequestStatusDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   note?: string;
 }
 

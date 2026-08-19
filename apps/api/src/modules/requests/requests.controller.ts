@@ -17,7 +17,10 @@ import {
   UpdateRequestStatusDto,
 } from "./dto/request.dto";
 import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
+import { RequestIdParamDto, RequestQueryDto } from "./dto/request-query.dto";
 import { RequestsService } from "./requests.service";
+
+type AuthUser = { id: string; role?: string | null };
 
 @Controller("requests")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -26,19 +29,19 @@ export class RequestsController {
 
   @Get()
   @RequirePermissions("requests.read")
-  findAll(@Query() filters: any) {
+  findAll(@Query() filters: RequestQueryDto) {
     return this.requestsService.findAll(filters);
   }
 
   @Get(":id")
   @RequirePermissions("requests.read")
-  findOne(@Param("id") id: string) {
-    return this.requestsService.findOne(id);
+  findOne(@Param() params: RequestIdParamDto) {
+    return this.requestsService.findOne(params.id);
   }
 
   @Post()
   @RequirePermissions("requests.create")
-  create(@CurrentUser() user: any, @Body() dto: CreateRequestDto) {
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateRequestDto) {
     return this.requestsService.createPortalRequest(
       { id: user.id, role: user.role },
       dto,
@@ -48,12 +51,12 @@ export class RequestsController {
   @Post(":id/status")
   @RequirePermissions("requests.update")
   changeStatus(
-    @Param("id") id: string,
-    @CurrentUser() user: any,
+    @Param() params: RequestIdParamDto,
+    @CurrentUser() user: AuthUser,
     @Body() dto: UpdateRequestStatusDto,
   ) {
     return this.requestsService.changeStatus(
-      id,
+      params.id,
       dto.toStatus,
       user.id,
       dto.note,
@@ -63,23 +66,23 @@ export class RequestsController {
   @Post(":id/contact-log")
   @RequirePermissions("requests.update")
   addContactLog(
-    @Param("id") id: string,
-    @CurrentUser() user: any,
+    @Param() params: RequestIdParamDto,
+    @CurrentUser() user: AuthUser,
     @Body() dto: CreateRequestContactLogDto,
   ) {
-    return this.requestsService.addContactLog(id, user.id, dto);
+    return this.requestsService.addContactLog(params.id, user.id, dto);
   }
 
   @Get(":id/contact-log")
   @RequirePermissions("requests.read")
-  getContactLogs(@Param("id") id: string) {
-    return this.requestsService.getContactLogs(id);
+  getContactLogs(@Param() params: RequestIdParamDto) {
+    return this.requestsService.getContactLogs(params.id);
   }
 
   @Post("for-client")
   @RequirePermissions("requests.create")
   createForClient(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Body() dto: CreateRequestForClientDto,
   ) {
     return this.requestsService.createForClient(dto, user.id);

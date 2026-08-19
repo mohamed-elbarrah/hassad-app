@@ -19,10 +19,14 @@ import { KanbanBoard } from "@/components/dashboard/kanban";
 import { createSalesPipelineConfig } from "@/components/dashboard/sales/pipeline/config";
 import {
   getRequestStatusBadgeVariant,
-  isClosedRequest,
   SalesPipelineCard,
 } from "@/components/dashboard/sales/pipeline/SalesPipelineCard";
-import { useGetRequestsQuery, useUpdateRequestStatusMutation, type RequestItem } from "@/features/requests/requestsApi";
+import {
+  useGetSalesPipelineQuery,
+  useUpdateSalesPipelineStatusMutation,
+  type SalesPipelineGroup,
+  type SalesPipelineItem,
+} from "@/features/sales/salesApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +37,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Empty,
   EmptyContent,
@@ -44,7 +54,14 @@ import {
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -56,24 +73,30 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDateTime, formatNumber, formatRelativeTime } from "@/lib/format";
-import {
-  REQUEST_STATUS_GROUP_LABELS,
-  type RequestStatusGroup,
-  resolveStatusGroup,
-} from "@/lib/utils/requestStatus";
+import { salesPipelineErrorMessage } from "@/lib/i18n";
 
 type PipelineView = "kanban" | "table";
+type PipelineFilterGroup = "all" | SalesPipelineGroup;
 
-const STATUS_GROUP_OPTIONS: RequestStatusGroup[] = [
+const STATUS_GROUP_OPTIONS: PipelineFilterGroup[] = [
   "all",
-  "received",
-  "preparing",
-  "awaiting-you",
-  "signed",
-  "cancelled",
+  "INTAKE",
+  "PROPOSAL",
+  "CONTRACT",
+  "WON",
+  "CANCELLED",
 ];
 
-function getPipelineAction(request: RequestItem) {
+const STATUS_GROUP_LABELS: Record<PipelineFilterGroup, string> = {
+  all: "الكل",
+  INTAKE: "الاستقبال والتأهيل",
+  PROPOSAL: "العرض والتفاوض",
+  CONTRACT: "العقد والإغلاق",
+  WON: "الصفقات المحسومة",
+  CANCELLED: "الطلبات الملغاة",
+};
+
+function getPipelineAction(request: SalesPipelineItem) {
   const proposalId = request.proposals?.[0]?.id;
   const contractId = request.contracts?.[0]?.id;
 
@@ -115,21 +138,8 @@ function getPipelineAction(request: RequestItem) {
   }
 }
 
-function getServiceCount(request: RequestItem) {
+function getServiceCount(request: SalesPipelineItem) {
   return request.services?.length ?? 0;
-}
-
-function getFilteredRequests(
-  requests: RequestItem[],
-  group: RequestStatusGroup,
-) {
-  if (group === "all") {
-    return requests;
-  }
-
-  return requests.filter(
-    (request) => resolveStatusGroup(request.status) === group,
-  );
 }
 
 function PipelineSummaryCard({
@@ -217,73 +227,52 @@ function PipelinePageLoadingState() {
 export default function PipelinePage() {
   const [search, setSearch] = useState("");
   const [view, setView] = useState<PipelineView>("kanban");
-  const [statusGroup, setStatusGroup] = useState<RequestStatusGroup>("all");
+  const [statusGroup, setStatusGroup] = useState<PipelineFilterGroup>("all");
+  const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
-  const [updateRequestStatus] = useUpdateRequestStatusMutation();
+  const [updatePipelineStatus] = useUpdateSalesPipelineStatusMutation();
 
-  const { data, isLoading, isError, isFetching, refetch } = useGetRequestsQuery(
-    {
-      limit: 100,
-      search: deferredSearch.trim() || undefined,
-    },
-    { pollingInterval: 30_000 },
-  );
+  const apiStatusGroup: SalesPipelineGroup | undefined =
+    statusGroup === "all" ? undefined : statusGroup;
 
-  const requests = useMemo(() => data ?? [], [data]);
+  const { data, isLoading, isError, isFetching, refetch } =
+    useGetSalesPipelineQuery(
+      {
+        limit: 50,
+        page,
+        search: deferredSearch.trim() || undefined,
+        statusGroup: apiStatusGroup,
+      },
+      { pollingInterval: 30_000 },
+    );
 
-  const filteredRequests = useMemo(
-    () => getFilteredRequests(requests, statusGroup),
-    [requests, statusGroup],
+  const requests = useMemo(() => data?.items ?? [], [data?.items]);
+  const summary = data?.summary ?? {
+    openDeals: 0,
+    proposalFlow: 0,
+    contractFlow: 0,
+    wonThisMonth: 0,
+  };
+  const terminalStatuses = useMemo(
+    () =>
+      new Set(
+        data?.stages
+          .filter((stage) => stage.isTerminal)
+          .map((stage) => stage.code) ?? [],
+      ),
+    [data?.stages],
   );
 
   const boardConfig = useMemo(
     () =>
       createSalesPipelineConfig({
-        includeCancelled: statusGroup === "cancelled",
+        includeCancelled: statusGroup === "CANCELLED",
+        stages: data?.stages,
       }),
-    [statusGroup],
+    [data?.stages, statusGroup],
   );
 
-  const boardRequests = useMemo(() => {
-    if (statusGroup === "cancelled") {
-      return filteredRequests;
-    }
-
-    return filteredRequests.filter(
-      (request) => request.status !== RequestStatus.CANCELLED,
-    );
-  }, [filteredRequests, statusGroup]);
-
-  const summary = useMemo(() => {
-    const openDeals = filteredRequests.filter(
-      (request) => !isClosedRequest(request.status),
-    ).length;
-    const proposalFlow = filteredRequests.filter((request) =>
-      [
-        RequestStatus.PROPOSAL_IN_PROGRESS,
-        RequestStatus.PROPOSAL_SENT,
-        RequestStatus.NEGOTIATION,
-      ].includes(request.status),
-    ).length;
-    const contractFlow = filteredRequests.filter((request) =>
-      [
-        RequestStatus.CONTRACT_PREPARATION,
-        RequestStatus.CONTRACT_SENT,
-      ].includes(request.status),
-    ).length;
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-
-    const wonThisMonth = filteredRequests.filter(
-      (request) =>
-        [RequestStatus.SIGNED, RequestStatus.PROJECT_CREATED].includes(
-          request.status,
-        ) && new Date(request.updatedAt) >= monthStart,
-    ).length;
-
-    return { openDeals, proposalFlow, contractFlow, wonThisMonth };
-  }, [filteredRequests]);
+  const boardRequests = requests;
 
   async function handleDragEnd(
     itemId: string,
@@ -291,15 +280,12 @@ export default function PipelinePage() {
     toStage: string,
   ) {
     try {
-      await updateRequestStatus({
+      await updatePipelineStatus({
         id: itemId,
         toStatus: toStage as RequestStatus,
       }).unwrap();
     } catch (error) {
-      const message =
-        (error as { data?: { message?: string } })?.data?.message ??
-        "فشل تحديث حالة الطلب";
-      toast.error(message);
+      toast.error(salesPipelineErrorMessage(error));
     }
   }
 
@@ -425,8 +411,8 @@ export default function PipelinePage() {
         <CardHeader className="gap-2">
           <CardTitle>لوحة الفرص</CardTitle>
           <CardDescription>
-            ابحث، صفِّ، ثم بدّل بين لوحة الكانبان والجدول حسب طريقة العمل
-            الأنسب لك.
+            ابحث، صفِّ، ثم بدّل بين لوحة الكانبان والجدول حسب طريقة العمل الأنسب
+            لك.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -434,11 +420,13 @@ export default function PipelinePage() {
             <div className="relative">
               <Search className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
+                aria-label="البحث في فرص المبيعات"
                 value={search}
                 onChange={(event) => {
                   const nextValue = event.target.value;
                   startTransition(() => {
                     setSearch(nextValue);
+                    setPage(1);
                   });
                 }}
                 placeholder="ابحث باسم العميل أو الشركة أو رقم الواتساب"
@@ -448,11 +436,12 @@ export default function PipelinePage() {
 
             <Select
               value={statusGroup}
-              onValueChange={(value) =>
-                setStatusGroup(value as RequestStatusGroup)
-              }
+              onValueChange={(value) => {
+                setStatusGroup(value as PipelineFilterGroup);
+                setPage(1);
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="تصفية مراحل خط المبيعات">
                 <Filter data-icon="inline-start" />
                 <SelectValue placeholder="كل الحالات" />
               </SelectTrigger>
@@ -460,7 +449,7 @@ export default function PipelinePage() {
                 <SelectGroup>
                   {STATUS_GROUP_OPTIONS.map((group) => (
                     <SelectItem key={group} value={group}>
-                      {REQUEST_STATUS_GROUP_LABELS[group]}
+                      {STATUS_GROUP_LABELS[group]}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -485,7 +474,7 @@ export default function PipelinePage() {
 
             <div className="flex items-center justify-end">
               <Badge variant="outline">
-                {formatNumber(filteredRequests.length)} فرصة
+                {formatNumber(data?.meta.total ?? 0)} فرصة
               </Badge>
             </div>
           </div>
@@ -503,6 +492,15 @@ export default function PipelinePage() {
                         <SalesPipelineCard request={request} />
                       )}
                       onDragEnd={handleDragEnd}
+                      canDragItem={(request) =>
+                        request.capabilities.canUpdateStatus &&
+                        !terminalStatuses.has(request.status)
+                      }
+                      canDropItem={(request, destinationStage) =>
+                        request.allowedNextStatuses.includes(
+                          destinationStage as RequestStatus,
+                        )
+                      }
                       isLoading={isLoading}
                       isError={isError}
                       errorMessage="حدث خطأ أثناء تحميل الفرص"
@@ -528,7 +526,7 @@ export default function PipelinePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRequests.length === 0 ? (
+                  {requests.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="p-0">
                         <Empty className="py-10">
@@ -545,7 +543,7 @@ export default function PipelinePage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredRequests.map((request) => {
+                    requests.map((request) => {
                       const action = getPipelineAction(request);
 
                       return (
@@ -568,7 +566,9 @@ export default function PipelinePage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex min-w-0 flex-col gap-1">
-                              <span className="truncate">{request.companyName}</span>
+                              <span className="truncate">
+                                {request.companyName}
+                              </span>
                               <span className="truncate text-xs text-muted-foreground">
                                 {request.client?.companyName || "عميل جديد"}
                               </span>
@@ -576,7 +576,9 @@ export default function PipelinePage() {
                           </TableCell>
                           <TableCell>
                             <Badge
-                              variant={getRequestStatusBadgeVariant(request.status)}
+                              variant={getRequestStatusBadgeVariant(
+                                request.status,
+                              )}
                             >
                               {REQUEST_STATUS_AR[request.status]}
                             </Badge>
@@ -597,7 +599,7 @@ export default function PipelinePage() {
                                 {formatNumber(getServiceCount(request))}
                               </span>
                               <span className="truncate text-xs text-muted-foreground">
-                                {resolveStatusGroup(request.status) === "cancelled"
+                                {request.status === RequestStatus.CANCELLED
                                   ? "ملغي"
                                   : REQUEST_STATUS_AR[request.status]}
                               </span>
@@ -627,6 +629,34 @@ export default function PipelinePage() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {(data?.meta.totalPages ?? 0) > 1 && (
+            <div className="flex items-center justify-between gap-3 border-t pt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1 || isFetching}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                السابق
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                صفحة {page} من {data?.meta.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= (data?.meta.totalPages ?? 1) || isFetching}
+                onClick={() =>
+                  setPage((current) =>
+                    Math.min(data?.meta.totalPages ?? current, current + 1),
+                  )
+                }
+              >
+                التالي
+              </Button>
             </div>
           )}
         </CardContent>

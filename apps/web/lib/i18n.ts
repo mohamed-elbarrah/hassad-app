@@ -199,6 +199,24 @@ export function portalActivityText(item: {
   }
 }
 
+export function salesPipelineErrorMessage(error: unknown): string {
+  const code = (error as { data?: { error?: { code?: string } } })?.data?.error
+    ?.code;
+
+  switch (code) {
+    case "INVALID_REQUEST_STATUS_TRANSITION":
+      return "لا يمكن نقل الفرصة إلى هذه المرحلة.";
+    case "PERMISSION_DENIED":
+      return "ليس لديك صلاحية لتحديث المرحلة.";
+    case "REQUEST_NOT_FOUND":
+      return "لم تعد هذه الفرصة متاحة.";
+    case "AUTHENTICATION_REQUIRED":
+      return "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.";
+    default:
+      return "تعذر تحديث مرحلة الفرصة. يرجى المحاولة لاحقاً.";
+  }
+}
+
 export function portalErrorMessage(error: unknown): string {
   const code = (error as { data?: { error?: { code?: string } } })?.data?.error
     ?.code;

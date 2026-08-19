@@ -1,7 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { PipelineStage, RequestStatus } from "@prisma/client";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { CrmStage } from "@prisma/client";
+import { RequestStatus } from "@hassad/shared";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { RequestsService } from "../../requests/requests.service";
+import { getCrmStageForRequestStatus } from "../../requests/request-workflow";
 
 const orderDetailClientSelect = {
   id: true,
@@ -49,17 +56,6 @@ const orderDetailStatusHistorySelect = {
   },
 } as const;
 
-const orderDetailPipelineHistorySelect = {
-  id: true,
-  fromStage: true,
-  toStage: true,
-  changedAt: true,
-  changedBy: true,
-  changer: {
-    select: orderDetailUserSelect,
-  },
-} as const;
-
 const orderDetailServiceInclude = {
   service: {
     select: {
@@ -100,59 +96,6 @@ const orderDetailNoteSelect = {
   },
 } as const;
 
-function mapRequestStatusToStage(status: RequestStatus): PipelineStage {
-  switch (status) {
-    case RequestStatus.SUBMITTED:
-      return PipelineStage.NEW;
-    case RequestStatus.QUALIFYING:
-      return PipelineStage.CALL_ATTEMPT;
-    case RequestStatus.PROPOSAL_IN_PROGRESS:
-      return PipelineStage.MEETING_DONE;
-    case RequestStatus.PROPOSAL_SENT:
-      return PipelineStage.PROPOSAL_SENT;
-    case RequestStatus.NEGOTIATION:
-      return PipelineStage.FOLLOW_UP;
-    case RequestStatus.CONTRACT_PREPARATION:
-    case RequestStatus.CONTRACT_SENT:
-      return PipelineStage.APPROVED;
-    case RequestStatus.SIGNED:
-    case RequestStatus.PROJECT_CREATED:
-      return PipelineStage.CONTRACT_SIGNED;
-    case RequestStatus.CANCELLED:
-      return PipelineStage.CALL_ATTEMPT;
-    default:
-      return PipelineStage.NEW;
-  }
-}
-
-function mapCrmStageToPipelineStage(stage: string): PipelineStage {
-  switch (stage) {
-    case "SCHEDULED":
-      return PipelineStage.MEETING_SCHEDULED;
-    case "DONE":
-      return PipelineStage.MEETING_DONE;
-    case "FAILED":
-      return PipelineStage.CALL_ATTEMPT;
-    case "SENT":
-      return PipelineStage.PROPOSAL_SENT;
-    case "NEGOTIATION":
-      return PipelineStage.FOLLOW_UP;
-    case "APPROVED":
-      return PipelineStage.APPROVED;
-    case "CONTRACT_SENT":
-      return PipelineStage.APPROVED;
-    case "SIGNED":
-    case "ACTIVE":
-      return PipelineStage.CONTRACT_SIGNED;
-    case "REJECTED":
-    case "CANCELLED":
-      return PipelineStage.CALL_ATTEMPT;
-    case "NEW":
-    default:
-      return PipelineStage.NEW;
-  }
-}
-
 function mapCrmStageToRequestStatus(stage: string): RequestStatus {
   switch (stage) {
     case "SCHEDULED":
@@ -182,40 +125,12 @@ function mapCrmStageToRequestStatus(stage: string): RequestStatus {
   }
 }
 
-function humanizeCrmStage(stage: string) {
-  switch (stage) {
-    case "NEW":
-      return "New";
-    case "SCHEDULED":
-      return "Scheduled";
-    case "DONE":
-      return "Done";
-    case "FAILED":
-      return "Failed";
-    case "SENT":
-      return "Proposal sent";
-    case "NEGOTIATION":
-      return "Negotiation";
-    case "APPROVED":
-      return "Approved";
-    case "REJECTED":
-      return "Rejected";
-    case "CONTRACT_SENT":
-      return "Contract sent";
-    case "SIGNED":
-      return "Signed";
-    case "ACTIVE":
-      return "Active";
-    case "CANCELLED":
-      return "Cancelled";
-    default:
-      return stage.replaceAll("_", " ");
-  }
-}
-
 @Injectable()
 export class CrmOrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly requestsService: RequestsService,
+  ) {}
 
   async findOne(id: string) {
     const [request] = await Promise.all([
@@ -254,7 +169,10 @@ export class CrmOrdersService {
     ]);
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id },
+      });
     }
 
     return {
@@ -266,7 +184,10 @@ export class CrmOrdersService {
   async createNote(id: string, authorId: string, content: string) {
     const trimmed = content.trim();
     if (!trimmed) {
-      throw new BadRequestException("Note content is required");
+      throw new BadRequestException({
+        code: "NOTE_CONTENT_REQUIRED",
+        details: { field: "content" },
+      });
     }
 
     const request = await this.prisma.request.findUnique({
@@ -276,7 +197,10 @@ export class CrmOrdersService {
     const canonicalRequest = request;
 
     if (!canonicalRequest) {
-      throw new NotFoundException("Canonical request not found for legacy CRM record");
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id },
+      });
     }
 
     const note = await this.prisma.crmNote.create({
@@ -292,69 +216,76 @@ export class CrmOrdersService {
 
     return {
       note,
-      toast: {
-        type: "success" as const,
-        title: "Note saved",
-        description: `Added a note to ${canonicalRequest.companyName}.`
-      },
+      resultCode: "CRM_NOTE_CREATED",
     };
   }
 
-  async updateStage(id: string, authorId: string, toStage: string, note?: string) {
+  async updateStage(
+    id: string,
+    authorId: string,
+    toStage: string,
+    note?: string,
+  ) {
     const request = await this.prisma.request.findUnique({
       where: { id },
-      select: {
-        id: true,
-        companyName: true,
-        crmStage: true,
-        status: true,
-      },
+      select: { id: true, crmStage: true, status: true },
     });
     if (!request) {
-      throw new NotFoundException('Request not found');
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id },
+      });
     }
 
-    const currentStage = request.crmStage ?? 'NEW';
-
+    const currentStage = request.crmStage ?? "NEW";
     if (currentStage === toStage) {
-      throw new BadRequestException('Order is already in this stage');
+      throw new BadRequestException({
+        code: "REQUEST_ALREADY_IN_STAGE",
+        details: { stage: toStage },
+      });
     }
 
-    const content = note?.trim();
-    const requestStatus = mapCrmStageToRequestStatus(toStage);
-    const fromStageLabel = humanizeCrmStage(currentStage);
-    const toStageLabel = humanizeCrmStage(toStage);
-    const targetName = request.companyName;
+    if (toStage === "FAILED" || toStage === "REJECTED") {
+      throw new BadRequestException({
+        code: "UNSUPPORTED_CRM_STAGE",
+        details: { stage: toStage },
+      });
+    }
 
-    await this.prisma.$transaction(async (tx) => {
-      if (request) {
-        await tx.request.update({
-          where: { id: request.id },
-          data: { crmStage: toStage as any, status: requestStatus },
-        });
-        await tx.requestStatusHistory.create({
+    const requestStatus = mapCrmStageToRequestStatus(toStage);
+    const updatedRequest = await this.prisma.$transaction(async (tx) => {
+      const updated = await this.requestsService.changeStatus(
+        id,
+        requestStatus,
+        authorId,
+        note?.trim(),
+        tx,
+      );
+
+      await tx.request.update({
+        where: { id },
+        data: {
+          crmStage: getCrmStageForRequestStatus(requestStatus) as CrmStage,
+        },
+      });
+
+      if (note?.trim()) {
+        await tx.crmNote.create({
           data: {
-            requestId: request.id,
-            fromStatus: request.status,
-            toStatus: requestStatus,
-            changedBy: authorId,
-            note: content,
+            requestId: id,
+            authorId,
+            content: note.trim(),
           },
         });
-        if (content) {
-          await tx.crmNote.create({ data: { requestId: request.id, authorId, content } });
-        }
-        return;
       }
+
+      return updated;
     });
 
     return {
-      success: true,
-      toast: {
-        type: "success" as const,
-        title: "Stage updated",
-        description: `${targetName} changed from ${fromStageLabel} to ${toStageLabel}.`,
-      },
+      request: updatedRequest,
+      stageCode: "CRM_STAGE_UPDATED",
+      crmStage: toStage,
     };
   }
 }

@@ -161,7 +161,7 @@ export const REQUEST_STATUS_GROUPS: Record<
     RequestStatus.NEGOTIATION,
     RequestStatus.CONTRACT_SENT,
   ],
-  signed: [RequestStatus.SIGNED],
+  signed: [RequestStatus.SIGNED, RequestStatus.PROJECT_CREATED],
   cancelled: [RequestStatus.CANCELLED],
 };
 

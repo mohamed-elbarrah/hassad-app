@@ -1,21 +1,20 @@
 "use client";
 
-import { Calendar, Search, X } from "lucide-react";
+import { Calendar as CalendarIcon, Search, X } from "lucide-react";
+import { arSA } from "date-fns/locale";
+import type { DateRange as CalendarDateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
 import { formatShortDateLong } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-export interface DateRange {
-  from?: Date;
-  to?: Date;
-}
+export type DateRange = CalendarDateRange;
 
 export function ContractsToolbar({
   search,
@@ -30,11 +29,6 @@ export function ContractsToolbar({
   totalCount: number;
   visibleCount: number;
 }) {
-  const label =
-    dateRange.from || dateRange.to
-      ? `${formatShortDateLong(dateRange.from?.toISOString() ?? null)} - ${formatShortDateLong(dateRange.to?.toISOString() ?? null)}`
-      : "اختر التاريخ";
-  const toDate = (date?: Date) => (date ? date.toISOString().slice(0, 10) : "");
   return (
     <div
       className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
@@ -55,95 +49,69 @@ export function ContractsToolbar({
             className="absolute end-1 top-1/2 size-8 -translate-y-1/2"
             onClick={() => onSearchChange("")}
             aria-label="مسح البحث"
+            type="button"
           >
             <X />
           </Button>
         ) : null}
       </div>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline">
-            <Calendar />
-            {label}
+
+      <div className="flex w-full items-center gap-2 sm:w-auto">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              id="contract-date-range"
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal sm:w-[300px]",
+                !dateRange.from && "text-muted-foreground",
+              )}
+            >
+              <CalendarIcon />
+              {dateRange.from ? (
+                dateRange.to ? (
+                  `${formatShortDateLong(dateRange.from.toISOString())} - ${formatShortDateLong(dateRange.to.toISOString())}`
+                ) : (
+                  formatShortDateLong(dateRange.from.toISOString())
+                )
+              ) : (
+                <span>اختر الفترة</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            side="bottom"
+            sideOffset={8}
+            collisionPadding={16}
+            className="w-auto p-0"
+            dir="rtl"
+          >
+            <Calendar
+              initialFocus
+              dir="rtl"
+              locale={arSA}
+              mode="range"
+              defaultMonth={dateRange.from}
+              selected={dateRange}
+              onSelect={(range) => onDateRangeChange(range ?? {})}
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+        {dateRange.from || dateRange.to ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDateRangeChange({})}
+            aria-label="مسح فلتر التاريخ"
+            type="button"
+          >
+            <X data-icon="inline-start" />
+            مسح الفلتر
           </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="end"
-          sideOffset={8}
-          collisionPadding={16}
-          className="flex w-max max-w-[calc(100vw-2rem)] flex-col gap-3 p-4"
-          dir="rtl"
-        >
-          <div className="flex items-center justify-between">
-            <p className="font-medium">تحديد الفترة</p>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDateRangeChange({})}
-            >
-              مسح
-            </Button>
-          </div>
-          <Separator />
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                onDateRangeChange({
-                  from: new Date(new Date().setDate(new Date().getDate() - 7)),
-                  to: new Date(),
-                })
-              }
-            >
-              آخر 7 أيام
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                onDateRangeChange({ from: new Date(), to: new Date() })
-              }
-            >
-              اليوم
-            </Button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="contract-date-from">من</Label>
-              <Input
-                id="contract-date-from"
-                type="date"
-                value={toDate(dateRange.from)}
-                onChange={(event) =>
-                  onDateRangeChange({
-                    ...dateRange,
-                    from: event.target.value
-                      ? new Date(event.target.value)
-                      : undefined,
-                  })
-                }
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="contract-date-to">إلى</Label>
-              <Input
-                id="contract-date-to"
-                type="date"
-                value={toDate(dateRange.to)}
-                onChange={(event) =>
-                  onDateRangeChange({
-                    ...dateRange,
-                    to: event.target.value
-                      ? new Date(event.target.value)
-                      : undefined,
-                  })
-                }
-              />
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+        ) : null}
+      </div>
     </div>
   );
 }

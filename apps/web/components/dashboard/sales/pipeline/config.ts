@@ -1,5 +1,6 @@
 import { REQUEST_STATUS_AR, RequestStatus } from "@hassad/shared";
 import type { KanbanConfig } from "@/components/dashboard/kanban";
+import type { SalesPipelineStage } from "@/features/sales/salesApi";
 import { KANBAN_TONES } from "@/components/dashboard/kanban/theme";
 
 const STAGE_THEME: Record<
@@ -43,66 +44,105 @@ const STAGE_THEME: Record<
   },
 };
 
-const DEFAULT_STAGE_ORDER: RequestStatus[] = [
-  RequestStatus.SUBMITTED,
-  RequestStatus.QUALIFYING,
-  RequestStatus.PROPOSAL_IN_PROGRESS,
-  RequestStatus.PROPOSAL_SENT,
-  RequestStatus.NEGOTIATION,
-  RequestStatus.CONTRACT_PREPARATION,
-  RequestStatus.CONTRACT_SENT,
-  RequestStatus.SIGNED,
-  RequestStatus.PROJECT_CREATED,
+const DEFAULT_STAGE_METADATA: SalesPipelineStage[] = [
+  {
+    code: RequestStatus.SUBMITTED,
+    order: 1,
+    groupCode: "INTAKE",
+    isTerminal: false,
+  },
+  {
+    code: RequestStatus.QUALIFYING,
+    order: 2,
+    groupCode: "INTAKE",
+    isTerminal: false,
+  },
+  {
+    code: RequestStatus.PROPOSAL_IN_PROGRESS,
+    order: 3,
+    groupCode: "PROPOSAL",
+    isTerminal: false,
+  },
+  {
+    code: RequestStatus.PROPOSAL_SENT,
+    order: 4,
+    groupCode: "PROPOSAL",
+    isTerminal: false,
+  },
+  {
+    code: RequestStatus.NEGOTIATION,
+    order: 5,
+    groupCode: "PROPOSAL",
+    isTerminal: false,
+  },
+  {
+    code: RequestStatus.CONTRACT_PREPARATION,
+    order: 6,
+    groupCode: "CONTRACT",
+    isTerminal: false,
+  },
+  {
+    code: RequestStatus.CONTRACT_SENT,
+    order: 7,
+    groupCode: "CONTRACT",
+    isTerminal: false,
+  },
+  { code: RequestStatus.SIGNED, order: 8, groupCode: "WON", isTerminal: false },
+  {
+    code: RequestStatus.PROJECT_CREATED,
+    order: 9,
+    groupCode: "WON",
+    isTerminal: true,
+  },
+  {
+    code: RequestStatus.CANCELLED,
+    order: 10,
+    groupCode: "CANCELLED",
+    isTerminal: true,
+  },
 ];
+
+const GROUP_LABELS: Record<SalesPipelineStage["groupCode"], string> = {
+  INTAKE: "الاستقبال والتأهيل",
+  PROPOSAL: "العرض والتفاوض",
+  CONTRACT: "العقد والإغلاق",
+  WON: "الصفقات المحسومة",
+  CANCELLED: "الطلبات الملغاة",
+};
 
 export function createSalesPipelineConfig(
   options: {
     includeCancelled?: boolean;
+    stages?: SalesPipelineStage[];
   } = {},
 ): KanbanConfig {
-  const stageOrder = options.includeCancelled
-    ? [...DEFAULT_STAGE_ORDER, RequestStatus.CANCELLED]
-    : DEFAULT_STAGE_ORDER;
+  const metadata = [
+    ...(options.stages?.length ? options.stages : DEFAULT_STAGE_METADATA),
+  ]
+    .filter(
+      (stage) =>
+        options.includeCancelled || stage.code !== RequestStatus.CANCELLED,
+    )
+    .sort((left, right) => left.order - right.order);
+  const stageOrder = metadata.map((stage) => stage.code);
+  const groupOrder: SalesPipelineStage["groupCode"][] = [
+    "INTAKE",
+    "PROPOSAL",
+    "CONTRACT",
+    "WON",
+    "CANCELLED",
+  ];
 
   return {
-    groups: [
-      {
-        id: "intake",
-        label: "الاستقبال والتأهيل",
-        stages: [RequestStatus.SUBMITTED, RequestStatus.QUALIFYING],
-      },
-      {
-        id: "proposal",
-        label: "العرض والتفاوض",
-        stages: [
-          RequestStatus.PROPOSAL_IN_PROGRESS,
-          RequestStatus.PROPOSAL_SENT,
-          RequestStatus.NEGOTIATION,
-        ],
-      },
-      {
-        id: "contract",
-        label: "العقد والإغلاق",
-        stages: [
-          RequestStatus.CONTRACT_PREPARATION,
-          RequestStatus.CONTRACT_SENT,
-        ],
-      },
-      {
-        id: "won",
-        label: "الصفقات المحسومة",
-        stages: [RequestStatus.SIGNED, RequestStatus.PROJECT_CREATED],
-      },
-      ...(options.includeCancelled
-        ? [
-            {
-              id: "cancelled",
-              label: "الطلبات الملغاة",
-              stages: [RequestStatus.CANCELLED],
-            },
-          ]
-        : []),
-    ],
+    groups: groupOrder
+      .map((groupCode) => ({
+        id: groupCode.toLowerCase(),
+        label: GROUP_LABELS[groupCode],
+        stages: metadata
+          .filter((stage) => stage.groupCode === groupCode)
+          .map((stage) => stage.code),
+      }))
+      .filter((group) => group.stages.length > 0),
     stages: Object.fromEntries(
       Object.entries(STAGE_THEME).map(([status, theme]) => [
         status,

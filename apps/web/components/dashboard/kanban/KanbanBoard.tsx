@@ -4,12 +4,14 @@ import { useState, useMemo, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { KanbanConfig, KanbanBoardProps } from "./types";
 import { KanbanGroup } from "./KanbanGroup";
 import { KanbanColumn } from "./KanbanColumn";
@@ -33,12 +35,12 @@ function DefaultLoadingSkeleton({ config }: { config: KanbanConfig }) {
   const hasGroups = config.groups.length > 0;
 
   if (hasGroups) {
-  return (
-    <ScrollArea className="w-full">
-      <div className="flex min-w-max gap-4 p-1" dir="rtl">
-        {config.groups.map((group) => (
+    return (
+      <ScrollArea className="w-full">
+        <div className="flex min-w-max gap-4 p-1" dir="rtl">
+          {config.groups.map((group) => (
             <Card
-            key={group.id}
+              key={group.id}
               className="flex min-w-[340px] flex-1 flex-col overflow-hidden"
             >
               <CardHeader className="p-4">
@@ -46,15 +48,15 @@ function DefaultLoadingSkeleton({ config }: { config: KanbanConfig }) {
               </CardHeader>
               <Separator />
               <CardContent className="flex flex-col gap-3 p-3">
-              {group.stages.map((stage) => (
-                <div
-                  key={stage}
+                {group.stages.map((stage) => (
+                  <div
+                    key={stage}
                     className="h-36 rounded-2xl border bg-muted/30"
-                />
-              ))}
+                  />
+                ))}
               </CardContent>
             </Card>
-        ))}
+          ))}
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
@@ -64,27 +66,27 @@ function DefaultLoadingSkeleton({ config }: { config: KanbanConfig }) {
   return (
     <ScrollArea className="w-full">
       <div className="flex min-w-max gap-4 p-1" dir="rtl">
-      {config.stageOrder.map((stage) => {
-        return (
-          <Card
-            key={stage}
-            className="flex min-w-[340px] flex-1 flex-col overflow-hidden"
-          >
-            <CardHeader className="p-4">
-              <Skeleton className="h-5 w-28" />
-            </CardHeader>
-            <Separator />
-            <CardContent className="flex flex-col gap-2 p-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-24 rounded-2xl border bg-muted/30"
-                />
-              ))}
-            </CardContent>
-          </Card>
-        );
-      })}
+        {config.stageOrder.map((stage) => {
+          return (
+            <Card
+              key={stage}
+              className="flex min-w-[340px] flex-1 flex-col overflow-hidden"
+            >
+              <CardHeader className="p-4">
+                <Skeleton className="h-5 w-28" />
+              </CardHeader>
+              <Separator />
+              <CardContent className="flex flex-col gap-2 p-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-24 rounded-2xl border bg-muted/30"
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
@@ -104,12 +106,16 @@ export function KanbanBoard<T extends { id: string }>({
   errorMessage,
   emptyMessage,
   canDragItem,
+  canDropItem,
   renderLoadingSkeleton,
 }: KanbanBoardProps<T>) {
   const [activeItem, setActiveItem] = useState<T | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   // ── Group items by stage ──────────────────────────────────────────────
@@ -143,14 +149,16 @@ export function KanbanBoard<T extends { id: string }>({
       if (!over) return;
 
       const itemId = active.id as string;
+      const item = items.find((candidate) => candidate.id === itemId);
       const newStage = over.id as string;
       const currentStage = active.data.current?.status as string;
 
-      if (newStage === currentStage) return;
+      if (!item || newStage === currentStage) return;
+      if (canDropItem && !canDropItem(item, newStage)) return;
 
       await onDragEnd(itemId, currentStage, newStage);
     },
-    [onDragEnd],
+    [canDropItem, items, onDragEnd],
   );
 
   // ── Loading state ─────────────────────────────────────────────────────
@@ -192,7 +200,9 @@ export function KanbanBoard<T extends { id: string }>({
             </EmptyMedia>
             <EmptyHeader>
               <EmptyTitle>لا توجد بيانات</EmptyTitle>
-              <EmptyDescription>{emptyMessage || "لا توجد بيانات"}</EmptyDescription>
+              <EmptyDescription>
+                {emptyMessage || "لا توجد بيانات"}
+              </EmptyDescription>
             </EmptyHeader>
           </Empty>
         </CardContent>

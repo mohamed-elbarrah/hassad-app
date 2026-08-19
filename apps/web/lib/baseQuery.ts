@@ -56,7 +56,11 @@ function unwrap(result: RawResult): RawResult {
     };
   }
 
-  const envelope = result.data as { success?: unknown; data?: unknown };
+  const envelope = result.data as {
+    success?: unknown;
+    data?: unknown;
+    meta?: Record<string, unknown>;
+  };
   if (envelope.success !== true || !("data" in envelope)) {
     return {
       error: {
@@ -73,7 +77,15 @@ function unwrap(result: RawResult): RawResult {
     };
   }
 
-  return { data: envelope.data, meta: result.meta };
+  const unwrappedData =
+    envelope.meta !== undefined &&
+    typeof envelope.data === "object" &&
+    envelope.data !== null &&
+    !Array.isArray(envelope.data)
+      ? { ...(envelope.data as Record<string, unknown>), meta: envelope.meta }
+      : envelope.data;
+
+  return { data: unwrappedData, meta: result.meta };
 }
 
 function normalizeError(result: RawResult): RawResult {
@@ -104,8 +116,8 @@ function normalizeError(result: RawResult): RawResult {
         success: false,
         error: { code, details: {} },
       },
-    },
-  };
+    } as FetchBaseQueryError,
+  } as RawResult;
 }
 
 function isNetworkError(result: RawResult): boolean {

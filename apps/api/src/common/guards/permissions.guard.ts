@@ -37,7 +37,10 @@ export class PermissionsGuard implements CanActivate {
     const { user } = context.switchToHttp().getRequest();
 
     if (!user) {
-      throw new ForbiddenException("User not authenticated");
+      throw new ForbiddenException({
+        code: "AUTHENTICATION_REQUIRED",
+        details: {},
+      });
     }
 
     // Admin has all permissions
@@ -95,7 +98,10 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (!hasPermission) {
-      throw new ForbiddenException("Missing required permissions");
+      throw new ForbiddenException({
+        code: "PERMISSION_DENIED",
+        details: { requiredPermissions },
+      });
     }
 
     return true;

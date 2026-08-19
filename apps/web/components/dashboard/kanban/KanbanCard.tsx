@@ -1,8 +1,10 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
+import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface KanbanCardProps {
   id: string;
@@ -17,12 +19,11 @@ interface KanbanCardProps {
 /**
  * Base draggable card wrapper.
  *
- * Provides the outer container with drag behaviour, hover effects, and
- * visual feedback during drag.  The actual card content is passed as
- * `children` so each variant can render whatever it needs.
+ * Provides the outer container with drag state and a dedicated drag handle.
+ * Keeping drag attributes off the content wrapper prevents nested links and
+ * buttons from becoming part of the draggable interactive element.
  *
- * When `canDrag` is false the card renders a lock icon instead of the
- * grip handle — the consumer is responsible for placing the icon.
+ * When `canDrag` is false the card content is read-only.
  */
 export function KanbanCard({
   id,
@@ -32,26 +33,41 @@ export function KanbanCard({
   children,
   onClick,
 }: KanbanCardProps) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id,
-    data,
-    disabled: !canDrag,
-  });
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } =
+    useDraggable({
+      id,
+      data,
+      disabled: !canDrag,
+    });
 
   return (
     <Card
       ref={setNodeRef}
       className={cn(
         "group border-border p-4 transition-all duration-150",
-        canDrag &&
-          "cursor-grab active:cursor-grabbing hover:border-secondary-500/20 hover:shadow-sm",
+        canDrag && "hover:border-secondary-500/20 hover:shadow-sm",
         !canDrag && "cursor-default opacity-80",
         (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
         isOverlay && "shadow-lg",
       )}
-      {...(canDrag ? { ...attributes, ...listeners } : {})}
       onClick={onClick}
     >
+      {canDrag && !isOverlay && (
+        <div className="flex justify-end">
+          <Button
+            ref={setActivatorNodeRef}
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-7 cursor-grab active:cursor-grabbing"
+            aria-label="سحب البطاقة"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical />
+          </Button>
+        </div>
+      )}
       {children}
     </Card>
   );

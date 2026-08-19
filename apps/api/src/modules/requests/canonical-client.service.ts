@@ -120,9 +120,10 @@ export class CanonicalClientService {
       params.userId &&
       existingClient.userId !== params.userId
     ) {
-      throw new ConflictException(
-        "A client profile with this identity is already linked to another user",
-      );
+      throw new ConflictException({
+        code: "CLIENT_IDENTITY_CONFLICT",
+        details: { clientId: existingClient.id },
+      });
     }
 
     if (existingClient) {
@@ -175,7 +176,10 @@ export class CanonicalClientService {
         : await db.client.findUnique({ where: { id: existingClient.id } });
 
       if (!client) {
-        throw new ConflictException("Unable to resolve canonical client");
+        throw new ConflictException({
+          code: "CANONICAL_CLIENT_RESOLUTION_FAILED",
+          details: { clientId: existingClient.id },
+        });
       }
 
       if (client.accountManager && client.userId) {

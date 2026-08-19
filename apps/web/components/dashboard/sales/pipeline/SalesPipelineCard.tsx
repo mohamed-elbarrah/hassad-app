@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowUpLeft,
   Building2,
@@ -45,7 +45,6 @@ export function getRequestStatusBadgeVariant(status: RequestStatus) {
 
 export function isClosedRequest(status: RequestStatus) {
   return (
-    status === RequestStatus.SIGNED ||
     status === RequestStatus.PROJECT_CREATED ||
     status === RequestStatus.CANCELLED
   );
@@ -144,29 +143,17 @@ function getServicePreview(request: RequestItem) {
 }
 
 export function SalesPipelineCard({ request }: { request: RequestItem }) {
-  const router = useRouter();
   const action = getPrimaryAction(request);
-  const displayName = request.contactName || request.client?.companyName || request.companyName;
+  const displayName =
+    request.contactName || request.client?.companyName || request.companyName;
   const isClosed = isClosedRequest(request.status);
 
-  function openRequest() {
-    router.push(`/dashboard/sales/requests/${request.id}`);
-  }
-
   return (
-    <div
-      className="flex flex-col gap-4"
-      onClick={openRequest}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openRequest();
-        }
-      }}
-      role="button"
-      tabIndex={0}
-    >
-      <div className="-m-4 flex cursor-pointer flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4">
+      <Link
+        href={`/dashboard/sales/requests/${request.id}`}
+        className="-m-4 flex cursor-pointer flex-col gap-4 p-4"
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <Avatar className="size-11">
@@ -205,7 +192,7 @@ export function SalesPipelineCard({ request }: { request: RequestItem }) {
             آخر تحديث {formatRelativeTime(request.updatedAt)}
           </div>
         </div>
-      </div>
+      </Link>
 
       <Button
         asChild
@@ -215,10 +202,10 @@ export function SalesPipelineCard({ request }: { request: RequestItem }) {
           event.stopPropagation();
         }}
       >
-        <a href={action.href}>
+        <Link href={action.href}>
           <action.icon data-icon="inline-start" />
           {action.label}
-        </a>
+        </Link>
       </Button>
     </div>
   );
