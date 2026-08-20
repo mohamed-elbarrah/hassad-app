@@ -214,7 +214,6 @@ export enum AutomationStatus {
 export enum ContractType {
   MONTHLY_RETAINER = "MONTHLY_RETAINER",
   FIXED_PROJECT = "FIXED_PROJECT",
-  ONE_TIME_SERVICE = "ONE_TIME_SERVICE",
 }
 
 export enum RenewalAlertType {

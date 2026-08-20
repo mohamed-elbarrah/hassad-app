@@ -3,8 +3,15 @@
 import { useState, use } from "react";
 import { toast } from "sonner";
 import { CheckCircle, PenLine } from "lucide-react";
-import { useGetPortalContractByIdQuery, useSignPortalContractMutation } from "@/features/portal/portalApi";
-import { ContractClientBillingArea, ContractDetailLoading, ContractDetailView } from "@/components/contract-detail/ContractDetailPattern";
+import {
+  useGetPortalContractByIdQuery,
+  useSignPortalContractMutation,
+} from "@/features/portal/portalApi";
+import {
+  ContractClientBillingArea,
+  ContractDetailLoading,
+  ContractDetailView,
+} from "@/components/contract-detail/ContractDetailPattern";
 import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
 import { buildPortalFileUrl } from "@/lib/portal-files";
 import { Button } from "@/components/ui/button";
@@ -17,20 +24,39 @@ export default function PortalContractDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: contract, isLoading, isError, refetch } = useGetPortalContractByIdQuery(id);
-  const [signContract, { isLoading: signing }] = useSignPortalContractMutation();
+  const {
+    data: contract,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetPortalContractByIdQuery(id);
+  const [signContract, { isLoading: signing }] =
+    useSignPortalContractMutation();
   const [signedByName, setSignedByName] = useState("");
   const [signedByEmail, setSignedByEmail] = useState("");
 
   if (isLoading) return <ContractDetailLoading />;
 
   if (isError || !contract) {
-    return <DetailErrorState title="تعذر تحميل العقد" backHref="/portal/contracts" backLabel="العقود" />;
+    return (
+      <DetailErrorState
+        title="تعذر تحميل العقد"
+        backHref="/portal/contracts"
+        backLabel="العقود"
+      />
+    );
   }
 
   const invoices = contract.invoices ?? [];
-  const canSign = contract.status === "SENT" && !!contract.shareLinkToken;
-  const allInvoicesPaid = invoices.length > 0 ? invoices.every((invoice) => invoice.status === "PAID") : true;
+  const paymentRequired = contract.initialPaymentRequired === true;
+  const initialPaymentPaid = contract.initialPaymentStatus === "PAID";
+  const allInvoicesPaid =
+    invoices.length > 0 &&
+    invoices.every((invoice) => invoice.status === "PAID");
+  const canSign =
+    contract.status === "SENT" &&
+    !!contract.shareLinkToken &&
+    (!paymentRequired ? true : initialPaymentPaid || allInvoicesPaid);
 
   async function handleSign() {
     if (!signedByName.trim()) {
@@ -64,19 +90,19 @@ export default function PortalContractDetailPage({
           services={contract.servicesList ?? []}
           totalValue={contract.totalValue}
           invoices={invoices}
-          canPay={canSign}
+          canPay={contract.status === "SENT"}
           onPaymentComplete={() => window.location.reload()}
         />
       }
       responseArea={
-        canSign ? (
+        contract.status === "SENT" ? (
           <Card>
             <CardContent className="flex flex-col gap-4 p-6">
               <div className="flex items-center gap-2">
                 <PenLine className="size-4 text-muted-foreground" />
                 <p className="text-sm font-medium">توقيع العقد</p>
               </div>
-              {!allInvoicesPaid ? (
+              {!canSign ? (
                 <p className="text-sm text-muted-foreground">
                   يجب دفع جميع الفواتير قبل توقيع العقد.
                 </p>
@@ -85,15 +111,15 @@ export default function PortalContractDetailPage({
                 value={signedByName}
                 onChange={(event) => setSignedByName(event.target.value)}
                 placeholder="الاسم الكامل"
-                disabled={!allInvoicesPaid}
+                disabled={!canSign}
               />
               <Input
                 value={signedByEmail}
                 onChange={(event) => setSignedByEmail(event.target.value)}
                 placeholder="البريد الإلكتروني"
-                disabled={!allInvoicesPaid}
+                disabled={!canSign}
               />
-              <Button onClick={handleSign} disabled={signing || !allInvoicesPaid}>
+              <Button onClick={handleSign} disabled={signing || !canSign}>
                 <CheckCircle data-icon="inline-start" />
                 {signing ? "جارٍ التوقيع..." : "أوافق وأوقّع العقد"}
               </Button>

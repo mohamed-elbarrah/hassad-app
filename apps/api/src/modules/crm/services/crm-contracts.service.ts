@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { ContractStatus, RequestStatus } from "@hassad/shared";
 import { randomBytes } from "crypto";
 
@@ -35,9 +39,7 @@ export class CrmContractsService {
 
     if (query.status && query.status !== "all") {
       where.status =
-        query.status === "on-hold"
-          ? "ON_HOLD"
-          : query.status.toUpperCase();
+        query.status === "on-hold" ? "ON_HOLD" : query.status.toUpperCase();
     }
 
     if (query.type) {
@@ -47,7 +49,8 @@ export class CrmContractsService {
     if (query.expiringDays) {
       const now = new Date();
       const future = new Date(
-        now.getTime() + Number.parseInt(query.expiringDays, 10) * 24 * 60 * 60 * 1000,
+        now.getTime() +
+          Number.parseInt(query.expiringDays, 10) * 24 * 60 * 60 * 1000,
       );
       where.endDate = { gte: now, lte: future };
       where.status = ContractStatus.ACTIVE;
@@ -165,7 +168,9 @@ export class CrmContractsService {
 
   async create(userId: string, dto: CrmCreateContractDto) {
     if (!dto.requestId && !dto.proposalId) {
-      throw new BadRequestException("A request or proposal reference is required");
+      throw new BadRequestException(
+        "A request or proposal reference is required",
+      );
     }
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -178,7 +183,11 @@ export class CrmContractsService {
       let totalValue = dto.totalValue ?? 0;
       let monthlyValue = dto.monthlyValue ?? 0;
       let servicesList: unknown = undefined;
-      let proposalSnapshot: { totalPrice?: number; servicesList?: unknown; durationDays?: number } | null = null;
+      let proposalSnapshot: {
+        totalPrice?: number;
+        servicesList?: unknown;
+        durationDays?: number;
+      } | null = null;
 
       if (dto.proposalId) {
         proposalSnapshot = await tx.proposal.findUnique({
@@ -197,15 +206,51 @@ export class CrmContractsService {
       if (dto.totalValue == null && proposalSnapshot?.totalPrice != null) {
         totalValue = proposalSnapshot.totalPrice;
       }
-      if (dto.monthlyValue == null && dto.type === "MONTHLY_RETAINER") {
+      if (dto.type === "MONTHLY_RETAINER") {
+        const months = dto.numberOfMonths ?? 0;
+        if (months <= 0) {
+          throw new BadRequestException("SUBSCRIPTION_MONTHS_REQUIRED");
+        }
+        monthlyValue = totalValue / months;
+      } else {
         monthlyValue = 0;
+      }
+
+      const initialPaymentRequired = dto.initialPaymentRequired === true;
+      let initialPaymentStatus: "NOT_REQUIRED" | "PENDING" = "NOT_REQUIRED";
+      let initialPaymentAmount: number | null = null;
+      if (initialPaymentRequired) {
+        if (!dto.initialPaymentType || dto.initialPaymentValue == null) {
+          throw new BadRequestException(
+            "INITIAL_PAYMENT_CONFIGURATION_REQUIRED",
+          );
+        }
+        initialPaymentAmount =
+          dto.initialPaymentType === "PERCENT"
+            ? totalValue * (dto.initialPaymentValue / 100)
+            : dto.initialPaymentValue;
+        if (initialPaymentAmount <= 0 || initialPaymentAmount > totalValue) {
+          throw new BadRequestException("INITIAL_PAYMENT_INVALID");
+        }
+        initialPaymentStatus = "PENDING";
+      }
+      if (dto.type === "MONTHLY_RETAINER" && initialPaymentAmount != null) {
+        const remainingMonths = (dto.numberOfMonths ?? 0) - 1;
+        if (remainingMonths <= 0) {
+          throw new BadRequestException(
+            "SUBSCRIPTION_REQUIRES_REMAINING_MONTHS",
+          );
+        }
+        monthlyValue = (totalValue - initialPaymentAmount) / remainingMonths;
       }
 
       const startDate = dto.startDate ? new Date(dto.startDate) : new Date();
       const endDate = dto.endDate
         ? new Date(dto.endDate)
         : proposalSnapshot?.durationDays
-          ? new Date(startDate.getTime() + proposalSnapshot.durationDays * 86400000)
+          ? new Date(
+              startDate.getTime() + proposalSnapshot.durationDays * 86400000,
+            )
           : new Date(startDate.getTime() + 30 * 86400000);
 
       const contract = await tx.contract.create({
@@ -223,9 +268,14 @@ export class CrmContractsService {
           totalValue,
           filePath: dto.filePath ?? null,
           servicesList: (servicesList ?? null) as any,
-          downPaymentType: dto.downPaymentType as any,
-          downPaymentValue: dto.downPaymentValue ?? null,
           numberOfMonths: dto.numberOfMonths ?? null,
+          initialPaymentRequired,
+          initialPaymentStatus,
+          initialPaymentAmount,
+          downPaymentType: (dto.initialPaymentType ??
+            dto.downPaymentType) as any,
+          downPaymentValue:
+            dto.initialPaymentValue ?? dto.downPaymentValue ?? null,
         },
       });
 
@@ -249,11 +299,18 @@ export class CrmContractsService {
 
     return {
       contract: created,
-      toast: { type: "success" as const, title: "Contract draft created", description: "Review the commercial terms before sending." },
+      toast: {
+        type: "success" as const,
+        title: "Contract draft created",
+        description: "Review the commercial terms before sending.",
+      },
     };
   }
 
-  async update(id: string, dto: CrmUpdateContractDto & { filePath?: string | null }) {
+  async update(
+    id: string,
+    dto: CrmUpdateContractDto & { filePath?: string | null },
+  ) {
     const contract = await this.prisma.contract.findUnique({ where: { id } });
 
     if (!contract) {
@@ -300,14 +357,24 @@ export class CrmContractsService {
 
     return {
       contract: updated,
-      toast: { type: "success" as const, title: "Contract updated", description: "The commercial draft has been saved." },
+      toast: {
+        type: "success" as const,
+        title: "Contract updated",
+        description: "The commercial draft has been saved.",
+      },
     };
   }
 
   async send(id: string, userId?: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id },
-      select: { id: true, title: true, requestId: true, createdBy: true, clientId: true },
+      select: {
+        id: true,
+        title: true,
+        requestId: true,
+        createdBy: true,
+        clientId: true,
+      },
     });
 
     if (!contract) {
@@ -358,7 +425,11 @@ export class CrmContractsService {
 
     return {
       contract: updated,
-      toast: { type: "success" as const, title: "Contract sent", description: "The contract link has been generated and shared." },
+      toast: {
+        type: "success" as const,
+        title: "Contract sent",
+        description: "The contract link has been generated and shared.",
+      },
     };
   }
 }

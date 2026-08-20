@@ -561,9 +561,12 @@ model Contract {
   requestId        String?                 @map("request_id")
   servicesList     Json?                   @map("services_list")
   // ── Billing plan (Phase 1: down-payment activation gate) ────────────────────
-  downPaymentType  PaymentAmountType?      @map("down_payment_type")
-  downPaymentValue Float?                  @map("down_payment_value")
-  numberOfMonths   Int?                    @map("number_of_months")
+  downPaymentType       PaymentAmountType?  @map("down_payment_type")
+  downPaymentValue      Float?              @map("down_payment_value")
+  initialPaymentRequired Boolean             @default(false) @map("initial_payment_required")
+  initialPaymentStatus   InitialPaymentStatus @default(NOT_REQUIRED) @map("initial_payment_status")
+  initialPaymentAmount   Float?              @map("initial_payment_amount")
+  numberOfMonths         Int?               @map("number_of_months")
   renewalAlerts    ContractRenewalAlert[]
   versions         ContractVersion[]
   paymentPlans     ContractPaymentPlan[]
@@ -1992,7 +1995,6 @@ enum ProposalStatus {
 enum ContractType {
   MONTHLY_RETAINER
   FIXED_PROJECT
-  ONE_TIME_SERVICE
 }
 
 enum ContractStatus {
@@ -2016,6 +2018,14 @@ enum PaymentPlanTriggerType {
 enum PaymentAmountType {
   PERCENT
   FIXED
+}
+
+enum InitialPaymentStatus {
+  NOT_REQUIRED
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
 }
 
 enum ProjectPeriodStatus {

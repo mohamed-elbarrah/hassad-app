@@ -641,6 +641,9 @@ export interface PortalContractDetail {
   endDate: string;
   monthlyValue: number;
   totalValue: number;
+  initialPaymentRequired?: boolean;
+  initialPaymentStatus?: string;
+  initialPaymentAmount?: number | null;
   filePath: string | null;
   shareLinkToken: string | null;
   versionNumber: number;

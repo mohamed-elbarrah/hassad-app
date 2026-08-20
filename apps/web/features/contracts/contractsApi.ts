@@ -71,6 +71,9 @@ export interface ContractItem {
   downPaymentType?: string | null;
   downPaymentValue?: number | null;
   numberOfMonths?: number | null;
+  initialPaymentRequired?: boolean;
+  initialPaymentStatus?: string;
+  initialPaymentAmount?: number | null;
   client?: ContractClient;
   servicesList?: ServiceItem[];
   proposal?: {
@@ -113,6 +116,9 @@ export interface CreateContractFormInput {
   downPaymentType?: PaymentAmountType;
   downPaymentValue?: number;
   numberOfMonths?: number;
+  initialPaymentRequired?: boolean;
+  initialPaymentType?: PaymentAmountType;
+  initialPaymentValue?: number;
 }
 
 export interface SignContractInput {
@@ -169,6 +175,21 @@ export const contractsApi = createApi({
         }
         if (input.numberOfMonths !== undefined) {
           formData.append("numberOfMonths", String(input.numberOfMonths));
+        }
+        if (input.initialPaymentRequired !== undefined) {
+          formData.append(
+            "initialPaymentRequired",
+            String(input.initialPaymentRequired),
+          );
+        }
+        if (input.initialPaymentType) {
+          formData.append("initialPaymentType", input.initialPaymentType);
+        }
+        if (input.initialPaymentValue !== undefined) {
+          formData.append(
+            "initialPaymentValue",
+            String(input.initialPaymentValue),
+          );
         }
         formData.append("file", input.file, input.file.name);
         if (input.proposalId) formData.append("proposalId", input.proposalId);

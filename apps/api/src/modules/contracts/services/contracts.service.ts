@@ -518,19 +518,39 @@ export class ContractsService {
     if (isDownPayment) {
       const contract = await this.prisma.contract.findUnique({
         where: { id: payload.contractId },
-        select: { id: true, status: true, createdBy: true },
+        select: {
+          id: true,
+          status: true,
+          createdBy: true,
+          initialPaymentRequired: true,
+          initialPaymentStatus: true,
+        },
       });
-      if (!contract || contract.status !== ContractStatus.SIGNED) return;
+      if (!contract) return;
 
-      await this.activateContract(
-        contract.id,
-        payload.userId || contract.createdBy,
-        "Down payment received",
-      ).catch((err) => {
-        this.logger.error(
-          `Failed to activate contract ${contract.id} after down-payment: ${err?.message}`,
-        );
+      await this.prisma.contract.update({
+        where: { id: contract.id },
+        data: {
+          initialPaymentStatus: "PAID",
+        },
       });
+
+      // New workflow: payment unlocks signing; signing activates the contract.
+      if (contract.status === ContractStatus.SENT) return;
+
+      // Legacy workflow: contracts signed before the payment gate are activated
+      // immediately after the verified payment event.
+      if (contract.status === ContractStatus.SIGNED) {
+        await this.activateContract(
+          contract.id,
+          payload.userId || contract.createdBy,
+          "Down payment received",
+        ).catch((err) => {
+          this.logger.error(
+            `Failed to activate contract ${contract.id} after down-payment: ${err?.message}`,
+          );
+        });
+      }
       return;
     }
 
@@ -1062,6 +1082,25 @@ export class ContractsService {
       },
     });
 
+    const initialPaymentAmount = contract.initialPaymentRequired
+      ? (contract.initialPaymentAmount ?? 0)
+      : this.resolveDownPaymentFallback(contract);
+    if (initialPaymentAmount > 0) {
+      const onSignRow = await this.paymentPlanService.getOnSignRow(id);
+      const existingInvoice = await this.prisma.invoice.findFirst({
+        where: { contractId: id, paymentPlanId: onSignRow?.id },
+        select: { id: true },
+      });
+      if (!existingInvoice) {
+        await this.issueDownPaymentInvoice(
+          id,
+          userId ?? contract.createdBy,
+          onSignRow,
+          initialPaymentAmount,
+        );
+      }
+    }
+
     let actorName: string | undefined;
     if (userId) {
       const actor = await this.prisma.user.findUnique({
@@ -1118,7 +1157,20 @@ export class ContractsService {
     const contract = await this.findOne(id);
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException("لا يمكن توقيع هذا العقد في وضعه الحالي");
+      throw new BadRequestException("CONTRACT_NOT_SIGNABLE");
+    }
+
+    const initialPaymentAmount = contract.initialPaymentRequired
+      ? (contract.initialPaymentAmount ?? 0)
+      : this.resolveDownPaymentFallback(contract);
+    if (initialPaymentAmount > 0) {
+      const paidInvoice = await this.prisma.invoice.findFirst({
+        where: { contractId: contract.id, status: InvoiceStatus.PAID },
+        select: { id: true },
+      });
+      if (!paidInvoice) {
+        throw new BadRequestException("INITIAL_PAYMENT_REQUIRED");
+      }
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {

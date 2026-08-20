@@ -6,7 +6,11 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { FileSignature, Loader2 } from "lucide-react";
-import { ContractType, ProposalStatus } from "@hassad/shared";
+import {
+  ContractType,
+  PaymentAmountType,
+  ProposalStatus,
+} from "@hassad/shared";
 import {
   useCreateContractMutation,
   useUpdateContractMutation,
@@ -56,6 +60,9 @@ const contractFormSchema = z
     monthlyValue: z.coerce.number().nonnegative().optional(),
     totalValue: z.coerce.number().nonnegative().optional(),
     numberOfMonths: z.coerce.number().int().positive().optional(),
+    initialPaymentRequired: z.boolean().default(true),
+    initialPaymentType: z.enum(["PERCENT", "FIXED"]).default("PERCENT"),
+    initialPaymentValue: z.coerce.number().positive().optional(),
     startDate: z.string().min(1, "تاريخ البداية مطلوب"),
     endDate: z.string().min(1, "تاريخ النهاية مطلوب"),
   })
@@ -103,6 +110,10 @@ function getDefaultValues(
     monthlyValue: contract?.monthlyValue ?? 0,
     totalValue: contract?.totalValue ?? 0,
     numberOfMonths: contract?.numberOfMonths ?? 1,
+    initialPaymentRequired: contract?.initialPaymentRequired ?? true,
+    initialPaymentType:
+      (contract?.downPaymentType as "PERCENT" | "FIXED") ?? "PERCENT",
+    initialPaymentValue: contract?.downPaymentValue ?? 30,
     startDate: contract?.startDate
       ? String(contract.startDate).split("T")[0]
       : "",
@@ -135,6 +146,18 @@ export function CreateContractDialog({
   const numberOfMonths = useWatch({
     control: form.control,
     name: "numberOfMonths",
+  });
+  const initialPaymentRequired = useWatch({
+    control: form.control,
+    name: "initialPaymentRequired",
+  });
+  const initialPaymentType = useWatch({
+    control: form.control,
+    name: "initialPaymentType",
+  });
+  const initialPaymentValue = useWatch({
+    control: form.control,
+    name: "initialPaymentValue",
   });
   const { data: proposalsData, isFetching: proposalsLoading } =
     useGetProposalsQuery(
@@ -189,10 +212,32 @@ export function CreateContractDialog({
 
     const total = Number(form.getValues("totalValue") ?? 0);
     const months = Number(numberOfMonths ?? 0);
-    form.setValue("monthlyValue", months > 0 ? total / months : 0, {
-      shouldValidate: true,
-    });
-  }, [form, numberOfMonths, selectedType, selectedProposalId]);
+    const paymentValue = Number(initialPaymentValue ?? 0);
+    const initialAmount =
+      initialPaymentRequired && initialPaymentType === "PERCENT"
+        ? total * (paymentValue / 100)
+        : initialPaymentRequired
+          ? paymentValue
+          : 0;
+    const remainingMonths = months - 1;
+    form.setValue(
+      "monthlyValue",
+      months > 0 && remainingMonths > 0
+        ? (total - initialAmount) / remainingMonths
+        : 0,
+      {
+        shouldValidate: true,
+      },
+    );
+  }, [
+    form,
+    initialPaymentRequired,
+    initialPaymentType,
+    initialPaymentValue,
+    numberOfMonths,
+    selectedProposalId,
+    selectedType,
+  ]);
 
   async function onSubmit(values: ContractFormValues) {
     if (file) {
@@ -235,6 +280,10 @@ export function CreateContractDialog({
           type: values.type,
           monthlyValue: values.monthlyValue,
           totalValue: values.totalValue,
+          numberOfMonths: values.numberOfMonths,
+          initialPaymentRequired: values.initialPaymentRequired,
+          initialPaymentType: values.initialPaymentType as PaymentAmountType,
+          initialPaymentValue: values.initialPaymentValue,
           startDate: values.startDate,
           endDate: values.endDate,
           proposalId: values.proposalId || undefined,
@@ -426,6 +475,86 @@ export function CreateContractDialog({
                     />
                   </>
                 ) : null}
+                <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-4 md:col-span-2">
+                  <div>
+                    <h2 className="text-base font-semibold">الدفعة الأولية</h2>
+                    <p className="text-sm text-muted-foreground">
+                      يجب سداد الدفعة الأولية قبل تمكين العميل من توقيع العقد.
+                    </p>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="initialPaymentRequired"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-md border p-3">
+                        <FormLabel>يتطلب دفعة أولية</FormLabel>
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="size-4 accent-primary"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  {initialPaymentRequired ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="initialPaymentType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>نوع الدفعة</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="PERCENT">
+                                  نسبة من الإجمالي
+                                </SelectItem>
+                                <SelectItem value="FIXED">مبلغ ثابت</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="initialPaymentValue"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {initialPaymentType === "PERCENT"
+                                ? "النسبة"
+                                : "المبلغ"}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={String(field.value ?? "")}
+                                onChange={(event) =>
+                                  field.onChange(event.target.value)
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  ) : null}
+                </div>
                 <FormField
                   control={form.control}
                   name="startDate"

@@ -118,6 +118,19 @@ export class CrmCreateContractDto {
   downPaymentType?: string;
 
   @IsOptional()
+  @Type(() => Boolean)
+  initialPaymentRequired?: boolean;
+
+  @IsOptional()
+  @IsIn(["PERCENT", "FIXED"])
+  initialPaymentType?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  initialPaymentValue?: number;
+
+  @IsOptional()
   @IsString()
   filePath?: string;
 
@@ -168,6 +181,19 @@ export class CrmUpdateContractDto {
   @IsOptional()
   @IsString()
   downPaymentType?: string;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  initialPaymentRequired?: boolean;
+
+  @IsOptional()
+  @IsIn(["PERCENT", "FIXED"])
+  initialPaymentType?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  initialPaymentValue?: number;
 
   @IsOptional()
   @IsString()
