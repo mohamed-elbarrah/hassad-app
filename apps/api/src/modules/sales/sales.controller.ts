@@ -44,20 +44,32 @@ export class SalesController {
 
   @Get("metrics")
   @RequirePermissions("sales.read")
-  getMetrics(@Query() query: SalesPeriodQueryDto) {
-    return this.salesService.getMetrics(query.period);
+  getMetrics(
+    @Query() query: SalesPeriodQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const accessScope = this.salesService.getRequestAccessScope(user);
+    return this.salesService.getMetrics(query.period, accessScope);
   }
 
   @Get("performance")
   @RequirePermissions("sales.read")
-  getPerformance(@Query() query: SalesPeriodQueryDto) {
-    return this.salesService.getPerformance(query.period);
+  getPerformance(
+    @Query() query: SalesPeriodQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const accessScope = this.salesService.getRequestAccessScope(user);
+    return this.salesService.getPerformance(query.period, accessScope);
   }
 
   @Get("activity")
   @RequirePermissions("sales.read")
-  getActivity(@Query() query: SalesActivityQueryDto) {
-    return this.salesService.getActivity(query.limit ?? 20);
+  getActivity(
+    @Query() query: SalesActivityQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const accessScope = this.salesService.getRequestAccessScope(user);
+    return this.salesService.getActivity(query.limit ?? 20, accessScope);
   }
 
   @Post("requests")
@@ -78,7 +90,8 @@ export class SalesController {
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateRequestForClientDto,
   ) {
-    return this.requestsService.createForClient(dto, user.id);
+    const accessScope = this.salesService.getRequestAccessScope(user);
+    return this.requestsService.createForClient(dto, user.id, accessScope);
   }
 
   @Get("requests/:id")
@@ -87,11 +100,17 @@ export class SalesController {
     @Param() params: RequestIdParamDto,
     @CurrentUser() user: AuthUser,
   ) {
-    const canUpdateStatus = await this.requestsService.canUserUpdateStatus(user);
-    return this.requestsService.findOne(params.id, {
-      canLogContact: canUpdateStatus,
-      canUpdateStatus,
-    });
+    const canUpdateStatus =
+      await this.requestsService.canUserUpdateStatus(user);
+    const accessScope = this.salesService.getRequestAccessScope(user);
+    return this.requestsService.findOne(
+      params.id,
+      {
+        canLogContact: canUpdateStatus,
+        canUpdateStatus,
+      },
+      accessScope,
+    );
   }
 
   @Get("pipeline")
@@ -102,8 +121,13 @@ export class SalesController {
   ) {
     const canUpdateStatus =
       await this.requestsService.canUserUpdateStatus(user);
+    const accessScope = this.salesService.getRequestAccessScope(user);
 
-    return this.requestsService.findSalesPipeline(filters, canUpdateStatus);
+    return this.requestsService.findSalesPipeline(
+      filters,
+      canUpdateStatus,
+      accessScope,
+    );
   }
 
   @Post("pipeline/:id/contact-log")
@@ -113,7 +137,13 @@ export class SalesController {
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateRequestContactLogDto,
   ) {
-    return this.requestsService.addContactLog(params.id, user.id, dto);
+    const accessScope = this.salesService.getRequestAccessScope(user);
+    return this.requestsService.addContactLog(
+      params.id,
+      user.id,
+      dto,
+      accessScope,
+    );
   }
 
   @Post("pipeline/:id/status")
@@ -123,8 +153,16 @@ export class SalesController {
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateRequestStatusDto,
   ) {
+    const accessScope = this.salesService.getRequestAccessScope(user);
     return this.requestsService
-      .changeStatus(params.id, dto.toStatus, user.id, dto.note)
+      .changeStatus(
+        params.id,
+        dto.toStatus,
+        user.id,
+        dto.note,
+        undefined,
+        accessScope,
+      )
       .then((request) => ({
         request,
         allowedNextStatuses: getAllowedRequestTransitions(

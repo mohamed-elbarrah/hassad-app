@@ -7,12 +7,24 @@ import {
   ProposalStatus,
   RequestStatus,
 } from "@hassad/shared";
+import {
+  buildRequestAccessWhere,
+  getSalesRequestAccessScope,
+  type RequestAccessScope,
+} from "../requests/request-access";
 
 @Injectable()
 export class SalesService {
   constructor(private prisma: PrismaService) {}
 
-  async getMetrics(period?: string) {
+  getRequestAccessScope(user: {
+    id: string;
+    role?: string | null;
+  }): RequestAccessScope {
+    return getSalesRequestAccessScope(user);
+  }
+
+  async getMetrics(period?: string, accessScope?: RequestAccessScope) {
     const now = new Date();
     let since: Date | undefined;
 
@@ -32,8 +44,18 @@ export class SalesService {
 
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const requestWhere: Prisma.RequestWhereInput = {};
-    const contractWhere: Prisma.ContractWhereInput = {};
+    const requestScopeWhere = buildRequestAccessWhere(accessScope);
+    const requestWhere: Prisma.RequestWhereInput = {
+      ...requestScopeWhere,
+    };
+    const contractWhere: Prisma.ContractWhereInput =
+      accessScope?.assignedSalesId ? { request: requestScopeWhere } : {};
+    const proposalWhere: Prisma.ProposalWhereInput =
+      accessScope?.assignedSalesId ? { request: requestScopeWhere } : {};
+    const clientScopeWhere: Prisma.ClientWhereInput =
+      accessScope?.assignedSalesId
+        ? { requests: { some: requestScopeWhere } }
+        : {};
 
     if (since) {
       requestWhere.createdAt = { gte: since };
@@ -56,19 +78,23 @@ export class SalesService {
       dealsByStatusRows,
       valueByStageRows,
     ] = await Promise.all([
-      this.prisma.request.count({
-        where: since ? { createdAt: { gte: since } } : undefined,
+      this.prisma.request.count({ where: requestWhere }),
+      this.prisma.client.count({
+        where: { status: ClientStatus.ACTIVE, ...clientScopeWhere },
       }),
-      this.prisma.client.count({ where: { status: ClientStatus.ACTIVE } }),
-      this.prisma.client.count({ where: { status: ClientStatus.STOPPED } }),
+      this.prisma.client.count({
+        where: { status: ClientStatus.STOPPED, ...clientScopeWhere },
+      }),
       this.prisma.request.count({
         where: {
+          ...requestScopeWhere,
           status: RequestStatus.PROPOSAL_IN_PROGRESS,
           ...(since ? { createdAt: { gte: since } } : {}),
         },
       }),
       this.prisma.proposal.count({
         where: {
+          ...proposalWhere,
           status: { not: ProposalStatus.DRAFT },
           ...(since ? { createdAt: { gte: since } } : {}),
         },
@@ -79,7 +105,7 @@ export class SalesService {
       this.prisma.request.groupBy({
         by: ["status"],
         _count: { status: true },
-        where: since ? { createdAt: { gte: since } } : undefined,
+        where: requestWhere,
       }),
       this.prisma.request.count({
         where: {
@@ -124,7 +150,11 @@ export class SalesService {
         _sum: { totalValue: true },
         where: {
           status: {
-            in: [ContractStatus.SIGNED, ContractStatus.ACTIVE, ContractStatus.ON_HOLD],
+            in: [
+              ContractStatus.SIGNED,
+              ContractStatus.ACTIVE,
+              ContractStatus.ON_HOLD,
+            ],
           },
           ...contractWhere,
         },
@@ -170,7 +200,7 @@ export class SalesService {
     };
   }
 
-  async getPerformance(period?: string) {
+  async getPerformance(period?: string, accessScope?: RequestAccessScope) {
     const now = new Date();
     let since: Date;
 
@@ -192,6 +222,16 @@ export class SalesService {
         since = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
+    const requestScopeWhere = buildRequestAccessWhere(accessScope);
+    const clientScopeWhere: Prisma.ClientWhereInput =
+      accessScope?.assignedSalesId
+        ? { requests: { some: requestScopeWhere } }
+        : {};
+    const proposalWhere: Prisma.ProposalWhereInput =
+      accessScope?.assignedSalesId ? { request: requestScopeWhere } : {};
+    const contractWhere: Prisma.ContractWhereInput =
+      accessScope?.assignedSalesId ? { request: requestScopeWhere } : {};
+
     const [
       newLeads,
       convertedLeads,
@@ -201,29 +241,39 @@ export class SalesService {
       leadsBySource,
       conversionByStage,
     ] = await Promise.all([
-      this.prisma.request.count({ where: { createdAt: { gte: since } } }),
+      this.prisma.request.count({
+        where: { ...requestScopeWhere, createdAt: { gte: since } },
+      }),
       this.prisma.client.count({
-        where: { createdAt: { gte: since } },
+        where: { createdAt: { gte: since }, ...clientScopeWhere },
       }),
       this.prisma.proposal.count({
-        where: { createdAt: { gte: since } },
+        where: { ...proposalWhere, createdAt: { gte: since } },
       }),
       this.prisma.contract.count({
-        where: { status: ContractStatus.SIGNED, createdAt: { gte: since } },
+        where: {
+          ...contractWhere,
+          status: ContractStatus.SIGNED,
+          createdAt: { gte: since },
+        },
       }),
       this.prisma.contract.aggregate({
         _sum: { totalValue: true },
-        where: { status: ContractStatus.SIGNED, createdAt: { gte: since } },
+        where: {
+          ...contractWhere,
+          status: ContractStatus.SIGNED,
+          createdAt: { gte: since },
+        },
       }),
       this.prisma.request.groupBy({
         by: ["source"],
         _count: { source: true },
-        where: { createdAt: { gte: since } },
+        where: { ...requestScopeWhere, createdAt: { gte: since } },
       }),
       this.prisma.request.groupBy({
         by: ["status"],
         _count: { status: true },
-        where: { createdAt: { gte: since } },
+        where: { ...requestScopeWhere, createdAt: { gte: since } },
       }),
     ]);
 
@@ -261,9 +311,16 @@ export class SalesService {
     };
   }
 
-  async getActivity(limit: number) {
+  async getActivity(limit: number, accessScope?: RequestAccessScope) {
+    const requestScopeWhere = buildRequestAccessWhere(accessScope);
+    const proposalWhere: Prisma.ProposalWhereInput =
+      accessScope?.assignedSalesId ? { request: requestScopeWhere } : {};
+    const contractWhere: Prisma.ContractWhereInput =
+      accessScope?.assignedSalesId ? { request: requestScopeWhere } : {};
+
     const [recentLeads, recentProposals, recentContracts] = await Promise.all([
       this.prisma.request.findMany({
+        where: requestScopeWhere,
         select: {
           id: true,
           companyName: true,
@@ -275,6 +332,7 @@ export class SalesService {
         take: limit,
       }),
       this.prisma.proposal.findMany({
+        where: proposalWhere,
         select: {
           id: true,
           title: true,
@@ -286,6 +344,7 @@ export class SalesService {
         take: limit,
       }),
       this.prisma.contract.findMany({
+        where: contractWhere,
         select: {
           id: true,
           title: true,

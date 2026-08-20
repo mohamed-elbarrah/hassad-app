@@ -584,10 +584,7 @@ export default function PipelinePage() {
               {isFetching ? "جاري التحديث" : "تحديث"}
             </Button>
             <Button asChild>
-              <Link href="/dashboard/sales/requests/new">
-                <ArrowUpLeft data-icon="inline-start" />
-                طلب جديد
-              </Link>
+              <Link href="/dashboard/sales/requests/new">إنشاء طلب جديد</Link>
             </Button>
           </>
         }

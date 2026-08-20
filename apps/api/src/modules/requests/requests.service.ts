@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -19,6 +20,10 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { CanonicalClientService } from "./canonical-client.service";
 import { NotificationsService } from "../notifications/services/notifications.service";
 import { SalesAssignmentService } from "./sales-assignment.service";
+import {
+  buildRequestAccessWhere,
+  type RequestAccessScope,
+} from "./request-access";
 import {
   CreateRequestContactLogDto,
   CreateRequestDto,
@@ -110,10 +115,16 @@ export class RequestsService {
     return where;
   }
 
-  async findAll(filters?: RequestListFilters) {
-    const where = this.buildRequestWhere(filters);
-    const limit = filters?.limit ?? 100;
-    const page = filters?.page ?? 1;
+  async findAll(
+    filters?: RequestListFilters,
+    accessScope?: RequestAccessScope,
+  ) {
+    const scopedFilters = accessScope?.assignedSalesId
+      ? { ...filters, assignedSalesId: accessScope.assignedSalesId }
+      : filters;
+    const where = this.buildRequestWhere(scopedFilters);
+    const limit = scopedFilters?.limit ?? 100;
+    const page = scopedFilters?.page ?? 1;
 
     return this.prisma.request.findMany({
       where,
@@ -226,15 +237,23 @@ export class RequestsService {
   async findSalesPipeline(
     filters?: RequestListFilters,
     canUpdateStatus = false,
+    accessScope?: RequestAccessScope,
   ) {
-    const boardView = filters?.view === "board";
-    const page = filters?.page ?? 1;
-    const limit = boardView ? 500 : (filters?.limit ?? 50);
-    const excludeCancelled = !filters?.statusGroup && !filters?.status;
-    const where = this.buildRequestWhere({ ...filters, excludeCancelled });
+    const scopedFilters = accessScope?.assignedSalesId
+      ? { ...filters, assignedSalesId: accessScope.assignedSalesId }
+      : filters;
+    const boardView = scopedFilters?.view === "board";
+    const page = scopedFilters?.page ?? 1;
+    const limit = boardView ? 500 : (scopedFilters?.limit ?? 50);
+    const excludeCancelled =
+      !scopedFilters?.statusGroup && !scopedFilters?.status;
+    const where = this.buildRequestWhere({
+      ...scopedFilters,
+      excludeCancelled,
+    });
     const summaryWhere = this.buildRequestWhere({
-      ...filters,
-      excludeCancelled: !filters?.statusGroup && !filters?.status,
+      ...scopedFilters,
+      excludeCancelled,
     });
 
     const monthStart = new Date();
@@ -244,7 +263,7 @@ export class RequestsService {
     const [items, total, openDeals, proposalFlow, contractFlow, wonThisMonth] =
       await Promise.all([
         this.findAll({
-          ...filters,
+          ...scopedFilters,
           page,
           limit,
           excludeCancelled,
@@ -339,9 +358,10 @@ export class RequestsService {
   async findOne(
     id: string,
     capabilities?: { canLogContact: boolean; canUpdateStatus: boolean },
+    accessScope?: RequestAccessScope,
   ) {
-    const request = await this.prisma.request.findUnique({
-      where: { id },
+    const request = await this.prisma.request.findFirst({
+      where: { id, ...buildRequestAccessWhere(accessScope) },
       include: {
         client: {
           select: {
@@ -453,16 +473,24 @@ export class RequestsService {
     changedBy?: string | null,
     note?: string,
     tx?: Prisma.TransactionClient,
+    accessScope?: RequestAccessScope,
   ) {
     if (!tx) {
       return this.prisma.$transaction((transaction) =>
-        this.updateStatus(requestId, toStatus, changedBy, note, transaction),
+        this.updateStatus(
+          requestId,
+          toStatus,
+          changedBy,
+          note,
+          transaction,
+          accessScope,
+        ),
       );
     }
 
     const db = this.getDbClient(tx);
-    const request = await db.request.findUnique({
-      where: { id: requestId },
+    const request = await db.request.findFirst({
+      where: { id: requestId, ...buildRequestAccessWhere(accessScope) },
       select: { id: true, status: true },
     });
 
@@ -480,7 +508,11 @@ export class RequestsService {
     this.assertValidTransition(request.status as RequestStatus, toStatus);
 
     const updateResult = await db.request.updateMany({
-      where: { id: requestId, status: request.status },
+      where: {
+        id: requestId,
+        status: request.status,
+        ...buildRequestAccessWhere(accessScope),
+      },
       data: {
         status: toStatus,
         crmStage: getCrmStageForRequestStatus(toStatus),
@@ -525,8 +557,16 @@ export class RequestsService {
     changedBy: string,
     note?: string,
     tx?: Prisma.TransactionClient,
+    accessScope?: RequestAccessScope,
   ) {
-    return this.updateStatus(requestId, toStatus, changedBy, note, tx);
+    return this.updateStatus(
+      requestId,
+      toStatus,
+      changedBy,
+      note,
+      tx,
+      accessScope,
+    );
   }
 
   async createPortalRequest(
@@ -648,7 +688,11 @@ export class RequestsService {
     return createdRequest;
   }
 
-  async createForClient(dto: CreateRequestForClientDto, userId: string) {
+  async createForClient(
+    dto: CreateRequestForClientDto,
+    userId: string,
+    accessScope?: RequestAccessScope,
+  ) {
     const client = await this.prisma.client.findUnique({
       where: { id: dto.clientId },
       include: { manager: true },
@@ -666,7 +710,18 @@ export class RequestsService {
       });
     }
 
-    let salesId = client.accountManager;
+    if (
+      accessScope?.assignedSalesId &&
+      client.accountManager &&
+      client.accountManager !== accessScope.assignedSalesId
+    ) {
+      throw new ForbiddenException({
+        code: "PERMISSION_DENIED",
+        details: { resource: "CLIENT", id: dto.clientId },
+      });
+    }
+
+    let salesId = accessScope?.assignedSalesId ?? client.accountManager;
     if (!salesId) {
       const assignment = await this.salesAssignmentService.findBestSales(
         [],
@@ -1054,10 +1109,11 @@ export class RequestsService {
     requestId: string,
     userId: string,
     dto: CreateRequestContactLogDto,
+    accessScope?: RequestAccessScope,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      const request = await tx.request.findUnique({
-        where: { id: requestId },
+      const request = await tx.request.findFirst({
+        where: { id: requestId, ...buildRequestAccessWhere(accessScope) },
         select: { id: true },
       });
 
@@ -1081,21 +1137,28 @@ export class RequestsService {
         include: { user: { select: USER_SUMMARY_SELECT } },
       });
 
-      await tx.request.update({
-        where: { id: requestId },
+      const updateResult = await tx.request.updateMany({
+        where: { id: requestId, ...buildRequestAccessWhere(accessScope) },
         data: {
           contactAttemptCount: { increment: 1 },
           lastContactAt: contactedAt,
         },
       });
 
+      if (updateResult.count !== 1) {
+        throw new NotFoundException({
+          code: "REQUEST_NOT_FOUND",
+          details: { id: requestId },
+        });
+      }
+
       return log;
     });
   }
 
-  async getContactLogs(requestId: string) {
-    const request = await this.prisma.request.findUnique({
-      where: { id: requestId },
+  async getContactLogs(requestId: string, accessScope?: RequestAccessScope) {
+    const request = await this.prisma.request.findFirst({
+      where: { id: requestId, ...buildRequestAccessWhere(accessScope) },
       select: { id: true },
     });
 

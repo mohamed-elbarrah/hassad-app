@@ -19,6 +19,7 @@ import {
 import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
 import { RequestIdParamDto, RequestQueryDto } from "./dto/request-query.dto";
 import { RequestsService } from "./requests.service";
+import { getGenericRequestAccessScope } from "./request-access";
 
 type AuthUser = { id: string; role?: string | null };
 
@@ -29,8 +30,9 @@ export class RequestsController {
 
   @Get()
   @RequirePermissions("requests.read")
-  findAll(@Query() filters: RequestQueryDto) {
-    return this.requestsService.findAll(filters);
+  findAll(@Query() filters: RequestQueryDto, @CurrentUser() user: AuthUser) {
+    const accessScope = getGenericRequestAccessScope(user);
+    return this.requestsService.findAll(filters, accessScope);
   }
 
   @Get(":id")
@@ -43,10 +45,15 @@ export class RequestsController {
       id: user.id,
       role: user.role ?? undefined,
     });
-    return this.requestsService.findOne(params.id, {
-      canLogContact: canUpdateStatus,
-      canUpdateStatus,
-    });
+    const accessScope = getGenericRequestAccessScope(user);
+    return this.requestsService.findOne(
+      params.id,
+      {
+        canLogContact: canUpdateStatus,
+        canUpdateStatus,
+      },
+      accessScope,
+    );
   }
 
   @Post()
@@ -65,11 +72,14 @@ export class RequestsController {
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateRequestStatusDto,
   ) {
+    const accessScope = getGenericRequestAccessScope(user);
     return this.requestsService.changeStatus(
       params.id,
       dto.toStatus,
       user.id,
       dto.note,
+      undefined,
+      accessScope,
     );
   }
 
@@ -80,13 +90,23 @@ export class RequestsController {
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateRequestContactLogDto,
   ) {
-    return this.requestsService.addContactLog(params.id, user.id, dto);
+    const accessScope = getGenericRequestAccessScope(user);
+    return this.requestsService.addContactLog(
+      params.id,
+      user.id,
+      dto,
+      accessScope,
+    );
   }
 
   @Get(":id/contact-log")
   @RequirePermissions("requests.read")
-  getContactLogs(@Param() params: RequestIdParamDto) {
-    return this.requestsService.getContactLogs(params.id);
+  getContactLogs(
+    @Param() params: RequestIdParamDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const accessScope = getGenericRequestAccessScope(user);
+    return this.requestsService.getContactLogs(params.id, accessScope);
   }
 
   @Post("for-client")
@@ -95,6 +115,7 @@ export class RequestsController {
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateRequestForClientDto,
   ) {
-    return this.requestsService.createForClient(dto, user.id);
+    const accessScope = getGenericRequestAccessScope(user);
+    return this.requestsService.createForClient(dto, user.id, accessScope);
   }
 }
