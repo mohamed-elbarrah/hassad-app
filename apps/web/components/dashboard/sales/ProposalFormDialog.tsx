@@ -23,7 +23,7 @@ import {
   salesWorkflowValidationMessages,
 } from "@/lib/i18n";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -52,7 +52,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
+import { CalculatedAmount } from "@/components/ui/calculated-amount";
+import { CurrencyInput } from "@/components/ui/currency-input";
 
 const proposalFormSchema = z.object({
   requestId: z.string().min(1, "اختر الطلب المرتبط"),
@@ -270,7 +271,7 @@ export function ProposalFormDialog({
               className="flex flex-col gap-5"
             >
               <input type="hidden" {...form.register("requestId")} />
-              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-right">
+              <div className=" rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-right">
                 <p className="text-sm font-medium text-foreground">
                   الطلب المرتبط
                 </p>
@@ -326,7 +327,7 @@ export function ProposalFormDialog({
                 {fields.map((field, index) => (
                   <div
                     key={field.id}
-                    className="grid gap-3 rounded-lg border p-3 md:grid-cols-[minmax(0,1fr)_160px_auto]"
+                    className="grid gap-3  rounded-xl  p-3 md:grid-cols-[minmax(0,1fr)_160px_auto]"
                   >
                     <FormField
                       control={form.control}
@@ -348,7 +349,7 @@ export function ProposalFormDialog({
                         <FormItem>
                           <FormLabel>السعر</FormLabel>
                           <FormControl>
-                            <Input
+                            <CurrencyInput
                               type="number"
                               min="0"
                               step="0.01"
@@ -363,7 +364,7 @@ export function ProposalFormDialog({
                       )}
                     />
                     <div className="flex items-end">
-                      <ActionButton
+                      <Button
                         type="button"
                         variant="ghost"
                         size="sm"
@@ -372,7 +373,7 @@ export function ProposalFormDialog({
                         onClick={() => remove(index)}
                       >
                         <Trash2 data-icon="inline-start" />
-                      </ActionButton>
+                      </Button>
                     </div>
                     <FormField
                       control={form.control}
@@ -393,7 +394,7 @@ export function ProposalFormDialog({
                     />
                   </div>
                 ))}
-                <ActionButton
+                <Button
                   type="button"
                   variant="outline"
                   className="self-start"
@@ -403,7 +404,7 @@ export function ProposalFormDialog({
                 >
                   <Plus data-icon="inline-start" />
                   إضافة خدمة
-                </ActionButton>
+                </Button>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -413,22 +414,12 @@ export function ProposalFormDialog({
                   render={({ field }) => (
                     <FormItem className="flex-1">
                       <FormLabel>الإجمالي المحسوب</FormLabel>
-                      <div className="relative">
-                        <FormControl>
-                          <Input
-                            aria-label="الإجمالي المحسوب"
-                            className="pointer-events-none bg-muted/40 pl-16 text-right"
-                            type="text"
-                            readOnly
-                            tabIndex={-1}
-                            aria-readonly="true"
-                            value={String(field.value ?? 0)}
-                          />
-                        </FormControl>
-                        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-input px-3 text-sm text-muted-foreground">
-                          <CurrencySymbol />
-                        </span>
-                      </div>
+                      <FormControl>
+                        <CalculatedAmount
+                          ariaLabel="الإجمالي المحسوب"
+                          value={Number(field.value ?? 0)}
+                        />
+                      </FormControl>
                       <FormDescription>
                         يتم حساب الإجمالي تلقائياً من أسعار الخدمات.
                       </FormDescription>
@@ -541,7 +532,7 @@ export function ProposalFormDialog({
                     <span className="min-w-0 flex-1 truncate" dir="ltr">
                       {shareLink}
                     </span>
-                    <ActionButton
+                    <Button
                       type="button"
                       variant="outline"
                       size="sm"
@@ -549,7 +540,7 @@ export function ProposalFormDialog({
                     >
                       <Copy data-icon="inline-start" />
                       نسخ الرابط
-                    </ActionButton>
+                    </Button>
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -558,14 +549,14 @@ export function ProposalFormDialog({
         </div>
 
         <DialogFooter className="shrink-0 flex-row-reverse justify-start gap-3 border-t bg-background px-6 py-4">
-          <ActionButton
+          <Button
             type="button"
             variant="destructive"
             onClick={() => handleOpenChange(false)}
           >
             إلغاء
-          </ActionButton>
-          <ActionButton
+          </Button>
+          <Button
             type="submit"
             form="proposal-form"
             disabled={isSubmitting || Boolean(shareLink)}
@@ -580,7 +571,7 @@ export function ProposalFormDialog({
               : isEdit
                 ? "حفظ التعديلات"
                 : "إنشاء العرض"}
-          </ActionButton>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

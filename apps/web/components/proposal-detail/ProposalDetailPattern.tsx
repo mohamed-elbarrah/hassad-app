@@ -2,11 +2,26 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CheckCircle2, Download, FileText, Inbox, MessageSquare, PenLine, TrendingUp, Users } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  FileText,
+  Inbox,
+  MessageSquare,
+  PenLine,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { PROPOSAL_STATUS_AR, ProposalStatus } from "@hassad/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -15,7 +30,14 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
@@ -72,7 +94,13 @@ function proposalVariant(status?: string | null) {
   }
 }
 
-function EmptyPanel({ title, description }: { title: string; description: string }) {
+function EmptyPanel({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   return (
     <Empty className="border bg-muted/20 p-8">
       <EmptyMedia variant="icon">
@@ -88,7 +116,7 @@ function EmptyPanel({ title, description }: { title: string; description: string
 
 function InfoField({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border p-4">
+    <div className="flex flex-col gap-2  rounded-xl border p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="text-sm font-medium">{value || "—"}</p>
     </div>
@@ -101,7 +129,7 @@ export function ProposalDetailLoading() {
       <Card>
         <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-start md:justify-between">
           <div className="flex gap-4">
-            <Skeleton className="size-20 rounded-lg" />
+            <Skeleton className="size-20  rounded-xl" />
             <div className="flex flex-col gap-3">
               <Skeleton className="h-8 w-56" />
               <Skeleton className="h-4 w-72" />
@@ -121,7 +149,7 @@ export function ProposalDetailLoading() {
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-7 w-20" />
               </div>
-              <Skeleton className="size-10 rounded-lg" />
+              <Skeleton className="size-10  rounded-xl" />
             </CardContent>
           </Card>
         ))}
@@ -165,7 +193,7 @@ export function ProposalDetailView({
         <CardContent className="flex flex-col gap-5 p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
-              <div className="flex size-20 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <div className="flex size-20 items-center justify-center  rounded-xl bg-muted text-muted-foreground">
                 <FileText className="size-10" />
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -174,7 +202,8 @@ export function ProposalDetailView({
                     {proposal.title}
                   </h2>
                   <Badge variant={proposalVariant(proposal.status)}>
-                    {PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] || proposal.status}
+                    {PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] ||
+                      proposal.status}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -195,9 +224,15 @@ export function ProposalDetailView({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">القيمة: {formatCurrency(proposal.totalPrice)}</Badge>
-            <Badge variant="outline">الخدمات: {formatNumber(services.length)}</Badge>
-            <Badge variant="outline">الإنشاء: {formatDateTime(proposal.createdAt)}</Badge>
+            <Badge variant="outline">
+              القيمة: {formatCurrency(proposal.totalPrice)}
+            </Badge>
+            <Badge variant="outline">
+              الخدمات: {formatNumber(services.length)}
+            </Badge>
+            <Badge variant="outline">
+              الإنشاء: {formatDateTime(proposal.createdAt)}
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -205,19 +240,45 @@ export function ProposalDetailView({
       {!isClientAudience ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
-            { label: "قيمة العرض", value: formatCurrency(proposal.totalPrice), hint: "القيمة الإجمالية", icon: TrendingUp },
-            { label: "الحالة", value: PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] || proposal.status, hint: "مرحلة العرض الحالية", icon: CheckCircle2 },
-            { label: "العميل", value: companyLabel, hint: "الجهة المرتبطة", icon: Users },
-            { label: "الخدمات", value: formatNumber(services.length), hint: "عدد الخدمات المضمنة", icon: FileText },
+            {
+              label: "قيمة العرض",
+              value: formatCurrency(proposal.totalPrice),
+              hint: "القيمة الإجمالية",
+              icon: TrendingUp,
+            },
+            {
+              label: "الحالة",
+              value:
+                PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] ||
+                proposal.status,
+              hint: "مرحلة العرض الحالية",
+              icon: CheckCircle2,
+            },
+            {
+              label: "العميل",
+              value: companyLabel,
+              hint: "الجهة المرتبطة",
+              icon: Users,
+            },
+            {
+              label: "الخدمات",
+              value: formatNumber(services.length),
+              hint: "عدد الخدمات المضمنة",
+              icon: FileText,
+            },
           ].map((item) => (
             <Card key={item.label}>
               <CardContent className="flex items-start justify-between gap-4 p-5">
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {item.label}
+                  </span>
                   <span className="text-lg font-semibold">{item.value}</span>
-                  <span className="text-sm text-muted-foreground">{item.hint}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {item.hint}
+                  </span>
                 </div>
-                <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <div className="flex size-10 items-center justify-center  rounded-xl bg-muted text-muted-foreground">
                   <item.icon />
                 </div>
               </CardContent>
@@ -231,31 +292,60 @@ export function ProposalDetailView({
           <Card>
             <CardHeader className="gap-2">
               <CardTitle>بيانات العرض</CardTitle>
-              <CardDescription>البيانات التشغيلية والتجارية الأساسية لهذا العرض.</CardDescription>
+              <CardDescription>
+                البيانات التشغيلية والتجارية الأساسية لهذا العرض.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <InfoField label="عنوان العرض" value={proposal.title} />
-              <InfoField label="الحالة" value={PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] || proposal.status} />
-              <InfoField label="العميل" value={proposal.client?.companyName || "—"} />
-              <InfoField label="العميل المحتمل / الطلب" value={proposal.request?.companyName || proposal.lead?.companyName || "—"} />
+              <InfoField
+                label="الحالة"
+                value={
+                  PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] ||
+                  proposal.status
+                }
+              />
+              <InfoField
+                label="العميل"
+                value={proposal.client?.companyName || "—"}
+              />
+              <InfoField
+                label="العميل المحتمل / الطلب"
+                value={
+                  proposal.request?.companyName ||
+                  proposal.lead?.companyName ||
+                  "—"
+                }
+              />
               <InfoField label="المرسل" value={proposal.creator?.name || "—"} />
-              <InfoField label="تاريخ الإنشاء" value={formatDateTime(proposal.createdAt)} />
+              <InfoField
+                label="تاريخ الإنشاء"
+                value={formatDateTime(proposal.createdAt)}
+              />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="gap-2">
               <CardTitle>الربط والتحويل</CardTitle>
-              <CardDescription>العناصر المرتبطة وما نتج عن هذا العرض داخل النظام.</CardDescription>
+              <CardDescription>
+                العناصر المرتبطة وما نتج عن هذا العرض داخل النظام.
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <div className="rounded-lg border p-4">
+              <div className=" rounded-xl border p-4">
                 <p className="text-sm text-muted-foreground">الطلب / الفرصة</p>
-                <p className="mt-2 text-sm font-medium">{proposal.request?.companyName || proposal.lead?.companyName || "—"}</p>
+                <p className="mt-2 text-sm font-medium">
+                  {proposal.request?.companyName ||
+                    proposal.lead?.companyName ||
+                    "—"}
+                </p>
               </div>
-              <div className="rounded-lg border p-4">
+              <div className=" rounded-xl border p-4">
                 <p className="text-sm text-muted-foreground">العقد الناتج</p>
-                <p className="mt-2 text-sm font-medium">{proposal.contract?.title || "لا يوجد عقد مرتبط بعد"}</p>
+                <p className="mt-2 text-sm font-medium">
+                  {proposal.contract?.title || "لا يوجد عقد مرتبط بعد"}
+                </p>
               </div>
               {relatedAction}
             </CardContent>
@@ -267,7 +357,9 @@ export function ProposalDetailView({
         {!isClientAudience ? (
           <CardHeader className="gap-2">
             <CardTitle>تفاصيل العرض</CardTitle>
-            <CardDescription>تنقل سريع داخل بطاقة واحدة بين الخدمات والملف والاستجابة.</CardDescription>
+            <CardDescription>
+              تنقل سريع داخل بطاقة واحدة بين الخدمات والملف والاستجابة.
+            </CardDescription>
           </CardHeader>
         ) : null}
         <CardContent className={isClientAudience ? "p-4 sm:p-6" : undefined}>
@@ -285,7 +377,7 @@ export function ProposalDetailView({
                   description="لم يتم إرفاق قائمة خدمات مفصلة لهذا العرض."
                 />
               ) : (
-                <div className="overflow-hidden rounded-lg border">
+                <div className="overflow-hidden  rounded-xl border">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -296,7 +388,9 @@ export function ProposalDetailView({
                     <TableBody>
                       {services.map((service, index) => (
                         <TableRow key={`${service.name}-${index}`}>
-                          <TableCell className="font-medium">{service.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {service.name}
+                          </TableCell>
                           <TableCell>{formatCurrency(service.price)}</TableCell>
                         </TableRow>
                       ))}
@@ -308,14 +402,18 @@ export function ProposalDetailView({
 
             <TabsContent value="document" className="mt-0">
               {fileUrl ? (
-                <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="flex items-center justify-between  rounded-xl border p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <div className="flex size-10 items-center justify-center  rounded-xl bg-muted text-muted-foreground">
                       <Download />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">ملف العرض الفني</span>
-                      <span className="text-xs text-muted-foreground">تحميل الملف لمراجعة التفاصيل الكاملة</span>
+                      <span className="text-sm font-medium">
+                        ملف العرض الفني
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        تحميل الملف لمراجعة التفاصيل الكاملة
+                      </span>
                     </div>
                   </div>
                   <Button asChild variant="outline">
@@ -369,15 +467,17 @@ export function ProposalClientResponseArea({
   if (!canRespond) {
     const label = PROPOSAL_STATUS_AR[status as ProposalStatus] || status;
     return (
-      <div className="rounded-lg border p-4">
+      <div className=" rounded-xl border p-4">
         <p className="text-sm font-medium">حالة الاستجابة الحالية</p>
-        <p className="mt-2 text-sm text-muted-foreground">العرض حالياً في حالة: {label}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          العرض حالياً في حالة: {label}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border p-4">
+    <div className="flex flex-col gap-4  rounded-xl border p-4">
       <div className="flex items-center gap-2">
         <MessageSquare className="size-4 text-muted-foreground" />
         <p className="text-sm font-medium">ردّ العميل على العرض</p>
@@ -393,7 +493,11 @@ export function ProposalClientResponseArea({
           <CheckCircle2 data-icon="inline-start" />
           {approving ? "جارٍ الاعتماد..." : "موافقة على العرض"}
         </Button>
-        <Button variant="outline" onClick={onRevision} disabled={approving || requesting}>
+        <Button
+          variant="outline"
+          onClick={onRevision}
+          disabled={approving || requesting}
+        >
           <PenLine data-icon="inline-start" />
           {requesting ? "جارٍ الإرسال..." : "طلب تعديل"}
         </Button>

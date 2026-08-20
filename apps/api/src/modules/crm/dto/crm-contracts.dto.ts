@@ -34,6 +34,7 @@ export class CrmContractsWorkspaceQueryDto {
 
   @IsOptional()
   @IsString()
+  @IsIn(["FIXED_PROJECT", "MONTHLY_RETAINER"])
   type?: string;
 
   @IsOptional()
@@ -91,6 +92,7 @@ export class CrmCreateContractDto {
   title!: string;
 
   @IsString()
+  @IsIn(["FIXED_PROJECT", "MONTHLY_RETAINER"])
   type!: string;
 
   @IsOptional()

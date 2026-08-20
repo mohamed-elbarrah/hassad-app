@@ -6,6 +6,7 @@ import {
   IsDateString,
   IsOptional,
   IsInt,
+  IsIn,
   Min,
   ValidateNested,
   ArrayMinSize,
@@ -25,7 +26,7 @@ export class CreateContractDto {
   @IsString()
   title: string;
 
-  @IsEnum(ContractType)
+  @IsIn([ContractType.FIXED_PROJECT, ContractType.MONTHLY_RETAINER])
   type: ContractType;
 
   @IsOptional()

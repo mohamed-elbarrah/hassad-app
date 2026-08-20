@@ -97,7 +97,7 @@ type PipelineFilterGroup = "all" | SalesPipelineGroup;
 type PipelineWorkflowDialog =
   | { type: "proposal"; mode: "create"; requestId: string }
   | { type: "proposal"; mode: "edit"; proposalId: string }
-  | { type: "contract"; mode: "create"; requestId: string }
+  | { type: "contract"; mode: "create"; requestId: string; proposalId: string }
   | { type: "contract"; mode: "edit"; contractId: string };
 
 const STATUS_GROUP_OPTIONS: PipelineFilterGroup[] = [
@@ -315,7 +315,12 @@ export default function PipelinePage() {
     setWorkflowDialog(
       contractId
         ? { type: "contract", mode: "edit", contractId }
-        : { type: "contract", mode: "create", requestId: request.id },
+        : {
+            type: "contract",
+            mode: "create",
+            requestId: request.id,
+            proposalId: request.proposals?.[0]?.id ?? "",
+          },
     );
   }
 
@@ -840,6 +845,7 @@ export default function PipelinePage() {
         <CreateContractDialog
           mode="create"
           preSelectedRequestId={workflowDialog.requestId}
+          proposalId={workflowDialog.proposalId}
           open
           onOpenChange={handleWorkflowDialogChange}
         />

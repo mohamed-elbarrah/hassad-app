@@ -14,8 +14,15 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { PROPOSAL_STATUS_AR, ProposalStatus, type ProposalStatus as ProposalStatusType } from "@hassad/shared";
-import { useGetProposalsQuery, type ProposalListItem } from "@/features/proposals/proposalsApi";
+import {
+  PROPOSAL_STATUS_AR,
+  ProposalStatus,
+  type ProposalStatus as ProposalStatusType,
+} from "@hassad/shared";
+import {
+  useGetProposalsQuery,
+  type ProposalListItem,
+} from "@/features/proposals/proposalsApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +33,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Empty,
   EmptyContent,
@@ -44,7 +57,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -55,7 +74,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatDateTime, formatNumber, formatRelativeTime } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDateTime,
+  formatNumber,
+  formatRelativeTime,
+} from "@/lib/format";
 
 const PAGE_SIZE = 12;
 
@@ -102,7 +126,8 @@ function getSourceLabel(proposal: ProposalListItem) {
 
 function getOpenRelatedHref(proposal: ProposalListItem) {
   if (proposal.client) return `/dashboard/sales/clients/${proposal.client.id}`;
-  if (proposal.request) return `/dashboard/sales/requests/${proposal.request.id}`;
+  if (proposal.request)
+    return `/dashboard/sales/requests/${proposal.request.id}`;
   return null;
 }
 
@@ -233,8 +258,12 @@ function ProposalIdentity({ proposal }: { proposal: ProposalListItem }) {
         {getInitials(company)}
       </div>
       <div className="flex min-w-0 flex-col gap-1">
-        <span className="truncate font-semibold text-foreground">{proposal.title}</span>
-        <span className="truncate text-sm text-muted-foreground">{company}</span>
+        <span className="truncate font-semibold text-foreground">
+          {proposal.title}
+        </span>
+        <span className="truncate text-sm text-muted-foreground">
+          {company}
+        </span>
       </div>
     </div>
   );
@@ -245,7 +274,9 @@ function ProposalCard({ proposal }: { proposal: ProposalListItem }) {
   const relatedHref = getOpenRelatedHref(proposal);
   const company = getCompanyLabel(proposal);
   const contact = getContactLabel(proposal);
-  const sentLabel = proposal.sentAt ? formatRelativeTime(String(proposal.sentAt)) : "غير مرسل بعد";
+  const sentLabel = proposal.sentAt
+    ? formatRelativeTime(String(proposal.sentAt))
+    : "غير مرسل بعد";
 
   return (
     <Card className="transition-colors hover:border-primary/40">
@@ -253,48 +284,60 @@ function ProposalCard({ proposal }: { proposal: ProposalListItem }) {
         <div className="flex items-start justify-between gap-3">
           <ProposalIdentity proposal={proposal} />
           <Badge variant={statusVariant(proposal.status as ProposalStatusType)}>
-            {PROPOSAL_STATUS_AR[proposal.status as ProposalStatusType] || proposal.status}
+            {PROPOSAL_STATUS_AR[proposal.status as ProposalStatusType] ||
+              proposal.status}
           </Badge>
         </div>
 
         <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/30 p-3">
+          <div className="flex flex-col gap-1  rounded-xl bg-muted/30 p-3">
             <span className="text-xs text-muted-foreground">الجهة</span>
             <span className="font-medium">{company}</span>
             <span className="text-xs text-muted-foreground">{contact}</span>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/30 p-3">
+          <div className="flex flex-col gap-1  rounded-xl bg-muted/30 p-3">
             <span className="text-xs text-muted-foreground">المصدر</span>
             <span className="font-medium">{getSourceLabel(proposal)}</span>
             <span className="text-xs text-muted-foreground">
-              {proposal.sentAt ? `آخر إرسال: ${sentLabel}` : "جاهز للإرسال أو التعديل"}
+              {proposal.sentAt
+                ? `آخر إرسال: ${sentLabel}`
+                : "جاهز للإرسال أو التعديل"}
             </span>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3">
+          <div className="flex flex-col gap-1  rounded-xl border bg-muted/30 p-3">
             <span className="text-xs text-muted-foreground">القيمة</span>
-            <span className="font-semibold">{formatCurrency(proposal.totalPrice)}</span>
-            <span className="text-xs text-muted-foreground">{formatNumber(proposal.servicesList?.length ?? 0)} خدمات</span>
+            <span className="font-semibold">
+              {formatCurrency(proposal.totalPrice)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatNumber(proposal.servicesList?.length ?? 0)} خدمات
+            </span>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3">
+          <div className="flex flex-col gap-1  rounded-xl border bg-muted/30 p-3">
             <span className="text-xs text-muted-foreground">الإنشاء</span>
-            <span className="font-semibold">{formatDateTime(proposal.createdAt)}</span>
+            <span className="font-semibold">
+              {formatDateTime(proposal.createdAt)}
+            </span>
             <span className="text-xs text-muted-foreground">{sentLabel}</span>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3">
+          <div className="flex flex-col gap-1  rounded-xl border bg-muted/30 p-3">
             <span className="text-xs text-muted-foreground">المدة</span>
             <span className="font-semibold">
               {formatNumber(proposal.durationDays)} يوم
             </span>
-            <span className="text-xs text-muted-foreground">
-            </span>
+            <span className="text-xs text-muted-foreground"></span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>{proposal.shareLinkToken ? "يوجد رابط مشاركة" : "لا يوجد رابط مشاركة حتى الآن"}</span>
+          <span>
+            {proposal.shareLinkToken
+              ? "يوجد رابط مشاركة"
+              : "لا يوجد رابط مشاركة حتى الآن"}
+          </span>
           <div className="flex flex-wrap gap-2">
             {relatedHref ? (
               <Button variant="outline" size="sm" asChild>
@@ -341,7 +384,8 @@ function ProposalRow({ proposal }: { proposal: ProposalListItem }) {
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant(proposal.status as ProposalStatusType)}>
-          {PROPOSAL_STATUS_AR[proposal.status as ProposalStatusType] || proposal.status}
+          {PROPOSAL_STATUS_AR[proposal.status as ProposalStatusType] ||
+            proposal.status}
         </Badge>
       </TableCell>
       <TableCell>
@@ -362,7 +406,9 @@ function ProposalRow({ proposal }: { proposal: ProposalListItem }) {
         <div className="flex flex-col gap-1">
           <span>{formatDateTime(proposal.createdAt)}</span>
           <span className="text-xs text-muted-foreground">
-            {proposal.sentAt ? `أُرسل ${formatRelativeTime(String(proposal.sentAt))}` : "لم يُرسل بعد"}
+            {proposal.sentAt
+              ? `أُرسل ${formatRelativeTime(String(proposal.sentAt))}`
+              : "لم يُرسل بعد"}
           </span>
         </div>
       </TableCell>
@@ -383,7 +429,9 @@ function ProposalRow({ proposal }: { proposal: ProposalListItem }) {
               asChild
               onClick={(event) => event.stopPropagation()}
             >
-              <Link href={relatedHref}>{proposal.client ? "العميل" : "الطلب"}</Link>
+              <Link href={relatedHref}>
+                {proposal.client ? "العميل" : "الطلب"}
+              </Link>
             </Button>
           ) : null}
           <Button
@@ -406,17 +454,14 @@ function ProposalRow({ proposal }: { proposal: ProposalListItem }) {
 export default function SalesProposalsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ALL" | ProposalStatusType>("ALL");
-  const [source, setSource] = useState<"ALL" | "client" | "request" | "lead">("ALL");
+  const [source, setSource] = useState<"ALL" | "client" | "request" | "lead">(
+    "ALL",
+  );
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
 
-  const {
-    data,
-    isLoading,
-    isError,
-    isFetching,
-    refetch,
-  } = useGetProposalsQuery({ limit: 1000 });
+  const { data, isLoading, isError, isFetching, refetch } =
+    useGetProposalsQuery({ limit: 1000 });
 
   const proposals = useMemo(() => data?.items ?? [], [data]);
 
@@ -424,8 +469,15 @@ export default function SalesProposalsPage() {
     const query = deferredSearch.trim().toLowerCase();
 
     return proposals.filter((proposal) => {
-      const matchesStatus = status === "ALL" ? true : proposal.status === status;
-      const proposalSource = proposal.client ? "client" : proposal.request ? "request" : proposal.lead ? "lead" : "unknown";
+      const matchesStatus =
+        status === "ALL" ? true : proposal.status === status;
+      const proposalSource = proposal.client
+        ? "client"
+        : proposal.request
+          ? "request"
+          : proposal.lead
+            ? "lead"
+            : "unknown";
       const matchesSource = source === "ALL" ? true : proposalSource === source;
       const matchesSearch = !query
         ? true
@@ -449,15 +501,27 @@ export default function SalesProposalsPage() {
 
   const metrics = useMemo(() => {
     const total = proposals.length;
-    const sent = proposals.filter((proposal) => proposal.status === ProposalStatus.SENT).length;
-    const approved = proposals.filter((proposal) => proposal.status === ProposalStatus.APPROVED).length;
-    const revision = proposals.filter((proposal) => proposal.status === ProposalStatus.REVISION_REQUESTED).length;
-    const value = proposals.reduce((sum, proposal) => sum + (proposal.totalPrice ?? 0), 0);
+    const sent = proposals.filter(
+      (proposal) => proposal.status === ProposalStatus.SENT,
+    ).length;
+    const approved = proposals.filter(
+      (proposal) => proposal.status === ProposalStatus.APPROVED,
+    ).length;
+    const revision = proposals.filter(
+      (proposal) => proposal.status === ProposalStatus.REVISION_REQUESTED,
+    ).length;
+    const value = proposals.reduce(
+      (sum, proposal) => sum + (proposal.totalPrice ?? 0),
+      0,
+    );
 
     return { total, sent, approved, revision, value };
   }, [proposals]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredProposals.length / PAGE_SIZE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProposals.length / PAGE_SIZE),
+  );
   const currentPage = Math.min(page, totalPages);
   const pagedProposals = filteredProposals.slice(
     (currentPage - 1) * PAGE_SIZE,
@@ -480,7 +544,8 @@ export default function SalesProposalsPage() {
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل العروض</EmptyTitle>
                 <EmptyDescription>
-                  حدث خطأ أثناء جلب قائمة عروض الأسعار لفريق المبيعات. حاول مرة أخرى.
+                  حدث خطأ أثناء جلب قائمة عروض الأسعار لفريق المبيعات. حاول مرة
+                  أخرى.
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
@@ -523,15 +588,23 @@ export default function SalesProposalsPage() {
                 <FileText />
               </div>
               <div className="flex flex-col gap-2">
-                <CardTitle className="text-2xl sm:text-3xl">عروض المبيعات</CardTitle>
+                <CardTitle className="text-2xl sm:text-3xl">
+                  عروض المبيعات
+                </CardTitle>
                 <CardDescription className="max-w-3xl text-sm sm:text-base">
-                  متابعة عروض الأسعار من لحظة الإنشاء وحتى الإرسال والاعتماد، مع وصول سريع
-                  إلى الطلب أو العميل المرتبط بكل عرض.
+                  متابعة عروض الأسعار من لحظة الإنشاء وحتى الإرسال والاعتماد، مع
+                  وصول سريع إلى الطلب أو العميل المرتبط بكل عرض.
                 </CardDescription>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">إجمالي العروض: {formatNumber(metrics.total)}</Badge>
-                  <Badge variant="outline">مرسلة: {formatNumber(metrics.sent)}</Badge>
-                  <Badge variant="outline">قيد المراجعة: {formatNumber(metrics.revision)}</Badge>
+                  <Badge variant="outline">
+                    إجمالي العروض: {formatNumber(metrics.total)}
+                  </Badge>
+                  <Badge variant="outline">
+                    مرسلة: {formatNumber(metrics.sent)}
+                  </Badge>
+                  <Badge variant="outline">
+                    قيد المراجعة: {formatNumber(metrics.revision)}
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -539,7 +612,10 @@ export default function SalesProposalsPage() {
 
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw data-icon="inline-start" className={isFetching ? "animate-spin" : undefined} />
+              <RefreshCw
+                data-icon="inline-start"
+                className={isFetching ? "animate-spin" : undefined}
+              />
               {isFetching ? "جاري التحديث" : "تحديث"}
             </Button>
             <Button variant="outline" size="sm" asChild>
@@ -618,11 +694,13 @@ export default function SalesProposalsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">كل الحالات</SelectItem>
-                {(Object.values(ProposalStatus) as ProposalStatusType[]).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {PROPOSAL_STATUS_AR[value]}
-                  </SelectItem>
-                ))}
+                {(Object.values(ProposalStatus) as ProposalStatusType[]).map(
+                  (value) => (
+                    <SelectItem key={value} value={value}>
+                      {PROPOSAL_STATUS_AR[value]}
+                    </SelectItem>
+                  ),
+                )}
               </SelectContent>
             </Select>
 
@@ -646,9 +724,11 @@ export default function SalesProposalsPage() {
               </SelectContent>
             </Select>
 
-            <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
+            <div className="flex items-center justify-between gap-3  rounded-xl border bg-muted/20 px-4 py-3 text-sm">
               <span className="text-muted-foreground">النتائج الحالية</span>
-              <span className="font-semibold">{formatNumber(filteredProposals.length)}</span>
+              <span className="font-semibold">
+                {formatNumber(filteredProposals.length)}
+              </span>
             </div>
           </div>
 
@@ -663,7 +743,8 @@ export default function SalesProposalsPage() {
                 <EmptyHeader>
                   <EmptyTitle>لا توجد نتائج مطابقة</EmptyTitle>
                   <EmptyDescription>
-                    جرّب تعديل البحث أو تغيير الحالة والمصدر للرجوع إلى قائمة العروض.
+                    جرّب تعديل البحث أو تغيير الحالة والمصدر للرجوع إلى قائمة
+                    العروض.
                   </EmptyDescription>
                 </EmptyHeader>
                 <EmptyContent>
@@ -718,7 +799,9 @@ export default function SalesProposalsPage() {
                     <PaginationItem>
                       <PaginationPrevious
                         text="السابق"
-                        onClick={() => setPage((current) => Math.max(1, current - 1))}
+                        onClick={() =>
+                          setPage((current) => Math.max(1, current - 1))
+                        }
                         disabled={currentPage === 1}
                       />
                     </PaginationItem>
@@ -741,7 +824,11 @@ export default function SalesProposalsPage() {
                     <PaginationItem>
                       <PaginationNext
                         text="التالي"
-                        onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                        onClick={() =>
+                          setPage((current) =>
+                            Math.min(totalPages, current + 1),
+                          )
+                        }
                         disabled={currentPage === totalPages}
                       />
                     </PaginationItem>

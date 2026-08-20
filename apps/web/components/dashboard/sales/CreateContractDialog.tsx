@@ -17,14 +17,8 @@ import {
   salesWorkflowErrorMessage,
   salesWorkflowValidationMessages,
 } from "@/lib/i18n";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CalculatedAmount } from "@/components/ui/calculated-amount";
 import {
   Dialog,
   DialogContent,
@@ -61,6 +55,7 @@ const contractFormSchema = z
     type: z.nativeEnum(ContractType),
     monthlyValue: z.coerce.number().nonnegative().optional(),
     totalValue: z.coerce.number().nonnegative().optional(),
+    numberOfMonths: z.coerce.number().int().positive().optional(),
     startDate: z.string().min(1, "تاريخ البداية مطلوب"),
     endDate: z.string().min(1, "تاريخ النهاية مطلوب"),
   })
@@ -90,8 +85,7 @@ export interface CreateContractDialogProps {
   preSelectedRequestId?: string;
 }
 
-const contractTypeLabels: Record<ContractType, string> = {
-  [ContractType.ONE_TIME_SERVICE]: "خدمة لمرة واحدة",
+const contractTypeLabels: Partial<Record<ContractType, string>> = {
   [ContractType.MONTHLY_RETAINER]: "اشتراك شهري",
   [ContractType.FIXED_PROJECT]: "مشروع ثابت",
 };
@@ -105,9 +99,10 @@ function getDefaultValues(
     requestId: contract?.requestId ?? requestId,
     proposalId: contract?.proposalId ?? proposalId,
     title: contract?.title ?? "",
-    type: contract?.type ?? ContractType.ONE_TIME_SERVICE,
+    type: contract?.type ?? ContractType.FIXED_PROJECT,
     monthlyValue: contract?.monthlyValue ?? 0,
     totalValue: contract?.totalValue ?? 0,
+    numberOfMonths: contract?.numberOfMonths ?? 1,
     startDate: contract?.startDate
       ? String(contract.startDate).split("T")[0]
       : "",
@@ -136,6 +131,11 @@ export function CreateContractDialog({
     control: form.control,
     name: "proposalId",
   });
+  const selectedType = useWatch({ control: form.control, name: "type" });
+  const numberOfMonths = useWatch({
+    control: form.control,
+    name: "numberOfMonths",
+  });
   const { data: proposalsData, isFetching: proposalsLoading } =
     useGetProposalsQuery(
       { status: ProposalStatus.APPROVED, limit: 100 },
@@ -155,6 +155,9 @@ export function CreateContractDialog({
         )
       : proposals;
   }, [preSelectedRequestId, proposalsData?.items]);
+  const selectedProposal = proposalOptions.find(
+    (proposal) => proposal.id === selectedProposalId,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -177,6 +180,19 @@ export function CreateContractDialog({
     });
     form.setValue("totalValue", selectedProposal.totalPrice ?? 0);
   }, [form, isEdit, proposalOptions, selectedProposalId]);
+
+  useEffect(() => {
+    if (selectedType !== ContractType.MONTHLY_RETAINER) {
+      form.setValue("monthlyValue", 0);
+      return;
+    }
+
+    const total = Number(form.getValues("totalValue") ?? 0);
+    const months = Number(numberOfMonths ?? 0);
+    form.setValue("monthlyValue", months > 0 ? total / months : 0, {
+      shouldValidate: true,
+    });
+  }, [form, numberOfMonths, selectedType, selectedProposalId]);
 
   async function onSubmit(values: ContractFormValues) {
     if (file) {
@@ -266,74 +282,55 @@ export function CreateContractDialog({
               onSubmit={form.handleSubmit(onSubmit)}
               className="flex flex-col gap-5"
             >
-              <Card>
-                <CardHeader className="gap-1">
-                  <CardTitle className="text-base">الربط الأساسي</CardTitle>
-                  <CardDescription>
-                    اختر العرض المعتمد ليتم ربط العقد بالفرصة الصحيحة.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <FormField
-                    control={form.control}
-                    name="proposalId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>العرض المعتمد</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={
-                            isEdit || proposalsLoading || Boolean(proposalId)
-                          }
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر العرض" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectGroup>
-                              {proposalOptions.map((proposal) => (
-                                <SelectItem
-                                  key={proposal.id}
-                                  value={proposal.id}
-                                >
-                                  {proposal.title} —{" "}
-                                  {proposal.request?.companyName ?? "طلب"}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          {proposalsLoading
-                            ? "جارٍ تحميل العروض..."
-                            : "تظهر العروض المعتمدة فقط."}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="requestId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>معرف الطلب</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            readOnly={isEdit || Boolean(selectedProposalId)}
-                            dir="ltr"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+              <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-4">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-base font-semibold">
+                    ملخص العرض المعتمد
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    يتم إنشاء العقد من نسخة العرض المعتمد ولا يمكن تعديل قيمته
+                    هنا.
+                  </p>
+                </div>
+                {selectedProposal ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        عنوان العرض
+                      </p>
+                      <p className="font-medium">{selectedProposal.title}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">العميل</p>
+                      <p className="font-medium">
+                        {selectedProposal.client?.companyName ??
+                          selectedProposal.request?.companyName ??
+                          "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        القيمة المعتمدة
+                      </p>
+                      <p className="font-medium">
+                        {selectedProposal.totalPrice ?? 0} SAR
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">الخدمات</p>
+                      <p className="font-medium">
+                        {selectedProposal.servicesList?.length ?? 0} خدمة
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {proposalsLoading
+                      ? "جارٍ تحميل العرض..."
+                      : "لم يتم العثور على العرض المعتمد."}
+                  </p>
+                )}
+              </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
@@ -387,48 +384,48 @@ export function CreateContractDialog({
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="totalValue"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>القيمة الإجمالية</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={String(field.value ?? "")}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="monthlyValue"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>القيمة الشهرية</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={String(field.value ?? "")}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {selectedType === ContractType.MONTHLY_RETAINER ? (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="numberOfMonths"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>عدد أشهر الاشتراك</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={String(field.value ?? "")}
+                              onChange={(event) =>
+                                field.onChange(event.target.value)
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="monthlyValue"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>القيمة الشهرية المحسوبة</FormLabel>
+                          <FormControl>
+                            <CalculatedAmount
+                              ariaLabel="القيمة الشهرية المحسوبة"
+                              value={Number(field.value ?? 0)}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            تُحسب من القيمة المعتمدة وعدد أشهر الاشتراك.
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                ) : null}
                 <FormField
                   control={form.control}
                   name="startDate"
@@ -499,21 +496,21 @@ export function CreateContractDialog({
         </div>
 
         <DialogFooter className="shrink-0 border-t bg-background px-6 py-4">
-          <ActionButton
+          <Button
             type="button"
             variant="outline"
             onClick={() => handleOpenChange(false)}
           >
             إلغاء
-          </ActionButton>
-          <ActionButton type="submit" form="contract-form" disabled={isSubmitting}>
+          </Button>
+          <Button type="submit" form="contract-form" disabled={isSubmitting}>
             {isSubmitting ? (
               <Loader2 data-icon="inline-start" className="animate-spin" />
             ) : (
               <FileSignature data-icon="inline-start" />
             )}
             {isEdit ? "حفظ التعديلات" : "إنشاء العقد"}
-          </ActionButton>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
