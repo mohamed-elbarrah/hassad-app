@@ -96,10 +96,6 @@ export class CrmCreateProposalDto {
   @IsString()
   filePath?: string;
 
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
-
 }
 
 export class CrmUpdateProposalDto {
@@ -134,9 +130,5 @@ export class CrmUpdateProposalDto {
   @IsOptional()
   @IsString()
   filePath?: string;
-
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
 
 }

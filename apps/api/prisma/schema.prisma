@@ -526,7 +526,6 @@ model Proposal {
   clientId           String?        @map("client_id")
   requestId          String?        @map("request_id")
   durationUnit       String         @default("DAYS") @map("duration_unit")
-  startDate          DateTime?      @map("start_date")
   contract           Contract?
   client             Client?        @relation(fields: [clientId], references: [id])
   creator            User           @relation(fields: [createdBy], references: [id])

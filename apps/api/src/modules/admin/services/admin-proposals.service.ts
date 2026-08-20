@@ -138,9 +138,9 @@ export class AdminProposalsService {
           title: proposal.title,
           type: "FIXED_PROJECT" as any,
           status: "DRAFT" as any,
-          startDate: proposal.startDate ?? new Date(),
+          startDate: new Date(),
           endDate: new Date(
-            (proposal.startDate ?? new Date()).getTime() +
+            new Date().getTime() +
               proposal.durationDays * 24 * 60 * 60 * 1000,
           ),
           totalValue: proposal.totalPrice,

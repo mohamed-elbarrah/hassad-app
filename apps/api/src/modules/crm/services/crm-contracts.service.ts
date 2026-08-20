@@ -127,7 +127,6 @@ export class CrmContractsService {
             serviceDescription: true,
             servicesList: true,
             status: true,
-            startDate: true,
             durationDays: true,
             durationUnit: true,
             filePath: true,
@@ -179,7 +178,7 @@ export class CrmContractsService {
       let totalValue = dto.totalValue ?? 0;
       let monthlyValue = dto.monthlyValue ?? 0;
       let servicesList: unknown = undefined;
-      let proposalSnapshot: { totalPrice?: number; servicesList?: unknown; durationDays?: number; startDate?: Date | null } | null = null;
+      let proposalSnapshot: { totalPrice?: number; servicesList?: unknown; durationDays?: number } | null = null;
 
       if (dto.proposalId) {
         proposalSnapshot = await tx.proposal.findUnique({
@@ -188,7 +187,6 @@ export class CrmContractsService {
             totalPrice: true,
             servicesList: true,
             durationDays: true,
-            startDate: true,
           },
         });
       }
@@ -203,11 +201,7 @@ export class CrmContractsService {
         monthlyValue = 0;
       }
 
-      const startDate = dto.startDate
-        ? new Date(dto.startDate)
-        : proposalSnapshot?.startDate
-          ? new Date(proposalSnapshot.startDate)
-          : new Date();
+      const startDate = dto.startDate ? new Date(dto.startDate) : new Date();
       const endDate = dto.endDate
         ? new Date(dto.endDate)
         : proposalSnapshot?.durationDays

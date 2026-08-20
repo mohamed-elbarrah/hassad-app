@@ -711,7 +711,6 @@ export class ContractsService {
         select: {
           servicesList: true,
           totalPrice: true,
-          startDate: true,
           durationDays: true,
           title: true,
         },

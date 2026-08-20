@@ -41,7 +41,6 @@ export class ProposalsService {
           durationDays: dto.durationDays ?? 0,
           durationUnit: dto.durationUnit ?? "DAYS",
           filePath: dto.filePath ?? null,
-          startDate: dto.startDate ? new Date(dto.startDate) : null,
           status: ProposalStatus.SENT,
           shareLinkToken: token,
           sentAt: new Date(),
@@ -141,10 +140,6 @@ export class ProposalsService {
     }
 
     const updateData: any = { ...dto };
-    if (dto.startDate) {
-      updateData.startDate = new Date(dto.startDate);
-    }
-
     return this.prisma.proposal.update({
       where: { id },
       data: updateData,

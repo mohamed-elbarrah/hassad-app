@@ -70,7 +70,6 @@ const proposalFormSchema = z.object({
   totalPrice: z.coerce.number().nonnegative(),
   durationDays: z.coerce.number().int().positive("أدخل مدة صحيحة"),
   durationUnit: z.nativeEnum(DurationUnit),
-  startDate: z.string().optional(),
 });
 
 type ProposalFormInput = z.input<typeof proposalFormSchema>;
@@ -114,9 +113,6 @@ function getDefaultValues(
     totalPrice: proposal?.totalPrice ?? 0,
     durationDays: proposal?.durationDays ?? 30,
     durationUnit: (proposal?.durationUnit as DurationUnit) ?? DurationUnit.DAYS,
-    startDate: proposal?.startDate
-      ? String(proposal.startDate).split("T")[0]
-      : "",
   };
 }
 
@@ -202,7 +198,6 @@ export function ProposalFormDialog({
             totalPrice: Number(values.totalPrice),
             durationDays: Number(values.durationDays),
             durationUnit: values.durationUnit,
-            startDate: values.startDate || undefined,
           },
         }).unwrap();
         toast.success("تم تحديث العرض الفني");
@@ -216,7 +211,6 @@ export function ProposalFormDialog({
           totalPrice: Number(values.totalPrice),
           durationDays: Number(values.durationDays),
           durationUnit: values.durationUnit,
-          startDate: values.startDate ?? "",
         }).unwrap();
         toast.success("تم إنشاء العرض الفني");
         if (result.shareLinkToken) {
@@ -297,19 +291,6 @@ export function ProposalFormDialog({
                           placeholder="مثال: عرض تطوير الهوية البصرية"
                           {...field}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>تاريخ البداية</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

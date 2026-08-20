@@ -47,10 +47,6 @@ export class CreateProposalDto {
   @IsString()
   filePath?: string;
 
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
-
 }
 
 export class UpdateProposalDto {
@@ -87,10 +83,6 @@ export class UpdateProposalDto {
   @IsOptional()
   @IsString()
   filePath?: string;
-
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
 
 }
 

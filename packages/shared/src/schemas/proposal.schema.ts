@@ -22,7 +22,6 @@ export const CreateProposalSchema = z.object({
     .int()
     .positive("Duration must be a positive integer"),
   durationUnit: z.nativeEnum(DurationUnit).default(DurationUnit.DAYS),
-  startDate: z.string().optional(),
 });
 
 export type CreateProposalInput = z.infer<typeof CreateProposalSchema>;
@@ -35,8 +34,7 @@ export const UpdateProposalSchema = z
     totalPrice: z.number().positive().optional(),
     durationDays: z.number().int().positive().optional(),
     durationUnit: z.nativeEnum(DurationUnit).optional(),
-    startDate: z.string().optional(),
-  })
+    })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",
   });

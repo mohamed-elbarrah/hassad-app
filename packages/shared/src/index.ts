@@ -313,7 +313,6 @@ export interface Proposal {
   totalPrice: number;
   durationDays: number;
   durationUnit: string;
-  startDate?: Date | string | null;
   filePath?: string | null;
   status: ProposalStatus;
   shareLinkToken?: string | null;

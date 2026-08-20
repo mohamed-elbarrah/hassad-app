@@ -55,7 +55,6 @@ export interface CreateProposalFormInput {
   totalPrice: number;
   durationDays: number;
   durationUnit: DurationUnit;
-  startDate: string;
 }
 
 export const proposalsApi = createApi({
@@ -95,7 +94,6 @@ export const proposalsApi = createApi({
           formData.append("totalPrice", String(input.totalPrice));
           formData.append("durationDays", String(input.durationDays));
           formData.append("durationUnit", input.durationUnit);
-          if (input.startDate) formData.append("startDate", input.startDate);
 
           return { url: "/proposals", method: "POST", body: formData };
         },

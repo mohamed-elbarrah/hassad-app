@@ -165,7 +165,6 @@ export class CrmProposalsService {
           durationDays: dto.durationDays ?? 0,
           durationUnit: dto.durationUnit ?? "DAYS",
           filePath: dto.filePath ?? null,
-          startDate: dto.startDate ? new Date(dto.startDate) : null,
           status: ProposalStatus.DRAFT,
         },
       });
@@ -194,7 +193,6 @@ export class CrmProposalsService {
         durationDays: dto.durationDays,
         durationUnit: dto.durationUnit,
         filePath: dto.filePath,
-        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
       },
     });
 
