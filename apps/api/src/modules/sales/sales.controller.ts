@@ -11,8 +11,10 @@ import { RequestStatus } from "@hassad/shared";
 import { SalesService } from "./sales.service";
 import { RequestsService } from "../requests/requests.service";
 import { RequestIdParamDto } from "../requests/dto/request-query.dto";
+import { CreateRequestForClientDto } from "../requests/dto/request-for-client.dto";
 import {
   CreateRequestContactLogDto,
+  CreateRequestDto,
   UpdateRequestStatusDto,
 } from "../requests/dto/request.dto";
 import {
@@ -56,6 +58,27 @@ export class SalesController {
   @RequirePermissions("sales.read")
   getActivity(@Query() query: SalesActivityQueryDto) {
     return this.salesService.getActivity(query.limit ?? 20);
+  }
+
+  @Post("requests")
+  @RequirePermissions("requests.create")
+  createSalesRequest(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateRequestDto,
+  ) {
+    return this.requestsService.createPortalRequest(
+      { id: user.id, role: user.role },
+      dto,
+    );
+  }
+
+  @Post("requests/for-client")
+  @RequirePermissions("requests.create")
+  createSalesRequestForClient(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateRequestForClientDto,
+  ) {
+    return this.requestsService.createForClient(dto, user.id);
   }
 
   @Get("requests/:id")

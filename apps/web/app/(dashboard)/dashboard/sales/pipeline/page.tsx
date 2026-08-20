@@ -5,10 +5,12 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
+  useReducer,
   useState,
 } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { shallowEqual } from "react-redux";
 import {
   ArrowUpLeft,
   BriefcaseBusiness,
@@ -29,9 +31,11 @@ import {
   SalesPipelineCard,
 } from "@/components/dashboard/sales/pipeline/SalesPipelineCard";
 import {
+  salesApi,
   useAddSalesPipelineContactLogMutation,
   useGetSalesPipelineQuery,
   useUpdateSalesPipelineStatusMutation,
+  type SalesPipelineFilters,
   type SalesPipelineGroup,
   type SalesPipelineItem,
 } from "@/features/sales/salesApi";
@@ -91,6 +95,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { formatDateTime, formatNumber, formatRelativeTime } from "@/lib/format";
 import {
   salesPipelineErrorMessage,
@@ -99,6 +104,8 @@ import {
 
 type PipelineView = "kanban" | "table";
 type PipelineFilterGroup = "all" | SalesPipelineGroup;
+
+const SALES_PIPELINE_POLLING_INTERVAL_MS = 60_000;
 type PipelineWorkflowDialog =
   | { type: "proposal"; mode: "create"; requestId: string }
   | { type: "proposal"; mode: "edit"; proposalId: string }
@@ -125,6 +132,44 @@ const STATUS_GROUP_LABELS: Record<PipelineFilterGroup, string> = {
 
 function getServiceCount(request: SalesPipelineItem) {
   return request.services?.length ?? 0;
+}
+
+interface BoardItemsState {
+  pages: Record<number, SalesPipelineItem[]>;
+  items: SalesPipelineItem[];
+}
+
+type BoardItemsAction =
+  | { type: "replace-page"; page: number; items: SalesPipelineItem[] }
+  | { type: "clear" };
+
+const EMPTY_BOARD_ITEMS: BoardItemsState = { pages: {}, items: [] };
+
+function flattenBoardPages(
+  pages: Record<number, SalesPipelineItem[]>,
+): SalesPipelineItem[] {
+  const itemsById = new Map<string, SalesPipelineItem>();
+
+  for (const page of Object.keys(pages)
+    .map(Number)
+    .sort((left, right) => left - right)) {
+    for (const item of pages[page] ?? []) {
+      itemsById.set(item.id, item);
+    }
+  }
+
+  return [...itemsById.values()];
+}
+
+function boardItemsReducer(
+  current: BoardItemsState,
+  action: BoardItemsAction,
+): BoardItemsState {
+  if (action.type === "clear") return EMPTY_BOARD_ITEMS;
+  if (current.pages[action.page] === action.items) return current;
+
+  const pages = { ...current.pages, [action.page]: action.items };
+  return { pages, items: flattenBoardPages(pages) };
 }
 
 function PipelineSummaryCard({
@@ -210,11 +255,15 @@ function PipelinePageLoadingState() {
 }
 
 export default function PipelinePage() {
+  const dispatch = useAppDispatch();
   const [search, setSearch] = useState("");
   const [view, setView] = useState<PipelineView>("kanban");
   const [statusGroup, setStatusGroup] = useState<PipelineFilterGroup>("all");
   const [page, setPage] = useState(1);
-  const [boardItems, setBoardItems] = useState<SalesPipelineItem[]>([]);
+  const [boardState, dispatchBoardItems] = useReducer(
+    boardItemsReducer,
+    EMPTY_BOARD_ITEMS,
+  );
   const [workflowDialog, setWorkflowDialog] =
     useState<PipelineWorkflowDialog | null>(null);
   const deferredSearch = useDeferredValue(search);
@@ -245,41 +294,152 @@ export default function PipelinePage() {
     isError: isContractEditError,
   } = useGetContractByIdQuery(contractEditId, { skip: !contractEditId });
 
-  const { currentData, isLoading, isError, isFetching, refetch } =
-    useGetSalesPipelineQuery(
-      {
-        limit: view === "kanban" ? 500 : 50,
-        page,
-        view: view === "kanban" ? "board" : "table",
-        search: deferredSearch.trim() || undefined,
-        statusGroup: apiStatusGroup,
-      },
-      { pollingInterval: 30_000 },
-    );
+  const pipelineQueryArgs = useMemo<SalesPipelineFilters>(
+    () => ({
+      limit: view === "kanban" ? 500 : 50,
+      view: view === "kanban" ? "board" : "table",
+      search: deferredSearch.trim() || undefined,
+      statusGroup: apiStatusGroup,
+    }),
+    [apiStatusGroup, deferredSearch, view],
+  );
+  const pollingOptions = useMemo(
+    () => ({
+      pollingInterval: SALES_PIPELINE_POLLING_INTERVAL_MS,
+      skipPollingIfUnfocused: true,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    }),
+    [],
+  );
+  const firstPageQuery = useGetSalesPipelineQuery(
+    {
+      ...pipelineQueryArgs,
+      page: view === "kanban" ? 1 : page,
+    },
+    pollingOptions,
+  );
+  const currentPageQuery = useGetSalesPipelineQuery(
+    { ...pipelineQueryArgs, page },
+    pollingOptions,
+  );
+  const firstPageData = firstPageQuery.currentData;
+  const currentPageData = currentPageQuery.currentData;
+  const currentData = currentPageData ?? firstPageData;
+  const isLoading = currentPageQuery.isLoading;
+  const isError = currentPageQuery.isError || firstPageQuery.isError;
+  const isFetching =
+    currentPageQuery.isFetching || firstPageQuery.isFetching;
+  const loadedPageNumbers = useMemo(
+    () => Object.keys(boardState.pages).map(Number).sort((left, right) => left - right),
+    [boardState.pages],
+  );
+  const backgroundPageNumbers = useMemo(
+    () =>
+      view === "kanban"
+        ? loadedPageNumbers.filter((pageNumber) => pageNumber !== 1 && pageNumber !== page)
+        : [],
+    [loadedPageNumbers, page, view],
+  );
+  const backgroundPageKey = backgroundPageNumbers.join(",");
+  const backgroundPageSelectors = useMemo(
+    () =>
+      backgroundPageNumbers.map((pageNumber) =>
+        salesApi.endpoints.getSalesPipeline.select({
+          ...pipelineQueryArgs,
+          page: pageNumber,
+        }),
+      ),
+    [backgroundPageNumbers, pipelineQueryArgs],
+  );
+  const backgroundPageItems = useAppSelector(
+    (state) =>
+      backgroundPageSelectors.map(
+        (selector) => selector(state).data?.items,
+      ),
+    shallowEqual,
+  );
 
   useEffect(() => {
-    if (!currentData?.items) return;
+    if (view !== "kanban" || backgroundPageNumbers.length === 0) return;
 
-    if (view === "kanban") {
-      setBoardItems((current) => {
-        if (page === 1) return currentData.items;
-        const incoming = new Map(
-          currentData.items.map((item) => [item.id, item]),
-        );
-        const existingIds = new Set(current.map((item) => item.id));
-        return [
-          ...current.map((item) => incoming.get(item.id) ?? item),
-          ...currentData.items.filter((item) => !existingIds.has(item.id)),
-        ];
+    const subscriptions = backgroundPageNumbers.map((pageNumber) =>
+      dispatch(
+        salesApi.endpoints.getSalesPipeline.initiate(
+          { ...pipelineQueryArgs, page: pageNumber },
+          {
+            subscriptionOptions: {
+              pollingInterval: SALES_PIPELINE_POLLING_INTERVAL_MS,
+              skipPollingIfUnfocused: true,
+              refetchOnFocus: true,
+              refetchOnReconnect: true,
+            },
+          },
+        ),
+      ),
+    );
+
+    return () => {
+      subscriptions.forEach((subscription) => subscription.unsubscribe());
+    };
+  }, [backgroundPageKey, backgroundPageNumbers, dispatch, pipelineQueryArgs, view]);
+
+  useEffect(() => {
+    if (view !== "kanban") return;
+
+    backgroundPageItems.forEach((items, index) => {
+      if (!items) return;
+      dispatchBoardItems({
+        type: "replace-page",
+        page: backgroundPageNumbers[index],
+        items,
       });
-    } else {
-      setBoardItems([]);
+    });
+  }, [backgroundPageItems, backgroundPageNumbers, view]);
+
+  async function refetchPipeline() {
+    const backgroundRefetches = backgroundPageNumbers.map((pageNumber) =>
+      dispatch(
+        salesApi.endpoints.getSalesPipeline.initiate(
+          { ...pipelineQueryArgs, page: pageNumber },
+          { forceRefetch: true, subscribe: false },
+        ),
+      ).unwrap(),
+    );
+
+    await Promise.all([
+      firstPageQuery.refetch(),
+      ...(page === 1 ? [] : [currentPageQuery.refetch()]),
+      ...backgroundRefetches,
+    ]);
+  }
+
+  useEffect(() => {
+    if (view !== "kanban") {
+      dispatchBoardItems({ type: "clear" });
+      return;
     }
-  }, [currentData?.items, page, view]);
+
+    if (firstPageData?.items) {
+      dispatchBoardItems({
+        type: "replace-page",
+        page: 1,
+        items: firstPageData.items,
+      });
+    }
+    if (page > 1 && currentPageData?.items) {
+      dispatchBoardItems({
+        type: "replace-page",
+        page,
+        items: currentPageData.items,
+      });
+    }
+  }, [currentPageData?.items, firstPageData?.items, page, view]);
 
   const requests = useMemo(
-    () => (view === "kanban" ? boardItems : (currentData?.items ?? [])),
-    [boardItems, currentData?.items, view],
+    () =>
+      view === "kanban" ? boardState.items : (currentData?.items ?? []),
+    [boardState.items, currentData?.items, view],
   );
   const summary = currentData?.summary ?? {
     openDeals: 0,
@@ -331,11 +491,29 @@ export default function PipelinePage() {
     );
   }
 
-  function handleWorkflowDialogChange(open: boolean) {
-    if (!open) {
-      setWorkflowDialog(null);
-      void refetch();
+  function resetBoardToFirstPage({ refetch = true } = {}) {
+    setPage(1);
+    dispatchBoardItems({ type: "clear" });
+    if (refetch) void refetchPipeline();
+  }
+
+  function handleRefresh() {
+    if (page === 1) {
+      void refetchPipeline();
+      return;
     }
+
+    resetBoardToFirstPage({ refetch: false });
+    void refetchPipeline();
+  }
+
+  function handleWorkflowSaved() {
+    resetBoardToFirstPage({ refetch: false });
+    void refetchPipeline();
+  }
+
+  function handleWorkflowDialogChange(open: boolean) {
+    if (!open) setWorkflowDialog(null);
   }
 
   async function handleDragEnd(
@@ -348,6 +526,7 @@ export default function PipelinePage() {
         id: itemId,
         toStatus: toStage as RequestStatus,
       }).unwrap();
+      resetBoardToFirstPage({ refetch: false });
     } catch (error) {
       toast.error(salesPipelineErrorMessage(error));
     }
@@ -362,6 +541,7 @@ export default function PipelinePage() {
         id: request.id,
         body: payload,
       }).unwrap();
+      resetBoardToFirstPage({ refetch: false });
       toast.success("تم تسجيل التواصل");
     } catch (error) {
       toast.error(salesWorkflowErrorMessage(error));
@@ -389,7 +569,7 @@ export default function PipelinePage() {
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
-                <Button onClick={() => refetch()}>
+                <Button onClick={handleRefresh}>
                   <RefreshCw data-icon="inline-start" />
                   إعادة المحاولة
                 </Button>
@@ -443,7 +623,7 @@ export default function PipelinePage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => refetch()}>
+            <Button variant="outline" onClick={handleRefresh}>
               <RefreshCw
                 data-icon="inline-start"
                 className={isFetching ? "animate-spin" : undefined}
@@ -495,7 +675,7 @@ export default function PipelinePage() {
             لك.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4 ">
+        <CardContent className="flex flex-col gap-4">
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
             <div className="relative">
               <Search className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -507,7 +687,7 @@ export default function PipelinePage() {
                   startTransition(() => {
                     setSearch(nextValue);
                     setPage(1);
-                    setBoardItems([]);
+                    dispatchBoardItems({ type: "clear" });
                   });
                 }}
                 placeholder="ابحث باسم العميل أو الشركة أو رقم الواتساب"
@@ -520,7 +700,7 @@ export default function PipelinePage() {
               onValueChange={(value) => {
                 setStatusGroup(value as PipelineFilterGroup);
                 setPage(1);
-                setBoardItems([]);
+                dispatchBoardItems({ type: "clear" });
               }}
             >
               <SelectTrigger aria-label="تصفية مراحل خط المبيعات">
@@ -543,7 +723,7 @@ export default function PipelinePage() {
               onValueChange={(value) => {
                 setView(value as PipelineView);
                 setPage(1);
-                setBoardItems([]);
+                dispatchBoardItems({ type: "clear" });
               }}
             >
               <TabsList className="grid w-full grid-cols-2">
@@ -765,7 +945,7 @@ export default function PipelinePage() {
           )}
 
           {view === "kanban" &&
-            (currentData?.meta.total ?? 0) > boardItems.length && (
+            (currentData?.meta.total ?? 0) > boardState.items.length && (
               <div className="flex items-center justify-center border-t pt-4">
                 <Button
                   variant="outline"
@@ -776,7 +956,7 @@ export default function PipelinePage() {
                   {isFetching
                     ? "جارٍ تحميل المزيد..."
                     : `تحميل المزيد (${formatNumber(
-                        (currentData?.meta.total ?? 0) - boardItems.length,
+                        (currentData?.meta.total ?? 0) - boardState.items.length,
                       )})`}
                 </Button>
               </div>
@@ -824,6 +1004,7 @@ export default function PipelinePage() {
           preSelectedRequestId={workflowDialog.requestId}
           open
           onOpenChange={handleWorkflowDialogChange}
+          onSaved={handleWorkflowSaved}
         />
       ) : null}
 
@@ -862,6 +1043,7 @@ export default function PipelinePage() {
           proposal={proposalForEdit}
           open
           onOpenChange={handleWorkflowDialogChange}
+          onSaved={handleWorkflowSaved}
         />
       ) : null}
 
@@ -873,6 +1055,7 @@ export default function PipelinePage() {
           proposalId={workflowDialog.proposalId}
           open
           onOpenChange={handleWorkflowDialogChange}
+          onSaved={handleWorkflowSaved}
         />
       ) : null}
 
@@ -911,6 +1094,7 @@ export default function PipelinePage() {
           contract={contractForEdit}
           open
           onOpenChange={handleWorkflowDialogChange}
+          onSaved={handleWorkflowSaved}
         />
       ) : null}
     </div>

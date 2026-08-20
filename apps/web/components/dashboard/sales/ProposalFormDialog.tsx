@@ -81,6 +81,7 @@ export interface ProposalFormDialogProps {
   proposal?: ProposalListItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSaved?: () => void;
   preSelectedRequestId?: string;
 }
 
@@ -122,6 +123,7 @@ export function ProposalFormDialog({
   proposal,
   open: controlledOpen,
   onOpenChange,
+  onSaved,
   preSelectedRequestId = "",
 }: ProposalFormDialogProps) {
   const isEdit = mode === "edit";
@@ -202,6 +204,7 @@ export function ProposalFormDialog({
           },
         }).unwrap();
         toast.success("تم تحديث العرض الفني");
+        onSaved?.();
       } else if (file) {
         const result = await createProposal({
           requestId: values.requestId,
@@ -214,6 +217,7 @@ export function ProposalFormDialog({
           durationUnit: values.durationUnit,
         }).unwrap();
         toast.success("تم إنشاء العرض الفني");
+        onSaved?.();
         if (result.shareLinkToken) {
           setShareLink(
             `${window.location.origin}/proposal/${result.shareLinkToken}`,

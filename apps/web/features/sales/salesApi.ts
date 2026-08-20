@@ -4,6 +4,8 @@ import type { PipelineStage, RequestStatus } from "@hassad/shared";
 import {
   requestsApi,
   type CreateRequestContactLogPayload,
+  type CreateRequestForClientPayload,
+  type CreateRequestPayload,
   type RequestContactLogItem,
   type RequestDetail,
   type RequestItem,
@@ -96,6 +98,33 @@ export const salesApi = createApi({
       providesTags: [{ type: "SalesMetrics", id: "SUMMARY" }],
     }),
 
+    createSalesRequest: builder.mutation<RequestItem, CreateRequestPayload>({
+      query: (body) => ({
+        url: "/sales/requests",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [
+        { type: "SalesPipeline", id: "LIST" },
+        { type: "SalesMetrics", id: "SUMMARY" },
+      ],
+    }),
+
+    createSalesRequestForClient: builder.mutation<
+      RequestItem,
+      CreateRequestForClientPayload
+    >({
+      query: (body) => ({
+        url: "/sales/requests/for-client",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [
+        { type: "SalesPipeline", id: "LIST" },
+        { type: "SalesMetrics", id: "SUMMARY" },
+      ],
+    }),
+
     getSalesRequestById: builder.query<RequestDetail, string>({
       query: (id) => ({ url: `/sales/requests/${id}` }),
       providesTags: (_result, _error, id) => [
@@ -183,6 +212,8 @@ export const salesApi = createApi({
 });
 
 export const {
+  useCreateSalesRequestForClientMutation,
+  useCreateSalesRequestMutation,
   useGetSalesMetricsQuery,
   useGetSalesRequestByIdQuery,
   useGetSalesPipelineQuery,

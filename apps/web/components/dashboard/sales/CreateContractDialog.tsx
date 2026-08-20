@@ -87,6 +87,7 @@ export interface CreateContractDialogProps {
   proposalId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSaved?: () => void;
   mode?: "create" | "edit";
   contract?: ContractItem | null;
   preSelectedRequestId?: string;
@@ -125,6 +126,7 @@ export function CreateContractDialog({
   proposalId = "",
   open: controlledOpen,
   onOpenChange,
+  onSaved,
   mode = "create",
   contract,
   preSelectedRequestId = "",
@@ -273,6 +275,7 @@ export function CreateContractDialog({
           },
         }).unwrap();
         toast.success("تم تحديث العقد");
+        onSaved?.();
       } else if (file) {
         await createContract({
           requestId: values.requestId,
@@ -290,6 +293,7 @@ export function CreateContractDialog({
           file,
         }).unwrap();
         toast.success("تم إنشاء العقد");
+        onSaved?.();
       }
 
       handleOpenChange(false);

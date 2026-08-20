@@ -19,12 +19,13 @@ import {
   type BusinessType,
   type Client,
 } from "@hassad/shared";
+import type { RequestServiceItem } from "@/features/requests/requestsApi";
 import {
-  useCreateRequestForClientMutation,
-  useCreateRequestMutation,
-  type RequestServiceItem,
-} from "@/features/requests/requestsApi";
+  useCreateSalesRequestForClientMutation,
+  useCreateSalesRequestMutation,
+} from "@/features/sales/salesApi";
 import { useGetClientsQuery } from "@/features/clients/clientsApi";
+import { salesWorkflowErrorMessage } from "@/lib/i18n";
 import { useGetServicesQuery, type ServiceCatalogItem } from "@/features/services/servicesApi";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -344,8 +345,10 @@ export default function NewOrderPage() {
 
   const { data: clientsData, isLoading: clientsLoading, refetch: refetchClients } = useGetClientsQuery({ limit: 1000 });
   const { data: servicesData, isLoading: servicesLoading, refetch: refetchServices } = useGetServicesQuery(undefined);
-  const [createRequestForClient, { isLoading: isCreatingExisting }] = useCreateRequestForClientMutation();
-  const [createRequest, { isLoading: isCreatingNew }] = useCreateRequestMutation();
+  const [createRequestForClient, { isLoading: isCreatingExisting }] =
+    useCreateSalesRequestForClientMutation();
+  const [createRequest, { isLoading: isCreatingNew }] =
+    useCreateSalesRequestMutation();
 
   const clients = useMemo(() => clientsData?.items ?? [], [clientsData]);
   const services = useMemo(() => servicesData ?? [], [servicesData]);
@@ -390,8 +393,7 @@ export default function NewOrderPage() {
       toast.success("تم إنشاء الطلب بنجاح");
       router.push(`/dashboard/sales/requests/${request.id}`);
     } catch (error) {
-      const message = (error as { data?: { message?: string } })?.data?.message ?? "فشل إنشاء الطلب";
-      toast.error(message);
+      toast.error(salesWorkflowErrorMessage(error));
     }
   }
 
@@ -422,8 +424,7 @@ export default function NewOrderPage() {
       toast.success("تم إنشاء الطلب الجديد بنجاح");
       router.push(`/dashboard/sales/requests/${request.id}`);
     } catch (error) {
-      const message = (error as { data?: { message?: string } })?.data?.message ?? "فشل إنشاء الطلب";
-      toast.error(message);
+      toast.error(salesWorkflowErrorMessage(error));
     }
   }
 
