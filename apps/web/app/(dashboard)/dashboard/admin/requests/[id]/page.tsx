@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import type { RequestStatus } from "@hassad/shared";
+import { salesWorkflowErrorMessage } from "@/lib/i18n";
 import { useAddRequestContactLogMutation, useGetRequestByIdQuery, useUpdateRequestStatusMutation, type CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
 import { RequestDetailLoading, RequestDetailView } from "@/components/request-detail/RequestDetailPattern";
 import { Button } from "@/components/ui/button";
@@ -69,10 +70,7 @@ export default function AdminRequestDetailPage({
       await updateStatus({ id: request.id, toStatus: status }).unwrap();
       toast.success("تم تحديث مرحلة الطلب");
     } catch (error) {
-      const message =
-        (error as { data?: { message?: string } })?.data?.message ??
-        "فشل تحديث مرحلة الطلب";
-      toast.error(message);
+      toast.error(salesWorkflowErrorMessage(error));
     }
   }
 
@@ -81,10 +79,7 @@ export default function AdminRequestDetailPage({
       await addContactLog({ id: request.id, body: payload }).unwrap();
       toast.success("تم تسجيل التواصل");
     } catch (error) {
-      const message =
-        (error as { data?: { message?: string } })?.data?.message ??
-        "فشل تسجيل التواصل";
-      toast.error(message);
+      toast.error(salesWorkflowErrorMessage(error));
       throw error;
     }
   }

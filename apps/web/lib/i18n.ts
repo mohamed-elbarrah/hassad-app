@@ -135,11 +135,9 @@ export function portalActionTypeLabel(type: string): string {
 }
 
 export function portalActionTitle(item: {
-  title?: string;
   titleCode?: string;
   titleParams?: Record<string, unknown>;
 }): string {
-  if (item.title) return item.title;
   if (item.titleCode === "INVOICE") {
     return `فاتورة ${String(item.titleParams?.invoiceNumber ?? "")}`;
   }
@@ -150,11 +148,9 @@ export function portalActionTitle(item: {
 }
 
 export function portalActionSubtitle(item: {
-  subtitle?: string;
   subtitleCode?: string;
   subtitleParams?: Record<string, unknown>;
 }): string {
-  if (item.subtitle) return item.subtitle;
   switch (item.subtitleCode) {
     case "PROJECT":
       return `مشروع: ${String(item.subtitleParams?.projectName ?? "")}`;
@@ -243,6 +239,8 @@ const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
   FILE_TOO_LARGE: "حجم الملف أكبر من الحد المسموح.",
   INVALID_PROPOSAL_STATUS: "لا يمكن تنفيذ العملية على حالة العرض الحالية.",
   INVALID_CONTRACT_STATUS: "لا يمكن تنفيذ العملية على حالة العقد الحالية.",
+  INVALID_REQUEST_STATUS_TRANSITION: "لا يمكن نقل الطلب إلى هذه المرحلة.",
+  REQUEST_STATUS_CHANGED: "تم تحديث الطلب من مستخدم آخر. حدّث الصفحة وحاول مرة أخرى.",
 };
 
 const SALES_WORKFLOW_FIELD_MESSAGES: Record<string, string> = {

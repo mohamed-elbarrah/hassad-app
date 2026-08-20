@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -11,7 +10,6 @@ import {
   History,
   Inbox,
   Phone,
-  Plus,
   Users,
 } from "lucide-react";
 import {
@@ -31,7 +29,8 @@ import type {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RequestContactLogDialog } from "@/components/request-detail/RequestContactLogDialog";
 import {
   Empty,
   EmptyDescription,
@@ -43,7 +42,6 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDateTime, formatNumber, formatRelativeTime } from "@/lib/format";
 
 type DetailMode = "admin" | "sales";
@@ -196,111 +194,6 @@ export function RequestDetailLoading() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function ContactLogDialog({
-  disabled,
-  isSubmitting,
-  onSubmit,
-}: {
-  disabled?: boolean;
-  isSubmitting?: boolean;
-  onSubmit: (payload: CreateRequestContactLogPayload) => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [type, setType] = useState<string>(ContactLogType.CALL);
-  const [result, setResult] = useState<string>(ContactLogResult.RESPONDED);
-  const [notes, setNotes] = useState("");
-
-  async function handleSubmit() {
-    await onSubmit({
-      type,
-      result,
-      notes: notes.trim() || undefined,
-    });
-    setNotes("");
-    setType(ContactLogType.CALL);
-    setResult(ContactLogResult.RESPONDED);
-    setOpen(false);
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" disabled={disabled}>
-          <Plus data-icon="inline-start" />
-          تسجيل تواصل
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg" dir="rtl">
-        <DialogHeader>
-          <DialogTitle>تسجيل تواصل جديد</DialogTitle>
-          <DialogDescription>
-            أضف مكالمة أو اجتماع أو أي متابعة جديدة لهذا العميل المحتمل.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">نوع التواصل</label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر النوع" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {Object.values(ContactLogType).map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {CONTACT_LOG_TYPE_LABELS[value]}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">النتيجة</label>
-              <Select value={result} onValueChange={setResult}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر النتيجة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {Object.values(ContactLogResult).map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {CONTACT_LOG_RESULT_LABELS[value]}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">ملاحظات</label>
-            <Textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="اكتب ملخصًا قصيرًا لما حدث في هذا التواصل"
-              rows={4}
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            إلغاء
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            حفظ
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -540,6 +433,10 @@ export function RequestDetailView({
 }) {
   const contactLogs = request.contactLogs ?? [];
   const statusHistory = request.statusHistory ?? [];
+  const selectableStatuses = [
+    request.status,
+    ...(request.capabilities?.allowedNextStatuses ?? []),
+  ].filter((status, index, statuses) => statuses.indexOf(status) === index);
   const services = request.services ?? [];
   const proposals = request.proposals ?? [];
   const contracts = request.contracts ?? [];
@@ -606,8 +503,8 @@ export function RequestDetailView({
                   </Link>
                 </Button>
               ) : null}
-              {onAddContactLog ? (
-                <ContactLogDialog
+              {onAddContactLog && request.capabilities?.canLogContact ? (
+                <RequestContactLogDialog
                   onSubmit={onAddContactLog}
                   isSubmitting={isAddingContactLog}
                 />
@@ -720,20 +617,20 @@ export function RequestDetailView({
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            {onStageChange ? (
+            {onStageChange && request.capabilities?.canUpdateStatus ? (
               <div className="flex flex-col gap-2 rounded-lg border p-4">
-                <span className="text-sm font-medium">تحديث الحالة</span>
+                <Label htmlFor="request-stage">تحديث الحالة</Label>
                 <Select
                   value={request.status}
                   onValueChange={(value) => onStageChange(value as RequestStatus)}
                   disabled={isUpdatingStage}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="request-stage">
                     <SelectValue placeholder="اختر الحالة" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      {REQUEST_STAGE_ORDER.map((status) => (
+                      {selectableStatuses.map((status) => (
                         <SelectItem key={status} value={status}>
                           {REQUEST_STATUS_AR[status]}
                         </SelectItem>

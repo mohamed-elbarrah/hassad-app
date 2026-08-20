@@ -25,13 +25,13 @@ const STAGE_THEME: Record<
     ...KANBAN_TONES.purple,
   },
   [RequestStatus.NEGOTIATION]: {
-    ...KANBAN_TONES.purple,
+    ...KANBAN_TONES.orange,
   },
   [RequestStatus.CONTRACT_PREPARATION]: {
     ...KANBAN_TONES.yellow,
   },
   [RequestStatus.CONTRACT_SENT]: {
-    ...KANBAN_TONES.orange,
+    ...KANBAN_TONES.teal,
   },
   [RequestStatus.SIGNED]: {
     ...KANBAN_TONES.green,
@@ -103,11 +103,24 @@ const DEFAULT_STAGE_METADATA: SalesPipelineStage[] = [
 ];
 
 const GROUP_LABELS: Record<SalesPipelineStage["groupCode"], string> = {
-  INTAKE: "الاستقبال والتأهيل",
-  PROPOSAL: "العرض والتفاوض",
-  CONTRACT: "العقد والإغلاق",
-  WON: "الصفقات المحسومة",
+  INTAKE: "الطلبات الجديدة",
+  PROPOSAL: "العروض والمتابعة",
+  CONTRACT: "العقود",
+  WON: "الصفقات الناجحة",
   CANCELLED: "الطلبات الملغاة",
+};
+
+const STAGE_LABELS: Partial<Record<RequestStatus, string>> = {
+  [RequestStatus.SUBMITTED]: "طلب جديد",
+  [RequestStatus.QUALIFYING]: "مراجعة الطلب",
+  [RequestStatus.PROPOSAL_IN_PROGRESS]: "إعداد العرض",
+  [RequestStatus.PROPOSAL_SENT]: "العرض مرسل",
+  [RequestStatus.NEGOTIATION]: "المتابعة والتفاوض",
+  [RequestStatus.CONTRACT_PREPARATION]: "إعداد العقد",
+  [RequestStatus.CONTRACT_SENT]: "العقد مرسل",
+  [RequestStatus.SIGNED]: "تم توقيع العقد",
+  [RequestStatus.PROJECT_CREATED]: "تم بدء المشروع",
+  [RequestStatus.CANCELLED]: "ملغى",
 };
 
 export function createSalesPipelineConfig(
@@ -147,7 +160,9 @@ export function createSalesPipelineConfig(
       Object.entries(STAGE_THEME).map(([status, theme]) => [
         status,
         {
-          label: REQUEST_STATUS_AR[status as RequestStatus],
+          label:
+            STAGE_LABELS[status as RequestStatus] ??
+            REQUEST_STATUS_AR[status as RequestStatus],
           emptyLabel: "لا توجد فرص",
           ...theme,
         },

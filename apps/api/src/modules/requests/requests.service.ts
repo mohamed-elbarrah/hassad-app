@@ -319,7 +319,10 @@ export class RequestsService {
           allowedNextStatuses: getAllowedRequestTransitions(
             item.status as RequestStatus,
           ),
-          capabilities: { canUpdateStatus },
+          capabilities: {
+            canUpdateStatus,
+            canLogContact: canUpdateStatus,
+          },
         })),
         stages: REQUEST_PIPELINE_STAGES,
         summary: { openDeals, proposalFlow, contractFlow, wonThisMonth },
@@ -333,7 +336,10 @@ export class RequestsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(
+    id: string,
+    capabilities?: { canLogContact: boolean; canUpdateStatus: boolean },
+  ) {
     const request = await this.prisma.request.findUnique({
       where: { id },
       include: {
@@ -405,6 +411,11 @@ export class RequestsService {
           },
           orderBy: { createdAt: "desc" },
         },
+        contactLogs: {
+          take: 100,
+          orderBy: { contactedAt: "desc" },
+          include: { user: { select: USER_SUMMARY_SELECT } },
+        },
         project: {
           select: {
             id: true,
@@ -423,7 +434,17 @@ export class RequestsService {
       });
     }
 
-    return request;
+    return capabilities
+      ? {
+          ...request,
+          capabilities: {
+            ...capabilities,
+            allowedNextStatuses: getAllowedRequestTransitions(
+              request.status as RequestStatus,
+            ),
+          },
+        }
+      : request;
   }
 
   async updateStatus(
@@ -1034,39 +1055,42 @@ export class RequestsService {
     userId: string,
     dto: CreateRequestContactLogDto,
   ) {
-    const request = await this.prisma.request.findUnique({
-      where: { id: requestId },
-      select: { id: true },
-    });
-
-    if (!request) {
-      throw new NotFoundException({
-        code: "REQUEST_NOT_FOUND",
-        details: { id: requestId },
+    return this.prisma.$transaction(async (tx) => {
+      const request = await tx.request.findUnique({
+        where: { id: requestId },
+        select: { id: true },
       });
-    }
 
-    const log = await this.prisma.requestContactLog.create({
-      data: {
-        requestId,
-        userId,
-        type: dto.type as ContactLogType,
-        result: dto.result as ContactLogResult,
-        notes: dto.notes,
-        contactedAt: new Date(),
-      },
-      include: { user: { select: USER_SUMMARY_SELECT } },
+      if (!request) {
+        throw new NotFoundException({
+          code: "REQUEST_NOT_FOUND",
+          details: { id: requestId },
+        });
+      }
+
+      const contactedAt = new Date();
+      const log = await tx.requestContactLog.create({
+        data: {
+          requestId,
+          userId,
+          type: dto.type as ContactLogType,
+          result: dto.result as ContactLogResult,
+          notes: dto.notes,
+          contactedAt,
+        },
+        include: { user: { select: USER_SUMMARY_SELECT } },
+      });
+
+      await tx.request.update({
+        where: { id: requestId },
+        data: {
+          contactAttemptCount: { increment: 1 },
+          lastContactAt: contactedAt,
+        },
+      });
+
+      return log;
     });
-
-    await this.prisma.request.update({
-      where: { id: requestId },
-      data: {
-        contactAttemptCount: { increment: 1 },
-        lastContactAt: new Date(),
-      },
-    });
-
-    return log;
   }
 
   async getContactLogs(requestId: string) {

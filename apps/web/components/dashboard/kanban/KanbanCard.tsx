@@ -52,22 +52,30 @@ export function KanbanCard({
       )}
       onClick={onClick}
     >
-      {canDrag && !isOverlay && (
-        <div className="flex justify-end">
+      <div className="flex h-7 justify-end">
+        {!isOverlay ? (
           <Button
-            ref={setActivatorNodeRef}
+            ref={canDrag ? setActivatorNodeRef : undefined}
             type="button"
             variant="ghost"
             size="icon"
-            className="size-7 cursor-grab active:cursor-grabbing"
+            className={cn(
+              "size-7",
+              canDrag
+                ? "cursor-grab active:cursor-grabbing"
+                : "cursor-default opacity-50",
+            )}
             aria-label="سحب البطاقة"
-            {...attributes}
-            {...listeners}
+            disabled={!canDrag}
+            {...(canDrag ? attributes : {})}
+            {...(canDrag ? listeners : {})}
           >
             <GripVertical />
           </Button>
-        </div>
-      )}
+        ) : (
+          <GripVertical aria-hidden="true" className="text-muted-foreground" />
+        )}
+      </div>
       {children}
     </Card>
   );

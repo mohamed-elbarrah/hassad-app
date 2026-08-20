@@ -1,5 +1,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import {
+  ContactLogResult,
+  ContactLogType,
+} from "@hassad/shared";
 import type { BusinessType, ClientSource, RequestStatus } from "@hassad/shared";
 
 export interface RequestServiceItem {
@@ -43,8 +47,8 @@ export interface RequestWorkflowItem {
 
 export interface RequestContactLogItem {
   id: string;
-  type: string;
-  result: string;
+  type: ContactLogType;
+  result: ContactLogResult;
   notes?: string | null;
   contactedAt: string;
   userId: string;
@@ -92,8 +96,8 @@ export interface RequestItem {
   contracts?: RequestWorkflowItem[];
   contactLogs?: Array<{
     id: string;
-    type: string;
-    result: string;
+    type: ContactLogType;
+    result: ContactLogResult;
     notes?: string | null;
     contactedAt: string;
   }>;
@@ -111,6 +115,11 @@ export interface RequestStatusHistoryItem {
 }
 
 export interface RequestDetail extends RequestItem {
+  capabilities?: {
+    canLogContact: boolean;
+    canUpdateStatus: boolean;
+    allowedNextStatuses: RequestStatus[];
+  };
   statusHistory: RequestStatusHistoryItem[];
   contactLogs: RequestContactLogItem[];
   proposals: Array<{
@@ -151,8 +160,8 @@ export interface CreateRequestForClientPayload {
 }
 
 export interface CreateRequestContactLogPayload {
-  type: string;
-  result: string;
+  type: ContactLogType;
+  result: ContactLogResult;
   notes?: string;
 }
 

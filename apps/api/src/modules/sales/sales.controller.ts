@@ -11,7 +11,10 @@ import { RequestStatus } from "@hassad/shared";
 import { SalesService } from "./sales.service";
 import { RequestsService } from "../requests/requests.service";
 import { RequestIdParamDto } from "../requests/dto/request-query.dto";
-import { UpdateRequestStatusDto } from "../requests/dto/request.dto";
+import {
+  CreateRequestContactLogDto,
+  UpdateRequestStatusDto,
+} from "../requests/dto/request.dto";
 import {
   SalesActivityQueryDto,
   SalesPeriodQueryDto,
@@ -55,6 +58,19 @@ export class SalesController {
     return this.salesService.getActivity(query.limit ?? 20);
   }
 
+  @Get("requests/:id")
+  @RequirePermissions("requests.read")
+  async getSalesRequest(
+    @Param() params: RequestIdParamDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const canUpdateStatus = await this.requestsService.canUserUpdateStatus(user);
+    return this.requestsService.findOne(params.id, {
+      canLogContact: canUpdateStatus,
+      canUpdateStatus,
+    });
+  }
+
   @Get("pipeline")
   @RequirePermissions("requests.read")
   async getPipeline(
@@ -65,6 +81,16 @@ export class SalesController {
       await this.requestsService.canUserUpdateStatus(user);
 
     return this.requestsService.findSalesPipeline(filters, canUpdateStatus);
+  }
+
+  @Post("pipeline/:id/contact-log")
+  @RequirePermissions("requests.update")
+  addPipelineContactLog(
+    @Param() params: RequestIdParamDto,
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateRequestContactLogDto,
+  ) {
+    return this.requestsService.addContactLog(params.id, user.id, dto);
   }
 
   @Post("pipeline/:id/status")

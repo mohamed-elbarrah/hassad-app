@@ -12,12 +12,20 @@ import {
   Phone,
   UserRound,
 } from "lucide-react";
-import { REQUEST_STATUS_AR, RequestStatus } from "@hassad/shared";
-import type { RequestItem } from "@/features/requests/requestsApi";
+import {
+  ContactLogType,
+  REQUEST_STATUS_AR,
+  RequestStatus,
+} from "@hassad/shared";
+import type {
+  CreateRequestContactLogPayload,
+  RequestItem,
+} from "@/features/requests/requestsApi";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatRelativeTime } from "@/lib/format";
+import { RequestContactLogDialog } from "@/components/request-detail/RequestContactLogDialog";
+import { formatCurrency, formatNumber, formatRelativeTime } from "@/lib/format";
 
 function getInitials(label: string) {
   return label
@@ -152,12 +160,24 @@ function getServicePreview(request: RequestItem) {
   return `${names.slice(0, 2).join("، ")} +${names.length - 2}`;
 }
 
+const SALES_CONTACT_LOG_TYPES = [
+  ContactLogType.CALL,
+  ContactLogType.WHATSAPP,
+  ContactLogType.MEETING,
+] as const;
+
 interface SalesPipelineCardProps {
   request: RequestItem;
   onCreateProposal?: (request: RequestItem) => void;
   onEditProposal?: (request: RequestItem) => void;
   onCreateContract?: (request: RequestItem) => void;
   onEditContract?: (request: RequestItem) => void;
+  onAddContactLog?: (
+    request: RequestItem,
+    payload: CreateRequestContactLogPayload,
+  ) => Promise<void>;
+  canAddContactLog?: boolean;
+  isAddingContactLog?: boolean;
 }
 
 export function SalesPipelineCard({
@@ -166,8 +186,10 @@ export function SalesPipelineCard({
   onEditProposal,
   onCreateContract,
   onEditContract,
+  onAddContactLog,
+  canAddContactLog,
+  isAddingContactLog,
 }: SalesPipelineCardProps) {
-  const action = getSalesPipelineAction(request);
   const relatedProposalId = request.proposals?.[0]?.id;
   const relatedContractId = request.contracts?.[0]?.id;
 
@@ -227,7 +249,7 @@ export function SalesPipelineCard({
         className="flex min-w-0 items-center gap-2"
       >
         <Avatar className="size-8 shrink-0">
-          <AvatarFallback className="text-[11px]">
+          <AvatarFallback className="text-xs">
             {getInitials(displayName)}
           </AvatarFallback>
         </Avatar>
@@ -235,20 +257,20 @@ export function SalesPipelineCard({
           <span className="truncate text-sm font-semibold text-foreground">
             {displayName}
           </span>
-          <span className="flex min-w-0 items-center gap-1 truncate text-[11px] text-muted-foreground">
+          <span className="flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
             <Building2 className="size-3 shrink-0" />
             {request.companyName}
           </span>
         </div>
         <Badge
           variant={getRequestStatusBadgeVariant(request.status)}
-          className="shrink-0 px-2 py-0 text-[10px]"
+          className="shrink-0 px-2 py-0 text-xs"
         >
           {REQUEST_STATUS_AR[request.status]}
         </Badge>
       </Link>
 
-      <div className="flex min-w-0 items-center justify-between gap-2 text-[11px] text-muted-foreground">
+      <div className="flex min-w-0 items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="flex min-w-0 items-center gap-1 truncate">
           <ClipboardList className="size-3 shrink-0" />
           {getServicePreview(request)}
@@ -261,7 +283,7 @@ export function SalesPipelineCard({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="flex min-w-0 items-center gap-1 truncate" dir="ltr">
           <Phone className="size-3 shrink-0" />
           {request.phoneWhatsapp}
@@ -272,8 +294,25 @@ export function SalesPipelineCard({
         </span>
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-t pt-2 text-[11px] text-muted-foreground">
-        <span>آخر تحديث {formatRelativeTime(request.updatedAt)}</span>
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span>
+          محاولات التواصل: {formatNumber(request.contactAttemptCount)}
+        </span>
+        <span>
+          {request.lastContactAt
+            ? `آخر تواصل ${formatRelativeTime(request.lastContactAt)}`
+            : "لم يتم التواصل بعد"}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-2">
+        {canAddContactLog && onAddContactLog ? (
+          <RequestContactLogDialog
+            allowedTypes={SALES_CONTACT_LOG_TYPES}
+            isSubmitting={isAddingContactLog}
+            onSubmit={(payload) => onAddContactLog(request, payload)}
+          />
+        ) : null}
         {workflowAction ? (
           <Button
             type="button"
@@ -285,19 +324,7 @@ export function SalesPipelineCard({
             <workflowAction.icon data-icon="inline-start" />
             {workflowAction.label}
           </Button>
-        ) : (
-          <Button
-            asChild
-            variant={isClosed ? "outline" : "default"}
-            size="sm"
-            className="h-8 px-3 text-xs"
-          >
-            <Link href={action.href}>
-              <action.icon data-icon="inline-start" />
-              {action.label}
-            </Link>
-          </Button>
-        )}
+        ) : null}
       </div>
     </div>
   );

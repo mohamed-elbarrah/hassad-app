@@ -35,8 +35,18 @@ export class RequestsController {
 
   @Get(":id")
   @RequirePermissions("requests.read")
-  findOne(@Param() params: RequestIdParamDto) {
-    return this.requestsService.findOne(params.id);
+  async findOne(
+    @Param() params: RequestIdParamDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const canUpdateStatus = await this.requestsService.canUserUpdateStatus({
+      id: user.id,
+      role: user.role ?? undefined,
+    });
+    return this.requestsService.findOne(params.id, {
+      canLogContact: canUpdateStatus,
+      canUpdateStatus,
+    });
   }
 
   @Post()

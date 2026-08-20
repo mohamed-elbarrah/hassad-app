@@ -1,7 +1,13 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import type { PipelineStage, RequestStatus } from "@hassad/shared";
-import { requestsApi, type RequestItem } from "@/features/requests/requestsApi";
+import {
+  requestsApi,
+  type CreateRequestContactLogPayload,
+  type RequestContactLogItem,
+  type RequestDetail,
+  type RequestItem,
+} from "@/features/requests/requestsApi";
 
 export type SalesPipelineGroup =
   | "INTAKE"
@@ -29,6 +35,7 @@ export type SalesPipelineItem = RequestItem & {
   allowedNextStatuses: RequestStatus[];
   capabilities: {
     canUpdateStatus: boolean;
+    canLogContact: boolean;
   };
 };
 
@@ -89,6 +96,13 @@ export const salesApi = createApi({
       providesTags: [{ type: "SalesMetrics", id: "SUMMARY" }],
     }),
 
+    getSalesRequestById: builder.query<RequestDetail, string>({
+      query: (id) => ({ url: `/sales/requests/${id}` }),
+      providesTags: (_result, _error, id) => [
+        { type: "SalesPipeline", id },
+      ],
+    }),
+
     getSalesPipeline: builder.query<
       SalesPipelineResponse,
       SalesPipelineFilters | void
@@ -107,6 +121,34 @@ export const salesApi = createApi({
               { type: "SalesPipeline", id: "LIST" },
             ]
           : [{ type: "SalesPipeline", id: "LIST" }],
+    }),
+
+    addSalesPipelineContactLog: builder.mutation<
+      RequestContactLogItem,
+      { id: string; body: CreateRequestContactLogPayload }
+    >({
+      query: ({ id, body }) => ({
+        url: `/sales/pipeline/${id}/contact-log`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "SalesPipeline", id },
+        { type: "SalesPipeline", id: "LIST" },
+      ],
+      async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(
+            requestsApi.util.invalidateTags([
+              { type: "Request", id },
+              { type: "Request", id: "LIST" },
+            ]),
+          );
+        } catch {
+          // The caller handles the mutation error and presents it to the user.
+        }
+      },
     }),
 
     updateSalesPipelineStatus: builder.mutation<
@@ -142,6 +184,8 @@ export const salesApi = createApi({
 
 export const {
   useGetSalesMetricsQuery,
+  useGetSalesRequestByIdQuery,
   useGetSalesPipelineQuery,
+  useAddSalesPipelineContactLogMutation,
   useUpdateSalesPipelineStatusMutation,
 } = salesApi;

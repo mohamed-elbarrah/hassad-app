@@ -50,6 +50,16 @@ export const KANBAN_TONES = {
     badgeClass:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300",
   }),
+  teal: createToneClasses({
+    dotClass: "bg-teal-500",
+    bandClass: "bg-teal-50 dark:bg-teal-950/30",
+    surfaceClass: "bg-teal-50/60 dark:bg-teal-950/20",
+    countClass:
+      "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+    fillClass: "bg-teal-500",
+    badgeClass:
+      "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300",
+  }),
   yellow: createToneClasses({
     dotClass: "bg-amber-500",
     bandClass: "bg-amber-50 dark:bg-amber-950/30",

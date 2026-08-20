@@ -29,11 +29,13 @@ import {
   SalesPipelineCard,
 } from "@/components/dashboard/sales/pipeline/SalesPipelineCard";
 import {
+  useAddSalesPipelineContactLogMutation,
   useGetSalesPipelineQuery,
   useUpdateSalesPipelineStatusMutation,
   type SalesPipelineGroup,
   type SalesPipelineItem,
 } from "@/features/sales/salesApi";
+import type { CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
 import { useGetProposalByIdQuery } from "@/features/proposals/proposalsApi";
 import { useGetContractByIdQuery } from "@/features/contracts/contractsApi";
 import { ProposalFormDialog } from "@/components/dashboard/sales/ProposalFormDialog";
@@ -90,7 +92,10 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDateTime, formatNumber, formatRelativeTime } from "@/lib/format";
-import { salesPipelineErrorMessage } from "@/lib/i18n";
+import {
+  salesPipelineErrorMessage,
+  salesWorkflowErrorMessage,
+} from "@/lib/i18n";
 
 type PipelineView = "kanban" | "table";
 type PipelineFilterGroup = "all" | SalesPipelineGroup;
@@ -111,10 +116,10 @@ const STATUS_GROUP_OPTIONS: PipelineFilterGroup[] = [
 
 const STATUS_GROUP_LABELS: Record<PipelineFilterGroup, string> = {
   all: "الكل",
-  INTAKE: "الاستقبال والتأهيل",
-  PROPOSAL: "العرض والتفاوض",
-  CONTRACT: "العقد والإغلاق",
-  WON: "الصفقات المحسومة",
+  INTAKE: "الطلبات الجديدة",
+  PROPOSAL: "العروض والمتابعة",
+  CONTRACT: "العقود",
+  WON: "الصفقات الناجحة",
   CANCELLED: "الطلبات الملغاة",
 };
 
@@ -215,6 +220,8 @@ export default function PipelinePage() {
   const deferredSearch = useDeferredValue(search);
   const [updatePipelineStatus, { isLoading: isUpdatingStatus }] =
     useUpdateSalesPipelineStatusMutation();
+  const [addSalesPipelineContactLog, { isLoading: isAddingContactLog }] =
+    useAddSalesPipelineContactLogMutation();
 
   const apiStatusGroup: SalesPipelineGroup | undefined =
     statusGroup === "all" ? undefined : statusGroup;
@@ -343,6 +350,22 @@ export default function PipelinePage() {
       }).unwrap();
     } catch (error) {
       toast.error(salesPipelineErrorMessage(error));
+    }
+  }
+
+  async function handleAddContactLog(
+    request: SalesPipelineItem,
+    payload: CreateRequestContactLogPayload,
+  ) {
+    try {
+      await addSalesPipelineContactLog({
+        id: request.id,
+        body: payload,
+      }).unwrap();
+      toast.success("تم تسجيل التواصل");
+    } catch (error) {
+      toast.error(salesWorkflowErrorMessage(error));
+      throw error;
     }
   }
 
@@ -568,12 +591,14 @@ export default function PipelinePage() {
                         onEditProposal={openProposalDialog}
                         onCreateContract={openContractDialog}
                         onEditContract={openContractDialog}
+                        onAddContactLog={handleAddContactLog}
+                        canAddContactLog={request.capabilities.canLogContact}
+                        isAddingContactLog={isAddingContactLog}
                       />
                     )}
                     onDragEnd={handleDragEnd}
                     canDragItem={(request) =>
                       !isUpdatingStatus &&
-                      !isFetching &&
                       request.capabilities.canUpdateStatus &&
                       !terminalStatuses.has(request.status)
                     }

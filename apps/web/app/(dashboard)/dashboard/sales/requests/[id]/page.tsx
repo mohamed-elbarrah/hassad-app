@@ -3,7 +3,12 @@
 import { use } from "react";
 import { Building2 } from "lucide-react";
 import { toast } from "sonner";
-import { useAddRequestContactLogMutation, useGetRequestByIdQuery, useUpdateRequestStatusMutation, type CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
+import type { CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
+import {
+  useAddSalesPipelineContactLogMutation,
+  useGetSalesRequestByIdQuery,
+  useUpdateSalesPipelineStatusMutation,
+} from "@/features/sales/salesApi";
 import { RequestDetailLoading, RequestDetailView } from "@/components/request-detail/RequestDetailPattern";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +23,7 @@ import {
 import type { RequestStatus } from "@hassad/shared";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { salesWorkflowErrorMessage } from "@/lib/i18n";
 
 export default function SalesRequestDetailPage({
   params,
@@ -25,9 +31,9 @@ export default function SalesRequestDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: request, isLoading, isError } = useGetRequestByIdQuery(id);
-  const [updateStatus, { isLoading: isUpdatingStage }] = useUpdateRequestStatusMutation();
-  const [addContactLog, { isLoading: isAddingContactLog }] = useAddRequestContactLogMutation();
+  const { data: request, isLoading, isError } = useGetSalesRequestByIdQuery(id);
+  const [updateStatus, { isLoading: isUpdatingStage }] = useUpdateSalesPipelineStatusMutation();
+  const [addContactLog, { isLoading: isAddingContactLog }] = useAddSalesPipelineContactLogMutation();
 
   if (isLoading) {
     return <RequestDetailLoading />;
@@ -70,10 +76,7 @@ export default function SalesRequestDetailPage({
       await updateStatus({ id: request.id, toStatus: status }).unwrap();
       toast.success("تم تحديث مرحلة الطلب");
     } catch (error) {
-      const message =
-        (error as { data?: { message?: string } })?.data?.message ??
-        "فشل تحديث مرحلة الطلب";
-      toast.error(message);
+      toast.error(salesWorkflowErrorMessage(error));
     }
   }
 
@@ -82,10 +85,7 @@ export default function SalesRequestDetailPage({
       await addContactLog({ id: request.id, body: payload }).unwrap();
       toast.success("تم تسجيل التواصل");
     } catch (error) {
-      const message =
-        (error as { data?: { message?: string } })?.data?.message ??
-        "فشل تسجيل التواصل";
-      toast.error(message);
+      toast.error(salesWorkflowErrorMessage(error));
       throw error;
     }
   }
