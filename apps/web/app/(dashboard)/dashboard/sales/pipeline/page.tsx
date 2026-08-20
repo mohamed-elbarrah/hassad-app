@@ -12,11 +12,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { shallowEqual } from "react-redux";
 import {
-  ArrowUpLeft,
   BriefcaseBusiness,
   ClipboardList,
   FileSignature,
-  Filter,
   KanbanSquare,
   RefreshCw,
   Search,
@@ -38,8 +36,8 @@ import {
   type SalesPipelineItem,
 } from "@/features/sales/salesApi";
 import type { CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
-import { useGetProposalByIdQuery } from "@/features/proposals/proposalsApi";
-import { useGetContractByIdQuery } from "@/features/contracts/contractsApi";
+import { useGetSalesProposalByIdQuery } from "@/features/proposals/proposalsApi";
+import { useGetSalesContractByIdQuery } from "@/features/contracts/contractsApi";
 import { ProposalFormDialog } from "@/components/dashboard/sales/ProposalFormDialog";
 import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
 import {
@@ -267,12 +265,16 @@ export default function PipelinePage() {
     data: proposalForEdit,
     isFetching: isProposalEditFetching,
     isError: isProposalEditError,
-  } = useGetProposalByIdQuery(proposalEditId, { skip: !proposalEditId });
+  } = useGetSalesProposalByIdQuery(proposalEditId, {
+    skip: !proposalEditId,
+  });
   const {
     data: contractForEdit,
     isFetching: isContractEditFetching,
     isError: isContractEditError,
-  } = useGetContractByIdQuery(contractEditId, { skip: !contractEditId });
+  } = useGetSalesContractByIdQuery(contractEditId, {
+    skip: !contractEditId,
+  });
 
   const pipelineQueryArgs = useMemo<SalesPipelineFilters>(
     () => ({

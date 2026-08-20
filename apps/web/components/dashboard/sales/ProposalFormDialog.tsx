@@ -13,8 +13,8 @@ import { toast } from "sonner";
 import { Check, Copy, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { DurationUnit } from "@hassad/shared";
 import {
-  useCreateProposalMutation,
-  useUpdateProposalMutation,
+  useCreateSalesProposalMutation,
+  useUpdateSalesProposalMutation,
   type ProposalListItem,
   type ServiceItem,
 } from "@/features/proposals/proposalsApi";
@@ -153,9 +153,9 @@ export function ProposalFormDialog({
     [watchedServices],
   );
   const [createProposal, { isLoading: isCreating }] =
-    useCreateProposalMutation();
+    useCreateSalesProposalMutation();
   const [updateProposal, { isLoading: isUpdating }] =
-    useUpdateProposalMutation();
+    useUpdateSalesProposalMutation();
   const isSubmitting = isCreating || isUpdating;
 
   useEffect(() => {

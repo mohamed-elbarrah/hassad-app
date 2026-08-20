@@ -231,16 +231,22 @@ function getApiErrorPayload(error: unknown): ApiErrorPayload {
 
 const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
   PROPOSAL_NOT_FOUND: "لم يتم العثور على العرض الفني.",
+  PROPOSAL_REQUEST_MISMATCH: "العرض الفني لا ينتمي إلى الطلب المحدد.",
   CONTRACT_NOT_FOUND: "لم يتم العثور على العقد.",
+  CONTRACT_NOT_SIGNABLE: "لا يمكن توقيع العقد في حالته الحالية.",
+  INITIAL_PAYMENT_REQUIRED: "يجب سداد الدفعة الأولى قبل تفعيل العقد.",
+  PROJECT_MANAGER_ASSIGNMENT_REQUIRED: "تعذر تعيين مدير المشروع.",
   REQUEST_NOT_FOUND: "لم يتم العثور على الطلب.",
   PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذه العملية.",
   AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
   INVALID_FILE_TYPE: "نوع الملف غير مدعوم. اختر ملف PDF.",
+  PDF_FILE_REQUIRED: "اختر ملف PDF قبل الحفظ.",
   FILE_TOO_LARGE: "حجم الملف أكبر من الحد المسموح.",
   INVALID_PROPOSAL_STATUS: "لا يمكن تنفيذ العملية على حالة العرض الحالية.",
   INVALID_CONTRACT_STATUS: "لا يمكن تنفيذ العملية على حالة العقد الحالية.",
   INVALID_REQUEST_STATUS_TRANSITION: "لا يمكن نقل الطلب إلى هذه المرحلة.",
-  REQUEST_STATUS_CHANGED: "تم تحديث الطلب من مستخدم آخر. حدّث الصفحة وحاول مرة أخرى.",
+  REQUEST_STATUS_CHANGED:
+    "تم تحديث الطلب من مستخدم آخر. حدّث الصفحة وحاول مرة أخرى.",
 };
 
 const SALES_WORKFLOW_FIELD_MESSAGES: Record<string, string> = {

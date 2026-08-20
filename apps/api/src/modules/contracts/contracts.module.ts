@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { MulterModule } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { ContractsController } from "./controllers/contracts.controller";
+import { SalesContractsController } from "./controllers/sales-contracts.controller";
 import { ContractsService } from "./services/contracts.service";
 import { ContractCronService } from "./services/contract-cron.service";
 import { BillingCronService } from "./services/billing-cron.service";
@@ -22,7 +23,7 @@ import { ChatModule } from "../chat/chat.module";
     ChatModule,
     MulterModule.register({ storage: memoryStorage() }),
   ],
-  controllers: [ContractsController],
+  controllers: [ContractsController, SalesContractsController],
   providers: [
     ContractsService,
     ContractCronService,

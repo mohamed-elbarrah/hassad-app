@@ -81,6 +81,28 @@ export const proposalsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Proposal", id }],
     }),
 
+    getSalesProposals: builder.query<PaginatedProposals, ProposalFilters>({
+      query: (filters = {}) => ({
+        url: "/sales/proposals",
+        params: filters,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map(({ id }) => ({
+                type: "Proposal" as const,
+                id,
+              })),
+              { type: "Proposal", id: "SALES_LIST" },
+            ]
+          : [{ type: "Proposal", id: "SALES_LIST" }],
+    }),
+
+    getSalesProposalById: builder.query<ProposalListItem, string>({
+      query: (id) => `/sales/proposals/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Proposal", id }],
+    }),
+
     /** One-step: multipart/form-data upload anchored to the request. */
     createProposal: builder.mutation<ProposalListItem, CreateProposalFormInput>(
       {
@@ -113,6 +135,41 @@ export const proposalsApi = createApi({
       invalidatesTags: (_result, _error, { id }) => [
         { type: "Proposal", id },
         { type: "Proposal", id: "LIST" },
+      ],
+    }),
+
+    createSalesProposal: builder.mutation<
+      ProposalListItem,
+      CreateProposalFormInput
+    >({
+      query: (input) => {
+        const formData = new FormData();
+        formData.append("requestId", input.requestId);
+        formData.append("title", input.title);
+        formData.append("serviceDescription", input.serviceDescription);
+        formData.append("file", input.file, input.file.name);
+        formData.append("servicesList", JSON.stringify(input.servicesList));
+        formData.append("totalPrice", String(input.totalPrice));
+        formData.append("durationDays", String(input.durationDays));
+        formData.append("durationUnit", input.durationUnit);
+
+        return { url: "/sales/proposals", method: "POST", body: formData };
+      },
+      invalidatesTags: [{ type: "Proposal", id: "SALES_LIST" }],
+    }),
+
+    updateSalesProposal: builder.mutation<
+      ProposalListItem,
+      { id: string; body: UpdateProposalInput }
+    >({
+      query: ({ id, body }) => ({
+        url: `/sales/proposals/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Proposal", id },
+        { type: "Proposal", id: "SALES_LIST" },
       ],
     }),
 
@@ -178,8 +235,12 @@ export const proposalsApi = createApi({
 export const {
   useGetProposalsQuery,
   useGetProposalByIdQuery,
+  useGetSalesProposalsQuery,
+  useGetSalesProposalByIdQuery,
   useCreateProposalMutation,
   useUpdateProposalMutation,
+  useCreateSalesProposalMutation,
+  useUpdateSalesProposalMutation,
   useSendProposalMutation,
   useGetProposalByTokenQuery,
   useGetMyProposalsQuery,

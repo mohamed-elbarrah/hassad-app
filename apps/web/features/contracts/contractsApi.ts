@@ -126,6 +126,44 @@ export interface SignContractInput {
   signedByEmail?: string;
 }
 
+function buildContractFormData(input: CreateContractFormInput) {
+  const formData = new FormData();
+  formData.append("requestId", input.requestId);
+  formData.append("title", input.title);
+  formData.append("type", input.type);
+  if (input.monthlyValue !== undefined) {
+    formData.append("monthlyValue", String(input.monthlyValue));
+  }
+  if (input.totalValue !== undefined) {
+    formData.append("totalValue", String(input.totalValue));
+  }
+  if (input.startDate) formData.append("startDate", input.startDate);
+  if (input.endDate) formData.append("endDate", input.endDate);
+
+  const downPaymentType =
+    input.initialPaymentRequired === false
+      ? undefined
+      : (input.downPaymentType ?? input.initialPaymentType);
+  const downPaymentValue =
+    input.initialPaymentRequired === false
+      ? undefined
+      : (input.downPaymentValue ?? input.initialPaymentValue);
+
+  if (downPaymentType) {
+    formData.append("downPaymentType", downPaymentType);
+  }
+  if (downPaymentValue !== undefined) {
+    formData.append("downPaymentValue", String(downPaymentValue));
+  }
+  if (input.numberOfMonths !== undefined) {
+    formData.append("numberOfMonths", String(input.numberOfMonths));
+  }
+  formData.append("file", input.file, input.file.name);
+  if (input.proposalId) formData.append("proposalId", input.proposalId);
+
+  return formData;
+}
+
 // ─── API slice ────────────────────────────────────────────────────────────────
 
 export const contractsApi = createApi({
@@ -152,50 +190,18 @@ export const contractsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Contract", id }],
     }),
 
+    getSalesContractById: builder.query<ContractItem, string>({
+      query: (id) => `/sales/contracts/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Contract", id }],
+    }),
+
     /** One-step: multipart/form-data upload anchored to the request. */
     createContract: builder.mutation<ContractItem, CreateContractFormInput>({
-      query: (input) => {
-        const formData = new FormData();
-        formData.append("requestId", input.requestId);
-        formData.append("title", input.title);
-        formData.append("type", input.type);
-        if (input.monthlyValue !== undefined) {
-          formData.append("monthlyValue", String(input.monthlyValue));
-        }
-        if (input.totalValue !== undefined) {
-          formData.append("totalValue", String(input.totalValue));
-        }
-        if (input.startDate) formData.append("startDate", input.startDate);
-        if (input.endDate) formData.append("endDate", input.endDate);
-        if (input.downPaymentType) {
-          formData.append("downPaymentType", input.downPaymentType);
-        }
-        if (input.downPaymentValue !== undefined) {
-          formData.append("downPaymentValue", String(input.downPaymentValue));
-        }
-        if (input.numberOfMonths !== undefined) {
-          formData.append("numberOfMonths", String(input.numberOfMonths));
-        }
-        if (input.initialPaymentRequired !== undefined) {
-          formData.append(
-            "initialPaymentRequired",
-            String(input.initialPaymentRequired),
-          );
-        }
-        if (input.initialPaymentType) {
-          formData.append("initialPaymentType", input.initialPaymentType);
-        }
-        if (input.initialPaymentValue !== undefined) {
-          formData.append(
-            "initialPaymentValue",
-            String(input.initialPaymentValue),
-          );
-        }
-        formData.append("file", input.file, input.file.name);
-        if (input.proposalId) formData.append("proposalId", input.proposalId);
-
-        return { url: "/contracts", method: "POST", body: formData };
-      },
+      query: (input) => ({
+        url: "/contracts",
+        method: "POST",
+        body: buildContractFormData(input),
+      }),
       invalidatesTags: [{ type: "Contract", id: "LIST" }],
     }),
 
@@ -211,6 +217,33 @@ export const contractsApi = createApi({
       invalidatesTags: (_result, _error, { id }) => [
         { type: "Contract", id },
         { type: "Contract", id: "LIST" },
+      ],
+    }),
+
+    createSalesContract: builder.mutation<
+      ContractItem,
+      CreateContractFormInput
+    >({
+      query: (input) => ({
+        url: "/sales/contracts",
+        method: "POST",
+        body: buildContractFormData(input),
+      }),
+      invalidatesTags: [{ type: "Contract", id: "SALES_LIST" }],
+    }),
+
+    updateSalesContract: builder.mutation<
+      ContractItem,
+      { id: string; body: UpdateContractInput }
+    >({
+      query: ({ id, body }) => ({
+        url: `/sales/contracts/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Contract", id },
+        { type: "Contract", id: "SALES_LIST" },
       ],
     }),
 
@@ -283,8 +316,11 @@ export const contractsApi = createApi({
 export const {
   useGetContractsQuery,
   useGetContractByIdQuery,
+  useGetSalesContractByIdQuery,
   useCreateContractMutation,
   useUpdateContractMutation,
+  useCreateSalesContractMutation,
+  useUpdateSalesContractMutation,
   useSendContractMutation,
   useSignContractMutation,
   useGetContractByTokenQuery,

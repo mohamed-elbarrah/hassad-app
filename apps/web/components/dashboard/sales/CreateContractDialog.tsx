@@ -12,11 +12,11 @@ import {
   ProposalStatus,
 } from "@hassad/shared";
 import {
-  useCreateContractMutation,
-  useUpdateContractMutation,
+  useCreateSalesContractMutation,
+  useUpdateSalesContractMutation,
   type ContractItem,
 } from "@/features/contracts/contractsApi";
-import { useGetProposalsQuery } from "@/features/proposals/proposalsApi";
+import { useGetSalesProposalsQuery } from "@/features/proposals/proposalsApi";
 import {
   salesWorkflowErrorMessage,
   salesWorkflowValidationMessages,
@@ -162,14 +162,14 @@ export function CreateContractDialog({
     name: "initialPaymentValue",
   });
   const { data: proposalsData, isFetching: proposalsLoading } =
-    useGetProposalsQuery(
+    useGetSalesProposalsQuery(
       { status: ProposalStatus.APPROVED, limit: 100 },
       { skip: !open || isEdit },
     );
   const [createContract, { isLoading: isCreating }] =
-    useCreateContractMutation();
+    useCreateSalesContractMutation();
   const [updateContract, { isLoading: isUpdating }] =
-    useUpdateContractMutation();
+    useUpdateSalesContractMutation();
   const isSubmitting = isCreating || isUpdating;
 
   const proposalOptions = useMemo(() => {

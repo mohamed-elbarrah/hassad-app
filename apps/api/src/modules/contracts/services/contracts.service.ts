@@ -28,11 +28,14 @@ import {
   TaskPriority,
   TaskStatus,
   PaymentPlanTriggerType,
-  PaymentAmountType,
   ProjectPeriodStatus,
   InvoiceStatus,
 } from "@hassad/shared";
 import { RequestsService } from "../../requests/requests.service";
+import {
+  buildRequestAccessWhere,
+  type RequestAccessScope,
+} from "../../requests/request-access";
 import { DirectConversationService } from "../../chat/services/direct-conversation.service";
 import { PmAssignmentService } from "./pm-assignment.service";
 import { ContractPaymentPlanService } from "./contract-payment-plan.service";
@@ -114,7 +117,10 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException("Contract not found for project handover");
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: {},
+      });
     }
 
     const managerCandidates = [
@@ -128,9 +134,10 @@ export class ContractsService {
     );
 
     if (!assignment) {
-      throw new BadRequestException(
-        "Cannot auto-create project without an active PM account",
-      );
+      throw new BadRequestException({
+        code: "PROJECT_MANAGER_ASSIGNMENT_REQUIRED",
+        details: {},
+      });
     }
 
     const projectManagerId = assignment.pmId;
@@ -277,7 +284,7 @@ export class ContractsService {
    *    invoice is paid (the activation gate fires from the `invoice.paid` event).
    *  - If no down payment (0 / none): activate the contract immediately.
    */
-  private async onContractSigned(contractId: string, signedByName?: string) {
+  private async onContractSigned(contractId: string, _signedByName?: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
       select: {
@@ -407,12 +414,18 @@ export class ContractsService {
         client: { select: { accountManager: true } },
       },
     });
-    if (!contract) throw new NotFoundException("Contract not found");
+    if (!contract) {
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: {},
+      });
+    }
     if (contract.status === ContractStatus.ACTIVE) return contract;
     if (contract.status !== ContractStatus.SIGNED) {
-      throw new BadRequestException(
-        `Contract must be SIGNED to activate (current: ${contract.status})`,
-      );
+      throw new BadRequestException({
+        code: "INVALID_CONTRACT_STATUS",
+        details: { status: contract.status },
+      });
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -716,7 +729,50 @@ export class ContractsService {
     return this.paymentPlanService.removeRow(rowId);
   }
 
-  async create(userId: string, filePath: string, dto: CreateContractDto) {
+  async assertCreationAccess(
+    dto: CreateContractDto,
+    accessScope?: RequestAccessScope,
+  ) {
+    await this.requestsService.assertRequestAccess(dto.requestId, accessScope);
+
+    if (!dto.proposalId) return;
+
+    const proposal = await this.prisma.proposal.findFirst({
+      where: {
+        id: dto.proposalId,
+        ...(accessScope?.assignedSalesId
+          ? { request: buildRequestAccessWhere(accessScope) }
+          : {}),
+      },
+      select: { requestId: true },
+    });
+
+    if (!proposal) {
+      throw new NotFoundException({
+        code: "PROPOSAL_NOT_FOUND",
+        details: { id: dto.proposalId },
+      });
+    }
+
+    if (proposal.requestId !== dto.requestId) {
+      throw new BadRequestException({
+        code: "PROPOSAL_REQUEST_MISMATCH",
+        details: {
+          proposalId: dto.proposalId,
+          requestId: dto.requestId,
+        },
+      });
+    }
+  }
+
+  async create(
+    userId: string,
+    filePath: string,
+    dto: CreateContractDto,
+    accessScope?: RequestAccessScope,
+  ) {
+    await this.assertCreationAccess(dto, accessScope);
+
     const shareLinkToken = randomUUID();
 
     let servicesList: any = undefined;
@@ -726,15 +782,38 @@ export class ContractsService {
     let totalValue = dto.totalValue ?? 0;
 
     if (dto.proposalId) {
-      const proposal = await this.prisma.proposal.findUnique({
-        where: { id: dto.proposalId },
+      const proposal = await this.prisma.proposal.findFirst({
+        where: {
+          id: dto.proposalId,
+          ...(accessScope?.assignedSalesId
+            ? { request: buildRequestAccessWhere(accessScope) }
+            : {}),
+        },
         select: {
+          requestId: true,
           servicesList: true,
           totalPrice: true,
           durationDays: true,
           title: true,
         },
       });
+      if (!proposal) {
+        throw new NotFoundException({
+          code: "PROPOSAL_NOT_FOUND",
+          details: { id: dto.proposalId },
+        });
+      }
+
+      if (proposal.requestId !== dto.requestId) {
+        throw new BadRequestException({
+          code: "PROPOSAL_REQUEST_MISMATCH",
+          details: {
+            proposalId: dto.proposalId,
+            requestId: dto.requestId,
+          },
+        });
+      }
+
       if (proposal) {
         if (proposal.servicesList) {
           servicesList = proposal.servicesList;
@@ -755,6 +834,7 @@ export class ContractsService {
         },
         userId,
         tx,
+        accessScope,
       );
 
       const contract = await tx.contract.create({
@@ -851,6 +931,7 @@ export class ContractsService {
         userId,
         undefined,
         tx,
+        accessScope,
       );
 
       return { contract, request };
@@ -897,9 +978,14 @@ export class ContractsService {
     return { ...created.contract, shareLinkToken };
   }
 
-  async findOne(id: string) {
-    const contract = await this.prisma.contract.findUnique({
-      where: { id },
+  async findOne(id: string, accessScope?: RequestAccessScope) {
+    const contract = await this.prisma.contract.findFirst({
+      where: {
+        id,
+        ...(accessScope?.assignedSalesId
+          ? { request: buildRequestAccessWhere(accessScope) }
+          : {}),
+      },
       include: {
         client: {
           // Personal identity (name, email, phone) now lives on `User`.
@@ -924,7 +1010,10 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException(`Contract with ID ${id} not found`);
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: { id },
+      });
     }
 
     return contract;
@@ -956,7 +1045,10 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException("العقد غير موجود أو انتهت صلاحية الرابط");
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: {},
+      });
     }
 
     return contract;
@@ -974,11 +1066,17 @@ export class ContractsService {
     });
 
     if (!contract) {
-      throw new NotFoundException("العقد غير موجود");
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: {},
+      });
     }
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException("لا يمكن توقيع هذا العقد في وضعه الحالي");
+      throw new BadRequestException({
+        code: "INVALID_CONTRACT_STATUS",
+        details: { status: contract.status },
+      });
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
@@ -1061,7 +1159,13 @@ export class ContractsService {
     return signedResult;
   }
 
-  async update(id: string, dto: UpdateContractDto) {
+  async update(
+    id: string,
+    dto: UpdateContractDto,
+    accessScope?: RequestAccessScope,
+  ) {
+    await this.findOne(id, accessScope);
+
     return this.prisma.contract.update({
       where: { id },
       data: {
@@ -1157,7 +1261,10 @@ export class ContractsService {
     const contract = await this.findOne(id);
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException("CONTRACT_NOT_SIGNABLE");
+      throw new BadRequestException({
+        code: "CONTRACT_NOT_SIGNABLE",
+        details: { status: contract.status },
+      });
     }
 
     const initialPaymentAmount = contract.initialPaymentRequired
@@ -1169,7 +1276,10 @@ export class ContractsService {
         select: { id: true },
       });
       if (!paidInvoice) {
-        throw new BadRequestException("INITIAL_PAYMENT_REQUIRED");
+        throw new BadRequestException({
+          code: "INITIAL_PAYMENT_REQUIRED",
+          details: { contractId: contract.id },
+        });
       }
     }
 
@@ -1354,7 +1464,7 @@ export class ContractsService {
     id: string,
     userId: string,
     storageKey: string,
-    dto: CreateVersionDto,
+    _dto: CreateVersionDto,
   ) {
     const contract = await this.findOne(id);
 

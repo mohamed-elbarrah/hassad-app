@@ -355,6 +355,22 @@ export class RequestsService {
     };
   }
 
+  async assertRequestAccess(id: string, accessScope?: RequestAccessScope) {
+    const request = await this.prisma.request.findFirst({
+      where: { id, ...buildRequestAccessWhere(accessScope) },
+      select: { id: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id },
+      });
+    }
+
+    return request;
+  }
+
   async findOne(
     id: string,
     capabilities?: { canLogContact: boolean; canUpdateStatus: boolean },
@@ -1070,6 +1086,7 @@ export class RequestsService {
     },
     _changedBy?: string | null,
     tx?: Prisma.TransactionClient,
+    accessScope?: RequestAccessScope,
   ) {
     const db = this.getDbClient(tx);
     const requestId =
@@ -1090,8 +1107,8 @@ export class RequestsService {
       });
     }
 
-    const request = await db.request.findUnique({
-      where: { id: requestId },
+    const request = await db.request.findFirst({
+      where: { id: requestId, ...buildRequestAccessWhere(accessScope) },
       include: {
         client: { select: { id: true, companyName: true, userId: true } },
       },

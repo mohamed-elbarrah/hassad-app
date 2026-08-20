@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from "@nestjs/common";
 import {
   S3Client,
   PutObjectCommand,
@@ -125,16 +130,26 @@ export class StorageService implements OnModuleInit {
       const ext = extname(file.originalname).toLowerCase();
       const mappedMime = EXTENSION_MIME_MAP[ext];
       if (!mappedMime || !config.allowedMimeTypes.includes(mappedMime)) {
-        throw new Error(
-          `File type "${file.mimetype}" is not allowed for category "${category}". Allowed types: ${config.allowedMimeTypes.join(", ")}`,
-        );
+        throw new BadRequestException({
+          code: "INVALID_FILE_TYPE",
+          details: {
+            category,
+            mimeType: file.mimetype,
+            allowedMimeTypes: config.allowedMimeTypes,
+          },
+        });
       }
     }
 
     if (file.size > config.maxFileSize) {
-      throw new Error(
-        `File size ${file.size} bytes exceeds maximum ${config.maxFileSize} bytes for category "${category}"`,
-      );
+      throw new BadRequestException({
+        code: "FILE_TOO_LARGE",
+        details: {
+          category,
+          fileSize: file.size,
+          maxFileSize: config.maxFileSize,
+        },
+      });
     }
 
     const key = this.generateKey(
@@ -186,14 +201,26 @@ export class StorageService implements OnModuleInit {
       const ext = extname(file.originalname).toLowerCase();
       const mappedMime = EXTENSION_MIME_MAP[ext];
       if (!mappedMime || !config.allowedMimeTypes.includes(mappedMime)) {
-        throw new Error(
-          `File type "${file.mimetype}" is not allowed for category "${category}".`,
-        );
+        throw new BadRequestException({
+          code: "INVALID_FILE_TYPE",
+          details: {
+            category,
+            mimeType: file.mimetype,
+            allowedMimeTypes: config.allowedMimeTypes,
+          },
+        });
       }
     }
 
     if (file.size > config.maxFileSize) {
-      throw new Error(`File size exceeds maximum for category "${category}".`);
+      throw new BadRequestException({
+        code: "FILE_TOO_LARGE",
+        details: {
+          category,
+          fileSize: file.size,
+          maxFileSize: config.maxFileSize,
+        },
+      });
     }
 
     const key = this.generateKeyForSubEntity(

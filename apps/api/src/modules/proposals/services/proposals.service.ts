@@ -4,12 +4,17 @@ import {
   BadRequestException,
   ForbiddenException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { CreateProposalDto, UpdateProposalDto } from "../dto/proposal.dto";
 import { ProposalStatus, RequestStatus } from "@hassad/shared";
 import { randomBytes } from "crypto";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { RequestsService } from "../../requests/requests.service";
+import {
+  buildRequestAccessWhere,
+  type RequestAccessScope,
+} from "../../requests/request-access";
 
 @Injectable()
 export class ProposalsService {
@@ -20,7 +25,11 @@ export class ProposalsService {
   ) {}
 
   /** Create a proposal and publish it through the legacy workflow. */
-  async create(userId: string, dto: CreateProposalDto) {
+  async create(
+    userId: string,
+    dto: CreateProposalDto,
+    accessScope?: RequestAccessScope,
+  ) {
     const token = randomBytes(32).toString("hex");
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -28,6 +37,7 @@ export class ProposalsService {
         { requestId: dto.requestId },
         userId,
         tx,
+        accessScope,
       );
       const proposal = await tx.proposal.create({
         data: {
@@ -53,6 +63,7 @@ export class ProposalsService {
         userId,
         undefined,
         tx,
+        accessScope,
       );
 
       return { proposal, request };
@@ -76,20 +87,28 @@ export class ProposalsService {
     return created.proposal;
   }
 
-  async findAll(filters: {
-    status?: string;
-    requestId?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-  }) {
+  async findAll(
+    filters: {
+      status?: string;
+      requestId?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    },
+    accessScope?: RequestAccessScope,
+  ) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
-    const where: any = {};
-    if (filters.status) where.status = filters.status;
+    const where: Prisma.ProposalWhereInput = {
+      ...(accessScope?.assignedSalesId
+        ? { request: buildRequestAccessWhere(accessScope) }
+        : {}),
+    };
+    if (filters.status) where.status = filters.status as ProposalStatus;
     if (filters.requestId) where.requestId = filters.requestId;
-    if (filters.search)
+    if (filters.search) {
       where.title = { contains: filters.search, mode: "insensitive" };
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.proposal.findMany({
@@ -107,9 +126,14 @@ export class ProposalsService {
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async findOne(id: string) {
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id },
+  async findOne(id: string, accessScope?: RequestAccessScope) {
+    const proposal = await this.prisma.proposal.findFirst({
+      where: {
+        id,
+        ...(accessScope?.assignedSalesId
+          ? { request: buildRequestAccessWhere(accessScope) }
+          : {}),
+      },
       include: {
         request: true,
         creator: true,
@@ -117,14 +141,22 @@ export class ProposalsService {
     });
 
     if (!proposal) {
-      throw new NotFoundException(`Proposal with ID ${id} not found`);
+      throw new NotFoundException({
+        code: "PROPOSAL_NOT_FOUND",
+        details: { id },
+      });
     }
 
     return proposal;
   }
 
-  async update(id: string, dto: UpdateProposalDto, userId: string) {
-    const proposal = await this.findOne(id);
+  async update(
+    id: string,
+    dto: UpdateProposalDto,
+    userId: string,
+    accessScope?: RequestAccessScope,
+  ) {
+    const proposal = await this.findOne(id, accessScope);
 
     // Owner guard: only creator or ADMIN can update
     const user = await this.prisma.user.findUnique({
@@ -136,7 +168,10 @@ export class ProposalsService {
     const isOwner = proposal.createdBy === userId;
 
     if (!isAdmin && !isOwner) {
-      throw new ForbiddenException("You can only edit proposals you created");
+      throw new ForbiddenException({
+        code: "PERMISSION_DENIED",
+        details: { resource: "PROPOSAL", id },
+      });
     }
 
     const updateData: any = { ...dto };
@@ -233,7 +268,10 @@ export class ProposalsService {
     });
 
     if (!proposal) {
-      throw new NotFoundException("Proposal not found or link is invalid");
+      throw new NotFoundException({
+        code: "PROPOSAL_NOT_FOUND",
+        details: {},
+      });
     }
 
     return proposal;
@@ -243,9 +281,10 @@ export class ProposalsService {
     const proposal = await this.findByToken(token);
 
     if (proposal.status !== ProposalStatus.SENT) {
-      throw new BadRequestException(
-        "Proposal cannot be approved in its current state",
-      );
+      throw new BadRequestException({
+        code: "INVALID_PROPOSAL_STATUS",
+        details: { status: proposal.status },
+      });
     }
 
     const updated = await this.prisma.proposal.update({
@@ -285,9 +324,10 @@ export class ProposalsService {
     const proposal = await this.findByToken(token);
 
     if (proposal.status !== ProposalStatus.SENT) {
-      throw new BadRequestException(
-        "Proposal cannot be revised in its current state",
-      );
+      throw new BadRequestException({
+        code: "INVALID_PROPOSAL_STATUS",
+        details: { status: proposal.status },
+      });
     }
 
     const updated = await this.prisma.proposal.update({
