@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Download, Trash2, File, FileImage, FileText } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
 import { downloadTaskFile } from "@/lib/downloadFile";
 import { formatFileSize, formatShortDate } from "@/lib/format";
 import { toast } from "sonner";

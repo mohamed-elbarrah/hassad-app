@@ -29,7 +29,9 @@ function getInitials(label: string) {
     .toUpperCase();
 }
 
-export function getRequestStatusBadgeVariant(status: RequestStatus) {
+export function getRequestStatusBadgeVariant(
+  status: RequestStatus,
+): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
     case RequestStatus.SIGNED:
     case RequestStatus.PROJECT_CREATED:

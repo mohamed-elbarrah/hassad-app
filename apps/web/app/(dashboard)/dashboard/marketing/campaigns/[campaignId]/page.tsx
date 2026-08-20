@@ -7,14 +7,14 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 // Design-system
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Card } from "@/components/ui/card";
 import { MetricCard } from "@/components/design-system/MetricCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 
-import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { FormInputControl } from "@/components/ui/formInputControl";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/common/EmptyState";
 
 // API
@@ -358,7 +358,7 @@ export default function CampaignDetailPage() {
       </div>
 
       {/* ── Budget Utilization ─────────────────────────────────────────── */}
-      <SurfaceCard title="استهلاك الميزانية" icon={Wallet}>
+      <Card title="استهلاك الميزانية" icon={Wallet}>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -390,10 +390,10 @@ export default function CampaignDetailPage() {
             {formatCurrency(campaign.budgetTotal)}
           </p>
         </div>
-      </SurfaceCard>
+      </Card>
 
       {/* ── Quick Actions ────────────────────────────────────────────────── */}
-      <SurfaceCard title="الإجراءات السريعة" icon={Zap}>
+      <Card title="الإجراءات السريعة" icon={Zap}>
         <div className="flex flex-wrap gap-2">
           {canStart && (
             <ActionButton
@@ -485,7 +485,7 @@ export default function CampaignDetailPage() {
             </ActionButton>
           )}
         </div>
-      </SurfaceCard>
+      </Card>
 
       {/* ── Needs Optimization Warning ─────────────────────────────────── */}
       {campaign.needsOptimization && (
@@ -535,7 +535,7 @@ export default function CampaignDetailPage() {
       {/* ── Metrics Sections ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {metricSections.map((section) => (
-          <SurfaceCard
+          <Card
             key={section.title}
             title={section.title}
             icon={BarChart3}
@@ -562,12 +562,12 @@ export default function CampaignDetailPage() {
                 />
               ))}
             </div>
-          </SurfaceCard>
+          </Card>
         ))}
       </div>
 
       {/* ── Update Form ────────────────────────────────────────────────── */}
-      <SurfaceCard title="تحديث البيانات" icon={BarChart3}>
+      <Card title="تحديث البيانات" icon={BarChart3}>
         <div className="space-y-5">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <MetricInput
@@ -631,7 +631,7 @@ export default function CampaignDetailPage() {
             </ActionButton>
           </div>
         </div>
-      </SurfaceCard>
+      </Card>
     </div>
   );
 }

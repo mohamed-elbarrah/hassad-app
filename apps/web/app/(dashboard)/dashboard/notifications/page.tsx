@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, ExternalLink } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog } from "@/components/design-system/Dialog";
 import {
   useGetMyNotificationsQuery,

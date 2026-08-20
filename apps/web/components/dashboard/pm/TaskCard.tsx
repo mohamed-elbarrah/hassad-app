@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Card } from "@/components/ui/card";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import { Calendar, User } from "lucide-react";
 import type { Task } from "@hassad/shared";
@@ -29,7 +29,7 @@ interface TaskCardProps {
 export function TaskCard({ task }: TaskCardProps) {
   return (
     <Link href={`/dashboard/pm/tasks/${task.id}`} className="block">
-      <SurfaceCard className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+      <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
         <div className="pb-2 pt-3 px-3">
           <div className="flex items-start justify-between gap-2">
             <h4 className="text-sm font-medium leading-tight line-clamp-2 text-natural-100">
@@ -61,7 +61,7 @@ export function TaskCard({ task }: TaskCardProps) {
             </div>
           </div>
         </div>
-      </SurfaceCard>
+      </Card>
     </Link>
   );
 }

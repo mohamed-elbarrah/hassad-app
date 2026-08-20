@@ -23,14 +23,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { FormInputControl } from "@/components/ui/formInputControl";
 import {
   FormSelect,
   FormSelectTrigger,
   FormSelectValue,
   FormSelectContent,
   FormSelectItem,
-} from "@/components/design-system/FormSelectControl";
+} from "@/components/ui/formSelectControl";
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { Building2, Briefcase } from "lucide-react";
 import { z } from "zod";

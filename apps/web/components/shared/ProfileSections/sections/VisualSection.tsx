@@ -12,8 +12,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { FormTextareaControl } from "@/components/ui/formTextareaControl";
+import { FormInputControl } from "@/components/ui/formInputControl";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";

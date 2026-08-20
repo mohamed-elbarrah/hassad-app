@@ -2,11 +2,11 @@
 
 import { useAppSelector } from "@/lib/hooks";
 import { UserRole, TaskDepartment } from "@hassad/shared";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/design-system/Pill";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
-import { Separator } from "@/components/design-system/Primitives";
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { User, Mail, Briefcase } from "lucide-react";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -61,7 +61,7 @@ export default function AccountPage() {
     <div className="max-w-lg mx-auto py-8 px-4 space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">الحساب الشخصي</h1>
 
-      <SurfaceCard>
+      <Card>
         <div className="flex flex-row items-center gap-4 pb-4">
           <UserAvatar name={user.name} size="lg" variant="rounded" />
           <div className="flex flex-col gap-1">
@@ -106,7 +106,7 @@ export default function AccountPage() {
             </div>
           )}
         </div>
-      </SurfaceCard>
+      </Card>
     </div>
   );
 }

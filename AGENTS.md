@@ -206,6 +206,12 @@ The backend must not contain Arabic, English, or other human-language versions o
 
 When modifying an endpoint that currently returns human-readable messages (touched scope), change it to the standardized contract.
 
+### Static UI language exception
+
+Static UI content is presentation content and may remain Arabic directly in the UI. Do not move static labels, headings, button text, descriptions, empty states, or other fixed UI copy into a localization system solely because it is Arabic.
+
+This exception does **not** apply to backend-originated content. Backend responses, errors, validation issues, and success results must use machine-readable codes and structured details. The frontend must translate those codes into understandable Arabic messages through the centralized presentation/error-mapping layer. Frontend code must never display backend message text directly.
+
 ---
 
 # 4. Frontend API Handling

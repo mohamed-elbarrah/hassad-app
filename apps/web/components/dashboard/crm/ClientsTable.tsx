@@ -18,11 +18,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/design-system/Primitives";
+} from "@/components/ui/table";
 import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Client } from "@hassad/shared";
 import { ClientStatus } from "@hassad/shared";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
 import { Pill } from "@/components/design-system/Pill";
 import { formatShortDate } from "@/lib/format";
 

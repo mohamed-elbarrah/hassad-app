@@ -1,9 +1,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import { getApiBaseUrl } from "@/lib/utils";
 import type {
   ContractStatus,
   ContractType,
+  UpdateContractInput,
   InvoiceStatus,
   PaymentMethod,
   ServiceItem,
@@ -148,61 +148,39 @@ export const contractsApi = createApi({
 
     /** One-step: multipart/form-data upload anchored to the request. */
     createContract: builder.mutation<ContractItem, CreateContractFormInput>({
-      queryFn: async (input, _api, _extraOptions) => {
-        if (!input.requestId) {
-          return {
-            error: {
-              status: 400,
-              data: { message: "requestId is required" },
-            },
-          };
-        }
-
+      query: (input) => {
         const formData = new FormData();
         formData.append("requestId", input.requestId);
         formData.append("title", input.title);
         formData.append("type", input.type);
-        if (input.monthlyValue !== undefined)
+        if (input.monthlyValue !== undefined) {
           formData.append("monthlyValue", String(input.monthlyValue));
-        if (input.totalValue !== undefined)
+        }
+        if (input.totalValue !== undefined) {
           formData.append("totalValue", String(input.totalValue));
+        }
         if (input.startDate) formData.append("startDate", input.startDate);
         if (input.endDate) formData.append("endDate", input.endDate);
-        if (input.downPaymentType)
+        if (input.downPaymentType) {
           formData.append("downPaymentType", input.downPaymentType);
-        if (input.downPaymentValue !== undefined)
+        }
+        if (input.downPaymentValue !== undefined) {
           formData.append("downPaymentValue", String(input.downPaymentValue));
-        if (input.numberOfMonths !== undefined)
+        }
+        if (input.numberOfMonths !== undefined) {
           formData.append("numberOfMonths", String(input.numberOfMonths));
+        }
         formData.append("file", input.file, input.file.name);
         if (input.proposalId) formData.append("proposalId", input.proposalId);
 
-        const apiBase =
-          getApiBaseUrl() ||
-          (typeof window !== "undefined"
-            ? `${window.location.origin.replace(/\/+$/, "")}/v1`
-            : "");
-
-        const res = await fetch(`${apiBase}/contracts`, {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        });
-
-        const json = await res.json();
-        if (!res.ok) {
-          return { error: { status: res.status, data: json } };
-        }
-        // Unwrap envelope
-        const data = json?.data !== undefined ? json.data : json;
-        return { data };
+        return { url: "/contracts", method: "POST", body: formData };
       },
       invalidatesTags: [{ type: "Contract", id: "LIST" }],
     }),
 
     updateContract: builder.mutation<
       ContractItem,
-      { id: string; body: Partial<ContractItem> }
+      { id: string; body: UpdateContractInput }
     >({
       query: ({ id, body }) => ({
         url: `/contracts/${id}`,

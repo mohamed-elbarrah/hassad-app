@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { Input } from "@/components/design-system/Input";
+import { Input } from "@/components/ui/input";
 import {
   FilterBar,
   type FilterGroup,
@@ -33,7 +33,6 @@ export function PmListToolbar({
           placeholder={searchPlaceholder}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          icon={<Search className="size-4 text-portal-note-text" />}
         />
       </div>
       {filterGroups && onFilterChange && (

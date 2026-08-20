@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Dialog } from "@/components/design-system/Dialog";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
 
 interface ContactAttemptDialogProps {
   clientId: string;

@@ -34,7 +34,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { FormInputControl } from "@/components/ui/formInputControl";
 import { Button } from "@/components/ui/button";
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { User, Mail, Phone } from "lucide-react";

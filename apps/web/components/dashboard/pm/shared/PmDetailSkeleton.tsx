@@ -1,6 +1,6 @@
 "use client";
 
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PmDetailSkeletonProps {
   variant?: "project" | "task" | "dispute";

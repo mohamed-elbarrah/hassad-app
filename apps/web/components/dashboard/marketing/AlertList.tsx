@@ -1,8 +1,8 @@
 "use client";
 
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/design-system/Pill";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
 import {
   AlertCircle,
   ArrowRight,
@@ -63,7 +63,7 @@ export function AlertList({ tasks }: { tasks: any[] }) {
   if (alerts.length === 0) return null;
 
   return (
-    <SurfaceCard className="border-danger-200 bg-danger-50/30">
+    <Card className="border-danger-200 bg-danger-50/30">
       <div className="pb-3">
         <h2 className="text-lg flex items-center gap-2 text-danger-700">
           <AlertCircle className="w-5 h-5" />
@@ -125,6 +125,6 @@ export function AlertList({ tasks }: { tasks: any[] }) {
           </div>
         ))}
       </div>
-    </SurfaceCard>
+    </Card>
   );
 }

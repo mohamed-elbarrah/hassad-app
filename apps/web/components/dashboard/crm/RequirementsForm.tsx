@@ -1,7 +1,7 @@
 "use client";
 
 import type { Client } from "@hassad/shared";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/design-system/Pill";
 import { BusinessType, ClientStatus } from "@hassad/shared";
 
@@ -32,7 +32,7 @@ export function RequirementsForm({ client }: RequirementsFormProps) {
         : "عميل محتمل";
 
   return (
-    <SurfaceCard
+    <Card
       title="بيانات العميل"
       description={
         client.status === ClientStatus.ACTIVE
@@ -80,6 +80,6 @@ export function RequirementsForm({ client }: RequirementsFormProps) {
           </div>
         )}
       </div>
-    </SurfaceCard>
+    </Card>
   );
 }

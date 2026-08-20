@@ -1,6 +1,6 @@
 "use client";
 
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function PmPageLoading() {
   return (

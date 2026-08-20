@@ -9,10 +9,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/design-system/Primitives";
-import { Button } from "@/components/design-system/Primitives";
-import { Checkbox } from "@/components/design-system/Primitives";
-import { Textarea } from "@/components/design-system/Primitives";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 

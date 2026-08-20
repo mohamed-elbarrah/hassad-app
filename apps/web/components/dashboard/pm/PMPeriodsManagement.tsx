@@ -22,9 +22,9 @@ import {
 } from "lucide-react";
 import { ContractType } from "@hassad/shared";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   useGetProjectPeriodsQuery,
@@ -605,7 +605,7 @@ export function PMPeriodsManagement({
 
   if (!periods || periods.length === 0) {
     return (
-      <SurfaceCard>
+      <Card>
         <div className="flex flex-col items-center gap-4 py-12 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-badge-gray-bg text-portal-note-text">
             <Calendar className="size-7" />
@@ -630,7 +630,7 @@ export function PMPeriodsManagement({
             </ActionButton>
           )}
         </div>
-      </SurfaceCard>
+      </Card>
     );
   }
 

@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { Inbox } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
 
 interface EmptyStateProps {
   icon?: LucideIcon;

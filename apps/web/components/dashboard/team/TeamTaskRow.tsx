@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { Pill } from "@/components/design-system/Pill";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { Card } from "@/components/ui/card";
 import { Archive, ArchiveRestore } from "lucide-react";
 import { TaskStatus, TaskPriority, TaskDepartment } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
@@ -68,7 +68,7 @@ export function TeamTaskRow({ task, onArchive, isArchiving }: TaskRowProps) {
     : null;
 
   return (
-    <SurfaceCard className="shadow-sm hover:shadow-md transition-shadow">
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
       <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         {/* Title + project */}
         <div className="flex-1 min-w-0">
@@ -126,6 +126,6 @@ export function TeamTaskRow({ task, onArchive, isArchiving }: TaskRowProps) {
           )}
         </ActionButton>
       </div>
-    </SurfaceCard>
+    </Card>
   );
 }

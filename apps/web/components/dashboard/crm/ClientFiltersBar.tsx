@@ -1,14 +1,14 @@
 "use client";
 
-import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { FormInputControl } from "@/components/ui/formInputControl";
 import {
   FormSelect,
   FormSelectContent,
   FormSelectItem,
   FormSelectTrigger,
   FormSelectValue,
-} from "@/components/design-system/FormSelectControl";
-import { ActionButton } from "@/components/design-system/ActionButton";
+} from "@/components/ui/formSelectControl";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
 import { ClientStatus } from "@hassad/shared";
 import type { ClientFilters } from "@/features/clients/clientsApi";
 

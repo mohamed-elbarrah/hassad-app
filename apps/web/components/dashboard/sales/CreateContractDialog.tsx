@@ -1,652 +1,521 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useForm, useWatch, type FieldPath } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import {
-  FileText,
-  CheckCheck,
-  X,
-  Calculator,
-  Calendar,
-  Clock,
-} from "lucide-react";
-import { Dialog } from "@/components/design-system/Dialog";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/design-system/Form";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
-import {
-  FormSelect,
-  FormSelectContent,
-  FormSelectItem,
-  FormSelectTrigger,
-  FormSelectValue,
-} from "@/components/design-system/FormSelectControl";
-import { SearchCombobox } from "@/components/common/SearchCombobox";
-import { useGetProposalsQuery } from "@/features/proposals/proposalsApi";
+import { FileSignature, Loader2 } from "lucide-react";
+import { ContractType, ProposalStatus } from "@hassad/shared";
 import {
   useCreateContractMutation,
   useUpdateContractMutation,
   type ContractItem,
 } from "@/features/contracts/contractsApi";
-import { ContractType, ProposalStatus } from "@hassad/shared";
-import { useCurrency } from "@/hooks/useCurrency";
-import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
-import { portalErrorMessage } from "@/lib/i18n";
+import { useGetProposalsQuery } from "@/features/proposals/proposalsApi";
+import {
+  salesWorkflowErrorMessage,
+  salesWorkflowValidationMessages,
+} from "@/lib/i18n";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// ── Labels ───────────────────────────────────────────────────────────────────
+const contractFormSchema = z
+  .object({
+    requestId: z.string().min(1, "الطلب المرتبط مطلوب"),
+    proposalId: z.string().optional(),
+    title: z.string().trim().min(2, "اكتب عنوان العقد"),
+    type: z.nativeEnum(ContractType),
+    monthlyValue: z.coerce.number().nonnegative().optional(),
+    totalValue: z.coerce.number().nonnegative().optional(),
+    startDate: z.string().min(1, "تاريخ البداية مطلوب"),
+    endDate: z.string().min(1, "تاريخ النهاية مطلوب"),
+  })
+  .superRefine((values, context) => {
+    if (
+      values.startDate &&
+      values.endDate &&
+      values.endDate < values.startDate
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["endDate"],
+        message: "يجب أن يكون تاريخ النهاية بعد تاريخ البداية",
+      });
+    }
+  });
 
-const TYPE_LABELS: Record<ContractType, string> = {
-  [ContractType.ONE_TIME_SERVICE]: "مرة واحدة",
-  [ContractType.MONTHLY_RETAINER]: "اشتراك شهري",
-  [ContractType.FIXED_PROJECT]: "مشروع محدد",
-};
+type ContractFormInput = z.input<typeof contractFormSchema>;
+type ContractFormValues = z.output<typeof contractFormSchema>;
 
-// ── Schema ───────────────────────────────────────────────────────────────────
-
-const contractFormSchema = z.object({
-  requestId: z.string().min(1, "اختر الطلب"),
-  title: z.string().min(2, "اكتب عنوان العقد"),
-  type: z.nativeEnum(ContractType, { message: "اختر نوع العقد" }),
-  monthlyValue: z.number().optional(),
-  totalValue: z.number().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-});
-
-type ContractFormValues = z.infer<typeof contractFormSchema>;
-
-// ── Component ────────────────────────────────────────────────────────────────
-
-interface CreateContractDialogProps {
+export interface CreateContractDialogProps {
   proposalId?: string;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  /** "create" (default) or "edit" */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   mode?: "create" | "edit";
-  /** Existing contract data for edit mode */
   contract?: ContractItem | null;
-  /** Pre-select a request (used from pipeline) */
   preSelectedRequestId?: string;
 }
 
+const contractTypeLabels: Record<ContractType, string> = {
+  [ContractType.ONE_TIME_SERVICE]: "خدمة لمرة واحدة",
+  [ContractType.MONTHLY_RETAINER]: "اشتراك شهري",
+  [ContractType.FIXED_PROJECT]: "مشروع ثابت",
+};
+
+function getDefaultValues(
+  contract: ContractItem | null | undefined,
+  requestId: string,
+  proposalId: string,
+): ContractFormInput {
+  return {
+    requestId: contract?.requestId ?? requestId,
+    proposalId: contract?.proposalId ?? proposalId,
+    title: contract?.title ?? "",
+    type: contract?.type ?? ContractType.ONE_TIME_SERVICE,
+    monthlyValue: contract?.monthlyValue ?? 0,
+    totalValue: contract?.totalValue ?? 0,
+    startDate: contract?.startDate
+      ? String(contract.startDate).split("T")[0]
+      : "",
+    endDate: contract?.endDate ? String(contract.endDate).split("T")[0] : "",
+  };
+}
+
 export function CreateContractDialog({
-  proposalId: initialProposalId,
+  proposalId = "",
   open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
+  onOpenChange,
   mode = "create",
   contract,
-  preSelectedRequestId,
+  preSelectedRequestId = "",
 }: CreateContractDialogProps) {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [createContract, { isLoading }] = useCreateContractMutation();
-  const [updateContract, { isLoading: isUpdating }] =
-    useUpdateContractMutation();
   const isEdit = mode === "edit";
-  const isSubmitting = isEdit ? isUpdating : isLoading;
-  const { currency, fmtAmount } = useCurrency();
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const open = controlledOpen;
 
-  // Proposal picker state
-  const [selectedProposalId, setSelectedProposalId] = useState(
-    initialProposalId ?? "",
-  );
-  const [proposalSearch, setProposalSearch] = useState("");
-
-  const isControlled = controlledOpen !== undefined;
-  const open = isControlled ? controlledOpen : internalOpen;
-
-  const form = useForm<ContractFormValues>({
+  const form = useForm<ContractFormInput, unknown, ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
-    defaultValues: {
-      requestId: "",
-      title: "",
-      type: undefined,
-      monthlyValue: undefined,
-      totalValue: undefined,
-      startDate: "",
-      endDate: "",
-    },
+    defaultValues: getDefaultValues(contract, preSelectedRequestId, proposalId),
   });
-
-  // Auto-open when preSelectedRequestId is provided (pipeline flow)
-  useEffect(() => {
-    if (preSelectedRequestId && !isControlled) {
-      setInternalOpen(true);
-    }
-  }, [preSelectedRequestId, isControlled]);
-
-  useEffect(() => {
-    if (initialProposalId && !isControlled) {
-      setInternalOpen(true);
-      setSelectedProposalId(initialProposalId);
-    }
-  }, [initialProposalId, isControlled]);
-
-  // ── Pre-fill for edit mode ────────────────────────────────────────────
-  useEffect(() => {
-    if (!open || !isEdit || !contract) return;
-    form.reset({
-      requestId: contract.requestId ?? "",
-      title: contract.title ?? "",
-      type: contract.type ?? undefined,
-      monthlyValue: contract.monthlyValue ?? undefined,
-      totalValue: contract.totalValue ?? undefined,
-      startDate: contract.startDate
-        ? typeof contract.startDate === "string"
-          ? contract.startDate.split("T")[0]
-          : ""
-        : "",
-      endDate: contract.endDate
-        ? typeof contract.endDate === "string"
-          ? contract.endDate.split("T")[0]
-          : ""
-        : "",
-    });
-    setFile(null);
-    setSelectedProposalId(contract.proposalId ?? "");
-  }, [open, isEdit, contract, form]);
-
-  function handleOpenChange(val: boolean) {
-    if (isControlled) {
-      controlledOnOpenChange?.(val);
-    } else {
-      setInternalOpen(val);
-    }
-    if (!val) {
-      setShareLink(null);
-      setCopied(false);
-      form.reset();
-      setFile(null);
-      setSelectedProposalId("");
-      setProposalSearch("");
-    }
-  }
-
-  // ── Data fetching ──────────────────────────────────────────────────────────
-
-  const { data: proposalsData, isFetching: proposalsFetching } =
+  const selectedProposalId = useWatch({
+    control: form.control,
+    name: "proposalId",
+  });
+  const { data: proposalsData, isFetching: proposalsLoading } =
     useGetProposalsQuery(
       { status: ProposalStatus.APPROVED, limit: 100 },
-      { skip: !open },
+      { skip: !open || isEdit },
     );
+  const [createContract, { isLoading: isCreating }] =
+    useCreateContractMutation();
+  const [updateContract, { isLoading: isUpdating }] =
+    useUpdateContractMutation();
+  const isSubmitting = isCreating || isUpdating;
 
-  const selectedProposal = proposalsData?.items.find(
-    (p) => p.id === selectedProposalId,
-  );
-
-  // Proposal options for SearchCombobox — filter by request when preSelected
-  const proposalOptions = (() => {
-    let items = proposalsData?.items ?? [];
-
-    // When coming from pipeline, only show proposals linked to that request
-    if (preSelectedRequestId) {
-      items = items.filter((p) => p.requestId === preSelectedRequestId);
-    }
-
-    if (proposalSearch) {
-      const q = proposalSearch.toLowerCase();
-      items = items.filter(
-        (p) =>
-          p.title?.toLowerCase().includes(q) ||
-          p.request?.companyName?.toLowerCase().includes(q) ||
-          p.lead?.companyName?.toLowerCase().includes(q),
-      );
-    }
-
-    return items.map((p) => ({
-      id: p.id,
-      label: `${p.request?.companyName ?? p.lead?.companyName ?? "—"} — ${p.title} (${fmtAmount(p.totalPrice ?? 0)} ${currency.symbol})`,
-    }));
-  })();
-
-  // ── Auto-select proposal from pipeline ──────────────────────────────
-  useEffect(() => {
-    if (!open || isEdit || !preSelectedRequestId) return;
-    // Find the approved proposal linked to this request and auto-select it
-    const matchingProposal = proposalsData?.items.find(
-      (p) =>
-        p.requestId === preSelectedRequestId &&
-        p.status === ProposalStatus.APPROVED,
-    );
-    if (matchingProposal && !selectedProposalId) {
-      setSelectedProposalId(matchingProposal.id);
-    }
-  }, [open, isEdit, preSelectedRequestId, proposalsData, selectedProposalId]);
-
-  // ── Auto-fill when proposal selected ───────────────────────────────────────
+  const proposalOptions = useMemo(() => {
+    const proposals = proposalsData?.items ?? [];
+    return preSelectedRequestId
+      ? proposals.filter(
+          (proposal) => proposal.requestId === preSelectedRequestId,
+        )
+      : proposals;
+  }, [preSelectedRequestId, proposalsData?.items]);
 
   useEffect(() => {
-    if (isEdit || !selectedProposal) {
-      if (isEdit) return;
-      form.reset({
-        requestId: "",
-        title: "",
-        type: undefined,
-        monthlyValue: undefined,
-        totalValue: undefined,
-        startDate: "",
-        endDate: "",
-      });
-      return;
-    }
+    if (!open) return;
+    form.reset(getDefaultValues(contract, preSelectedRequestId, proposalId));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [contract, form, open, preSelectedRequestId, proposalId]);
 
-    const start = selectedProposal.startDate
-      ? typeof selectedProposal.startDate === "string"
-        ? selectedProposal.startDate.split("T")[0]
-        : ""
-      : new Date().toISOString().split("T")[0];
+  useEffect(() => {
+    if (isEdit || !selectedProposalId) return;
+    const selectedProposal = proposalOptions.find(
+      (proposal) => proposal.id === selectedProposalId,
+    );
+    if (!selectedProposal) return;
 
-    const end = new Date(start);
-    end.setDate(end.getDate() + (selectedProposal.durationDays || 30));
-
-    form.reset({
-      requestId: selectedProposal.requestId ?? "",
-      title: selectedProposal.title ?? "",
-      type: ContractType.ONE_TIME_SERVICE,
-      monthlyValue: undefined,
-      totalValue: selectedProposal.totalPrice ?? 0,
-      startDate: start,
-      endDate: end.toISOString().split("T")[0],
+    form.setValue("requestId", selectedProposal.requestId ?? "", {
+      shouldValidate: true,
     });
-  }, [selectedProposal, form, isEdit]);
-
-  // ── Handlers ───────────────────────────────────────────────────────────────
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
-    setFile(f);
-  }
+    form.setValue("title", selectedProposal.title ?? "", {
+      shouldValidate: true,
+    });
+    form.setValue("totalValue", selectedProposal.totalPrice ?? 0);
+  }, [form, isEdit, proposalOptions, selectedProposalId]);
 
   async function onSubmit(values: ContractFormValues) {
-    // Proposal required for create mode
-    if (!isEdit && !hasProposal) {
-      toast.error("يرجى اختيار عرض معتمد أولاً");
+    if (file) {
+      const isPdf =
+        file.type === "application/pdf" && /\.pdf$/i.test(file.name);
+      const maxFileSize = 10 * 1024 * 1024;
+      if (!isPdf || file.size > maxFileSize) {
+        form.setError("root", {
+          message: "يجب اختيار ملف PDF بحجم لا يتجاوز 10 ميجابايت",
+        });
+        return;
+      }
+    }
+    if (!isEdit && !values.proposalId) {
+      form.setError("root", { message: "اختر عرضاً معتمداً للعقد" });
       return;
     }
-    // PDF required for create, optional for edit
     if (!isEdit && !file) {
-      toast.error("يرجى رفع ملف العقد (PDF)");
+      form.setError("root", { message: "اختر ملف PDF للعقد" });
       return;
     }
 
     try {
       if (isEdit && contract) {
-        // Edit mode: use updateContract
-        const body: any = {
-          title: values.title,
-          type: values.type,
-        };
-        if (!selectedProposalId) {
-          body.monthlyValue = values.monthlyValue ?? 0;
-          body.totalValue = values.totalValue ?? 0;
-          body.startDate = values.startDate ?? "";
-          body.endDate = values.endDate ?? "";
-        }
-        await updateContract({ id: contract.id, body }).unwrap();
-        toast.success("تم تحديث العقد بنجاح");
-        handleOpenChange(false);
-      } else {
-        // Create mode
-        const payload: any = {
+        await updateContract({
+          id: contract.id,
+          body: {
+            title: values.title,
+            monthlyValue: values.monthlyValue,
+            totalValue: values.totalValue,
+            startDate: values.startDate,
+            endDate: values.endDate,
+          },
+        }).unwrap();
+        toast.success("تم تحديث العقد");
+      } else if (file) {
+        await createContract({
           requestId: values.requestId,
           title: values.title,
           type: values.type,
+          monthlyValue: values.monthlyValue,
+          totalValue: values.totalValue,
+          startDate: values.startDate,
+          endDate: values.endDate,
+          proposalId: values.proposalId || undefined,
           file,
-          proposalId: selectedProposalId,
-        };
-
-        const result = await createContract(payload).unwrap();
-
-        const origin =
-          typeof window !== "undefined" ? window.location.origin : "";
-        const token = result.shareLinkToken;
-        if (token) setShareLink(`${origin}/contract/${token}`);
-
-        toast.success("تم إنشاء العقد وإرساله إلى العميل");
-        form.reset();
-        setFile(null);
+        }).unwrap();
+        toast.success("تم إنشاء العقد");
       }
-    } catch (err: unknown) {
-      toast.error(portalErrorMessage(err));
+
+      handleOpenChange(false);
+    } catch (error) {
+      const validationMessages = salesWorkflowValidationMessages(error);
+      for (const [field, message] of Object.entries(validationMessages)) {
+        form.setError(field as FieldPath<ContractFormInput>, { message });
+      }
+      toast.error(salesWorkflowErrorMessage(error));
     }
   }
 
-  async function copyLink() {
-    if (!shareLink) return;
-    await navigator.clipboard.writeText(shareLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setFile(null);
+      form.clearErrors();
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+    onOpenChange(nextOpen);
   }
 
-  const hasProposal = !!selectedProposalId && !!selectedProposal;
-
-  // ── Render ───────────────────────────────────────────────────────────────────
-
   return (
-    <>
-      {!isControlled && (
-        <ActionButton variant="primary" onClick={() => setInternalOpen(true)}>
-          {isEdit ? "تعديل العقد" : "إنشاء عقد"}
-        </ActionButton>
-      )}
-
-      <Dialog
-        open={open}
-        onOpenChange={handleOpenChange}
-        title={isEdit ? "تعديل العقد" : "إنشاء عقد جديد"}
-        contentClassName="sm:max-w-[520px] p-0 gap-0 rounded-[24px] overflow-hidden"
-        className="space-y-6 max-h-[90vh] overflow-y-auto modal-scroll p-6"
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0"
+        dir="rtl"
       >
-        {/* ── Success state ──────────────────────────────────── */}
-        {shareLink ? (
-          <div className="space-y-5 py-2">
-            <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <div className="h-14 w-14 rounded-full bg-success-100 flex items-center justify-center">
-                <CheckCheck className="h-7 w-7 text-success-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-base">
-                  تم إنشاء العقد وإرساله
-                </p>
-                <p className="text-sm text-neutral-300 mt-1">
-                  شارك رابط التوقيع مع العميل ليوقّع إلكترونياً
-                </p>
-              </div>
-            </div>
+        <DialogHeader className="shrink-0 border-b px-6 py-4 text-right">
+          <DialogTitle>{isEdit ? "تعديل العقد" : "إنشاء عقد"}</DialogTitle>
+          <DialogDescription>
+            اربط العقد بالعرض المعتمد وأكمل بيانات العقد والملف المرفق.
+          </DialogDescription>
+        </DialogHeader>
 
-            <div className="min-w-0">
-              <div className="relative w-full">
-                <FormInputControl
-                  readOnly
-                  value={shareLink ?? ""}
-                  dir="ltr"
-                  className="w-full h-12 px-4 pr-36 text-xs font-mono truncate bg-neutral-50"
-                />
-                <div className="absolute inset-y-0 right-2 flex items-center">
-                  <ActionButton
-                    size="sm"
-                    variant={copied ? "secondary" : "primary"}
-                    onClick={copyLink}
-                    className="px-4 py-2 text-[13px] rounded-lg"
-                  >
-                    {copied ? "تم النسخ ✓" : "نسخ الرابط"}
-                  </ActionButton>
-                </div>
-              </div>
-            </div>
-
-            <ActionButton
-              variant="outline"
-              className="w-full"
-              onClick={() => handleOpenChange(false)}
-            >
-              إغلاق
-            </ActionButton>
-          </div>
-        ) : (
-          /* ── Form ─────────────────────────────────────────── */
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Header */}
-              <div className="text-center space-y-1.5">
-                <h1 className="text-[22px] font-bold text-natural-100 leading-tight">
-                  {isEdit ? "تعديل العقد" : "إنشاء عقد جديد"}
-                </h1>
-                <p className="text-[13px] text-neutral-300 leading-relaxed px-2">
-                  {isEdit
-                    ? "عدّل بيانات العقد الحالي"
-                    : "اختر عرضاً معتمداً لإنشاء العقد تلقائياً"}
-                </p>
-              </div>
-
-              {/* ── Proposal Picker ─────────────────────────────── */}
-              <div>
-                <h2 className="text-[15px] font-bold text-natural-100 mb-3">
-                  اختيار العرض الفني
-                </h2>
-                <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0">
-                  <div>
-                    <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
-                      عرض معتمد
-                      {!isEdit && (
-                        <span className="text-danger-500 mr-1">*</span>
-                      )}
-                    </label>
-                    <SearchCombobox
-                      value={selectedProposalId}
-                      onChange={setSelectedProposalId}
-                      options={proposalOptions}
-                      onSearchChange={setProposalSearch}
-                      placeholder="اختر عرضاً معتمداً..."
-                      searchPlaceholder="ابحث باسم العميل أو عنوان العرض..."
-                      isLoading={proposalsFetching}
-                      disabled={isEdit}
-                    />
-                    {!isEdit && (
-                      <p className="text-[11px] text-neutral-300 mt-1">
-                        اختيار عرض معتمد يملأ البيانات تلقائياً من العرض
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Proposal summary card */}
-                  {hasProposal && (
-                    <div className="rounded-xl border border-neutral-200 p-4 space-y-2 bg-neutral-50">
-                      <p className="text-sm font-semibold text-natural-100">
-                        بيانات العرض الفني
-                      </p>
-                      <div className="text-sm text-neutral-300 space-y-1">
-                        <p>
-                          <span className="font-medium text-natural-100">
-                            العميل:{" "}
-                          </span>
-                          {selectedProposal?.request?.companyName ??
-                            selectedProposal?.lead?.companyName ??
-                            "—"}
-                        </p>
-                        <p>
-                          <span className="font-medium text-natural-100">
-                            العنوان:{" "}
-                          </span>
-                          {selectedProposal?.title}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <Calculator className="w-4 h-4" />
-                          <span>
-                            إجمالي القيمة:{" "}
-                            <CurrencyDisplay
-                              amount={selectedProposal?.totalPrice ?? 0}
-                              className="font-bold text-natural-100"
-                            />
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            المدة: {selectedProposal?.durationDays} يوم
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            تاريخ البداية: {form.watch("startDate") || "—"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ── Contract Info ───────────────────────────────── */}
-              <div>
-                <h2 className="text-[15px] font-bold text-natural-100 mb-3">
-                  بيانات العقد
-                </h2>
-                <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0">
-                  {/* Hidden requestId from proposal */}
-                  <input type="hidden" {...form.register("requestId")} />
-
+            <form
+              id="contract-form"
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex flex-col gap-5"
+            >
+              <Card>
+                <CardHeader className="gap-1">
+                  <CardTitle className="text-base">الربط الأساسي</CardTitle>
+                  <CardDescription>
+                    اختر العرض المعتمد ليتم ربط العقد بالفرصة الصحيحة.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
                   <FormField
                     control={form.control}
-                    name="title"
+                    name="proposalId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>عنوان العقد</FormLabel>
+                        <FormLabel>العرض المعتمد</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={
+                            isEdit || proposalsLoading || Boolean(proposalId)
+                          }
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر العرض" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectGroup>
+                              {proposalOptions.map((proposal) => (
+                                <SelectItem
+                                  key={proposal.id}
+                                  value={proposal.id}
+                                >
+                                  {proposal.title} —{" "}
+                                  {proposal.request?.companyName ?? "طلب"}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          {proposalsLoading
+                            ? "جارٍ تحميل العروض..."
+                            : "تظهر العروض المعتمدة فقط."}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="requestId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>معرف الطلب</FormLabel>
                         <FormControl>
-                          <FormInputControl
-                            placeholder="عقد خدمات التسويق الرقمي..."
+                          <Input
                             {...field}
+                            readOnly={isEdit || Boolean(selectedProposalId)}
+                            dir="ltr"
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                </CardContent>
+              </Card>
 
-                  <FormField
-                    control={form.control}
-                    name="type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>نوع العقد</FormLabel>
-                        <FormSelect
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <FormSelectTrigger>
-                              <FormSelectValue placeholder="اختر النوع" />
-                            </FormSelectTrigger>
-                          </FormControl>
-                          <FormSelectContent>
-                            {(
-                              Object.values(ContractType) as ContractType[]
-                            ).map((t) => (
-                              <FormSelectItem key={t} value={t}>
-                                {TYPE_LABELS[t]}
-                              </FormSelectItem>
-                            ))}
-                          </FormSelectContent>
-                        </FormSelect>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Total display */}
-                  <div className="bg-neutral-50 rounded-xl px-5 py-4 flex items-center justify-between">
-                    <span className="text-[15px] font-bold text-natural-100">
-                      <CurrencyDisplay
-                        amount={selectedProposal?.totalPrice ?? 0}
-                        className="text-[15px] font-bold text-natural-100"
-                      />
-                    </span>
-                    <span className="text-[14px] font-bold text-natural-100">
-                      الإجمالي الكلي
-                    </span>
-                  </div>
-
-                  {/* PDF Upload */}
-                  <div>
-                    <p className="text-[13px] font-bold text-natural-100 mb-1.5">
-                      ملف العقد (PDF)
-                      {!isEdit && (
-                        <span className="text-danger-500 mr-1">*</span>
-                      )}
-                    </p>
-                    <div
-                      className="flex items-center gap-3 rounded-xl border border-neutral-200 h-12 px-4 cursor-pointer hover:bg-neutral-50 transition-colors"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <FileText className="w-4 h-4 text-neutral-200 shrink-0" />
-                      <span className="text-[13px] text-neutral-300 flex-1 truncate">
-                        {file
-                          ? file.name
-                          : isEdit
-                            ? "اختر ملف PDF جديد (اتركه فارغاً للإبقاء على الملف الحالي)"
-                            : "انقر لاختيار ملف PDF..."}
-                      </span>
-                      {file && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFile(null);
-                            if (fileInputRef.current)
-                              fileInputRef.current.value = "";
-                          }}
-                          className="shrink-0 text-neutral-200 hover:text-danger-500 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="application/pdf,.pdf"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                  </div>
-                </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>عنوان العقد</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="مثال: عقد إدارة الحملات"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع العقد</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={isEdit}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر النوع" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectGroup>
+                            {Object.entries(contractTypeLabels).map(
+                              ([value, label]) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              {/* ── Buttons row ─────────────────────────────── */}
-              <div className="flex gap-3">
-                <ActionButton
-                  variant="outline"
-                  type="button"
-                  onClick={() => handleOpenChange(false)}
-                  className="w-[30%] h-14 text-[13px] font-medium"
-                >
-                  إلغاء
-                </ActionButton>
-                <ActionButton
-                  type="submit"
-                  variant="submit"
-                  size="lg"
-                  loading={isSubmitting}
-                  disabled={(!isEdit && !file) || (!isEdit && !hasProposal)}
-                  className="flex-1 h-14 text-[15px] font-semibold"
-                >
-                  {isSubmitting
-                    ? "جارٍ الإرسال..."
-                    : isEdit
-                      ? "تحديث العقد"
-                      : "إنشاء وإرسال"}
-                </ActionButton>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="totalValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>القيمة الإجمالية</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={String(field.value ?? "")}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="monthlyValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>القيمة الشهرية</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={String(field.value ?? "")}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>تاريخ البداية</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>تاريخ النهاية</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {isEdit ? (
+                  <p className="text-sm text-muted-foreground">
+                    ملف العقد الحالي محفوظ. استبدال الملفات سيكون متاحاً بعد دعم
+                    ذلك في واجهة التحديث.
+                  </p>
+                ) : (
+                  <>
+                    <Label htmlFor="contract-file">ملف العقد PDF</Label>
+                    <Input
+                      ref={fileInputRef}
+                      id="contract-file"
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      required
+                      aria-invalid={Boolean(form.formState.errors.root)}
+                      aria-describedby="contract-file-message"
+                      onChange={(event) => {
+                        form.clearErrors("root");
+                        setFile(event.target.files?.[0] ?? null);
+                      }}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      {file?.name ?? "اختر ملف PDF"}
+                    </p>
+                  </>
+                )}
+                {form.formState.errors.root?.message ? (
+                  <p
+                    id="contract-file-message"
+                    className="text-sm font-medium text-destructive"
+                    role="alert"
+                  >
+                    {form.formState.errors.root.message}
+                  </p>
+                ) : null}
               </div>
             </form>
           </Form>
-        )}
+        </div>
 
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-          .modal-scroll::-webkit-scrollbar { width: 6px; }
-          .modal-scroll::-webkit-scrollbar-track { background: transparent; }
-          .modal-scroll::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 20px; }
-          .modal-scroll::-webkit-scrollbar-thumb:hover { background-color: #d1d5db; }
-          [role="dialog"] > button.absolute { display: none !important; }
-        `,
-          }}
-        />
-      </Dialog>
-    </>
+        <DialogFooter className="shrink-0 border-t bg-background px-6 py-4">
+          <ActionButton
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+          >
+            إلغاء
+          </ActionButton>
+          <ActionButton type="submit" form="contract-form" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <Loader2 data-icon="inline-start" className="animate-spin" />
+            ) : (
+              <FileSignature data-icon="inline-start" />
+            )}
+            {isEdit ? "حفظ التعديلات" : "إنشاء العقد"}
+          </ActionButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

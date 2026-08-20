@@ -135,8 +135,16 @@ async function requestWithNetworkRetry(
   let result = normalizeError(
     unwrap((await rawBaseQuery(args, api, extraOptions)) as RawResult),
   );
+  const method =
+    typeof args === "string" ? "GET" : (args.method ?? "GET").toUpperCase();
+  const isSafeToRetry =
+    method === "GET" || method === "HEAD" || method === "OPTIONS";
 
-  for (let attempt = 0; attempt < 2 && isNetworkError(result); attempt += 1) {
+  for (
+    let attempt = 0;
+    isSafeToRetry && attempt < 2 && isNetworkError(result);
+    attempt += 1
+  ) {
     await new Promise((resolve) => setTimeout(resolve, 500));
     result = normalizeError(
       unwrap((await rawBaseQuery(args, api, extraOptions)) as RawResult),

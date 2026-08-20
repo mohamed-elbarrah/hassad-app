@@ -38,7 +38,13 @@ import { useGetProposalByIdQuery } from "@/features/proposals/proposalsApi";
 import { useGetContractByIdQuery } from "@/features/contracts/contractsApi";
 import { ProposalFormDialog } from "@/components/dashboard/sales/ProposalFormDialog";
 import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
-import { Dialog } from "@/components/design-system/Dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -528,10 +534,7 @@ export default function PipelinePage() {
               <div className="flex items-center gap-2">
                 {view === "kanban" &&
                   (currentData?.meta.total ?? 0) > requests.length && (
-                    <Badge
-                      variant="outline"
-                      className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                    >
+                    <Badge variant="warning">
                       عرض {formatNumber(requests.length)} من{" "}
                       {formatNumber(currentData?.meta.total)}
                     </Badge>
@@ -797,25 +800,29 @@ export default function PipelinePage() {
       {workflowDialog?.type === "proposal" &&
       workflowDialog.mode === "edit" &&
       !proposalForEdit ? (
-        <Dialog
-          open
-          onOpenChange={handleWorkflowDialogChange}
-          title="فتح العرض"
-        >
-          <div className="flex flex-col gap-4 py-4 text-sm text-muted-foreground">
-            <p>
-              {isProposalEditFetching
-                ? "جارٍ تحميل بيانات العرض..."
-                : isProposalEditError
-                  ? "تعذر تحميل بيانات العرض. يمكنك إغلاق النافذة والمحاولة مرة أخرى."
-                  : "جارٍ تجهيز بيانات العرض..."}
-            </p>
-            {!isProposalEditFetching && (
-              <Button onClick={() => handleWorkflowDialogChange(false)}>
-                إغلاق
-              </Button>
-            )}
-          </div>
+        <Dialog open onOpenChange={handleWorkflowDialogChange}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle>فتح العرض</DialogTitle>
+              <DialogDescription>
+                جارٍ تحميل بيانات العرض أو تعذر تحميلها.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4 text-sm text-muted-foreground">
+              <p>
+                {isProposalEditFetching
+                  ? "جارٍ تحميل بيانات العرض..."
+                  : isProposalEditError
+                    ? "تعذر تحميل بيانات العرض. يمكنك إغلاق النافذة والمحاولة مرة أخرى."
+                    : "جارٍ تجهيز بيانات العرض..."}
+              </p>
+              {!isProposalEditFetching && (
+                <Button onClick={() => handleWorkflowDialogChange(false)}>
+                  إغلاق
+                </Button>
+              )}
+            </div>
+          </DialogContent>
         </Dialog>
       ) : workflowDialog?.type === "proposal" &&
         workflowDialog.mode === "edit" &&
@@ -841,25 +848,29 @@ export default function PipelinePage() {
       {workflowDialog?.type === "contract" &&
       workflowDialog.mode === "edit" &&
       !contractForEdit ? (
-        <Dialog
-          open
-          onOpenChange={handleWorkflowDialogChange}
-          title="فتح العقد"
-        >
-          <div className="flex flex-col gap-4 py-4 text-sm text-muted-foreground">
-            <p>
-              {isContractEditFetching
-                ? "جارٍ تحميل بيانات العقد..."
-                : isContractEditError
-                  ? "تعذر تحميل بيانات العقد. يمكنك إغلاق النافذة والمحاولة مرة أخرى."
-                  : "جارٍ تجهيز بيانات العقد..."}
-            </p>
-            {!isContractEditFetching && (
-              <Button onClick={() => handleWorkflowDialogChange(false)}>
-                إغلاق
-              </Button>
-            )}
-          </div>
+        <Dialog open onOpenChange={handleWorkflowDialogChange}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle>فتح العقد</DialogTitle>
+              <DialogDescription>
+                جارٍ تحميل بيانات العقد أو تعذر تحميلها.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4 text-sm text-muted-foreground">
+              <p>
+                {isContractEditFetching
+                  ? "جارٍ تحميل بيانات العقد..."
+                  : isContractEditError
+                    ? "تعذر تحميل بيانات العقد. يمكنك إغلاق النافذة والمحاولة مرة أخرى."
+                    : "جارٍ تجهيز بيانات العقد..."}
+              </p>
+              {!isContractEditFetching && (
+                <Button onClick={() => handleWorkflowDialogChange(false)}>
+                  إغلاق
+                </Button>
+              )}
+            </div>
+          </DialogContent>
         </Dialog>
       ) : workflowDialog?.type === "contract" &&
         workflowDialog.mode === "edit" &&

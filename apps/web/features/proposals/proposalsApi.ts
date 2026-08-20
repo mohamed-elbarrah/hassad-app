@@ -1,6 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import { getApiBaseUrl } from "@/lib/utils";
 import type {
   Proposal,
   UpdateProposalInput,
@@ -44,11 +43,14 @@ export interface ProposalFilters {
 export interface ServiceItem {
   name: string;
   price: number;
+  description?: string;
 }
 
 export interface CreateProposalFormInput {
   requestId: string;
   title: string;
+  serviceDescription: string;
+  platforms: string[];
   file: File;
   servicesList: ServiceItem[];
   totalPrice: number;
@@ -87,68 +89,26 @@ export const proposalsApi = createApi({
     /** One-step: multipart/form-data upload anchored to the request. */
     createProposal: builder.mutation<ProposalListItem, CreateProposalFormInput>(
       {
-        queryFn: async (input) => {
-          if (!input.requestId) {
-            return {
-              error: {
-                status: 400,
-                data: { message: "requestId is required" },
-              },
-            };
-          }
-
+        query: (input) => {
           const formData = new FormData();
           formData.append("requestId", input.requestId);
           formData.append("title", input.title);
+          formData.append("serviceDescription", input.serviceDescription);
+          formData.append("platforms", JSON.stringify(input.platforms));
           formData.append("file", input.file, input.file.name);
+          formData.append("servicesList", JSON.stringify(input.servicesList));
+          formData.append("totalPrice", String(input.totalPrice));
+          formData.append("durationDays", String(input.durationDays));
+          formData.append("durationUnit", input.durationUnit);
+          formData.append("offerValidityDays", String(input.offerValidityDays));
 
-          if (input.servicesList && input.servicesList.length > 0) {
-            formData.append("servicesList", JSON.stringify(input.servicesList));
-          }
-          if (input.totalPrice !== undefined) {
-            formData.append("totalPrice", String(input.totalPrice));
-          }
-          if (input.durationDays !== undefined) {
-            formData.append("durationDays", String(input.durationDays));
-          }
-          if (input.durationUnit) {
-            formData.append("durationUnit", input.durationUnit);
-          }
-          if (input.contactName) {
+          if (input.contactName)
             formData.append("contactName", input.contactName);
-          }
-          if (input.contactEmail) {
+          if (input.contactEmail)
             formData.append("contactEmail", input.contactEmail);
-          }
-          if (input.startDate) {
-            formData.append("startDate", input.startDate);
-          }
-          if (input.offerValidityDays !== undefined) {
-            formData.append(
-              "offerValidityDays",
-              String(input.offerValidityDays),
-            );
-          }
+          if (input.startDate) formData.append("startDate", input.startDate);
 
-          const apiBase =
-            getApiBaseUrl() ||
-            (typeof window !== "undefined"
-              ? `${window.location.origin.replace(/\/+$/, "")}/v1`
-              : "");
-
-          const res = await fetch(`${apiBase}/proposals`, {
-            method: "POST",
-            credentials: "include",
-            body: formData,
-          });
-
-          const json = await res.json();
-          if (!res.ok) {
-            return { error: { status: res.status, data: json } };
-          }
-          const data: ProposalListItem =
-            json?.data !== undefined ? json.data : json;
-          return { data };
+          return { url: "/proposals", method: "POST", body: formData };
         },
         invalidatesTags: [{ type: "Proposal", id: "LIST" }],
       },

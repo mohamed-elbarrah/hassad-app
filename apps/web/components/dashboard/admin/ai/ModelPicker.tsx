@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { RefreshCw, AlertTriangle, Loader2, Search } from "lucide-react";
-import { Checkbox } from "@/components/design-system/Checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface ModelPickerProps {

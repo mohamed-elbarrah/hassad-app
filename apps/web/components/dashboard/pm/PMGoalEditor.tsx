@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Plus, Save, X, Check, Loader2 } from "lucide-react";
 import type { PeriodGoal, PeriodGoalStatus } from "@hassad/shared";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { FormInputControl } from "@/components/ui/formInputControl";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: PeriodGoalStatus; label: string }[] = [

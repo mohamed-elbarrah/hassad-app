@@ -1,4 +1,4 @@
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { ClientHistoryLogItem } from "@hassad/shared";
 import {
@@ -136,7 +136,7 @@ function getActionConfig(action: string) {
 
 export function ClientTimeline({ activities }: ClientTimelineProps) {
   return (
-    <SurfaceCard title="سجل النشاط">
+    <Card title="سجل النشاط">
       {activities.length === 0 ? (
         <p className="text-sm text-neutral-300 text-center py-4">
           لا يوجد نشاط مسجل
@@ -185,6 +185,6 @@ export function ClientTimeline({ activities }: ClientTimelineProps) {
           </div>
         </div>
       )}
-    </SurfaceCard>
+    </Card>
   );
 }

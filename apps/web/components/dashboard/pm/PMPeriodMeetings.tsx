@@ -9,9 +9,9 @@ import {
   type ProjectMeeting,
   type CreateMeetingInput,
 } from "@/features/projects/periodsApi";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { FormInputControl } from "@/components/ui/formInputControl";
 import { cn } from "@/lib/utils";
 
 const inputClass =

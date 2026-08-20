@@ -5,9 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { BusinessType, ClientSource } from "@hassad/shared";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { FormInputControl } from "@/components/ui/formInputControl";
+import { FormTextareaControl } from "@/components/ui/formTextareaControl";
 // Radix Checkbox removed — causes infinite re-render loops with
 // react-hook-form Controller. Replaced with styled div below.
 import {
@@ -17,7 +17,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/design-system/Form";
+} from "@/components/ui/form";
 // Radix Select removed — causes infinite re-render loops with
 // react-hook-form Controller when value starts as undefined.
 import { useCreateRequestMutation } from "@/features/requests/requestsApi";
@@ -427,7 +427,7 @@ export function IntakeForm({
           </div>
         )}
 
-        {/* ── Navigation Buttons ─────────────────────────────────────── */}
+        {/* ── Navigation ActionButtons ─────────────────────────────────────── */}
         <div className="flex items-center justify-between mt-10 gap-3">
           {step === 2 ? (
             <ActionButton

@@ -217,6 +217,73 @@ export function salesPipelineErrorMessage(error: unknown): string {
   }
 }
 
+type ApiErrorPayload = {
+  status?: number | string;
+  data?: {
+    error?: {
+      code?: string;
+      details?: {
+        fields?: Record<string, { code?: string }>;
+      };
+    };
+  };
+};
+
+function getApiErrorPayload(error: unknown): ApiErrorPayload {
+  return (error ?? {}) as ApiErrorPayload;
+}
+
+const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
+  PROPOSAL_NOT_FOUND: "لم يتم العثور على العرض الفني.",
+  CONTRACT_NOT_FOUND: "لم يتم العثور على العقد.",
+  REQUEST_NOT_FOUND: "لم يتم العثور على الطلب.",
+  PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذه العملية.",
+  AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+  INVALID_FILE_TYPE: "نوع الملف غير مدعوم. اختر ملف PDF.",
+  FILE_TOO_LARGE: "حجم الملف أكبر من الحد المسموح.",
+  INVALID_PROPOSAL_STATUS: "لا يمكن تنفيذ العملية على حالة العرض الحالية.",
+  INVALID_CONTRACT_STATUS: "لا يمكن تنفيذ العملية على حالة العقد الحالية.",
+};
+
+const SALES_WORKFLOW_FIELD_MESSAGES: Record<string, string> = {
+  REQUIRED: "هذا الحقل مطلوب.",
+  INVALID_EMAIL: "أدخل بريداً إلكترونياً صحيحاً.",
+  INVALID_FILE_TYPE: "اختر ملف PDF صحيحاً.",
+  FILE_TOO_LARGE: "حجم الملف أكبر من الحد المسموح.",
+  INVALID_REQUEST_ID: "الطلب المرتبط غير صحيح.",
+  INVALID_PROPOSAL_ID: "العرض المرتبط غير صحيح.",
+};
+
+export function salesWorkflowErrorMessage(error: unknown): string {
+  const payload = getApiErrorPayload(error);
+  const code = payload.data?.error?.code;
+
+  if (code && SALES_WORKFLOW_ERROR_MESSAGES[code]) {
+    return SALES_WORKFLOW_ERROR_MESSAGES[code];
+  }
+  if (payload.status === 401)
+    return SALES_WORKFLOW_ERROR_MESSAGES.AUTHENTICATION_REQUIRED;
+  if (payload.status === 403)
+    return SALES_WORKFLOW_ERROR_MESSAGES.PERMISSION_DENIED;
+  if (payload.status === "FETCH_ERROR") {
+    return "تعذر الاتصال بالخادم. تحقق من اتصال الشبكة وحاول مرة أخرى.";
+  }
+  return "تعذر تنفيذ العملية. يرجى المحاولة مرة أخرى.";
+}
+
+export function salesWorkflowValidationMessages(
+  error: unknown,
+): Record<string, string> {
+  const fields = getApiErrorPayload(error).data?.error?.details?.fields ?? {};
+  return Object.fromEntries(
+    Object.entries(fields).map(([field, detail]) => [
+      field,
+      SALES_WORKFLOW_FIELD_MESSAGES[detail.code ?? ""] ??
+        "تحقق من قيمة هذا الحقل.",
+    ]),
+  );
+}
+
 export function portalErrorMessage(error: unknown): string {
   const code = (error as { data?: { error?: { code?: string } } })?.data?.error
     ?.code;

@@ -3,12 +3,12 @@
 import { useState, useRef, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, Upload, Save, X, Ban } from "lucide-react";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { FormInput } from "@/components/design-system/FormInput";
+import { Card } from "@/components/ui/card";
+import { FormInput } from "@/components/ui/formInput";
 import { Select, SelectItem } from "@/components/design-system/Select";
-import { Switch } from "@/components/design-system/Switch";
-import { Checkbox } from "@/components/design-system/Checkbox";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ActionButton } from "@/components/design-system/ActionActionButton";
 import { SymbolRenderer } from "@/components/design-system/CurrencySymbol";
 import { toast } from "sonner";
 import {
@@ -72,7 +72,7 @@ function LivePreview({ data }: { data: CurrencyFormData }) {
   const hasSymbol = data.symbol || data.svgKey;
 
   return (
-    <SurfaceCard title="معاينة مباشرة" icon={Eye}>
+    <Card title="معاينة مباشرة" icon={Eye}>
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-6">
           <div>
@@ -128,7 +128,7 @@ function LivePreview({ data }: { data: CurrencyFormData }) {
           </div>
         )}
       </div>
-    </SurfaceCard>
+    </Card>
   );
 }
 
@@ -259,7 +259,7 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
   return (
     <div className="page-shell" dir="rtl">
       {/* Main form */}
-      <SurfaceCard
+      <Card
         title={mode === "create" ? "إضافة عملة جديدة" : "تعديل العملة"}
         icon={mode === "create" ? undefined : undefined}
       >
@@ -421,7 +421,7 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
             )}
           </div>
         </div>
-      </SurfaceCard>
+      </Card>
 
       {/* Live preview */}
       <LivePreview data={formData} />

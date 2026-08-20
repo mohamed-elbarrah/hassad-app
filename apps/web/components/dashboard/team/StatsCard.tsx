@@ -1,4 +1,4 @@
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Card } from "@/components/ui/card";
 
 interface StatsCardProps {
   label: string;
@@ -22,10 +22,10 @@ export function StatsCard({
   variant = "default",
 }: StatsCardProps) {
   return (
-    <SurfaceCard title={label}>
+    <Card title={label}>
       <p className={`text-3xl font-bold ${VARIANT_CLASSES[variant]}`}>
         {value}
       </p>
-    </SurfaceCard>
+    </Card>
   );
 }
