@@ -8,7 +8,7 @@ import { FormInput } from "@/components/ui/formInput";
 import { Select, SelectItem } from "@/components/design-system/Select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { SymbolRenderer } from "@/components/design-system/CurrencySymbol";
 import { toast } from "sonner";
 import {

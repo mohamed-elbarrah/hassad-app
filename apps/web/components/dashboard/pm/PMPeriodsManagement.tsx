@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { ContractType } from "@hassad/shared";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";

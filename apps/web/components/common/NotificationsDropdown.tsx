@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCheck, BellOff, ExternalLink } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog } from "@/components/design-system/Dialog";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";

@@ -8,7 +8,7 @@ import {
   FormSelectTrigger,
   FormSelectValue,
 } from "@/components/ui/formSelectControl";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { ClientStatus } from "@hassad/shared";
 import type { ClientFilters } from "@/features/clients/clientsApi";
 

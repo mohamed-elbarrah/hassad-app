@@ -22,7 +22,7 @@ import {
 import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Client } from "@hassad/shared";
 import { ClientStatus } from "@hassad/shared";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pill } from "@/components/design-system/Pill";
 import { formatShortDate } from "@/lib/format";
 

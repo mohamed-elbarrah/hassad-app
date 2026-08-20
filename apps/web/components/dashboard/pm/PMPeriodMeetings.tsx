@@ -9,7 +9,7 @@ import {
   type ProjectMeeting,
   type CreateMeetingInput,
 } from "@/features/projects/periodsApi";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { FormInputControl } from "@/components/ui/formInputControl";
 import { cn } from "@/lib/utils";

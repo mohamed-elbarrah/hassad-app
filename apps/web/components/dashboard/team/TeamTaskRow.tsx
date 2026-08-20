@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Pill } from "@/components/design-system/Pill";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { Card } from "@/components/ui/card";
 import { Archive, ArchiveRestore } from "lucide-react";
 import { TaskStatus, TaskPriority, TaskDepartment } from "@hassad/shared";

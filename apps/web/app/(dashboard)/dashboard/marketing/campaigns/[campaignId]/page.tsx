@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { MetricCard } from "@/components/design-system/MetricCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 
 import { FormInputControl } from "@/components/ui/formInputControl";

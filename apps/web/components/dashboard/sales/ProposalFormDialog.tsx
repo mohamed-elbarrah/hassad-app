@@ -19,7 +19,7 @@ import {
   salesWorkflowValidationMessages,
 } from "@/lib/i18n";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   Card,
   CardContent,

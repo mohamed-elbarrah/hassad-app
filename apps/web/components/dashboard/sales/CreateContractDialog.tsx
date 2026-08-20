@@ -17,7 +17,7 @@ import {
   salesWorkflowErrorMessage,
   salesWorkflowValidationMessages,
 } from "@/lib/i18n";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   Card,
   CardContent,

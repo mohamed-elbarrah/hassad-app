@@ -18,7 +18,7 @@ import { MessageInput } from "@/components/chat/MessageInput";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Info, X } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { cn } from "@/lib/utils";
 
 

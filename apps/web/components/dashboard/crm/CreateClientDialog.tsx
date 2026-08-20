@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Building2, Briefcase } from "lucide-react";
 import { Dialog } from "@/components/design-system/Dialog";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   Form,
   FormControl,

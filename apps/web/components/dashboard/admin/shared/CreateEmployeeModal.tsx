@@ -5,7 +5,7 @@ import { UserPlus, User, Shield } from "lucide-react";
 import { Dialog } from "@/components/design-system/Dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem } from "@/components/design-system/Select";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { useCreateAdminUserMutation } from "@/features/admin/adminUsersApi";
 import { UserRole, TaskDepartment } from "@hassad/shared";
 

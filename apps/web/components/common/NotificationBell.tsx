@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pill } from "@/components/design-system/Pill";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { toggleDropdown } from "@/features/notifications/notificationsSlice";

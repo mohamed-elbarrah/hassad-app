@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/design-system/Pill";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   AlertCircle,
   ArrowRight,

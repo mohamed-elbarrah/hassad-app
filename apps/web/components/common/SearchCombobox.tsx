@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionActionButton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   Command,
   CommandEmpty,
