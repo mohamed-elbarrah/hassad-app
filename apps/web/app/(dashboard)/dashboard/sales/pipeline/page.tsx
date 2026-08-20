@@ -22,15 +22,12 @@ import {
   Search,
   TableProperties,
 } from "lucide-react";
-import { REQUEST_STATUS_AR, RequestStatus } from "@hassad/shared";
+import { RequestStatus } from "@hassad/shared";
 import { KanbanBoard } from "@/components/dashboard/kanban";
 import { PageHeader } from "@/components/common/PageHeader";
 import { createSalesPipelineConfig } from "@/components/dashboard/sales/pipeline/config";
-import {
-  getRequestStatusBadgeVariant,
-  getSalesPipelineAction,
-  SalesPipelineCard,
-} from "@/components/dashboard/sales/pipeline/SalesPipelineCard";
+import { SalesPipelineCard } from "@/components/dashboard/sales/pipeline/SalesPipelineCard";
+import { SalesPipelineTable } from "@/components/dashboard/sales/pipeline/SalesPipelineTable";
 import {
   salesApi,
   useAddSalesPipelineContactLogMutation,
@@ -65,6 +62,14 @@ import {
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -73,17 +78,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { formatDateTime, formatNumber, formatRelativeTime } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import {
   salesPipelineErrorMessage,
   salesWorkflowErrorMessage,
@@ -116,10 +113,6 @@ const STATUS_GROUP_LABELS: Record<PipelineFilterGroup, string> = {
   WON: "الصفقات الناجحة",
   CANCELLED: "الطلبات الملغاة",
 };
-
-function getServiceCount(request: SalesPipelineItem) {
-  return request.services?.length ?? 0;
-}
 
 interface BoardItemsState {
   pages: Record<number, SalesPipelineItem[]>;
@@ -656,7 +649,6 @@ export default function PipelinePage() {
             }}
           >
             <SelectTrigger aria-label="تصفية مراحل خط المبيعات">
-              <Filter data-icon="inline-start" />
               <SelectValue placeholder="كل الحالات" />
             </SelectTrigger>
             <SelectContent>
@@ -678,12 +670,18 @@ export default function PipelinePage() {
               dispatchBoardItems({ type: "clear" });
             }}
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="kanban">
+            <TabsList className="grid h-10 min-w-48 w-full grid-cols-2 rounded-lg border border-border bg-muted/50 p-1">
+              <TabsTrigger
+                value="kanban"
+                className="gap-2 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
                 <KanbanSquare data-icon="inline-start" />
                 كانبان
               </TabsTrigger>
-              <TabsTrigger value="table">
+              <TabsTrigger
+                value="table"
+                className="gap-2 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
                 <TableProperties data-icon="inline-start" />
                 جدول
               </TabsTrigger>
@@ -745,149 +743,15 @@ export default function PipelinePage() {
             emptyMessage="لا توجد فرص مطابقة للبحث أو الفلتر الحالي"
           />
         ) : (
-          <div className="overflow-x-auto rounded-xl border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>العميل</TableHead>
-                  <TableHead>الشركة</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>الإجراء الحالي</TableHead>
-                  <TableHead>الخدمات</TableHead>
-                  <TableHead>آخر تحديث</TableHead>
-                  <TableHead className="text-left">فتح</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="p-0">
-                      <Empty className="py-10">
-                        <EmptyMedia variant="icon">
-                          <ClipboardList />
-                        </EmptyMedia>
-                        <EmptyHeader>
-                          <EmptyTitle>لا توجد فرص مطابقة</EmptyTitle>
-                          <EmptyDescription>
-                            جرّب تغيير البحث أو الفلتر لعرض نتائج أخرى.
-                          </EmptyDescription>
-                        </EmptyHeader>
-                      </Empty>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  requests.map((request) => {
-                    const action = getSalesPipelineAction(request);
-
-                    return (
-                      <TableRow key={request.id}>
-                        <TableCell>
-                          <div className="flex min-w-0 flex-col gap-1">
-                            <Link
-                              href={`/dashboard/sales/requests/${request.id}`}
-                              className="truncate font-medium transition-colors hover:text-primary"
-                            >
-                              {request.contactName}
-                            </Link>
-                            <span
-                              dir="ltr"
-                              className="truncate text-xs text-muted-foreground"
-                            >
-                              {request.phoneWhatsapp}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex min-w-0 flex-col gap-1">
-                            <span className="truncate">
-                              {request.companyName}
-                            </span>
-                            <span className="truncate text-xs text-muted-foreground">
-                              {request.client?.companyName || "عميل جديد"}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={getRequestStatusBadgeVariant(
-                              request.status,
-                            )}
-                          >
-                            {REQUEST_STATUS_AR[request.status]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex min-w-0 flex-col gap-1">
-                            <span className="text-sm font-medium">
-                              {action.label}
-                            </span>
-                            <span className="truncate text-xs text-muted-foreground">
-                              {formatRelativeTime(request.updatedAt)}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex min-w-0 flex-col gap-1">
-                            <span className="font-medium">
-                              {formatNumber(getServiceCount(request))}
-                            </span>
-                            <span className="truncate text-xs text-muted-foreground">
-                              {request.status === RequestStatus.CANCELLED
-                                ? "ملغي"
-                                : REQUEST_STATUS_AR[request.status]}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex min-w-0 flex-col gap-1">
-                            <span className="text-sm">
-                              {formatDateTime(request.updatedAt)}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {request.assignee?.name || "غير مسند"}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-left">
-                          {request.status ===
-                            RequestStatus.PROPOSAL_IN_PROGRESS ||
-                          request.status === RequestStatus.PROPOSAL_SENT ||
-                          request.status === RequestStatus.NEGOTIATION ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openProposalDialog(request)}
-                            >
-                              <action.icon data-icon="inline-start" />
-                              فتح
-                            </Button>
-                          ) : request.status ===
-                              RequestStatus.CONTRACT_PREPARATION ||
-                            request.status === RequestStatus.CONTRACT_SENT ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openContractDialog(request)}
-                            >
-                              <action.icon data-icon="inline-start" />
-                              فتح
-                            </Button>
-                          ) : (
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link href={action.href}>
-                                <ArrowUpLeft data-icon="inline-start" />
-                                فتح
-                              </Link>
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <SalesPipelineTable
+            requests={requests}
+            onCreateProposal={openProposalDialog}
+            onEditProposal={openProposalDialog}
+            onCreateContract={openContractDialog}
+            onEditContract={openContractDialog}
+            onAddContactLog={handleAddContactLog}
+            isAddingContactLog={isAddingContactLog}
+          />
         )}
 
         {view === "kanban" &&
@@ -908,38 +772,61 @@ export default function PipelinePage() {
             </div>
           )}
 
-        {view === "table" && (currentData?.meta.totalPages ?? 0) > 1 && (
-          <div className="flex items-center justify-between gap-3 border-t pt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1 || isFetching}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              السابق
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              صفحة {page} من {currentData?.meta.totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={
-                page >= (currentData?.meta.totalPages ?? 1) || isFetching
-              }
-              onClick={() =>
-                setPage((current) =>
-                  Math.min(
-                    currentData?.meta.totalPages ?? current,
-                    current + 1,
-                  ),
-                )
-              }
-            >
-              التالي
-            </Button>
-          </div>
-        )}
+        {view === "table" && (currentData?.meta.totalPages ?? 0) > 1 ? (
+          <Pagination
+            aria-label="ترقيم الصفحات"
+            className="justify-between border-t pt-4"
+          >
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  direction="rtl"
+                  text="السابق"
+                  aria-label="الانتقال إلى الصفحة السابقة"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page <= 1 || isFetching}
+                />
+              </PaginationItem>
+
+              {Array.from({ length: currentData?.meta.totalPages ?? 0 }).map(
+                (_, index) => {
+                  const pageNumber = index + 1;
+
+                  return (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink
+                        isActive={pageNumber === page}
+                        onClick={() => setPage(pageNumber)}
+                        disabled={isFetching}
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                },
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  direction="rtl"
+                  text="التالي"
+                  aria-label="الانتقال إلى الصفحة التالية"
+                  onClick={() =>
+                    setPage((current) =>
+                      Math.min(
+                        currentData?.meta.totalPages ?? current,
+                        current + 1,
+                      ),
+                    )
+                  }
+                  disabled={
+                    page >= (currentData?.meta.totalPages ?? 1) || isFetching
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        ) : null}
       </div>
 
       {workflowDialog?.type === "proposal" &&
