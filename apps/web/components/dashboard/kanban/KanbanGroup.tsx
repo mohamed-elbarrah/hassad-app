@@ -19,7 +19,7 @@ interface KanbanGroupProps {
 export function KanbanGroup({ label, totalCount, children }: KanbanGroupProps) {
   return (
     <Card
-      className="flex w-[280px] min-w-[280px] shrink-0 flex-col overflow-hidden"
+      className="flex min-w-[280px] flex-1 flex-col overflow-hidden"
       dir="rtl"
     >
       <CardHeader className="flex flex-row items-center justify-between gap-3 p-3">

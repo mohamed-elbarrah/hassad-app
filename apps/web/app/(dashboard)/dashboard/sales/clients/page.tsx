@@ -103,7 +103,7 @@ function getStatusHint(client: Client) {
 
 function ClientsPageLoading() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -456,7 +456,7 @@ export default function SalesClientsPage() {
 
   if (isError) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -480,7 +480,7 @@ export default function SalesClientsPage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card className="overflow-hidden">
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-4">

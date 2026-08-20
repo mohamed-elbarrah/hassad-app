@@ -14,6 +14,7 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { KanbanConfig, KanbanBoardProps } from "./types";
 import { KanbanGroup } from "./KanbanGroup";
+import { KanbanCard } from "./KanbanCard";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanStandaloneColumn } from "./KanbanStandaloneColumn";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -225,7 +226,7 @@ export function KanbanBoard<T extends { id: string }>({
       onDragEnd={handleDragEnd}
     >
       <ScrollArea className="w-full">
-        <div className="flex min-w-max gap-4 pb-2 pt-1" dir="rtl">
+        <div className="flex min-w-full gap-4 pb-2 pt-1" dir="rtl">
           {hasGroups
             ? renderGroupedLayout(
                 config,
@@ -248,7 +249,11 @@ export function KanbanBoard<T extends { id: string }>({
       </ScrollArea>
 
       <DragOverlay>
-        {activeItem ? renderCard(activeItem, { isOverlay: true }) : null}
+        {activeItem ? (
+          <KanbanCard id={activeItem.id} isOverlay canDrag={false}>
+            {renderCard(activeItem, { isOverlay: true })}
+          </KanbanCard>
+        ) : null}
       </DragOverlay>
     </DndContext>
   );

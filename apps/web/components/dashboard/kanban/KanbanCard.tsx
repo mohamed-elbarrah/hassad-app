@@ -46,9 +46,9 @@ export function KanbanCard({
       className={cn(
         "group border-border p-2.5 transition-all duration-150",
         canDrag && "hover:border-primary/20 hover:shadow-sm",
-        !canDrag && "cursor-default opacity-80",
-        (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
-        isOverlay && "shadow-lg",
+        !canDrag && "cursor-default opacity-90",
+        isDragging && !isOverlay && "opacity-100",
+        isOverlay && "relative z-50 rotate-1 scale-[1.02] shadow-lg",
       )}
       onClick={onClick}
     >

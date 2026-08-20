@@ -151,7 +151,7 @@ function PipelineSummaryCard({
 
 function PipelinePageLoadingState() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -352,7 +352,7 @@ export default function PipelinePage() {
 
   if (isError && requests.length === 0) {
     return (
-      <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="flex flex-col gap-6 ">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -379,7 +379,7 @@ export default function PipelinePage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6  ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -472,7 +472,7 @@ export default function PipelinePage() {
             لك.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-4 ">
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
             <div className="relative">
               <Search className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
