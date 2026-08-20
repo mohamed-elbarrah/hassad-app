@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { REQUEST_STATUS_AR, RequestStatus } from "@hassad/shared";
 import { KanbanBoard } from "@/components/dashboard/kanban";
+import { PageHeader } from "@/components/common/PageHeader";
 import { createSalesPipelineConfig } from "@/components/dashboard/sales/pipeline/config";
 import {
   getRequestStatusBadgeVariant,
@@ -53,21 +54,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Empty,
   EmptyContent,
@@ -328,16 +315,20 @@ export default function PipelinePage() {
   const currentData = currentPageData ?? firstPageData;
   const isLoading = currentPageQuery.isLoading;
   const isError = currentPageQuery.isError || firstPageQuery.isError;
-  const isFetching =
-    currentPageQuery.isFetching || firstPageQuery.isFetching;
+  const isFetching = currentPageQuery.isFetching || firstPageQuery.isFetching;
   const loadedPageNumbers = useMemo(
-    () => Object.keys(boardState.pages).map(Number).sort((left, right) => left - right),
+    () =>
+      Object.keys(boardState.pages)
+        .map(Number)
+        .sort((left, right) => left - right),
     [boardState.pages],
   );
   const backgroundPageNumbers = useMemo(
     () =>
       view === "kanban"
-        ? loadedPageNumbers.filter((pageNumber) => pageNumber !== 1 && pageNumber !== page)
+        ? loadedPageNumbers.filter(
+            (pageNumber) => pageNumber !== 1 && pageNumber !== page,
+          )
         : [],
     [loadedPageNumbers, page, view],
   );
@@ -354,9 +345,7 @@ export default function PipelinePage() {
   );
   const backgroundPageItems = useAppSelector(
     (state) =>
-      backgroundPageSelectors.map(
-        (selector) => selector(state).data?.items,
-      ),
+      backgroundPageSelectors.map((selector) => selector(state).data?.items),
     shallowEqual,
   );
 
@@ -382,7 +371,13 @@ export default function PipelinePage() {
     return () => {
       subscriptions.forEach((subscription) => subscription.unsubscribe());
     };
-  }, [backgroundPageKey, backgroundPageNumbers, dispatch, pipelineQueryArgs, view]);
+  }, [
+    backgroundPageKey,
+    backgroundPageNumbers,
+    dispatch,
+    pipelineQueryArgs,
+    view,
+  ]);
 
   useEffect(() => {
     if (view !== "kanban") return;
@@ -437,8 +432,7 @@ export default function PipelinePage() {
   }, [currentPageData?.items, firstPageData?.items, page, view]);
 
   const requests = useMemo(
-    () =>
-      view === "kanban" ? boardState.items : (currentData?.items ?? []),
+    () => (view === "kanban" ? boardState.items : (currentData?.items ?? [])),
     [boardState.items, currentData?.items, view],
   );
   const summary = currentData?.summary ?? {
@@ -582,47 +576,13 @@ export default function PipelinePage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6  ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard/sales">المبيعات</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>خط المبيعات</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <KanbanSquare />
-              </div>
-              <div className="flex flex-col gap-1">
-                <CardTitle className="text-2xl">
-                  خط المبيعات وإدارة الفرص
-                </CardTitle>
-                <CardDescription>
-                  تابع كل فرصة من أول طلب حتى التوقيع، وانقلها بين المراحل
-                  بسهولة من نفس اللوحة.
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
+    <div dir="rtl" className="flex flex-col gap-6">
+      <PageHeader
+        title="خط المبيعات وإدارة الفرص"
+        description="تابع كل فرصة من أول طلب حتى التوقيع، وانقلها بين المراحل بسهولة من نفس اللوحة."
+        icon={KanbanSquare}
+        actions={
+          <>
             <Button variant="outline" onClick={handleRefresh}>
               <RefreshCw
                 data-icon="inline-start"
@@ -636,9 +596,9 @@ export default function PipelinePage() {
                 طلب جديد
               </Link>
             </Button>
-          </div>
-        </CardHeader>
-      </Card>
+          </>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <PipelineSummaryCard
@@ -667,335 +627,320 @@ export default function PipelinePage() {
         />
       </div>
 
-      <Card>
-        <CardHeader className="gap-2">
-          <CardTitle>لوحة الفرص</CardTitle>
-          <CardDescription>
-            ابحث، صفِّ، ثم بدّل بين لوحة الكانبان والجدول حسب طريقة العمل الأنسب
-            لك.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
-            <div className="relative">
-              <Search className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                aria-label="البحث في فرص المبيعات"
-                value={search}
-                onChange={(event) => {
-                  const nextValue = event.target.value;
-                  startTransition(() => {
-                    setSearch(nextValue);
-                    setPage(1);
-                    dispatchBoardItems({ type: "clear" });
-                  });
-                }}
-                placeholder="ابحث باسم العميل أو الشركة أو رقم الواتساب"
-                className="pr-10"
-              />
-            </div>
-
-            <Select
-              value={statusGroup}
-              onValueChange={(value) => {
-                setStatusGroup(value as PipelineFilterGroup);
-                setPage(1);
-                dispatchBoardItems({ type: "clear" });
+      <div className="flex flex-col gap-4">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto_auto]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-label="البحث في فرص المبيعات"
+              value={search}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                startTransition(() => {
+                  setSearch(nextValue);
+                  setPage(1);
+                  dispatchBoardItems({ type: "clear" });
+                });
               }}
-            >
-              <SelectTrigger aria-label="تصفية مراحل خط المبيعات">
-                <Filter data-icon="inline-start" />
-                <SelectValue placeholder="كل الحالات" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {STATUS_GROUP_OPTIONS.map((group) => (
-                    <SelectItem key={group} value={group}>
-                      {STATUS_GROUP_LABELS[group]}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-
-            <Tabs
-              value={view}
-              onValueChange={(value) => {
-                setView(value as PipelineView);
-                setPage(1);
-                dispatchBoardItems({ type: "clear" });
-              }}
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="kanban">
-                  <KanbanSquare data-icon="inline-start" />
-                  كانبان
-                </TabsTrigger>
-                <TabsTrigger value="table">
-                  <TableProperties data-icon="inline-start" />
-                  جدول
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <div className="flex items-center justify-end">
-              <div className="flex items-center gap-2">
-                {view === "kanban" &&
-                  (currentData?.meta.total ?? 0) > requests.length && (
-                    <Badge variant="warning">
-                      عرض {formatNumber(requests.length)} من{" "}
-                      {formatNumber(currentData?.meta.total)}
-                    </Badge>
-                  )}
-                <Badge variant="outline">
-                  {isUpdatingStatus
-                    ? "جارٍ حفظ التغيير..."
-                    : `${formatNumber(currentData?.meta.total ?? 0)} فرصة`}
-                </Badge>
-              </div>
-            </div>
+              placeholder="ابحث باسم العميل أو الشركة أو رقم الواتساب"
+              className="pr-10"
+            />
           </div>
 
-          {view === "kanban" ? (
-            <Card className="overflow-hidden border-dashed">
-              <CardContent className="p-0">
-                <div className="p-3">
-                  <KanbanBoard
-                    config={boardConfig}
-                    items={boardRequests}
-                    getItemStage={(request) => request.status}
-                    renderCard={(request) => (
-                      <SalesPipelineCard
-                        request={request}
-                        onCreateProposal={openProposalDialog}
-                        onEditProposal={openProposalDialog}
-                        onCreateContract={openContractDialog}
-                        onEditContract={openContractDialog}
-                        onAddContactLog={handleAddContactLog}
-                        canAddContactLog={request.capabilities.canLogContact}
-                        isAddingContactLog={isAddingContactLog}
-                      />
-                    )}
-                    onDragEnd={handleDragEnd}
-                    canDragItem={(request) =>
-                      !isUpdatingStatus &&
-                      request.capabilities.canUpdateStatus &&
-                      !terminalStatuses.has(request.status)
-                    }
-                    canDropItem={(request, destinationStage) =>
-                      request.allowedNextStatuses.includes(
-                        destinationStage as RequestStatus,
-                      )
-                    }
-                    onInvalidDrop={() =>
-                      toast.info("لا يمكن نقل الفرصة إلى هذه المرحلة")
-                    }
-                    isLoading={isLoading}
-                    isError={isError}
-                    errorMessage="حدث خطأ أثناء تحميل الفرص"
-                    emptyMessage="لا توجد فرص مطابقة للبحث أو الفلتر الحالي"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="overflow-x-auto rounded-xl border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>العميل</TableHead>
-                    <TableHead>الشركة</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>الإجراء الحالي</TableHead>
-                    <TableHead>الخدمات</TableHead>
-                    <TableHead>آخر تحديث</TableHead>
-                    <TableHead className="text-left">فتح</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {requests.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="p-0">
-                        <Empty className="py-10">
-                          <EmptyMedia variant="icon">
-                            <ClipboardList />
-                          </EmptyMedia>
-                          <EmptyHeader>
-                            <EmptyTitle>لا توجد فرص مطابقة</EmptyTitle>
-                            <EmptyDescription>
-                              جرّب تغيير البحث أو الفلتر لعرض نتائج أخرى.
-                            </EmptyDescription>
-                          </EmptyHeader>
-                        </Empty>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    requests.map((request) => {
-                      const action = getSalesPipelineAction(request);
+          <Select
+            value={statusGroup}
+            onValueChange={(value) => {
+              setStatusGroup(value as PipelineFilterGroup);
+              setPage(1);
+              dispatchBoardItems({ type: "clear" });
+            }}
+          >
+            <SelectTrigger aria-label="تصفية مراحل خط المبيعات">
+              <Filter data-icon="inline-start" />
+              <SelectValue placeholder="كل الحالات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {STATUS_GROUP_OPTIONS.map((group) => (
+                  <SelectItem key={group} value={group}>
+                    {STATUS_GROUP_LABELS[group]}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
 
-                      return (
-                        <TableRow key={request.id}>
-                          <TableCell>
-                            <div className="flex min-w-0 flex-col gap-1">
-                              <Link
-                                href={`/dashboard/sales/requests/${request.id}`}
-                                className="truncate font-medium transition-colors hover:text-primary"
-                              >
-                                {request.contactName}
-                              </Link>
-                              <span
-                                dir="ltr"
-                                className="truncate text-xs text-muted-foreground"
-                              >
-                                {request.phoneWhatsapp}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex min-w-0 flex-col gap-1">
-                              <span className="truncate">
-                                {request.companyName}
-                              </span>
-                              <span className="truncate text-xs text-muted-foreground">
-                                {request.client?.companyName || "عميل جديد"}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={getRequestStatusBadgeVariant(
-                                request.status,
-                              )}
-                            >
-                              {REQUEST_STATUS_AR[request.status]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex min-w-0 flex-col gap-1">
-                              <span className="text-sm font-medium">
-                                {action.label}
-                              </span>
-                              <span className="truncate text-xs text-muted-foreground">
-                                {formatRelativeTime(request.updatedAt)}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex min-w-0 flex-col gap-1">
-                              <span className="font-medium">
-                                {formatNumber(getServiceCount(request))}
-                              </span>
-                              <span className="truncate text-xs text-muted-foreground">
-                                {request.status === RequestStatus.CANCELLED
-                                  ? "ملغي"
-                                  : REQUEST_STATUS_AR[request.status]}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex min-w-0 flex-col gap-1">
-                              <span className="text-sm">
-                                {formatDateTime(request.updatedAt)}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {request.assignee?.name || "غير مسند"}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-left">
-                            {request.status ===
-                              RequestStatus.PROPOSAL_IN_PROGRESS ||
-                            request.status === RequestStatus.PROPOSAL_SENT ||
-                            request.status === RequestStatus.NEGOTIATION ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openProposalDialog(request)}
-                              >
-                                <action.icon data-icon="inline-start" />
-                                فتح
-                              </Button>
-                            ) : request.status ===
-                                RequestStatus.CONTRACT_PREPARATION ||
-                              request.status === RequestStatus.CONTRACT_SENT ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openContractDialog(request)}
-                              >
-                                <action.icon data-icon="inline-start" />
-                                فتح
-                              </Button>
-                            ) : (
-                              <Button variant="ghost" size="sm" asChild>
-                                <Link href={action.href}>
-                                  <ArrowUpLeft data-icon="inline-start" />
-                                  فتح
-                                </Link>
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+          <Tabs
+            value={view}
+            onValueChange={(value) => {
+              setView(value as PipelineView);
+              setPage(1);
+              dispatchBoardItems({ type: "clear" });
+            }}
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="kanban">
+                <KanbanSquare data-icon="inline-start" />
+                كانبان
+              </TabsTrigger>
+              <TabsTrigger value="table">
+                <TableProperties data-icon="inline-start" />
+                جدول
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex items-center justify-end">
+            <div className="flex items-center gap-2">
+              {view === "kanban" &&
+                (currentData?.meta.total ?? 0) > requests.length && (
+                  <Badge variant="warning">
+                    عرض {formatNumber(requests.length)} من{" "}
+                    {formatNumber(currentData?.meta.total)}
+                  </Badge>
+                )}
+              <Badge variant="outline">
+                {isUpdatingStatus
+                  ? "جارٍ حفظ التغيير..."
+                  : `${formatNumber(currentData?.meta.total ?? 0)} فرصة`}
+              </Badge>
             </div>
-          )}
+          </div>
+        </div>
 
-          {view === "kanban" &&
-            (currentData?.meta.total ?? 0) > boardState.items.length && (
-              <div className="flex items-center justify-center border-t pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isFetching}
-                  onClick={() => setPage((current) => current + 1)}
-                >
-                  {isFetching
-                    ? "جارٍ تحميل المزيد..."
-                    : `تحميل المزيد (${formatNumber(
-                        (currentData?.meta.total ?? 0) - boardState.items.length,
-                      )})`}
-                </Button>
-              </div>
+        {view === "kanban" ? (
+          <KanbanBoard
+            config={boardConfig}
+            items={boardRequests}
+            getItemStage={(request) => request.status}
+            renderCard={(request) => (
+              <SalesPipelineCard
+                request={request}
+                onCreateProposal={openProposalDialog}
+                onEditProposal={openProposalDialog}
+                onCreateContract={openContractDialog}
+                onEditContract={openContractDialog}
+                onAddContactLog={handleAddContactLog}
+                canAddContactLog={request.capabilities.canLogContact}
+                isAddingContactLog={isAddingContactLog}
+              />
             )}
+            onDragEnd={handleDragEnd}
+            canDragItem={(request) =>
+              !isUpdatingStatus &&
+              request.capabilities.canUpdateStatus &&
+              !terminalStatuses.has(request.status)
+            }
+            canDropItem={(request, destinationStage) =>
+              request.allowedNextStatuses.includes(
+                destinationStage as RequestStatus,
+              )
+            }
+            onInvalidDrop={() =>
+              toast.info("لا يمكن نقل الفرصة إلى هذه المرحلة")
+            }
+            isLoading={isLoading}
+            isError={isError}
+            errorMessage="حدث خطأ أثناء تحميل الفرص"
+            emptyMessage="لا توجد فرص مطابقة للبحث أو الفلتر الحالي"
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-xl border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>العميل</TableHead>
+                  <TableHead>الشركة</TableHead>
+                  <TableHead>الحالة</TableHead>
+                  <TableHead>الإجراء الحالي</TableHead>
+                  <TableHead>الخدمات</TableHead>
+                  <TableHead>آخر تحديث</TableHead>
+                  <TableHead className="text-left">فتح</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {requests.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="p-0">
+                      <Empty className="py-10">
+                        <EmptyMedia variant="icon">
+                          <ClipboardList />
+                        </EmptyMedia>
+                        <EmptyHeader>
+                          <EmptyTitle>لا توجد فرص مطابقة</EmptyTitle>
+                          <EmptyDescription>
+                            جرّب تغيير البحث أو الفلتر لعرض نتائج أخرى.
+                          </EmptyDescription>
+                        </EmptyHeader>
+                      </Empty>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  requests.map((request) => {
+                    const action = getSalesPipelineAction(request);
 
-          {view === "table" && (currentData?.meta.totalPages ?? 0) > 1 && (
-            <div className="flex items-center justify-between gap-3 border-t pt-4">
+                    return (
+                      <TableRow key={request.id}>
+                        <TableCell>
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <Link
+                              href={`/dashboard/sales/requests/${request.id}`}
+                              className="truncate font-medium transition-colors hover:text-primary"
+                            >
+                              {request.contactName}
+                            </Link>
+                            <span
+                              dir="ltr"
+                              className="truncate text-xs text-muted-foreground"
+                            >
+                              {request.phoneWhatsapp}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <span className="truncate">
+                              {request.companyName}
+                            </span>
+                            <span className="truncate text-xs text-muted-foreground">
+                              {request.client?.companyName || "عميل جديد"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={getRequestStatusBadgeVariant(
+                              request.status,
+                            )}
+                          >
+                            {REQUEST_STATUS_AR[request.status]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <span className="text-sm font-medium">
+                              {action.label}
+                            </span>
+                            <span className="truncate text-xs text-muted-foreground">
+                              {formatRelativeTime(request.updatedAt)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <span className="font-medium">
+                              {formatNumber(getServiceCount(request))}
+                            </span>
+                            <span className="truncate text-xs text-muted-foreground">
+                              {request.status === RequestStatus.CANCELLED
+                                ? "ملغي"
+                                : REQUEST_STATUS_AR[request.status]}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <span className="text-sm">
+                              {formatDateTime(request.updatedAt)}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {request.assignee?.name || "غير مسند"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-left">
+                          {request.status ===
+                            RequestStatus.PROPOSAL_IN_PROGRESS ||
+                          request.status === RequestStatus.PROPOSAL_SENT ||
+                          request.status === RequestStatus.NEGOTIATION ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openProposalDialog(request)}
+                            >
+                              <action.icon data-icon="inline-start" />
+                              فتح
+                            </Button>
+                          ) : request.status ===
+                              RequestStatus.CONTRACT_PREPARATION ||
+                            request.status === RequestStatus.CONTRACT_SENT ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openContractDialog(request)}
+                            >
+                              <action.icon data-icon="inline-start" />
+                              فتح
+                            </Button>
+                          ) : (
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={action.href}>
+                                <ArrowUpLeft data-icon="inline-start" />
+                                فتح
+                              </Link>
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {view === "kanban" &&
+          (currentData?.meta.total ?? 0) > boardState.items.length && (
+            <div className="flex items-center justify-center border-t pt-4">
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page <= 1 || isFetching}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={isFetching}
+                onClick={() => setPage((current) => current + 1)}
               >
-                السابق
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                صفحة {page} من {currentData?.meta.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={
-                  page >= (currentData?.meta.totalPages ?? 1) || isFetching
-                }
-                onClick={() =>
-                  setPage((current) =>
-                    Math.min(
-                      currentData?.meta.totalPages ?? current,
-                      current + 1,
-                    ),
-                  )
-                }
-              >
-                التالي
+                {isFetching
+                  ? "جارٍ تحميل المزيد..."
+                  : `تحميل المزيد (${formatNumber(
+                      (currentData?.meta.total ?? 0) - boardState.items.length,
+                    )})`}
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+
+        {view === "table" && (currentData?.meta.totalPages ?? 0) > 1 && (
+          <div className="flex items-center justify-between gap-3 border-t pt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || isFetching}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              السابق
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              صفحة {page} من {currentData?.meta.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={
+                page >= (currentData?.meta.totalPages ?? 1) || isFetching
+              }
+              onClick={() =>
+                setPage((current) =>
+                  Math.min(
+                    currentData?.meta.totalPages ?? current,
+                    current + 1,
+                  ),
+                )
+              }
+            >
+              التالي
+            </Button>
+          </div>
+        )}
+      </div>
 
       {workflowDialog?.type === "proposal" &&
       workflowDialog.mode === "create" ? (
