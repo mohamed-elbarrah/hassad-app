@@ -20,7 +20,8 @@ interface ActionButtonProps {
     | "action-purple"
     | "action-blue"
     | "pm"
-    | "submit";
+    | "submit"
+    | "destructive";
   size?: "sm" | "md" | "lg" | "xl";
   fullWidth?: boolean;
   disabled?: boolean;
@@ -30,6 +31,7 @@ interface ActionButtonProps {
   form?: string;
   className?: string;
   title?: string;
+  "aria-label"?: string;
 }
 
 export function ActionButton({
@@ -47,6 +49,7 @@ export function ActionButton({
   form,
   className,
   title,
+  "aria-label": ariaLabel,
 }: ActionButtonProps) {
   const variantStyles = {
     primary:
@@ -68,6 +71,8 @@ export function ActionButton({
     pm: "bg-pm-button-bg text-pm-button-text hover:bg-pm-button-bg/80 hover:text-pm-button-text active:bg-pm-button-bg/60",
     submit:
       "bg-secondary-500 text-white hover:bg-secondary-400 hover:text-white active:bg-secondary-700",
+    destructive:
+      "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80",
   };
 
   const sizeStyles = {
@@ -84,6 +89,7 @@ export function ActionButton({
       onClick={onClick}
       disabled={disabled || loading}
       title={title}
+      aria-label={ariaLabel}
       className={cn(
         "inline-flex items-center justify-center gap-1 rounded-xl font-medium shrink-0 cursor-pointer transition-all duration-200 ease-out",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500/50",

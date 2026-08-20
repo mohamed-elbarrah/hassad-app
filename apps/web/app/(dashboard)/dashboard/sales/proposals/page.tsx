@@ -90,7 +90,7 @@ function getCompanyLabel(proposal: ProposalListItem) {
 }
 
 function getContactLabel(proposal: ProposalListItem) {
-  return proposal.request?.contactName ?? proposal.lead?.contactName ?? proposal.contactName ?? "—";
+  return proposal.request?.contactName ?? proposal.lead?.contactName ?? "—";
 }
 
 function getSourceLabel(proposal: ProposalListItem) {
@@ -289,7 +289,6 @@ function ProposalCard({ proposal }: { proposal: ProposalListItem }) {
               {formatNumber(proposal.durationDays)} يوم
             </span>
             <span className="text-xs text-muted-foreground">
-              صلاحية {formatNumber(proposal.offerValidityDays)} يوم
             </span>
           </div>
         </div>
@@ -433,8 +432,6 @@ export default function SalesProposalsPage() {
         : [
             proposal.title,
             proposal.serviceDescription,
-            proposal.contactName,
-            proposal.contactEmail,
             proposal.client?.companyName,
             proposal.request?.companyName,
             proposal.request?.contactName,

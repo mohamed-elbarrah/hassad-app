@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFieldArray, useForm, type FieldPath } from "react-hook-form";
+import {
+  useFieldArray,
+  useForm,
+  useWatch,
+  type FieldPath,
+} from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -13,20 +18,12 @@ import {
   type ProposalListItem,
   type ServiceItem,
 } from "@/features/proposals/proposalsApi";
-import { useGetRequestsQuery } from "@/features/requests/requestsApi";
 import {
   salesWorkflowErrorMessage,
   salesWorkflowValidationMessages,
 } from "@/lib/i18n";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +52,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 
 const proposalFormSchema = z.object({
   requestId: z.string().min(1, "اختر الطلب المرتبط"),
@@ -69,14 +67,10 @@ const proposalFormSchema = z.object({
       }),
     )
     .min(1, "أضف خدمة واحدة على الأقل"),
-  totalPrice: z.coerce.number().positive("أدخل الإجمالي"),
+  totalPrice: z.coerce.number().nonnegative(),
   durationDays: z.coerce.number().int().positive("أدخل مدة صحيحة"),
   durationUnit: z.nativeEnum(DurationUnit),
-  platforms: z.string().trim().min(1, "اكتب المنصات أو القنوات"),
-  contactName: z.string().optional(),
-  contactEmail: z.string().email("أدخل بريداً صحيحاً").or(z.literal("")),
   startDate: z.string().optional(),
-  offerValidityDays: z.coerce.number().int().positive("أدخل مدة صلاحية صحيحة"),
 });
 
 type ProposalFormInput = z.input<typeof proposalFormSchema>;
@@ -120,13 +114,9 @@ function getDefaultValues(
     totalPrice: proposal?.totalPrice ?? 0,
     durationDays: proposal?.durationDays ?? 30,
     durationUnit: (proposal?.durationUnit as DurationUnit) ?? DurationUnit.DAYS,
-    platforms: proposal?.platforms?.join(", ") ?? "",
-    contactName: proposal?.contactName ?? "",
-    contactEmail: proposal?.contactEmail ?? "",
     startDate: proposal?.startDate
       ? String(proposal.startDate).split("T")[0]
       : "",
-    offerValidityDays: proposal?.offerValidityDays ?? 30,
   };
 }
 
@@ -151,27 +141,33 @@ export function ProposalFormDialog({
     control: form.control,
     name: "servicesList",
   });
-  const { data: requests = [], isFetching: requestsLoading } =
-    useGetRequestsQuery({ limit: 100 }, { skip: !open });
+  const watchedServices = useWatch({
+    control: form.control,
+    name: "servicesList",
+  });
+  const calculatedTotal = useMemo(
+    () =>
+      (watchedServices ?? []).reduce((total, service) => {
+        const price = Number(service?.price ?? 0);
+        return total + (Number.isFinite(price) ? price : 0);
+      }, 0),
+    [watchedServices],
+  );
   const [createProposal, { isLoading: isCreating }] =
     useCreateProposalMutation();
   const [updateProposal, { isLoading: isUpdating }] =
     useUpdateProposalMutation();
   const isSubmitting = isCreating || isUpdating;
 
-  const requestOptions = useMemo(
-    () =>
-      requests.filter(
-        (request) => isEdit || request.status === "PROPOSAL_IN_PROGRESS",
-      ),
-    [isEdit, requests],
-  );
-
   useEffect(() => {
     if (!open) return;
     form.reset(getDefaultValues(proposal, preSelectedRequestId));
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [form, open, preSelectedRequestId, proposal]);
+
+  useEffect(() => {
+    form.setValue("totalPrice", calculatedTotal, { shouldValidate: true });
+  }, [calculatedTotal, form]);
 
   async function onSubmit(values: ProposalFormValues) {
     if (file) {
@@ -195,11 +191,6 @@ export function ProposalFormDialog({
       price: Number(service.price),
       ...(service.description ? { description: service.description } : {}),
     }));
-    const platforms = values.platforms
-      .split(",")
-      .map((platform) => platform.trim())
-      .filter(Boolean);
-
     try {
       if (isEdit && proposal) {
         await updateProposal({
@@ -211,11 +202,7 @@ export function ProposalFormDialog({
             totalPrice: Number(values.totalPrice),
             durationDays: Number(values.durationDays),
             durationUnit: values.durationUnit,
-            platforms,
-            contactName: values.contactName,
-            contactEmail: values.contactEmail,
             startDate: values.startDate || undefined,
-            offerValidityDays: Number(values.offerValidityDays),
           },
         }).unwrap();
         toast.success("تم تحديث العرض الفني");
@@ -224,16 +211,12 @@ export function ProposalFormDialog({
           requestId: values.requestId,
           title: values.title,
           serviceDescription: values.serviceDescription,
-          platforms,
           file,
           servicesList,
           totalPrice: Number(values.totalPrice),
           durationDays: Number(values.durationDays),
           durationUnit: values.durationUnit,
-          contactName: values.contactName ?? "",
-          contactEmail: values.contactEmail ?? "",
           startDate: values.startDate ?? "",
-          offerValidityDays: Number(values.offerValidityDays),
         }).unwrap();
         toast.success("تم إنشاء العرض الفني");
         if (result.shareLinkToken) {
@@ -276,7 +259,7 @@ export function ProposalFormDialog({
         className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0"
         dir="rtl"
       >
-        <DialogHeader className="shrink-0 border-b px-6 py-4 text-right">
+        <DialogHeader className="shrink-0  border-b px-6 py-4 text-right">
           <DialogTitle>
             {isEdit ? "تعديل العرض الفني" : "إنشاء عرض فني"}
           </DialogTitle>
@@ -292,43 +275,15 @@ export function ProposalFormDialog({
               onSubmit={form.handleSubmit(onSubmit)}
               className="flex flex-col gap-5"
             >
-              <FormField
-                control={form.control}
-                name="requestId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>الطلب المرتبط</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={
-                        isEdit ||
-                        requestsLoading ||
-                        Boolean(preSelectedRequestId)
-                      }
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر الطلب" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectGroup>
-                          {requestOptions.map((request) => (
-                            <SelectItem key={request.id} value={request.id}>
-                              {request.companyName} — {request.contactName}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      تظهر هنا الطلبات الجاهزة لإعداد العرض.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <input type="hidden" {...form.register("requestId")} />
+              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-right">
+                <p className="text-sm font-medium text-foreground">
+                  الطلب المرتبط
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  تم ربط هذا العرض بالطلب المحدد من مسار المبيعات.
+                </p>
+              </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
@@ -367,7 +322,7 @@ export function ProposalFormDialog({
                 name="serviceDescription"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>وصف الخدمات</FormLabel>
+                    <FormLabel>وصف العرض</FormLabel>
                     <FormControl>
                       <Textarea
                         rows={3}
@@ -380,128 +335,122 @@ export function ProposalFormDialog({
                 )}
               />
 
-              <Card>
-                <CardHeader className="gap-1">
-                  <CardTitle className="text-base">الخدمات والتسعير</CardTitle>
-                  <CardDescription>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-base font-semibold">الخدمات والتسعير</h2>
+                  <p className="text-sm text-muted-foreground">
                     أضف الخدمات التي يتضمنها العرض وقيمتها.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  {fields.map((field, index) => (
-                    <div
-                      key={field.id}
-                      className="grid gap-3 rounded-lg border p-3 md:grid-cols-[minmax(0,1fr)_160px_auto]"
-                    >
-                      <FormField
-                        control={form.control}
-                        name={`servicesList.${index}.name`}
-                        render={({ field: input }) => (
-                          <FormItem>
-                            <FormLabel>الخدمة</FormLabel>
-                            <FormControl>
-                              <Input placeholder="اسم الخدمة" {...input} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`servicesList.${index}.price`}
-                        render={({ field: input }) => (
-                          <FormItem>
-                            <FormLabel>السعر</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={String(input.value ?? "")}
-                                onChange={(event) =>
-                                  input.onChange(event.target.value)
-                                }
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="flex items-end">
-                        <ActionButton
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label="حذف الخدمة"
-                          disabled={fields.length === 1}
-                          onClick={() => remove(index)}
-                        >
-                          <Trash2 data-icon="inline-start" />
-                        </ActionButton>
-                      </div>
-                      <FormField
-                        control={form.control}
-                        name={`servicesList.${index}.description`}
-                        render={({ field: input }) => (
-                          <FormItem className="md:col-span-3">
-                            <FormLabel>ملاحظات الخدمة</FormLabel>
-                            <FormControl>
-                              <Input placeholder="اختياري" {...input} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  ))}
-                  <ActionButton
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      append({ name: "", price: 0, description: "" })
-                    }
+                  </p>
+                </div>
+                {fields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="grid gap-3 rounded-lg border p-3 md:grid-cols-[minmax(0,1fr)_160px_auto]"
                   >
-                    <Plus data-icon="inline-start" />
-                    إضافة خدمة
-                  </ActionButton>
-                </CardContent>
-              </Card>
+                    <FormField
+                      control={form.control}
+                      name={`servicesList.${index}.name`}
+                      render={({ field: input }) => (
+                        <FormItem>
+                          <FormLabel>الخدمة</FormLabel>
+                          <FormControl>
+                            <Input placeholder="اسم الخدمة" {...input} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`servicesList.${index}.price`}
+                      render={({ field: input }) => (
+                        <FormItem>
+                          <FormLabel>السعر</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={String(input.value ?? "")}
+                              onChange={(event) =>
+                                input.onChange(event.target.value)
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex items-end">
+                      <ActionButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label="حذف الخدمة"
+                        disabled={fields.length === 1}
+                        onClick={() => remove(index)}
+                      >
+                        <Trash2 data-icon="inline-start" />
+                      </ActionButton>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name={`servicesList.${index}.description`}
+                      render={({ field: input }) => (
+                        <FormItem className="md:col-span-3">
+                          <FormLabel>ملاحظات الخدمة</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              rows={2}
+                              placeholder="أضف ملاحظات أو مخرجات هذه الخدمة"
+                              {...input}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                ))}
+                <ActionButton
+                  type="button"
+                  variant="outline"
+                  className="self-start"
+                  onClick={() =>
+                    append({ name: "", price: 0, description: "" })
+                  }
+                >
+                  <Plus data-icon="inline-start" />
+                  إضافة خدمة
+                </ActionButton>
+              </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="totalPrice"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الإجمالي</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={String(field.value ?? "")}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="platforms"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>المنصات أو القنوات</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="مثال: Instagram, Website"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
+                    <FormItem className="flex-1">
+                      <FormLabel>الإجمالي المحسوب</FormLabel>
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            aria-label="الإجمالي المحسوب"
+                            className="pointer-events-none bg-muted/40 pl-16 text-right"
+                            type="text"
+                            readOnly
+                            tabIndex={-1}
+                            aria-readonly="true"
+                            value={String(field.value ?? 0)}
+                          />
+                        </FormControl>
+                        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-input px-3 text-sm text-muted-foreground">
+                          <CurrencySymbol />
+                        </span>
+                      </div>
+                      <FormDescription>
+                        يتم حساب الإجمالي تلقائياً من أسعار الخدمات.
+                      </FormDescription>
                     </FormItem>
                   )}
                 />
@@ -510,97 +459,55 @@ export function ProposalFormDialog({
                   name="durationDays"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>المدة</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={String(field.value ?? "")}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="durationUnit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>وحدة المدة</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
+                      <FormLabel>مدة التنفيذ</FormLabel>
+                      <div className="flex items-start gap-2">
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الوحدة" />
-                          </SelectTrigger>
+                          <Input
+                            className="min-w-0 flex-1"
+                            type="number"
+                            min="1"
+                            value={String(field.value ?? "")}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
+                            placeholder="مثال: 30"
+                            aria-label="قيمة مدة التنفيذ"
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectGroup>
-                            {Object.entries(durationLabels).map(
-                              ([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="offerValidityDays"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>صلاحية العرض بالأيام</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={String(field.value ?? "")}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
+                        <FormField
+                          control={form.control}
+                          name="durationUnit"
+                          render={({ field: unitField }) => (
+                            <FormItem className="w-36 shrink-0">
+                              <FormControl>
+                                <Select
+                                  value={unitField.value}
+                                  onValueChange={unitField.onChange}
+                                >
+                                  <SelectTrigger aria-label="وحدة مدة التنفيذ">
+                                    <SelectValue placeholder="الوحدة" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectGroup>
+                                      {Object.entries(durationLabels).map(
+                                        ([value, label]) => (
+                                          <SelectItem key={value} value={value}>
+                                            {label}
+                                          </SelectItem>
+                                        ),
+                                      )}
+                                    </SelectGroup>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="contactName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>اسم جهة الاتصال</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="contactEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>البريد الإلكتروني</FormLabel>
-                      <FormControl>
-                        <Input type="email" dir="ltr" {...field} />
-                      </FormControl>
+                      </div>
+                      <FormDescription>
+                        حدد المدة المتوقعة لتسليم المشروع ووحدتها.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -669,10 +576,10 @@ export function ProposalFormDialog({
           </Form>
         </div>
 
-        <DialogFooter className="shrink-0 border-t bg-background px-6 py-4">
+        <DialogFooter className="shrink-0 flex-row-reverse justify-start gap-3 border-t bg-background px-6 py-4">
           <ActionButton
             type="button"
-            variant="outline"
+            variant="destructive"
             onClick={() => handleOpenChange(false)}
           >
             إلغاء

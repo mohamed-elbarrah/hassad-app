@@ -24,20 +24,9 @@ type CrmProposalRow = {
   sentAtLabel: string;
   sentDaysAgo: number;
   responseLabel: string;
-  validUntilLabel: string;
-  validityDaysLeft: number;
-  validityTone: "success" | "warning" | "neutral" | "active" | "attention" | "destructive";
   contractLabel: string;
   contractTone: "success" | "warning" | "neutral" | "active" | "attention" | "destructive";
 };
-
-function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(value);
-}
 
 function mapStatusTone(status: ProposalStatus): CrmProposalRow["statusTone"] {
   if (status === ProposalStatus.APPROVED) return "success";
@@ -45,13 +34,6 @@ function mapStatusTone(status: ProposalStatus): CrmProposalRow["statusTone"] {
   if (status === ProposalStatus.REVISION_REQUESTED) return "attention";
   if (status === ProposalStatus.SENT) return "warning";
   return "neutral";
-}
-
-function mapValidityTone(daysLeft: number, validUntil: Date | null): CrmProposalRow["validityTone"] {
-  if (!validUntil) return "neutral";
-  if (daysLeft < 0) return "destructive";
-  if (daysLeft <= 7) return "warning";
-  return "success";
 }
 
 function buildToast(type: "success" | "error" | "info" | "warning" | "loading", title: string, description?: string) {
@@ -74,15 +56,11 @@ export class CrmProposalsService {
     if (filters.search) {
       where.OR = [
         { title: { contains: filters.search, mode: "insensitive" } },
-        { contactName: { contains: filters.search, mode: "insensitive" } },
-        { contactEmail: { contains: filters.search, mode: "insensitive" } },
       ];
     }
 
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
-    const now = new Date();
-
     const [items, total] = await Promise.all([
       this.prisma.proposal.findMany({
         where,
@@ -113,14 +91,6 @@ export class CrmProposalsService {
         item.request?.services
           ?.map((service) => service.service?.name)
           .filter((value): value is string => Boolean(value)) ?? [];
-      const sentAt = item.sentAt ? new Date(item.sentAt) : null;
-      const validUntil = sentAt
-        ? new Date(sentAt.getTime() + (item.offerValidityDays ?? 30) * 86400000)
-        : null;
-      const validityDaysLeft = validUntil
-        ? Math.ceil((validUntil.getTime() - now.getTime()) / 86400000)
-        : 999;
-
       return {
         id: item.id,
         title: item.title ?? "Proposal",
@@ -131,14 +101,9 @@ export class CrmProposalsService {
         totalValue: item.totalPrice ?? 0,
         status: item.status as ProposalStatus,
         statusTone: mapStatusTone(item.status as ProposalStatus),
-        sentAtLabel: sentAt
-          ? `Sent ${Math.max(0, Math.floor((now.getTime() - sentAt.getTime()) / 86400000))}d ago`
-          : "Not sent",
-        sentDaysAgo: sentAt ? Math.max(0, Math.floor((now.getTime() - sentAt.getTime()) / 86400000)) : 0,
+        sentAtLabel: item.sentAt ? "Sent" : "Not sent",
+        sentDaysAgo: 0,
         responseLabel: String(item.status).replaceAll("_", " "),
-        validUntilLabel: validUntil ? `Valid until ${formatDate(validUntil)}` : "Validity not started",
-        validityDaysLeft,
-        validityTone: mapValidityTone(validityDaysLeft, validUntil),
         contractLabel: item.contract ? "Linked to contract" : "Not created",
         contractTone: item.contract ? "success" : "neutral",
       };
@@ -157,7 +122,6 @@ export class CrmProposalsService {
           select: {
             id: true,
             companyName: true,
-            contactName: true,
             status: true,
             services: { include: { service: true } },
           },
@@ -182,11 +146,6 @@ export class CrmProposalsService {
       throw new BadRequestException("A request reference is required");
     }
 
-    const creator = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, email: true },
-    });
-
     const proposal = await this.prisma.$transaction(async (tx) => {
       const request = await this.requestsService.resolveRequestContext(
         { requestId: dto.requestId },
@@ -205,12 +164,8 @@ export class CrmProposalsService {
           totalPrice: dto.totalPrice ?? 0,
           durationDays: dto.durationDays ?? 0,
           durationUnit: dto.durationUnit ?? "DAYS",
-          platforms: dto.platforms ?? [],
           filePath: dto.filePath ?? null,
-          contactName: dto.contactName || creator?.name || "",
-          contactEmail: dto.contactEmail || creator?.email || "",
           startDate: dto.startDate ? new Date(dto.startDate) : null,
-          offerValidityDays: dto.offerValidityDays ?? 30,
           status: ProposalStatus.DRAFT,
         },
       });
@@ -238,12 +193,8 @@ export class CrmProposalsService {
         totalPrice: dto.totalPrice,
         durationDays: dto.durationDays,
         durationUnit: dto.durationUnit,
-        platforms: dto.platforms,
-        contactName: dto.contactName,
-        contactEmail: dto.contactEmail,
         filePath: dto.filePath,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-        offerValidityDays: dto.offerValidityDays,
       },
     });
 

@@ -19,21 +19,9 @@ export class ProposalsService {
     private requestsService: RequestsService,
   ) {}
 
-  /**
-   * One-step: create proposal as SENT + generate shareLinkToken.
-   * Auto-populates contactName and contactEmail from the creator user if not provided.
-   */
+  /** Create a proposal and publish it through the legacy workflow. */
   async create(userId: string, dto: CreateProposalDto) {
     const token = randomBytes(32).toString("hex");
-
-    // Fetch creator user to auto-fill contact info
-    const creator = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, email: true },
-    });
-
-    const contactName = dto.contactName || creator?.name || "";
-    const contactEmail = dto.contactEmail || creator?.email || "";
 
     const created = await this.prisma.$transaction(async (tx) => {
       const request = await this.requestsService.resolveRequestContext(
@@ -52,12 +40,8 @@ export class ProposalsService {
           totalPrice: dto.totalPrice ?? 0,
           durationDays: dto.durationDays ?? 0,
           durationUnit: dto.durationUnit ?? "DAYS",
-          platforms: dto.platforms ?? [],
           filePath: dto.filePath ?? null,
-          contactName,
-          contactEmail,
           startDate: dto.startDate ? new Date(dto.startDate) : null,
-          offerValidityDays: dto.offerValidityDays ?? 30,
           status: ProposalStatus.SENT,
           shareLinkToken: token,
           sentAt: new Date(),
@@ -246,7 +230,6 @@ export class ProposalsService {
           select: {
             id: true,
             companyName: true,
-            contactName: true,
             status: true,
           },
         },
@@ -354,7 +337,6 @@ export class ProposalsService {
           select: {
             id: true,
             companyName: true,
-            contactName: true,
             status: true,
           },
         },

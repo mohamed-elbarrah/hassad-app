@@ -93,19 +93,6 @@ export class CrmCreateProposalDto {
   durationUnit?: string;
 
   @IsOptional()
-  @IsArray()
-  @Transform(({ value }) => parseArray(value))
-  platforms?: string[];
-
-  @IsOptional()
-  @IsString()
-  contactName?: string;
-
-  @IsOptional()
-  @IsString()
-  contactEmail?: string;
-
-  @IsOptional()
   @IsString()
   filePath?: string;
 
@@ -113,10 +100,6 @@ export class CrmCreateProposalDto {
   @IsDateString()
   startDate?: string;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  offerValidityDays?: number;
 }
 
 export class CrmUpdateProposalDto {
@@ -149,19 +132,6 @@ export class CrmUpdateProposalDto {
   durationUnit?: string;
 
   @IsOptional()
-  @IsArray()
-  @Transform(({ value }) => parseArray(value))
-  platforms?: string[];
-
-  @IsOptional()
-  @IsString()
-  contactName?: string;
-
-  @IsOptional()
-  @IsString()
-  contactEmail?: string;
-
-  @IsOptional()
   @IsString()
   filePath?: string;
 
@@ -169,8 +139,4 @@ export class CrmUpdateProposalDto {
   @IsDateString()
   startDate?: string;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  offerValidityDays?: number;
 }

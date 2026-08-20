@@ -313,11 +313,7 @@ export interface Proposal {
   totalPrice: number;
   durationDays: number;
   durationUnit: string;
-  platforms: string[];
-  contactName?: string | null;
-  contactEmail?: string | null;
   startDate?: Date | string | null;
-  offerValidityDays: number;
   filePath?: string | null;
   status: ProposalStatus;
   shareLinkToken?: string | null;

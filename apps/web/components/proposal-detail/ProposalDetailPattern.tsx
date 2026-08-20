@@ -27,7 +27,6 @@ export interface ProposalDetailEntity {
   totalPrice: number;
   createdAt: string | Date;
   filePath?: string | null;
-  contactName?: string | null;
   request?: {
     id: string;
     companyName: string;
@@ -157,7 +156,7 @@ export function ProposalDetailView({
     proposal.request?.companyName ||
     "—";
   const contactLabel =
-    proposal.request?.contactName || proposal.lead?.contactName || proposal.contactName || "—";
+    proposal.request?.contactName || proposal.lead?.contactName || "—";
   const isClientAudience = audience === "client";
 
   return (

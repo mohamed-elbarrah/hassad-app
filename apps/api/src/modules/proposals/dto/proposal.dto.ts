@@ -44,34 +44,13 @@ export class CreateProposalDto {
   durationUnit?: string;
 
   @IsOptional()
-  @IsArray()
-  @Transform(({ value }) => {
-    if (value == null) return undefined;
-    if (Array.isArray(value)) return value;
-    if (typeof value === "string") return JSON.parse(value);
-    return value;
-  })
-  platforms?: string[];
-
-  @IsOptional()
   @IsString()
   filePath?: string;
-
-  @IsOptional()
-  @IsString()
-  contactName?: string;
-
-  @IsOptional()
-  @IsString()
-  contactEmail?: string;
 
   @IsOptional()
   @IsDateString()
   startDate?: string;
 
-  @IsOptional()
-  @IsNumber()
-  offerValidityDays?: number;
 }
 
 export class UpdateProposalDto {
@@ -106,34 +85,13 @@ export class UpdateProposalDto {
   durationUnit?: string;
 
   @IsOptional()
-  @IsArray()
-  @Transform(({ value }) => {
-    if (value == null) return undefined;
-    if (Array.isArray(value)) return value;
-    if (typeof value === "string") return JSON.parse(value);
-    return value;
-  })
-  platforms?: string[];
-
-  @IsOptional()
   @IsString()
   filePath?: string;
-
-  @IsOptional()
-  @IsString()
-  contactName?: string;
-
-  @IsOptional()
-  @IsString()
-  contactEmail?: string;
 
   @IsOptional()
   @IsDateString()
   startDate?: string;
 
-  @IsOptional()
-  @IsNumber()
-  offerValidityDays?: number;
 }
 
 export class ProposalResponseDto {

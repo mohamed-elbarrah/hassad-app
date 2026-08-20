@@ -50,16 +50,12 @@ export interface CreateProposalFormInput {
   requestId: string;
   title: string;
   serviceDescription: string;
-  platforms: string[];
   file: File;
   servicesList: ServiceItem[];
   totalPrice: number;
   durationDays: number;
   durationUnit: DurationUnit;
-  contactName: string;
-  contactEmail: string;
   startDate: string;
-  offerValidityDays: number;
 }
 
 export const proposalsApi = createApi({
@@ -94,18 +90,11 @@ export const proposalsApi = createApi({
           formData.append("requestId", input.requestId);
           formData.append("title", input.title);
           formData.append("serviceDescription", input.serviceDescription);
-          formData.append("platforms", JSON.stringify(input.platforms));
           formData.append("file", input.file, input.file.name);
           formData.append("servicesList", JSON.stringify(input.servicesList));
           formData.append("totalPrice", String(input.totalPrice));
           formData.append("durationDays", String(input.durationDays));
           formData.append("durationUnit", input.durationUnit);
-          formData.append("offerValidityDays", String(input.offerValidityDays));
-
-          if (input.contactName)
-            formData.append("contactName", input.contactName);
-          if (input.contactEmail)
-            formData.append("contactEmail", input.contactEmail);
           if (input.startDate) formData.append("startDate", input.startDate);
 
           return { url: "/proposals", method: "POST", body: formData };

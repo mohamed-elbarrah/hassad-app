@@ -517,7 +517,6 @@ model Proposal {
   servicesList       Json           @map("services_list")
   totalPrice         Float          @map("total_price")
   durationDays       Int            @map("duration_days")
-  platforms          Json
   status             ProposalStatus
   shareLinkToken     String?        @unique @map("share_link_token")
   sentAt             DateTime?      @map("sent_at")
@@ -526,10 +525,7 @@ model Proposal {
   filePath           String?        @map("file_path")
   clientId           String?        @map("client_id")
   requestId          String?        @map("request_id")
-  contactEmail       String?        @map("contact_email")
-  contactName        String?        @map("contact_name")
   durationUnit       String         @default("DAYS") @map("duration_unit")
-  offerValidityDays  Int            @default(30) @map("offer_validity_days")
   startDate          DateTime?      @map("start_date")
   contract           Contract?
   client             Client?        @relation(fields: [clientId], references: [id])
