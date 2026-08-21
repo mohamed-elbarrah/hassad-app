@@ -129,7 +129,24 @@ export class RequestsService {
 
     return this.prisma.request.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        clientId: true,
+        submittedBy: true,
+        assignedSalesId: true,
+        companyName: true,
+        contactName: true,
+        phoneWhatsapp: true,
+        email: true,
+        businessName: true,
+        businessType: true,
+        source: true,
+        notes: true,
+        status: true,
+        contactAttemptCount: true,
+        lastContactAt: true,
+        createdAt: true,
+        updatedAt: true,
         client: {
           select: {
             id: true,
@@ -379,17 +396,42 @@ export class RequestsService {
   ) {
     const request = await this.prisma.request.findFirst({
       where: { id, ...buildRequestAccessWhere(accessScope) },
-      include: {
+      select: {
+        id: true,
+        clientId: true,
+        submittedBy: true,
+        assignedSalesId: true,
+        companyName: true,
+        contactName: true,
+        phoneWhatsapp: true,
+        email: true,
+        businessName: true,
+        businessType: true,
+        source: true,
+        notes: true,
+        status: true,
+        contactAttemptCount: true,
+        lastContactAt: true,
+        createdAt: true,
+        updatedAt: true,
         client: {
           select: {
             id: true,
             companyName: true,
             businessName: true,
             businessType: true,
-            accountManager: true,
+            kind: true,
+            status: true,
             userId: true,
             totalProjects: true,
             activeProjects: true,
+            manager: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
             user: {
               select: {
                 id: true,
@@ -408,7 +450,11 @@ export class RequestsService {
           },
         },
         services: {
-          include: {
+          select: {
+            id: true,
+            serviceId: true,
+            quantity: true,
+            notes: true,
             service: {
               select: {
                 id: true,
@@ -419,7 +465,13 @@ export class RequestsService {
           },
         },
         statusHistory: {
-          include: {
+          select: {
+            id: true,
+            fromStatus: true,
+            toStatus: true,
+            changedBy: true,
+            note: true,
+            changedAt: true,
             changer: {
               select: {
                 id: true,
@@ -435,6 +487,7 @@ export class RequestsService {
             id: true,
             title: true,
             status: true,
+            totalPrice: true,
             createdAt: true,
           },
           orderBy: { createdAt: "desc" },
@@ -444,6 +497,7 @@ export class RequestsService {
             id: true,
             title: true,
             status: true,
+            totalValue: true,
             createdAt: true,
           },
           orderBy: { createdAt: "desc" },
@@ -451,13 +505,24 @@ export class RequestsService {
         contactLogs: {
           take: 100,
           orderBy: { contactedAt: "desc" },
-          include: { user: { select: USER_SUMMARY_SELECT } },
+          select: {
+            id: true,
+            requestId: true,
+            userId: true,
+            type: true,
+            result: true,
+            notes: true,
+            contactedAt: true,
+            user: { select: USER_SUMMARY_SELECT },
+          },
         },
         project: {
           select: {
             id: true,
             name: true,
             status: true,
+            startDate: true,
+            endDate: true,
             createdAt: true,
           },
         },
@@ -471,9 +536,16 @@ export class RequestsService {
       });
     }
 
+    const currentStageSince =
+      [...request.statusHistory]
+        .reverse()
+        .find((entry) => entry.toStatus === request.status)?.changedAt ??
+      request.createdAt;
+
     return capabilities
       ? {
           ...request,
+          currentStageSince,
           capabilities: {
             ...capabilities,
             allowedNextStatuses: getAllowedRequestTransitions(
@@ -481,7 +553,7 @@ export class RequestsService {
             ),
           },
         }
-      : request;
+      : { ...request, currentStageSince };
   }
 
   async updateStatus(
@@ -653,7 +725,24 @@ export class RequestsService {
 
       return tx.request.findUnique({
         where: { id: request.id },
-        include: {
+        select: {
+          id: true,
+          clientId: true,
+          submittedBy: true,
+          assignedSalesId: true,
+          companyName: true,
+          contactName: true,
+          phoneWhatsapp: true,
+          email: true,
+          businessName: true,
+          businessType: true,
+          source: true,
+          notes: true,
+          status: true,
+          contactAttemptCount: true,
+          lastContactAt: true,
+          createdAt: true,
+          updatedAt: true,
           client: {
             select: {
               id: true,
@@ -712,7 +801,14 @@ export class RequestsService {
   ) {
     const client = await this.prisma.client.findUnique({
       where: { id: dto.clientId },
-      include: { manager: true },
+      select: {
+        id: true,
+        status: true,
+        accountManager: true,
+        companyName: true,
+        businessName: true,
+        businessType: true,
+      },
     });
     if (!client) {
       throw new NotFoundException({
@@ -797,7 +893,24 @@ export class RequestsService {
 
       return tx.request.findUnique({
         where: { id: req.id },
-        include: {
+        select: {
+          id: true,
+          clientId: true,
+          submittedBy: true,
+          assignedSalesId: true,
+          companyName: true,
+          contactName: true,
+          phoneWhatsapp: true,
+          email: true,
+          businessName: true,
+          businessType: true,
+          source: true,
+          notes: true,
+          status: true,
+          contactAttemptCount: true,
+          lastContactAt: true,
+          createdAt: true,
+          updatedAt: true,
           client: {
             select: {
               id: true,
@@ -888,7 +1001,21 @@ export class RequestsService {
       if (dto.mode === "existing" && dto.existingClient?.clientId) {
         const client = await tx.client.findUnique({
           where: { id: dto.existingClient.clientId },
-          include: { manager: true, user: true },
+          select: {
+            id: true,
+            status: true,
+            accountManager: true,
+            companyName: true,
+            businessName: true,
+            businessType: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
+                phoneWhatsapp: true,
+              },
+            },
+          },
         });
 
         if (!client) {
@@ -1035,7 +1162,24 @@ export class RequestsService {
 
       const createdRequest = await tx.request.findUnique({
         where: { id: request.id },
-        include: {
+        select: {
+          id: true,
+          clientId: true,
+          submittedBy: true,
+          assignedSalesId: true,
+          companyName: true,
+          contactName: true,
+          phoneWhatsapp: true,
+          email: true,
+          businessName: true,
+          businessType: true,
+          source: true,
+          notes: true,
+          status: true,
+          contactAttemptCount: true,
+          lastContactAt: true,
+          createdAt: true,
+          updatedAt: true,
           client: {
             select: {
               id: true,
@@ -1111,7 +1255,24 @@ export class RequestsService {
 
     const request = await db.request.findFirst({
       where: { id: requestId, ...buildRequestAccessWhere(accessScope) },
-      include: {
+      select: {
+        id: true,
+        clientId: true,
+        submittedBy: true,
+        assignedSalesId: true,
+        companyName: true,
+        contactName: true,
+        phoneWhatsapp: true,
+        email: true,
+        businessName: true,
+        businessType: true,
+        source: true,
+        notes: true,
+        status: true,
+        contactAttemptCount: true,
+        lastContactAt: true,
+        createdAt: true,
+        updatedAt: true,
         client: { select: { id: true, companyName: true, userId: true } },
       },
     });

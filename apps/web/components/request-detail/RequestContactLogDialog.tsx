@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { ContactLogResult, ContactLogType } from "@hassad/shared";
 import type { CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -23,25 +23,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
-const CONTACT_LOG_TYPE_LABELS: Record<ContactLogType, string> = {
-  [ContactLogType.CALL]: "مكالمة",
-  [ContactLogType.WHATSAPP]: "واتساب",
-  [ContactLogType.MEETING]: "اجتماع",
-  [ContactLogType.EMAIL]: "بريد",
-};
-
-const CONTACT_LOG_RESULT_LABELS: Record<ContactLogResult, string> = {
-  [ContactLogResult.RESPONDED]: "تم الرد",
-  [ContactLogResult.NO_RESPONSE]: "لا يوجد رد",
-  [ContactLogResult.BUSY]: "مشغول",
-  [ContactLogResult.WRONG_NUMBER]: "رقم خاطئ",
-  [ContactLogResult.NOT_INTERESTED]: "غير مهتم",
-};
+import { requestContactResultLabel, requestContactTypeLabel } from "@/lib/i18n";
 
 interface RequestContactLogDialogProps {
   disabled?: boolean;
   isSubmitting?: boolean;
+  variant?: ButtonProps["variant"];
+  size?: ButtonProps["size"];
   allowedTypes?: readonly ContactLogType[];
   onSubmit: (payload: CreateRequestContactLogPayload) => Promise<void>;
 }
@@ -49,6 +37,8 @@ interface RequestContactLogDialogProps {
 export function RequestContactLogDialog({
   disabled,
   isSubmitting,
+  variant = "outline",
+  size = "default",
   allowedTypes = Object.values(ContactLogType),
   onSubmit,
 }: RequestContactLogDialogProps) {
@@ -77,7 +67,11 @@ export function RequestContactLogDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" disabled={disabled || isSubmitting}>
+        <Button
+          variant={variant}
+          size={size}
+          disabled={disabled || isSubmitting}
+        >
           تسجيل تواصل
         </Button>
       </DialogTrigger>
@@ -104,7 +98,7 @@ export function RequestContactLogDialog({
                   <SelectGroup>
                     {typeOptions.map((value) => (
                       <SelectItem key={value} value={value}>
-                        {CONTACT_LOG_TYPE_LABELS[value]}
+                        {requestContactTypeLabel(value)}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -125,7 +119,7 @@ export function RequestContactLogDialog({
                   <SelectGroup>
                     {Object.values(ContactLogResult).map((value) => (
                       <SelectItem key={value} value={value}>
-                        {CONTACT_LOG_RESULT_LABELS[value]}
+                        {requestContactResultLabel(value)}
                       </SelectItem>
                     ))}
                   </SelectGroup>

@@ -1,10 +1,13 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import {
-  ContactLogResult,
-  ContactLogType,
+import { ContactLogResult, ContactLogType } from "@hassad/shared";
+import type {
+  BusinessType,
+  ClientKind,
+  ClientSource,
+  ClientStatus,
+  RequestStatus,
 } from "@hassad/shared";
-import type { BusinessType, ClientSource, RequestStatus } from "@hassad/shared";
 
 export interface RequestServiceItem {
   serviceId: string;
@@ -34,8 +37,21 @@ export interface RequestClientSummary {
   id: string;
   companyName: string;
   userId?: string | null;
+  kind?: ClientKind;
+  status?: ClientStatus;
   totalProjects?: number;
   activeProjects?: number;
+  manager?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    phoneWhatsapp?: string | null;
+  } | null;
 }
 
 export interface RequestWorkflowItem {
@@ -122,6 +138,7 @@ export interface RequestDetail extends RequestItem {
   };
   statusHistory: RequestStatusHistoryItem[];
   contactLogs: RequestContactLogItem[];
+  currentStageSince: string;
   proposals: Array<{
     id: string;
     title: string;
@@ -140,6 +157,8 @@ export interface RequestDetail extends RequestItem {
     id: string;
     name: string;
     status: string;
+    startDate?: string;
+    endDate?: string;
     createdAt: string;
   } | null;
 }

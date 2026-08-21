@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { Building2 } from "lucide-react";
+import { Building2, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import type { CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
 import {
@@ -9,7 +9,11 @@ import {
   useGetSalesRequestByIdQuery,
   useUpdateSalesPipelineStatusMutation,
 } from "@/features/sales/salesApi";
-import { RequestDetailLoading, RequestDetailView } from "@/components/request-detail/RequestDetailPattern";
+import {
+  SalesRequestWorkspace,
+  SalesRequestWorkspaceLoading,
+} from "@/components/request-detail/SalesRequestWorkspace";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -23,7 +27,10 @@ import {
 import type { RequestStatus } from "@hassad/shared";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { salesWorkflowErrorMessage } from "@/lib/i18n";
+import {
+  salesRequestLoadErrorMessage,
+  salesWorkflowErrorMessage,
+} from "@/lib/i18n";
 
 export default function SalesRequestDetailPage({
   params,
@@ -31,17 +38,33 @@ export default function SalesRequestDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: request, isLoading, isError } = useGetSalesRequestByIdQuery(id);
-  const [updateStatus, { isLoading: isUpdatingStage }] = useUpdateSalesPipelineStatusMutation();
-  const [addContactLog, { isLoading: isAddingContactLog }] = useAddSalesPipelineContactLogMutation();
+  const {
+    data: request,
+    isLoading,
+    isError,
+    error,
+  } = useGetSalesRequestByIdQuery(id);
+  const isForbidden =
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    error.status === 403;
+  const loadErrorMessage = isError
+    ? salesRequestLoadErrorMessage(error)
+    : "لم نتمكن من العثور على بيانات هذا الطلب.";
+  const [updateStatus, { isLoading: isUpdatingStage }] =
+    useUpdateSalesPipelineStatusMutation();
+  const [addContactLog, { isLoading: isAddingContactLog }] =
+    useAddSalesPipelineContactLogMutation();
 
   if (isLoading) {
-    return <RequestDetailLoading />;
+    return <SalesRequestWorkspaceLoading />;
   }
 
   if (isError || !request) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8" dir="rtl">
+      <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+        <PageHeader title="تفاصيل طلب المبيعات" icon={ClipboardList} />
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -49,10 +72,12 @@ export default function SalesRequestDetailPage({
                 <Building2 />
               </EmptyMedia>
               <EmptyHeader>
-                <EmptyTitle>تعذر تحميل تفاصيل الطلب</EmptyTitle>
-                <EmptyDescription>
-                  لم نتمكن من العثور على بيانات هذا العميل المحتمل.
-                </EmptyDescription>
+                <EmptyTitle>
+                  {isForbidden
+                    ? "لا تملك صلاحية عرض هذا الطلب"
+                    : "تعذر تحميل تفاصيل الطلب"}
+                </EmptyTitle>
+                <EmptyDescription>{loadErrorMessage}</EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <Button asChild>
@@ -91,9 +116,8 @@ export default function SalesRequestDetailPage({
   }
 
   return (
-    <RequestDetailView
+    <SalesRequestWorkspace
       request={request}
-      mode="sales"
       backHref="/dashboard/sales/pipeline"
       backLabel="العودة إلى خط المبيعات"
       onStageChange={handleStageChange}

@@ -1,6 +1,17 @@
 // apps/web/lib/i18n.ts
 //
-import { CONTRACT_STATUS_AR, PROJECT_STATUS_AR } from "@hassad/shared";
+import {
+  BUSINESS_TYPE_AR,
+  CLIENT_KIND_AR,
+  CLIENT_SOURCE_AR,
+  CLIENT_STATUS_AR,
+  CONTRACT_STATUS_AR,
+  ContactLogResult,
+  ContactLogType,
+  PROJECT_STATUS_AR,
+  PROPOSAL_STATUS_AR,
+  REQUEST_STATUS_AR,
+} from "@hassad/shared";
 import { formatNumber } from "@/lib/format";
 
 // Domain display labels and lookup helpers.
@@ -203,6 +214,84 @@ export function portalProjectStatusLabel(status: string): string {
   );
 }
 
+export function businessTypeLabel(type: string | null | undefined): string {
+  if (!type) return "نوع نشاط غير معروف";
+  return (
+    BUSINESS_TYPE_AR[type as keyof typeof BUSINESS_TYPE_AR] ??
+    "نوع نشاط غير معروف"
+  );
+}
+
+export function clientSourceLabel(source: string | null | undefined): string {
+  if (!source) return "مصدر غير معروف";
+  return (
+    CLIENT_SOURCE_AR[source as keyof typeof CLIENT_SOURCE_AR] ??
+    "مصدر غير معروف"
+  );
+}
+
+export function clientKindLabel(kind: string | null | undefined): string {
+  if (!kind) return "نوع عميل غير معروف";
+  return (
+    CLIENT_KIND_AR[kind as keyof typeof CLIENT_KIND_AR] ?? "نوع عميل غير معروف"
+  );
+}
+
+export function clientStatusLabel(status: string | null | undefined): string {
+  if (!status) return "حالة عميل غير معروفة";
+  return (
+    CLIENT_STATUS_AR[status as keyof typeof CLIENT_STATUS_AR] ??
+    "حالة عميل غير معروفة"
+  );
+}
+
+export function requestStatusLabel(status: string | null | undefined): string {
+  if (!status) return "حالة غير معروفة";
+  return (
+    REQUEST_STATUS_AR[status as keyof typeof REQUEST_STATUS_AR] ??
+    "حالة غير معروفة"
+  );
+}
+
+const REQUEST_CONTACT_TYPE_LABELS: Record<ContactLogType, string> = {
+  [ContactLogType.CALL]: "مكالمة",
+  [ContactLogType.WHATSAPP]: "واتساب",
+  [ContactLogType.MEETING]: "اجتماع",
+  [ContactLogType.EMAIL]: "بريد إلكتروني",
+};
+
+const REQUEST_CONTACT_RESULT_LABELS: Record<ContactLogResult, string> = {
+  [ContactLogResult.RESPONDED]: "تم الرد",
+  [ContactLogResult.NO_RESPONSE]: "لا يوجد رد",
+  [ContactLogResult.BUSY]: "مشغول",
+  [ContactLogResult.WRONG_NUMBER]: "رقم خاطئ",
+  [ContactLogResult.NOT_INTERESTED]: "غير مهتم",
+};
+
+export function requestContactTypeLabel(
+  type: string | null | undefined,
+): string {
+  return type && type in REQUEST_CONTACT_TYPE_LABELS
+    ? REQUEST_CONTACT_TYPE_LABELS[type as ContactLogType]
+    : "نوع تواصل غير معروف";
+}
+
+export function requestContactResultLabel(
+  result: string | null | undefined,
+): string {
+  return result && result in REQUEST_CONTACT_RESULT_LABELS
+    ? REQUEST_CONTACT_RESULT_LABELS[result as ContactLogResult]
+    : "نتيجة غير معروفة";
+}
+
+export function proposalStatusLabel(status: string | null | undefined): string {
+  if (!status) return "حالة غير معروفة";
+  return (
+    PROPOSAL_STATUS_AR[status as keyof typeof PROPOSAL_STATUS_AR] ??
+    "حالة غير معروفة"
+  );
+}
+
 export function portalRequestStatusLabel(status: string): string {
   return PORTAL_REQUEST_STATUS_LABELS[status] ?? "حالة غير معروفة";
 }
@@ -395,6 +484,22 @@ export function salesWorkflowErrorMessage(error: unknown): string {
     return "تعذر الاتصال بالخادم. تحقق من اتصال الشبكة وحاول مرة أخرى.";
   }
   return "تعذر تنفيذ العملية. يرجى المحاولة مرة أخرى.";
+}
+
+export function salesRequestLoadErrorMessage(error: unknown): string {
+  const payload = getApiErrorPayload(error);
+  const code = payload.data?.error?.code;
+
+  if (code === "PERMISSION_DENIED" || payload.status === 403) {
+    return "يمكنك العودة إلى خط المبيعات أو طلب الصلاحية من مسؤول النظام.";
+  }
+  if (code === "AUTHENTICATION_REQUIRED" || payload.status === 401) {
+    return "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.";
+  }
+  if (payload.status === "FETCH_ERROR") {
+    return "تعذر الاتصال بالخادم. تحقق من اتصال الشبكة وحاول مرة أخرى.";
+  }
+  return "تعذر تحميل تفاصيل الطلب. يرجى المحاولة مرة أخرى.";
 }
 
 export function salesWorkflowValidationMessages(
