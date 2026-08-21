@@ -4,11 +4,14 @@ import {
   IsUUID,
   IsArray,
   IsOptional,
-  IsEnum,
-  IsDateString,
 } from "class-validator";
 import { Transform } from "class-transformer";
-import { DurationUnit } from "@hassad/shared";
+
+interface ProposalServiceItemDto {
+  name: string;
+  price: number;
+  description?: string;
+}
 
 export class CreateProposalDto {
   @IsUUID()
@@ -29,7 +32,7 @@ export class CreateProposalDto {
     if (typeof value === "string") return JSON.parse(value);
     return value;
   })
-  servicesList?: any[];
+  servicesList?: ProposalServiceItemDto[];
 
   @IsOptional()
   @IsNumber()
@@ -46,7 +49,6 @@ export class CreateProposalDto {
   @IsOptional()
   @IsString()
   filePath?: string;
-
 }
 
 export class UpdateProposalDto {
@@ -66,7 +68,7 @@ export class UpdateProposalDto {
     if (typeof value === "string") return JSON.parse(value);
     return value;
   })
-  servicesList?: any[];
+  servicesList?: ProposalServiceItemDto[];
 
   @IsOptional()
   @IsNumber()
@@ -83,7 +85,6 @@ export class UpdateProposalDto {
   @IsOptional()
   @IsString()
   filePath?: string;
-
 }
 
 export class ProposalResponseDto {

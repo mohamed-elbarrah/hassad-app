@@ -46,7 +46,8 @@ export class ProposalsService {
           createdBy: userId,
           title: dto.title,
           serviceDescription: dto.serviceDescription ?? "",
-          servicesList: dto.servicesList ?? [],
+          servicesList: (dto.servicesList ??
+            []) as unknown as Prisma.InputJsonValue,
           totalPrice: dto.totalPrice ?? 0,
           durationDays: dto.durationDays ?? 0,
           durationUnit: dto.durationUnit ?? "DAYS",
@@ -126,6 +127,136 @@ export class ProposalsService {
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
+  async findSalesAll(
+    filters: {
+      status?: string;
+      requestId?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    },
+    accessScope?: RequestAccessScope,
+  ) {
+    const result = await this.findAll(filters, accessScope);
+
+    return {
+      ...result,
+      items: result.items.map(
+        ({ shareLinkToken: _shareLinkToken, ...item }) => item,
+      ),
+    };
+  }
+
+  async findSalesDetail(id: string, accessScope?: RequestAccessScope) {
+    const proposal = await this.prisma.proposal.findFirst({
+      where: {
+        id,
+        ...(accessScope?.assignedSalesId
+          ? { request: buildRequestAccessWhere(accessScope) }
+          : {}),
+      },
+      include: {
+        creator: { select: { id: true, name: true, email: true } },
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            businessName: true,
+            businessType: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneWhatsapp: true,
+              },
+            },
+          },
+        },
+        contract: { select: { id: true, title: true, status: true } },
+        request: {
+          select: {
+            id: true,
+            clientId: true,
+            assignedSalesId: true,
+            companyName: true,
+            contactName: true,
+            phoneWhatsapp: true,
+            email: true,
+            businessName: true,
+            businessType: true,
+            source: true,
+            notes: true,
+            status: true,
+            contactAttemptCount: true,
+            lastContactAt: true,
+            createdAt: true,
+            updatedAt: true,
+            client: {
+              select: {
+                id: true,
+                companyName: true,
+                businessName: true,
+                businessType: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phoneWhatsapp: true,
+                  },
+                },
+              },
+            },
+            assignee: { select: { id: true, name: true, email: true } },
+            contactLogs: {
+              orderBy: { contactedAt: "desc" },
+              take: 20,
+              include: {
+                user: { select: { id: true, name: true, email: true } },
+              },
+            },
+            statusHistory: {
+              orderBy: { changedAt: "desc" },
+              take: 50,
+              include: {
+                changer: { select: { id: true, name: true, email: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!proposal) {
+      throw new NotFoundException({
+        code: "PROPOSAL_NOT_FOUND",
+        details: { id },
+      });
+    }
+
+    return {
+      id: proposal.id,
+      requestId: proposal.requestId,
+      createdBy: proposal.createdBy,
+      title: proposal.title,
+      serviceDescription: proposal.serviceDescription,
+      servicesList: proposal.servicesList,
+      totalPrice: proposal.totalPrice,
+      durationDays: proposal.durationDays,
+      durationUnit: proposal.durationUnit,
+      filePath: proposal.filePath,
+      status: proposal.status,
+      sentAt: proposal.sentAt,
+      approvedAt: proposal.approvedAt,
+      createdAt: proposal.createdAt,
+      creator: proposal.creator,
+      client: proposal.client,
+      contract: proposal.contract,
+      request: proposal.request,
+    };
+  }
+
   async findOne(id: string, accessScope?: RequestAccessScope) {
     const proposal = await this.prisma.proposal.findFirst({
       where: {
@@ -174,7 +305,14 @@ export class ProposalsService {
       });
     }
 
-    const updateData: any = { ...dto };
+    const { servicesList, ...scalarData } = dto;
+    const updateData: Prisma.ProposalUpdateInput = {
+      ...scalarData,
+      ...(servicesList !== undefined
+        ? { servicesList: servicesList as unknown as Prisma.InputJsonValue }
+        : {}),
+    };
+
     return this.prisma.proposal.update({
       where: { id },
       data: updateData,

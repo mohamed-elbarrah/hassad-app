@@ -41,8 +41,17 @@ export class SalesProposalsController {
   @Get()
   @RequirePermissions("proposals.read")
   findAll(@Query() filters: ProposalQueryDto, @CurrentUser() user: AuthUser) {
-    return this.proposalsService.findAll(
+    return this.proposalsService.findSalesAll(
       filters,
+      getSalesRequestAccessScope(user),
+    );
+  }
+
+  @Get(":id/detail")
+  @RequirePermissions("proposals.read")
+  findSalesDetail(@Param("id") id: string, @CurrentUser() user: AuthUser) {
+    return this.proposalsService.findSalesDetail(
+      id,
       getSalesRequestAccessScope(user),
     );
   }
@@ -50,7 +59,10 @@ export class SalesProposalsController {
   @Get(":id")
   @RequirePermissions("proposals.read")
   findOne(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    return this.proposalsService.findOne(id, getSalesRequestAccessScope(user));
+    return this.proposalsService.findSalesDetail(
+      id,
+      getSalesRequestAccessScope(user),
+    );
   }
 
   @Post()

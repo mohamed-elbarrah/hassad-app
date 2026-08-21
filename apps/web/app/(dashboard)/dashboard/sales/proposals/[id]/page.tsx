@@ -2,9 +2,12 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { useGetProposalByIdQuery } from "@/features/proposals/proposalsApi";
-import { ProposalDetailLoading, ProposalDetailView } from "@/components/proposal-detail/ProposalDetailPattern";
+import { Sparkles } from "lucide-react";
+import { useGetSalesProposalDetailQuery } from "@/features/proposals/proposalsApi";
+import {
+  SalesProposalDetailLoading,
+  SalesProposalDetailView,
+} from "@/components/sales-proposal-detail/SalesProposalDetailPattern";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -16,6 +19,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { buildPortalFileUrl } from "@/lib/portal-files";
+import { salesWorkflowErrorMessage } from "@/lib/i18n";
 
 export default function SalesProposalDetailPage({
   params,
@@ -23,11 +27,35 @@ export default function SalesProposalDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: proposal, isLoading, isError } = useGetProposalByIdQuery(id);
+  const {
+    data: proposal,
+    isLoading,
+    isError,
+    error,
+  } = useGetSalesProposalDetailQuery(id);
 
-  if (isLoading) return <ProposalDetailLoading />;
+  if (isLoading) return <SalesProposalDetailLoading />;
 
   if (isError || !proposal) {
+    const errorStatus =
+      typeof error === "object" && error !== null && "status" in error
+        ? error.status
+        : undefined;
+    const errorCode =
+      typeof error === "object" &&
+      error !== null &&
+      "data" in error &&
+      typeof error.data === "object" &&
+      error.data !== null &&
+      "error" in error.data &&
+      typeof error.data.error === "object" &&
+      error.data.error !== null &&
+      "code" in error.data.error
+        ? error.data.error.code
+        : undefined;
+    const isForbidden =
+      errorStatus === 403 || errorCode === "PERMISSION_DENIED";
+
     return (
       <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
         <Card>
@@ -37,13 +65,20 @@ export default function SalesProposalDetailPage({
                 <Sparkles />
               </EmptyMedia>
               <EmptyHeader>
-                <EmptyTitle>العرض غير موجود</EmptyTitle>
-                <EmptyDescription>تعذر تحميل تفاصيل العرض الفني.</EmptyDescription>
+                <EmptyTitle>
+                  {isForbidden
+                    ? "لا تملك صلاحية الوصول إلى هذا العرض"
+                    : errorCode === "PROPOSAL_NOT_FOUND"
+                      ? "العرض غير موجود"
+                      : "تعذر تحميل العرض الفني"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {salesWorkflowErrorMessage(error)}
+                </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <Button asChild>
                   <Link href="/dashboard/sales/proposals">
-                    <ArrowLeft data-icon="inline-start" />
                     العودة إلى العروض
                   </Link>
                 </Button>
@@ -56,25 +91,11 @@ export default function SalesProposalDetailPage({
   }
 
   return (
-    <ProposalDetailView
+    <SalesProposalDetailView
       proposal={proposal}
       backHref="/dashboard/sales/proposals"
       backLabel="العودة إلى العروض"
       fileUrl={proposal.filePath ? buildPortalFileUrl(proposal.filePath) : null}
-      relatedAction={
-        <div className="flex flex-wrap gap-2">
-          {proposal.request ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/sales/requests/${proposal.request.id}`}>الطلب المرتبط</Link>
-            </Button>
-          ) : null}
-          {proposal.client ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/sales/clients/${proposal.client.id}`}>ملف العميل</Link>
-            </Button>
-          ) : null}
-        </div>
-      }
     />
   );
 }

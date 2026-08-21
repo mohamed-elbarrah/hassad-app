@@ -8,7 +8,7 @@ import type {
   DurationUnit,
 } from "@hassad/shared";
 
-export interface ProposalListItem extends Proposal {
+export interface ProposalListItem extends Omit<Proposal, "shareLinkToken"> {
   filePath?: string | null;
   client?: {
     id: string;
@@ -22,6 +22,71 @@ export interface ProposalListItem extends Proposal {
   } | null;
   lead?: { id: string; contactName: string; companyName: string };
   creator?: { id: string; name: string };
+}
+
+export interface SalesProposalPerson {
+  id: string;
+  name: string;
+  email?: string | null;
+  phoneWhatsapp?: string | null;
+}
+
+export interface SalesProposalClientSummary {
+  id: string;
+  companyName: string;
+  businessName: string;
+  businessType: string;
+  user?: SalesProposalPerson | null;
+}
+
+export interface SalesProposalContactLog {
+  id: string;
+  type: string;
+  result: string;
+  notes?: string | null;
+  contactedAt: string;
+  user: SalesProposalPerson;
+}
+
+export interface SalesProposalStatusHistory {
+  id: string;
+  fromStatus?: string | null;
+  toStatus: string;
+  note?: string | null;
+  changedAt: string;
+  changer?: SalesProposalPerson | null;
+}
+
+export interface SalesProposalDetail extends Omit<Proposal, "shareLinkToken"> {
+  creator?: SalesProposalPerson | null;
+  client?: SalesProposalClientSummary | null;
+  contract?: {
+    id: string;
+    title: string;
+    status: string;
+  } | null;
+  request?: {
+    id: string;
+    clientId: string;
+    assignedSalesId?: string | null;
+    companyName: string;
+    contactName: string;
+    phoneWhatsapp: string;
+    email?: string | null;
+    businessName: string;
+    businessType: string;
+    source: string;
+    notes?: string | null;
+    status: string;
+    contactAttemptCount: number;
+    lastContactAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    client?: SalesProposalClientSummary | null;
+    assignee?: SalesProposalPerson | null;
+    contactLogs: SalesProposalContactLog[];
+    statusHistory: SalesProposalStatusHistory[];
+  } | null;
 }
 
 export interface PaginatedProposals {
@@ -100,6 +165,11 @@ export const proposalsApi = createApi({
 
     getSalesProposalById: builder.query<ProposalListItem, string>({
       query: (id) => `/sales/proposals/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Proposal", id }],
+    }),
+
+    getSalesProposalDetail: builder.query<SalesProposalDetail, string>({
+      query: (id) => `/sales/proposals/${id}/detail`,
       providesTags: (_result, _error, id) => [{ type: "Proposal", id }],
     }),
 
@@ -237,6 +307,7 @@ export const {
   useGetProposalByIdQuery,
   useGetSalesProposalsQuery,
   useGetSalesProposalByIdQuery,
+  useGetSalesProposalDetailQuery,
   useCreateProposalMutation,
   useUpdateProposalMutation,
   useCreateSalesProposalMutation,
