@@ -1,6 +1,6 @@
 // apps/web/lib/i18n.ts
 //
-import { PROJECT_STATUS_AR } from "@hassad/shared";
+import { CONTRACT_STATUS_AR, PROJECT_STATUS_AR } from "@hassad/shared";
 import { formatNumber } from "@/lib/format";
 
 // Domain display labels and lookup helpers.
@@ -26,6 +26,42 @@ export const CONTRACT_TYPE_LABELS: Record<string, string> = {
 export function contractTypeLabel(type: string | null | undefined): string {
   if (!type) return "عقد";
   return CONTRACT_TYPE_LABELS[type] ?? type;
+}
+
+const INVOICE_STATUS_LABELS: Record<string, string> = {
+  DUE: "مستحقة",
+  SENT: "مرسلة",
+  PAID: "مدفوعة",
+  PARTIAL: "مدفوعة جزئياً",
+  PENDING: "معلقة",
+  LATE: "متأخرة",
+  CANCELLED: "ملغاة",
+};
+
+const PAYMENT_PLAN_TRIGGER_LABELS: Record<string, string> = {
+  ON_SIGN: "عند التوقيع",
+  PERIOD_END: "نهاية الفترة",
+  MILESTONE: "عند الإنجاز",
+  MANUAL: "يدوية",
+};
+
+export function contractStatusLabel(status: string | null | undefined): string {
+  if (!status) return "غير محدد";
+  return (
+    CONTRACT_STATUS_AR[status as keyof typeof CONTRACT_STATUS_AR] ?? status
+  );
+}
+
+export function invoiceStatusLabel(status: string | null | undefined): string {
+  if (!status) return "غير محددة";
+  return INVOICE_STATUS_LABELS[status] ?? status;
+}
+
+export function paymentPlanTriggerLabel(
+  trigger: string | null | undefined,
+): string {
+  if (!trigger) return "عند الحدث";
+  return PAYMENT_PLAN_TRIGGER_LABELS[trigger] ?? trigger;
 }
 
 const AUTH_SUCCESS_MESSAGES: Record<string, string> = {
@@ -233,14 +269,17 @@ const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
   PROPOSAL_NOT_FOUND: "لم يتم العثور على العرض الفني.",
   PROPOSAL_REQUEST_MISMATCH: "العرض الفني لا ينتمي إلى الطلب المحدد.",
   CONTRACT_NOT_FOUND: "لم يتم العثور على العقد.",
+  CONTRACT_SHARE_LINK_NOT_FOUND: "لا يوجد رابط توقيع متاح لهذا العقد.",
   CONTRACT_NOT_SIGNABLE: "لا يمكن توقيع العقد في حالته الحالية.",
   INITIAL_PAYMENT_REQUIRED: "يجب سداد الدفعة الأولى قبل تفعيل العقد.",
+  PAYMENT_PLAN_REQUIRED: "لا يمكن توقيع العقد قبل إعداد خطة الدفعة الأولى.",
   PROJECT_MANAGER_ASSIGNMENT_REQUIRED: "تعذر تعيين مدير المشروع.",
   REQUEST_NOT_FOUND: "لم يتم العثور على الطلب.",
   PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذه العملية.",
   AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
   INVALID_FILE_TYPE: "نوع الملف غير مدعوم. اختر ملف PDF.",
   PDF_FILE_REQUIRED: "اختر ملف PDF قبل الحفظ.",
+  VERSION_PDF_FILE_REQUIRED: "اختر ملف PDF للإصدار الجديد.",
   FILE_TOO_LARGE: "حجم الملف أكبر من الحد المسموح.",
   INVALID_PROPOSAL_STATUS: "لا يمكن تنفيذ العملية على حالة العرض الحالية.",
   INVALID_CONTRACT_STATUS: "لا يمكن تنفيذ العملية على حالة العقد الحالية.",

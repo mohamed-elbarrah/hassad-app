@@ -13,8 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { FormTextareaControl } from "@/components/ui/formTextareaControl";
-
-
+import { Input } from "@/components/ui/input";
 
 import { X, Plus, Check, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -169,7 +168,9 @@ export function ProductSection({
 
           {data.benefits && data.benefits.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">الفوائد</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                الفوائد
+              </p>
               <div className="flex flex-wrap gap-2">
                 {data.benefits.map((benefit, i) => (
                   <span
@@ -269,9 +270,7 @@ export function ProductSection({
           />
 
           <div className="space-y-3">
-            <span className="text-sm font-medium text-foreground">
-              الفوائد
-            </span>
+            <span className="text-sm font-medium text-foreground">الفوائد</span>
             <p className="text-xs text-muted-foreground">
               وش بيستفيد العميل؟ زبونك وش بيتغير في حياته أو يومه بعد ما يجرب
               منتجك أو خدمتك؟
@@ -297,7 +296,8 @@ export function ProductSection({
               })}
               {showCustomInput ? (
                 <div className="flex items-center gap-2">
-                  <FormInput
+                  <Input
+                    aria-label="فائدة مخصصة"
                     value={customInputValue}
                     onChange={(e) => setCustomInputValue(e.target.value)}
                     onKeyDown={handleCustomKeyDown}
@@ -379,6 +379,3 @@ export function ProductSection({
     </SectionLayout>
   );
 }
-
-// Import FormInput for the custom benefit input
-import { FormInput } from "@/components/ui/formInput";

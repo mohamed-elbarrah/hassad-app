@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -19,6 +20,7 @@ import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { getSalesRequestAccessScope } from "../../requests/request-access";
 import { CreateContractDto, UpdateContractDto } from "../dto/contract.dto";
+import { SalesContractQueryDto } from "../dto/sales-contract-query.dto";
 import { ContractsService } from "../services/contracts.service";
 
 interface AuthUser {
@@ -34,10 +36,43 @@ export class SalesContractsController {
     private readonly storageService: StorageService,
   ) {}
 
+  @Get()
+  @RequirePermissions("contracts.read")
+  findAll(
+    @Query() filters: SalesContractQueryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.contractsService.findSalesAll(
+      filters,
+      getSalesRequestAccessScope(user),
+    );
+  }
+
+  @Get(":id/share-link")
+  @RequirePermissions("contracts.read")
+  findShareLink(@Param("id") id: string, @CurrentUser() user: AuthUser) {
+    return this.contractsService.findSalesShareLink(
+      id,
+      getSalesRequestAccessScope(user),
+    );
+  }
+
+  @Get(":id/detail")
+  @RequirePermissions("contracts.read")
+  findDetail(@Param("id") id: string, @CurrentUser() user: AuthUser) {
+    return this.contractsService.findSalesDetail(
+      id,
+      getSalesRequestAccessScope(user),
+    );
+  }
+
   @Get(":id")
   @RequirePermissions("contracts.read")
   findOne(@Param("id") id: string, @CurrentUser() user: AuthUser) {
-    return this.contractsService.findOne(id, getSalesRequestAccessScope(user));
+    return this.contractsService.findSalesDetail(
+      id,
+      getSalesRequestAccessScope(user),
+    );
   }
 
   @Post()

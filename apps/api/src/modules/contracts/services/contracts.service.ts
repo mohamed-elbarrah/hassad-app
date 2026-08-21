@@ -7,6 +7,7 @@ import {
 import { OnEvent, EventEmitter2 } from "@nestjs/event-emitter";
 import { randomUUID } from "crypto";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { StorageService } from "../../../common/storage/storage.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FinanceService } from "../../finance/services/finance.service";
 import {
@@ -42,13 +43,28 @@ import { ContractPaymentPlanService } from "./contract-payment-plan.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
 import type { ContractStatus as ContractStatusEnum } from "@hassad/shared";
 import type { Prisma } from "@prisma/client";
+import type { SalesContractQueryDto } from "../dto/sales-contract-query.dto";
 
 @Injectable()
 export class ContractsService {
   private readonly logger = new Logger(ContractsService.name);
 
+  private async getSafeContractFileUrl(key: string): Promise<string | null> {
+    if (!this.storageService.isConfigured()) return null;
+
+    try {
+      return await this.storageService.getPresignedUrlIfExists(key);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to create contract file URL: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
+  }
+
   constructor(
     private prisma: PrismaService,
+    private storageService: StorageService,
     private notificationsService: NotificationsService,
     private requestsService: RequestsService,
     private directConversationService: DirectConversationService,
@@ -508,7 +524,8 @@ export class ContractsService {
       userId,
     });
 
-    return updated;
+    const { shareLinkToken: _shareLinkToken, ...safeContract } = updated;
+    return safeContract;
   }
 
   /**
@@ -975,7 +992,286 @@ export class ContractsService {
         .catch(() => undefined);
     }
 
-    return { ...created.contract, shareLinkToken };
+    const { shareLinkToken: _shareLinkToken, ...safeContract } =
+      created.contract;
+    return safeContract;
+  }
+
+  async findSalesAll(
+    filters: SalesContractQueryDto,
+    accessScope?: RequestAccessScope,
+  ) {
+    const page = Number(filters.page) || 1;
+    const limit = Math.min(Number(filters.limit) || 20, 100);
+    const search = filters.search?.trim();
+    const renewalDays = filters.renewal ? Number(filters.renewal) : undefined;
+    const where: Prisma.ContractWhereInput = {
+      ...(accessScope?.assignedSalesId
+        ? { request: buildRequestAccessWhere(accessScope) }
+        : {}),
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.type ? { type: filters.type } : {}),
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: "insensitive" } },
+              {
+                client: {
+                  companyName: { contains: search, mode: "insensitive" },
+                },
+              },
+              {
+                client: {
+                  user: { name: { contains: search, mode: "insensitive" } },
+                },
+              },
+              {
+                client: {
+                  user: { email: { contains: search, mode: "insensitive" } },
+                },
+              },
+              {
+                proposal: { title: { contains: search, mode: "insensitive" } },
+              },
+              { id: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+      ...(renewalDays
+        ? {
+            endDate: {
+              gte: new Date(),
+              lte: new Date(Date.now() + renewalDays * 24 * 60 * 60 * 1000),
+            },
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.contract.findMany({
+        where,
+        select: {
+          id: true,
+          requestId: true,
+          clientId: true,
+          proposalId: true,
+          createdBy: true,
+          title: true,
+          type: true,
+          status: true,
+          startDate: true,
+          endDate: true,
+          monthlyValue: true,
+          totalValue: true,
+          versionNumber: true,
+          eSigned: true,
+          signedAt: true,
+          createdAt: true,
+          client: {
+            select: {
+              id: true,
+              companyName: true,
+              user: {
+                select: { name: true, email: true, phoneWhatsapp: true },
+              },
+            },
+          },
+          proposal: { select: { id: true, title: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.contract.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async findSalesShareLink(id: string, accessScope?: RequestAccessScope) {
+    const contract = await this.prisma.contract.findFirst({
+      where: {
+        id,
+        ...(accessScope?.assignedSalesId
+          ? { request: buildRequestAccessWhere(accessScope) }
+          : {}),
+      },
+      select: { shareLinkToken: true },
+    });
+
+    if (!contract?.shareLinkToken) {
+      throw new NotFoundException({
+        code: "CONTRACT_SHARE_LINK_NOT_FOUND",
+        details: { id },
+      });
+    }
+
+    return { path: `/contract/${contract.shareLinkToken}` };
+  }
+
+  async findSalesDetail(id: string, accessScope?: RequestAccessScope) {
+    const contract = await this.prisma.contract.findFirst({
+      where: {
+        id,
+        ...(accessScope?.assignedSalesId
+          ? { request: buildRequestAccessWhere(accessScope) }
+          : {}),
+      },
+      select: {
+        id: true,
+        requestId: true,
+        clientId: true,
+        proposalId: true,
+        createdBy: true,
+        title: true,
+        type: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        monthlyValue: true,
+        totalValue: true,
+        filePath: true,
+        servicesList: true,
+        versionNumber: true,
+        eSigned: true,
+        signedAt: true,
+        createdAt: true,
+        currency: true,
+        downPaymentType: true,
+        downPaymentValue: true,
+        initialPaymentRequired: true,
+        initialPaymentStatus: true,
+        initialPaymentAmount: true,
+        numberOfMonths: true,
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneWhatsapp: true,
+              },
+            },
+          },
+        },
+        creator: { select: { id: true, name: true, email: true } },
+        salesPerson: { select: { id: true, name: true, email: true } },
+        proposal: {
+          select: {
+            id: true,
+            title: true,
+            serviceDescription: true,
+            servicesList: true,
+            totalPrice: true,
+            durationDays: true,
+          },
+        },
+        request: {
+          select: {
+            id: true,
+            status: true,
+            companyName: true,
+            contactName: true,
+            assignedSalesId: true,
+          },
+        },
+        projects: {
+          select: { id: true, name: true, status: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+        invoices: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            amount: true,
+            status: true,
+            paymentMethod: true,
+            issueDate: true,
+            dueDate: true,
+            paidAt: true,
+            createdAt: true,
+            items: {
+              select: {
+                id: true,
+                description: true,
+                quantity: true,
+                unitPrice: true,
+                total: true,
+              },
+            },
+            payments: {
+              select: { id: true, amount: true, status: true, date: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        paymentPlans: {
+          orderBy: { sequence: "asc" },
+          include: {
+            invoices: {
+              select: { id: true, invoiceNumber: true, status: true },
+            },
+          },
+        },
+        statusHistory: {
+          orderBy: { changedAt: "desc" },
+          include: { changedByUser: { select: { id: true, name: true } } },
+        },
+        versions: {
+          orderBy: { versionNumber: "desc" },
+          select: {
+            id: true,
+            versionNumber: true,
+            filePath: true,
+            createdAt: true,
+            creator: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: { id },
+      });
+    }
+
+    const [filePath, versions] = await Promise.all([
+      contract.filePath ? this.getSafeContractFileUrl(contract.filePath) : null,
+      Promise.all(
+        contract.versions.map(async (version) => ({
+          ...version,
+          filePath: await this.getSafeContractFileUrl(version.filePath),
+        })),
+      ),
+    ]);
+
+    return {
+      ...contract,
+      filePath,
+      versions,
+      project: contract.projects[0] ?? null,
+      statusHistory: contract.statusHistory.map((entry) => ({
+        id: entry.id,
+        fromStatus: entry.fromStatus,
+        toStatus: entry.toStatus,
+        changedAt: entry.changedAt,
+        reason: entry.reason,
+        changer: entry.changedByUser,
+      })),
+      projects: undefined,
+    };
   }
 
   async findOne(id: string, accessScope?: RequestAccessScope) {
@@ -1001,7 +1297,16 @@ export class ContractsService {
           },
         },
         versions: true,
-        proposal: true,
+        proposal: {
+          select: {
+            id: true,
+            title: true,
+            serviceDescription: true,
+            servicesList: true,
+            totalPrice: true,
+            durationDays: true,
+          },
+        },
         invoices: {
           include: { items: true, payments: true },
         },
@@ -1016,7 +1321,8 @@ export class ContractsService {
       });
     }
 
-    return contract;
+    const { shareLinkToken: _shareLinkToken, ...safeContract } = contract;
+    return safeContract;
   }
 
   /** Public: find contract by share link token (for client-facing page) */
@@ -1031,9 +1337,40 @@ export class ContractsService {
             user: { select: { name: true, email: true, phoneWhatsapp: true } },
           },
         },
-        proposal: true,
+        proposal: {
+          select: {
+            id: true,
+            title: true,
+            serviceDescription: true,
+            servicesList: true,
+            totalPrice: true,
+            durationDays: true,
+          },
+        },
         invoices: {
-          include: { items: true, payments: true },
+          select: {
+            id: true,
+            invoiceNumber: true,
+            amount: true,
+            status: true,
+            paymentMethod: true,
+            issueDate: true,
+            dueDate: true,
+            paidAt: true,
+            createdAt: true,
+            items: {
+              select: {
+                id: true,
+                description: true,
+                quantity: true,
+                unitPrice: true,
+                total: true,
+              },
+            },
+            payments: {
+              select: { id: true, amount: true, status: true, date: true },
+            },
+          },
         },
         request: {
           select: {
@@ -1051,7 +1388,14 @@ export class ContractsService {
       });
     }
 
-    return contract;
+    const safeContract = {
+      ...contract,
+      filePath: contract.filePath
+        ? await this.getSafeContractFileUrl(contract.filePath)
+        : null,
+    };
+    const { shareLinkToken: _shareLinkToken, ...publicContract } = safeContract;
+    return publicContract;
   }
 
   /** Public: CLIENT signs the contract via share link token */
@@ -1080,13 +1424,61 @@ export class ContractsService {
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
-      const signed = await tx.contract.update({
-        where: { id: contract.id },
+      const onSignRow = await tx.contractPaymentPlan.findFirst({
+        where: {
+          contractId: contract.id,
+          triggerType: PaymentPlanTriggerType.ON_SIGN,
+          isActive: true,
+        },
+        orderBy: { sequence: "asc" },
+      });
+      const initialPaymentAmount = onSignRow
+        ? this.paymentPlanService.resolveAmount(onSignRow, contract.totalValue)
+        : contract.initialPaymentRequired
+          ? (contract.initialPaymentAmount ?? 0)
+          : this.resolveDownPaymentFallback(contract);
+
+      if (initialPaymentAmount > 0) {
+        if (!onSignRow) {
+          throw new BadRequestException({
+            code: "PAYMENT_PLAN_REQUIRED",
+            details: { contractId: contract.id },
+          });
+        }
+        const paidInvoice = await tx.invoice.findFirst({
+          where: {
+            contractId: contract.id,
+            paymentPlanId: onSignRow.id,
+            status: InvoiceStatus.PAID,
+          },
+          select: { id: true },
+        });
+        if (!paidInvoice) {
+          throw new BadRequestException({
+            code: "INITIAL_PAYMENT_REQUIRED",
+            details: { contractId: contract.id },
+          });
+        }
+      }
+
+      const updated = await tx.contract.updateMany({
+        where: { id: contract.id, status: ContractStatus.SENT },
         data: {
           status: ContractStatus.SIGNED,
           eSigned: true,
           signedAt: new Date(),
         },
+      });
+
+      if (updated.count !== 1) {
+        throw new BadRequestException({
+          code: "INVALID_CONTRACT_STATUS",
+          details: { status: ContractStatus.SENT },
+        });
+      }
+
+      const signed = await tx.contract.findUniqueOrThrow({
+        where: { id: contract.id },
       });
 
       await this.recordContractStatusHistory(
@@ -1156,7 +1548,9 @@ export class ContractsService {
       .onContractSigned(contract.id)
       .catch(() => undefined);
 
-    return signedResult;
+    const { shareLinkToken: _shareLinkToken, ...safeSignedResult } =
+      signedResult;
+    return safeSignedResult;
   }
 
   async update(
@@ -1166,7 +1560,7 @@ export class ContractsService {
   ) {
     await this.findOne(id, accessScope);
 
-    return this.prisma.contract.update({
+    const updated = await this.prisma.contract.update({
       where: { id },
       data: {
         ...dto,
@@ -1174,6 +1568,9 @@ export class ContractsService {
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
       },
     });
+
+    const { shareLinkToken: _shareLinkToken, ...safeContract } = updated;
+    return safeContract;
   }
 
   async send(id: string, userId?: string) {
@@ -1254,7 +1651,8 @@ export class ContractsService {
       );
     }
 
-    return updated;
+    const { shareLinkToken: _shareLinkToken, ...safeContract } = updated;
+    return safeContract;
   }
 
   async sign(id: string, userId: string, dto: SignContractDto) {
@@ -1339,7 +1737,9 @@ export class ContractsService {
       eventType: "CONTRACT_SIGNED",
     });
 
-    return signedResult;
+    const { shareLinkToken: _shareLinkToken, ...safeSignedResult } =
+      signedResult;
+    return safeSignedResult;
   }
 
   /** Manual/admin activation endpoint — delegates to the activation gate. */
@@ -1412,7 +1812,8 @@ export class ContractsService {
       );
     }
 
-    return updated;
+    const { shareLinkToken: _shareLinkToken, ...safeContract } = updated;
+    return safeContract;
   }
 
   async findAll(filters: {
@@ -1439,14 +1840,20 @@ export class ContractsService {
       }),
       this.prisma.contract.count({ where }),
     ]);
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+      items: items.map(({ shareLinkToken: _shareLinkToken, ...item }) => item),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   /**
    * CLIENT portal: return all contracts linked to leads where createdBy = userId.
    */
   async getMyContracts(userId: string) {
-    return this.prisma.contract.findMany({
+    const contracts = await this.prisma.contract.findMany({
       where: {
         OR: [{ request: { submittedBy: userId } }, { client: { userId } }],
       },
@@ -1458,6 +1865,10 @@ export class ContractsService {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    return contracts.map(
+      ({ shareLinkToken: _shareLinkToken, ...contract }) => contract,
+    );
   }
 
   async createVersion(

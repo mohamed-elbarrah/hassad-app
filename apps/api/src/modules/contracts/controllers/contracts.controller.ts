@@ -54,7 +54,10 @@ export class ContractsController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) {
-      throw new BadRequestException("PDF file is required");
+      throw new BadRequestException({
+        code: "PDF_FILE_REQUIRED",
+        details: {},
+      });
     }
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.CONTRACT,
@@ -148,7 +151,10 @@ export class ContractsController {
     @Body() dto: CreateVersionDto,
   ) {
     if (!file) {
-      throw new BadRequestException("PDF file is required for a new version");
+      throw new BadRequestException({
+        code: "VERSION_PDF_FILE_REQUIRED",
+        details: {},
+      });
     }
     const uploadResult = await this.storageService.uploadForSubEntity(
       StorageCategory.CONTRACT,
@@ -224,15 +230,11 @@ export class ContractsController {
   // ─── Public share-link endpoints (CLIENT token-based) ─────────────────────
 
   @Get("share/:token")
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions("contracts.read_public")
   findByToken(@Param("token") token: string) {
     return this.contractsService.findByToken(token);
   }
 
   @Post("share/:token/sign")
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions("contracts.sign_public")
   signByToken(@Param("token") token: string, @Body() dto: SignByTokenDto) {
     return this.contractsService.signByToken(token, dto);
   }

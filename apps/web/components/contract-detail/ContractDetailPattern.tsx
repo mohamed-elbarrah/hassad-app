@@ -2,12 +2,18 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, CircleDollarSign, Download, FileClock, Inbox, Layers3, ShieldCheck } from "lucide-react";
-import { CONTRACT_STATUS_AR } from "@hassad/shared";
+import { Download, FileClock, Inbox } from "lucide-react";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -16,9 +22,28 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatCurrency, formatDateTime, formatPortalDate, formatNumber } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDateTime,
+  formatPortalDate,
+  formatNumber,
+} from "@/lib/format";
+import {
+  contractStatusLabel,
+  contractTypeLabel,
+  invoiceStatusLabel,
+  paymentPlanTriggerLabel,
+} from "@/lib/i18n";
+import { buildPortalFileUrl } from "@/lib/portal-files";
 
 export interface ContractDetailEntity {
   id: string;
@@ -46,7 +71,11 @@ export interface ContractDetailEntity {
   client?: {
     id: string;
     companyName: string;
-    user?: { name?: string | null; email?: string | null; phoneWhatsapp?: string | null } | null;
+    user?: {
+      name?: string | null;
+      email?: string | null;
+      phoneWhatsapp?: string | null;
+    } | null;
   } | null;
   proposal?: unknown;
   project?: { id: string; name: string; status?: string | null } | null;
@@ -60,7 +89,13 @@ export interface ContractDetailEntity {
     issueDate?: string | null;
     paidAt?: string | null;
     paymentMethod?: string | null;
-    payments?: Array<{ id: string; amount: number; status: string; date?: string; createdAt?: string }>;
+    payments?: Array<{
+      id: string;
+      amount: number;
+      status: string;
+      date?: string;
+      createdAt?: string;
+    }>;
   }> | null;
   statusHistory?: Array<{
     id: string;
@@ -75,6 +110,17 @@ export interface ContractDetailEntity {
     versionNumber: number;
     filePath?: string | null;
     createdAt: string;
+  }> | null;
+  paymentPlans?: Array<{
+    id: string;
+    label: string;
+    sequence: number;
+    triggerType: string;
+    amountType: string;
+    amountValue: number;
+    isRecurring: boolean;
+    dueOffsetDays?: number | null;
+    isActive: boolean;
   }> | null;
 }
 
@@ -94,7 +140,13 @@ function contractVariant(status?: string | null) {
   }
 }
 
-function EmptyPanel({ title, description }: { title: string; description: string }) {
+function EmptyPanel({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   return (
     <Empty className="border bg-muted/20 p-8">
       <EmptyMedia variant="icon">
@@ -110,9 +162,11 @@ function EmptyPanel({ title, description }: { title: string; description: string
 
 function InfoField({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium">{value || "—"}</p>
+    <div className="flex min-w-0 items-start justify-between gap-4 border-b border-border/60 py-3 last:border-b-0">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 truncate text-left text-sm font-medium">
+        {value || "—"}
+      </dd>
     </div>
   );
 }
@@ -168,66 +222,41 @@ export function ContractDetailView({
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
-      <Card>
-        <CardContent className="flex flex-col gap-5 p-6">
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-            <div className="flex gap-4">
-              <div className="flex size-20 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                <FileClock className="size-10" />
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="truncate text-2xl font-semibold tracking-tight">{contract.title}</h2>
-                  <Badge variant={contractVariant(contract.status)}>
-                    {CONTRACT_STATUS_AR[contract.status as keyof typeof CONTRACT_STATUS_AR] || contract.status}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{contract.client?.companyName || "—"}</p>
-              </div>
-            </div>
-            {!isClientAudience ? (
-              <div className="flex shrink-0 flex-wrap gap-2">
-                <Button asChild variant="outline">
-                  <Link href={backHref}>{backLabel}</Link>
-                </Button>
-                {actions}
-              </div>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">القيمة الإجمالية: {formatCurrency(contract.totalValue)}</Badge>
-            <Badge variant="outline">القيمة الشهرية: {formatCurrency(contract.monthlyValue)}</Badge>
-            <Badge variant="outline">الفواتير: {formatNumber(invoices.length)}</Badge>
-            {!isClientAudience ? (
-              <Badge variant="outline">الإصدارات: {formatNumber(versions.length)}</Badge>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
+      <PageHeader
+        title={contract.title}
+        description={contract.client?.companyName || "—"}
+        icon={FileClock}
+        actions={
+          !isClientAudience ? (
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link href={backHref}>{backLabel}</Link>
+              </Button>
+              {actions}
+            </>
+          ) : undefined
+        }
+      />
 
-      {!isClientAudience ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            { label: "إجمالي القيمة", value: formatCurrency(contract.totalValue), hint: "القيمة التعاقدية", icon: CircleDollarSign },
-            { label: "القيمة الشهرية", value: formatCurrency(contract.monthlyValue), hint: "إن وجدت", icon: CalendarDays },
-            { label: "الفواتير", value: formatNumber(invoices.length), hint: "السجلات المالية المرتبطة", icon: Layers3 },
-            { label: "الإصدارات", value: formatNumber(versions.length), hint: `الإصدار الحالي ${formatNumber(contract.versionNumber)}`, icon: ShieldCheck },
-          ].map((item) => (
-            <Card key={item.label}>
-              <CardContent className="flex items-start justify-between gap-4 p-5">
-                <div className="flex flex-col gap-2">
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
-                  <span className="text-lg font-semibold">{item.value}</span>
-                  <span className="text-sm text-muted-foreground">{item.hint}</span>
-                </div>
-                <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                  <item.icon />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant={contractVariant(contract.status)}>
+          {contractStatusLabel(contract.status)}
+        </Badge>
+        <Badge variant="outline">
+          القيمة الإجمالية: {formatCurrency(contract.totalValue)}
+        </Badge>
+        <Badge variant="outline">
+          القيمة الشهرية: {formatCurrency(contract.monthlyValue)}
+        </Badge>
+        <Badge variant="outline">
+          الفواتير: {formatNumber(invoices.length)}
+        </Badge>
+        {!isClientAudience ? (
+          <Badge variant="outline">
+            الإصدارات: {formatNumber(versions.length)}
+          </Badge>
+        ) : null}
+      </div>
 
       {!isClientAudience ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
@@ -236,40 +265,72 @@ export function ContractDetailView({
               <CardTitle>بيانات العقد</CardTitle>
               <CardDescription>المرجع التشغيلي والتجاري للعقد.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <InfoField label="العميل" value={contract.client?.companyName || "—"} />
-              <InfoField label="النوع" value={contract.type} />
-              <InfoField label="تاريخ البداية" value={formatPortalDate(contract.startDate) || "—"} />
-              <InfoField label="تاريخ النهاية" value={formatPortalDate(contract.endDate) || "—"} />
-              <InfoField label="تاريخ التوقيع" value={formatPortalDate(contract.signedAt) || "—"} />
-              <InfoField label="تاريخ الإنشاء" value={formatDateTime(contract.createdAt)} />
-              <InfoField label="الطلب المرتبط" value={contract.requestId || "—"} />
-              <InfoField label="العرض المرتبط" value={getProposalTitle(contract.proposal) || contract.proposalId || "—"} />
+            <CardContent>
+              <dl className="grid gap-x-6 md:grid-cols-2">
+                <InfoField
+                  label="العميل"
+                  value={contract.client?.companyName || "—"}
+                />
+                <InfoField
+                  label="النوع"
+                  value={contractTypeLabel(contract.type)}
+                />
+                <InfoField
+                  label="تاريخ البداية"
+                  value={formatPortalDate(contract.startDate) || "—"}
+                />
+                <InfoField
+                  label="تاريخ النهاية"
+                  value={formatPortalDate(contract.endDate) || "—"}
+                />
+                <InfoField
+                  label="تاريخ التوقيع"
+                  value={formatPortalDate(contract.signedAt) || "—"}
+                />
+                <InfoField
+                  label="تاريخ الإنشاء"
+                  value={formatDateTime(contract.createdAt)}
+                />
+                <InfoField
+                  label="الطلب المرتبط"
+                  value={contract.requestId || "—"}
+                />
+                <InfoField
+                  label="العرض المرتبط"
+                  value={
+                    getProposalTitle(contract.proposal) ||
+                    contract.proposalId ||
+                    "—"
+                  }
+                />
+              </dl>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="gap-2">
               <CardTitle>الربط والتحويل</CardTitle>
-              <CardDescription>علاقة العقد بالعميل والمشروع والملفات المالية.</CardDescription>
+              <CardDescription>
+                علاقة العقد بالعميل والمشروع والملفات المالية.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="rounded-lg border p-4">
-                <p className="text-sm text-muted-foreground">المشروع الناتج</p>
-                <p className="mt-2 text-sm font-medium">{contract.project?.name || "لا يوجد مشروع مرتبط بعد"}</p>
-              </div>
-              <div className="rounded-lg border p-4">
-                <p className="text-sm text-muted-foreground">التوقيع الإلكتروني</p>
-                <p className="mt-2 text-sm font-medium">{contract.eSigned ? "مفعل" : "غير مفعل"}</p>
-              </div>
-              {contract.downPaymentValue != null ? (
-                <div className="rounded-lg border p-4">
-                  <p className="text-sm text-muted-foreground">خطة الدفع</p>
-                  <p className="mt-2 text-sm font-medium">
-                    دفعة أولى {formatCurrency(contract.downPaymentValue)}{contract.numberOfMonths ? ` • ${formatNumber(contract.numberOfMonths)} أشهر` : ""}
-                  </p>
-                </div>
-              ) : null}
+            <CardContent>
+              <dl>
+                <InfoField
+                  label="المشروع الناتج"
+                  value={contract.project?.name || "لا يوجد مشروع مرتبط بعد"}
+                />
+                <InfoField
+                  label="التوقيع الإلكتروني"
+                  value={contract.eSigned ? "مفعل" : "غير مفعل"}
+                />
+                {contract.downPaymentValue != null ? (
+                  <InfoField
+                    label="خطة الدفع"
+                    value={`دفعة أولى ${formatCurrency(contract.downPaymentValue)}${contract.numberOfMonths ? ` • ${formatNumber(contract.numberOfMonths)} أشهر` : ""}`}
+                  />
+                ) : null}
+              </dl>
             </CardContent>
           </Card>
         </div>
@@ -279,18 +340,30 @@ export function ContractDetailView({
         {!isClientAudience ? (
           <CardHeader className="gap-2">
             <CardTitle>تفاصيل العقد</CardTitle>
-            <CardDescription>تنقل سريع داخل بطاقة واحدة بين الفواتير والملف والسجل المالي والحالة.</CardDescription>
+            <CardDescription>
+              تنقل سريع داخل بطاقة واحدة بين الفواتير والملف والسجل المالي
+              والحالة.
+            </CardDescription>
           </CardHeader>
         ) : null}
         <CardContent className={isClientAudience ? "p-4 sm:p-6" : undefined}>
           <Tabs defaultValue="billing" className="flex flex-col gap-4">
-            <TabsList className="h-auto w-full justify-start">
+            <TabsList className="h-auto w-full flex-wrap justify-start">
               <TabsTrigger value="billing">الفوترة والدفع</TabsTrigger>
+              <TabsTrigger value="payment-plan">خطة الدفع</TabsTrigger>
               <TabsTrigger value="invoices">الفواتير</TabsTrigger>
-              {!isClientAudience ? <TabsTrigger value="history">سجل الحالة</TabsTrigger> : null}
-              {!isClientAudience ? <TabsTrigger value="versions">الإصدارات</TabsTrigger> : null}
+              {!isClientAudience ? (
+                <TabsTrigger value="history">سجل الحالة</TabsTrigger>
+              ) : null}
+              {!isClientAudience ? (
+                <TabsTrigger value="versions">الإصدارات</TabsTrigger>
+              ) : null}
               <TabsTrigger value="document">الملف</TabsTrigger>
-              {responseArea ? <TabsTrigger value="action">{isClientAudience ? "الإجراء" : "إجراء العميل"}</TabsTrigger> : null}
+              {responseArea ? (
+                <TabsTrigger value="action">
+                  {isClientAudience ? "الإجراء" : "إجراء العميل"}
+                </TabsTrigger>
+              ) : null}
             </TabsList>
 
             <TabsContent value="billing" className="mt-0">
@@ -299,6 +372,56 @@ export function ContractDetailView({
                   title="لا توجد بيانات فوترة إضافية"
                   description="سيظهر هنا ملخص الفوترة والدفع عندما يكون متاحًا لهذا الدور."
                 />
+              )}
+            </TabsContent>
+
+            <TabsContent value="payment-plan" className="mt-0">
+              {(contract.paymentPlans ?? []).length === 0 ? (
+                <EmptyPanel
+                  title="لا توجد خطة دفع"
+                  description="لم يتم تعريف دفعات أو مراحل تحصيل لهذا العقد."
+                />
+              ) : (
+                <div className="overflow-x-auto rounded-lg border">
+                  <Table className="min-w-[42rem]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>الدفعة</TableHead>
+                        <TableHead>المحفز</TableHead>
+                        <TableHead>القيمة</TableHead>
+                        <TableHead>الاستحقاق</TableHead>
+                        <TableHead>الحالة</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(contract.paymentPlans ?? []).map((plan) => (
+                        <TableRow key={plan.id}>
+                          <TableCell className="font-medium">
+                            {plan.label}
+                          </TableCell>
+                          <TableCell>
+                            {paymentPlanTriggerLabel(plan.triggerType)}
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrency(plan.amountValue)}
+                          </TableCell>
+                          <TableCell>
+                            {plan.dueOffsetDays != null
+                              ? `${formatNumber(plan.dueOffsetDays)} يوم`
+                              : "عند الحدث"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={plan.isActive ? "secondary" : "outline"}
+                            >
+                              {plan.isActive ? "نشطة" : "متوقفة"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </TabsContent>
 
@@ -324,10 +447,28 @@ export function ContractDetailView({
                       {invoices.map((invoice) => (
                         <TableRow key={invoice.id}>
                           <TableCell>{invoice.invoiceNumber}</TableCell>
-                          <TableCell>{formatCurrency(invoice.amount)}</TableCell>
-                          <TableCell>{invoice.status}</TableCell>
-                          <TableCell>{formatPortalDate(invoice.dueDate) || "—"}</TableCell>
-                          <TableCell>{formatPortalDate(invoice.paidAt) || "—"}</TableCell>
+                          <TableCell>
+                            {formatCurrency(invoice.amount)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                invoice.status === "PAID"
+                                  ? "secondary"
+                                  : invoice.status === "CANCELLED"
+                                    ? "destructive"
+                                    : "outline"
+                              }
+                            >
+                              {invoiceStatusLabel(invoice.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {formatPortalDate(invoice.dueDate) || "—"}
+                          </TableCell>
+                          <TableCell>
+                            {formatPortalDate(invoice.paidAt) || "—"}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -357,10 +498,16 @@ export function ContractDetailView({
                       <TableBody>
                         {statusHistory.map((entry) => (
                           <TableRow key={entry.id}>
-                            <TableCell>{entry.fromStatus || "—"}</TableCell>
-                            <TableCell>{entry.toStatus}</TableCell>
+                            <TableCell>
+                              {contractStatusLabel(entry.fromStatus)}
+                            </TableCell>
+                            <TableCell>
+                              {contractStatusLabel(entry.toStatus)}
+                            </TableCell>
                             <TableCell>{entry.changer?.name || "—"}</TableCell>
-                            <TableCell>{formatDateTime(entry.changedAt)}</TableCell>
+                            <TableCell>
+                              {formatDateTime(entry.changedAt)}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -390,9 +537,28 @@ export function ContractDetailView({
                       <TableBody>
                         {versions.map((version) => (
                           <TableRow key={version.id}>
-                            <TableCell>{formatNumber(version.versionNumber)}</TableCell>
-                            <TableCell>{version.filePath || "—"}</TableCell>
-                            <TableCell>{formatDateTime(version.createdAt)}</TableCell>
+                            <TableCell>
+                              {formatNumber(version.versionNumber)}
+                            </TableCell>
+                            <TableCell>
+                              {version.filePath ? (
+                                <Button asChild variant="ghost" size="sm">
+                                  <a
+                                    href={buildPortalFileUrl(version.filePath)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Download data-icon="inline-start" />
+                                    فتح الملف
+                                  </a>
+                                </Button>
+                              ) : (
+                                "—"
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {formatDateTime(version.createdAt)}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -411,7 +577,9 @@ export function ContractDetailView({
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className="text-sm font-medium">ملف العقد</span>
-                      <span className="text-xs text-muted-foreground">تحميل الملف لمراجعة الشروط الكاملة</span>
+                      <span className="text-xs text-muted-foreground">
+                        تحميل الملف لمراجعة الشروط الكاملة
+                      </span>
                     </div>
                   </div>
                   <Button asChild variant="outline">

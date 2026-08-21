@@ -4,8 +4,15 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCheck, Copy, FileClock } from "lucide-react";
 import { toast } from "sonner";
-import { useGetContractByIdQuery } from "@/features/contracts/contractsApi";
-import { ContractClientBillingArea, ContractDetailLoading, ContractDetailView } from "@/components/contract-detail/ContractDetailPattern";
+import {
+  useGetSalesContractDetailQuery,
+  useLazyGetSalesContractShareLinkQuery,
+} from "@/features/contracts/contractsApi";
+import {
+  ContractClientBillingArea,
+  ContractDetailLoading,
+  ContractDetailView,
+} from "@/components/contract-detail/ContractDetailPattern";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -17,6 +24,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { buildPortalFileUrl } from "@/lib/portal-files";
+import { salesWorkflowErrorMessage } from "@/lib/i18n";
 
 export default function SalesContractDetailPage({
   params,
@@ -24,8 +32,15 @@ export default function SalesContractDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: contract, isLoading, isError } = useGetContractByIdQuery(id);
+  const {
+    data: contract,
+    error,
+    isLoading,
+    isError,
+  } = useGetSalesContractDetailQuery(id);
   const [copied, setCopied] = useState(false);
+  const [getShareLink, { isFetching: isShareLinkFetching }] =
+    useLazyGetSalesContractShareLinkQuery();
 
   if (isLoading) return <ContractDetailLoading />;
 
@@ -40,7 +55,9 @@ export default function SalesContractDetailPage({
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>العقد غير موجود</EmptyTitle>
-                <EmptyDescription>تعذر تحميل تفاصيل العقد.</EmptyDescription>
+                <EmptyDescription>
+                  {salesWorkflowErrorMessage(error)}
+                </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <Button asChild>
@@ -58,14 +75,16 @@ export default function SalesContractDetailPage({
   }
 
   async function handleCopyLink() {
-    if (!contract.shareLinkToken) return;
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/contract/${contract.shareLinkToken}`);
+      const result = await getShareLink(id).unwrap();
+      await navigator.clipboard.writeText(
+        `${window.location.origin}${result.path}`,
+      );
       setCopied(true);
       toast.success("تم نسخ رابط التوقيع");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("تعذر نسخ الرابط");
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch (shareLinkError) {
+      toast.error(salesWorkflowErrorMessage(shareLinkError));
     }
   }
 
@@ -87,15 +106,28 @@ export default function SalesContractDetailPage({
         <>
           {contract.client ? (
             <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/sales/clients/${contract.client.id}`}>ملف العميل</Link>
+              <Link href={`/dashboard/sales/clients/${contract.client.id}`}>
+                ملف العميل
+              </Link>
             </Button>
           ) : null}
-          {contract.shareLinkToken ? (
-            <Button variant="outline" size="sm" onClick={handleCopyLink}>
-              {copied ? <CheckCheck data-icon="inline-start" /> : <Copy data-icon="inline-start" />}
-              {copied ? "تم النسخ" : "نسخ رابط التوقيع"}
-            </Button>
-          ) : null}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopyLink}
+            disabled={isShareLinkFetching}
+          >
+            {copied ? (
+              <CheckCheck data-icon="inline-start" />
+            ) : (
+              <Copy data-icon="inline-start" />
+            )}
+            {copied
+              ? "تم النسخ"
+              : isShareLinkFetching
+                ? "جاري التحميل"
+                : "نسخ رابط التوقيع"}
+          </Button>
         </>
       }
     />

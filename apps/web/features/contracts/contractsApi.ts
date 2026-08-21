@@ -93,9 +93,93 @@ export interface PaginatedContracts {
   totalPages: number;
 }
 
+export type SalesContractListItem = Omit<
+  ContractItem,
+  "shareLinkToken" | "filePath" | "servicesList" | "invoices"
+>;
+
+export interface SalesContractPaymentPlan {
+  id: string;
+  label: string;
+  sequence: number;
+  triggerType: string;
+  amountType: string;
+  amountValue: number;
+  isRecurring: boolean;
+  dueOffsetDays?: number | null;
+  isActive: boolean;
+  invoices?: Array<{ id: string; invoiceNumber: string; status: string }>;
+}
+
+export interface SalesContractStatusHistory {
+  id: string;
+  fromStatus?: string | null;
+  toStatus: string;
+  changedAt: string;
+  reason?: string | null;
+  changer?: { id: string; name: string } | null;
+}
+
+export interface SalesContractDetail extends SalesContractListItem {
+  filePath?: string | null;
+  currency?: string | null;
+  downPaymentType?: string | null;
+  downPaymentValue?: number | null;
+  initialPaymentRequired?: boolean;
+  initialPaymentStatus?: string;
+  initialPaymentAmount?: number | null;
+  numberOfMonths?: number | null;
+  creator?: { id: string; name: string; email?: string | null } | null;
+  salesPerson?: { id: string; name: string; email?: string | null } | null;
+  servicesList?: ServiceItem[];
+  proposal?: {
+    id: string;
+    title: string;
+    serviceDescription?: string | null;
+    servicesList?: ServiceItem[];
+    totalPrice?: number;
+    durationDays?: number;
+  } | null;
+  request?: {
+    id: string;
+    status: string;
+    companyName?: string | null;
+    contactName?: string | null;
+    assignedSalesId?: string | null;
+  } | null;
+  project?: { id: string; name: string; status?: string | null } | null;
+  invoices?: InvoiceSummary[];
+  paymentPlans?: SalesContractPaymentPlan[];
+  statusHistory?: SalesContractStatusHistory[];
+  versions?: Array<{
+    id: string;
+    versionNumber: number;
+    filePath?: string | null;
+    createdAt: string;
+    creator?: { id: string; name: string };
+  }>;
+}
+
+export interface PaginatedSalesContracts {
+  items: SalesContractListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface ContractFilters {
   status?: ContractStatus;
   clientId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface SalesContractFilters {
+  status?: ContractStatus;
+  type?: ContractType;
+  renewal?: "30" | "60" | "90";
   search?: string;
   page?: number;
   limit?: number;
@@ -190,9 +274,35 @@ export const contractsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Contract", id }],
     }),
 
-    getSalesContractById: builder.query<ContractItem, string>({
+    getSalesContracts: builder.query<
+      PaginatedSalesContracts,
+      SalesContractFilters
+    >({
+      query: (filters = {}) => ({ url: "/sales/contracts", params: filters }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map(({ id }) => ({
+                type: "Contract" as const,
+                id,
+              })),
+              { type: "Contract", id: "SALES_LIST" },
+            ]
+          : [{ type: "Contract", id: "SALES_LIST" }],
+    }),
+
+    getSalesContractById: builder.query<SalesContractDetail, string>({
       query: (id) => `/sales/contracts/${id}`,
       providesTags: (_result, _error, id) => [{ type: "Contract", id }],
+    }),
+
+    getSalesContractDetail: builder.query<SalesContractDetail, string>({
+      query: (id) => `/sales/contracts/${id}/detail`,
+      providesTags: (_result, _error, id) => [{ type: "Contract", id }],
+    }),
+
+    getSalesContractShareLink: builder.query<{ path: string }, string>({
+      query: (id) => `/sales/contracts/${id}/share-link`,
     }),
 
     /** One-step: multipart/form-data upload anchored to the request. */
@@ -316,7 +426,10 @@ export const contractsApi = createApi({
 export const {
   useGetContractsQuery,
   useGetContractByIdQuery,
+  useGetSalesContractsQuery,
   useGetSalesContractByIdQuery,
+  useGetSalesContractDetailQuery,
+  useLazyGetSalesContractShareLinkQuery,
   useCreateContractMutation,
   useUpdateContractMutation,
   useCreateSalesContractMutation,

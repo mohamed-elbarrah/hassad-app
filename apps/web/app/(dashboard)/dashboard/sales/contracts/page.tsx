@@ -1,11 +1,9 @@
 "use client";
 
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowUpLeft,
-  CalendarDays,
   CircleDollarSign,
   FileClock,
   RefreshCw,
@@ -21,18 +19,14 @@ import {
   type ContractStatus as ContractStatusType,
   type ContractType as ContractTypeType,
 } from "@hassad/shared";
-import { useGetContractsQuery, type ContractItem } from "@/features/contracts/contractsApi";
+import {
+  useGetSalesContractsQuery,
+  type SalesContractListItem,
+} from "@/features/contracts/contractsApi";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
   EmptyContent,
@@ -50,8 +44,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -68,6 +69,7 @@ import {
   formatPortalDate,
   formatRelativeTime,
 } from "@/lib/format";
+import { salesWorkflowErrorMessage } from "@/lib/i18n";
 
 const PAGE_SIZE = 12;
 
@@ -85,14 +87,12 @@ function contractVariant(status: ContractStatusType) {
   }
 }
 
-function getContractTypeLabel(type: ContractTypeType | string) {
+function contractTypeLabel(type: ContractTypeType | string) {
   switch (type) {
     case ContractType.MONTHLY_RETAINER:
       return "اشتراك شهري";
     case ContractType.FIXED_PROJECT:
       return "مشروع ثابت";
-    case ContractType.ONE_TIME_SERVICE:
-      return "خدمة مرة واحدة";
     default:
       return String(type);
   }
@@ -108,31 +108,27 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-function getCompanyLabel(contract: ContractItem) {
+function companyLabel(contract: SalesContractListItem) {
   return contract.client?.companyName ?? "—";
 }
 
-function getContactLabel(contract: ContractItem) {
+function contactLabel(contract: SalesContractListItem) {
   return contract.client?.user?.name ?? contract.client?.user?.email ?? "—";
 }
 
-function getRelatedHref(contract: ContractItem) {
-  if (contract.client?.id) return `/dashboard/sales/clients/${contract.client.id}`;
-  if (contract.proposal?.id) return `/dashboard/sales/proposals/${contract.proposal.id}`;
+function relatedHref(contract: SalesContractListItem) {
+  if (contract.client?.id)
+    return `/dashboard/sales/clients/${contract.client.id}`;
+  if (contract.proposal?.id) {
+    return `/dashboard/sales/proposals/${contract.proposal.id}`;
+  }
   return null;
 }
 
-function getExpiringDays(contract: ContractItem) {
-  const end = new Date(contract.endDate);
-  if (Number.isNaN(end.getTime())) return null;
-  const diffDays = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  return diffDays;
-}
-
-function getRenewalStatus(contract: ContractItem) {
-  const days = getExpiringDays(contract);
-
-  if (days == null) return "غير محدد";
+function renewalLabel(endDate: string) {
+  const end = new Date(endDate);
+  if (Number.isNaN(end.getTime())) return "غير محدد";
+  const days = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   if (days < 0) return "منتهي";
   if (days <= 30) return "خلال 30 يوم";
   if (days <= 60) return "خلال 60 يوم";
@@ -143,61 +139,23 @@ function getRenewalStatus(contract: ContractItem) {
 function LoadingState() {
   return (
     <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-9 w-56" />
-            <Skeleton className="h-4 w-full max-w-2xl" />
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </CardHeader>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index}>
-            <CardContent className="flex items-start justify-between gap-4 p-6">
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-              <Skeleton className="size-11 rounded-xl" />
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-9 w-56" />
+        <Skeleton className="h-4 w-full max-w-2xl" />
       </div>
-
       <Card>
-        <CardHeader className="gap-3">
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-4 w-full max-w-xl" />
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
-            <Skeleton className="h-11 w-full" />
-            <Skeleton className="h-11 w-full" />
-            <Skeleton className="h-11 w-full" />
-            <Skeleton className="h-11 w-full" />
+        <CardContent className="flex flex-col gap-5 p-6">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px_180px]">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-11 w-full" />
+            ))}
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:hidden">
             {Array.from({ length: 4 }).map((_, index) => (
               <Card key={index}>
                 <CardContent className="flex flex-col gap-4 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="size-11 rounded-full" />
-                      <div className="flex flex-col gap-2">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                    </div>
-                    <Skeleton className="h-6 w-20" />
-                  </div>
+                  <Skeleton className="h-6 w-40" />
                   <Skeleton className="h-24 w-full" />
                 </CardContent>
               </Card>
@@ -233,35 +191,8 @@ function LoadingState() {
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  hint,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  icon: typeof FileClock;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-start justify-between gap-4 p-6">
-        <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted-foreground">{label}</span>
-          <span className="text-2xl font-semibold tracking-tight">{value}</span>
-          <span className="text-sm text-muted-foreground">{hint}</span>
-        </div>
-        <div className="flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-          <Icon />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ContractIdentity({ contract }: { contract: ContractItem }) {
-  const company = getCompanyLabel(contract);
+function ContractIdentity({ contract }: { contract: SalesContractListItem }) {
+  const company = companyLabel(contract);
 
   return (
     <div className="flex min-w-0 items-center gap-3">
@@ -269,76 +200,72 @@ function ContractIdentity({ contract }: { contract: ContractItem }) {
         {getInitials(company)}
       </div>
       <div className="flex min-w-0 flex-col gap-1">
-        <span className="truncate font-semibold text-foreground">{contract.title}</span>
-        <span className="truncate text-sm text-muted-foreground">{company}</span>
+        <span className="truncate font-semibold">{contract.title}</span>
+        <span className="truncate text-sm text-muted-foreground">
+          {company}
+        </span>
       </div>
     </div>
   );
 }
 
-function ContractCard({ contract }: { contract: ContractItem }) {
+function ContractCard({ contract }: { contract: SalesContractListItem }) {
   const href = `/dashboard/sales/contracts/${contract.id}`;
-  const relatedHref = getRelatedHref(contract);
-  const company = getCompanyLabel(contract);
-  const contact = getContactLabel(contract);
-  const expiringLabel = getRenewalStatus(contract);
-  const signedLabel = contract.signedAt ? formatRelativeTime(contract.signedAt) : "غير موقّع بعد";
-  const startLabel = formatPortalDate(contract.startDate) || "—";
-  const endLabel = formatPortalDate(contract.endDate) || "—";
+  const related = relatedHref(contract);
 
   return (
-    <Card className="transition-colors hover:border-primary/40">
+    <Card>
       <CardContent className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <ContractIdentity contract={contract} />
-          <Badge variant={contractVariant(contract.status as ContractStatusType)}>
-            {CONTRACT_STATUS_AR[contract.status as ContractStatusType] || contract.status}
+          <Badge variant={contractVariant(contract.status)}>
+            {CONTRACT_STATUS_AR[contract.status] || contract.status}
           </Badge>
         </div>
-
-        <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/30 p-3">
-            <span className="text-xs text-muted-foreground">العميل</span>
-            <span className="font-medium">{company}</span>
-            <span className="text-xs text-muted-foreground">{contact}</span>
+        <dl className="grid gap-3 sm:grid-cols-2">
+          <div className="flex min-w-0 flex-col gap-1 border-b border-border/60 pb-3">
+            <dt className="text-xs text-muted-foreground">العميل</dt>
+            <dd className="truncate text-sm font-medium">
+              {companyLabel(contract)}
+            </dd>
+            <dd className="truncate text-xs text-muted-foreground">
+              {contactLabel(contract)}
+            </dd>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/30 p-3">
-            <span className="text-xs text-muted-foreground">النوع</span>
-            <span className="font-medium">{getContractTypeLabel(contract.type)}</span>
-            <span className="text-xs text-muted-foreground">{contract.eSigned ? "موقّع إلكترونياً" : "بانتظار التوقيع"}</span>
+          <div className="flex min-w-0 flex-col gap-1 border-b border-border/60 pb-3">
+            <dt className="text-xs text-muted-foreground">النوع والتوقيع</dt>
+            <dd className="text-sm font-medium">
+              {contractTypeLabel(contract.type)}
+            </dd>
+            <dd className="text-xs text-muted-foreground">
+              {contract.eSigned ? "موقّع إلكترونياً" : "بانتظار التوقيع"}
+            </dd>
           </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3">
-            <span className="text-xs text-muted-foreground">الإجمالي</span>
-            <span className="font-semibold">{formatCurrency(contract.totalValue)}</span>
-            <span className="text-xs text-muted-foreground">
+          <div className="flex min-w-0 flex-col gap-1 border-b border-border/60 pb-3">
+            <dt className="text-xs text-muted-foreground">القيمة</dt>
+            <dd className="text-sm font-semibold">
+              {formatCurrency(contract.totalValue)}
+            </dd>
+            <dd className="text-xs text-muted-foreground">
               {formatCurrency(contract.monthlyValue)} شهرياً
-            </span>
+            </dd>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3">
-            <span className="text-xs text-muted-foreground">المدة</span>
-            <span className="font-semibold">{startLabel} - {endLabel}</span>
-            <span className="text-xs text-muted-foreground">{expiringLabel}</span>
+          <div className="flex min-w-0 flex-col gap-1 border-b border-border/60 pb-3">
+            <dt className="text-xs text-muted-foreground">التجديد</dt>
+            <dd className="text-sm font-semibold">
+              {renewalLabel(contract.endDate)}
+            </dd>
+            <dd className="text-xs text-muted-foreground">
+              ينتهي {formatPortalDate(contract.endDate) || "—"}
+            </dd>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3">
-            <span className="text-xs text-muted-foreground">التوقيع</span>
-            <span className="font-semibold">{signedLabel}</span>
-            <span className="text-xs text-muted-foreground">
-              {formatNumber(contract.versionNumber)} إصدار
-            </span>
-          </div>
-        </div>
-
+        </dl>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>
-            {contract.shareLinkToken ? "يوجد رابط توقيع" : "لا يوجد رابط توقيع"}
-          </span>
+          <span>الإصدار {formatNumber(contract.versionNumber)}</span>
           <div className="flex flex-wrap gap-2">
-            {relatedHref ? (
+            {related ? (
               <Button variant="outline" size="sm" asChild>
-                <Link href={relatedHref}>
+                <Link href={related}>
                   <Users data-icon="inline-start" />
                   {contract.client ? "ملف العميل" : "العرض المرتبط"}
                 </Link>
@@ -357,40 +284,36 @@ function ContractCard({ contract }: { contract: ContractItem }) {
   );
 }
 
-function ContractRow({ contract }: { contract: ContractItem }) {
-  const router = useRouter();
+function ContractRow({ contract }: { contract: SalesContractListItem }) {
   const href = `/dashboard/sales/contracts/${contract.id}`;
-  const relatedHref = getRelatedHref(contract);
+  const related = relatedHref(contract);
 
   return (
-    <TableRow
-      className="cursor-pointer transition-colors hover:bg-muted/30"
-      onClick={() => router.push(href)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          router.push(href);
-        }
-      }}
-      tabIndex={0}
-    >
+    <TableRow>
       <TableCell>
-        <ContractIdentity contract={contract} />
+        <Link
+          href={href}
+          className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ContractIdentity contract={contract} />
+        </Link>
       </TableCell>
       <TableCell>
-        <Badge variant={contractVariant(contract.status as ContractStatusType)}>
-          {CONTRACT_STATUS_AR[contract.status as ContractStatusType] || contract.status}
+        <Badge variant={contractVariant(contract.status)}>
+          {CONTRACT_STATUS_AR[contract.status] || contract.status}
         </Badge>
       </TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">
-          <span>{getCompanyLabel(contract)}</span>
-          <span className="text-xs text-muted-foreground">{getContactLabel(contract)}</span>
+          <span>{companyLabel(contract)}</span>
+          <span className="text-xs text-muted-foreground">
+            {contactLabel(contract)}
+          </span>
         </div>
       </TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">
-          <span>{getContractTypeLabel(contract.type)}</span>
+          <span>{contractTypeLabel(contract.type)}</span>
           <span className="text-xs text-muted-foreground">
             {contract.eSigned ? "موقّع إلكترونياً" : "بانتظار التوقيع"}
           </span>
@@ -406,7 +329,7 @@ function ContractRow({ contract }: { contract: ContractItem }) {
       </TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">
-          <span>{formatDateTime(contract.createdAt)}</span>
+          <span>{renewalLabel(contract.endDate)}</span>
           <span className="text-xs text-muted-foreground">
             ينتهي {formatDateTime(contract.endDate)}
           </span>
@@ -414,32 +337,24 @@ function ContractRow({ contract }: { contract: ContractItem }) {
       </TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">
-          <span>{getRenewalStatus(contract)}</span>
+          <span>
+            {contract.signedAt
+              ? formatRelativeTime(contract.signedAt)
+              : "غير موقّع بعد"}
+          </span>
           <span className="text-xs text-muted-foreground">
             {formatNumber(contract.versionNumber)} إصدار
           </span>
         </div>
       </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-2">
-          {relatedHref ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              onClick={(event) => event.stopPropagation()}
-            >
-              <Link href={relatedHref}>
-                {contract.client ? "العميل" : "العرض"}
-              </Link>
+      <TableCell className="text-left">
+        <div className="flex flex-wrap justify-end gap-2">
+          {related ? (
+            <Button variant="ghost" size="sm" asChild>
+              <Link href={related}>{contract.client ? "العميل" : "العرض"}</Link>
             </Button>
           ) : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            onClick={(event) => event.stopPropagation()}
-          >
+          <Button variant="ghost" size="sm" asChild>
             <Link href={href}>
               <ArrowUpLeft data-icon="inline-start" />
               فتح
@@ -459,75 +374,22 @@ export default function SalesContractsPage() {
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
 
-  const {
-    data,
-    isLoading,
-    isError,
-    isFetching,
-    refetch,
-  } = useGetContractsQuery({ limit: 1000 });
-
-  const contracts = useMemo(() => data?.items ?? [], [data]);
-
-  const filteredContracts = useMemo(() => {
-    const query = deferredSearch.trim().toLowerCase();
-
-    return contracts.filter((contract) => {
-      const matchesStatus = status === "ALL" ? true : contract.status === status;
-      const matchesType = type === "ALL" ? true : contract.type === type;
-      const days = getExpiringDays(contract);
-      const matchesRenewal =
-        renewal === "ALL"
-          ? true
-          : days != null && days >= 0 && days <= Number(renewal);
-      const matchesSearch = !query
-        ? true
-        : [
-            contract.title,
-            contract.type,
-            contract.status,
-            contract.client?.companyName,
-            contract.client?.user?.name,
-            contract.client?.user?.email,
-            contract.proposal?.title,
-            contract.id,
-          ]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(query));
-
-      return matchesStatus && matchesType && matchesRenewal && matchesSearch;
+  const { data, error, isLoading, isError, isFetching, refetch } =
+    useGetSalesContractsQuery({
+      page,
+      limit: PAGE_SIZE,
+      search: deferredSearch.trim() || undefined,
+      status: status === "ALL" ? undefined : status,
+      type: type === "ALL" ? undefined : type,
+      renewal: renewal === "ALL" ? undefined : renewal,
     });
-  }, [contracts, deferredSearch, renewal, status, type]);
 
-  const metrics = useMemo(() => {
-    const total = contracts.length;
-    const active = contracts.filter((contract) =>
-      [ContractStatus.ACTIVE, ContractStatus.SIGNED].includes(contract.status as ContractStatusType),
-    ).length;
-    const signed = contracts.filter((contract) => contract.eSigned).length;
-    const expiringSoon = contracts.filter((contract) => {
-      const days = getExpiringDays(contract);
-      return days != null && days >= 0 && days <= 30;
-    }).length;
-    const totalValue = contracts.reduce((sum, contract) => sum + (contract.totalValue ?? 0), 0);
-
-    return { total, active, signed, expiringSoon, totalValue };
-  }, [contracts]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredContracts.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pagedContracts = filteredContracts.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
-
-  if (isLoading) {
-    return <LoadingState />;
-  }
+  if (isLoading) return <LoadingState />;
 
   if (isError) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+        <PageHeader title="عقود المبيعات" icon={FileClock} />
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -537,7 +399,7 @@ export default function SalesContractsPage() {
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل العقود</EmptyTitle>
                 <EmptyDescription>
-                  حدث خطأ أثناء جلب قائمة العقود لفريق المبيعات. حاول مرة أخرى.
+                  {salesWorkflowErrorMessage(error)}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
@@ -550,282 +412,204 @@ export default function SalesContractsPage() {
     );
   }
 
+  const contracts = data?.items ?? [];
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const currentPage = Math.min(page, totalPages);
+
+  function updateFilter(callback: () => void) {
+    startTransition(() => {
+      callback();
+      setPage(1);
+    });
+  }
+
   return (
     <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      <Card className="overflow-hidden">
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-4">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard/sales">المبيعات</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>العقود</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-
-            <div className="flex items-start gap-3">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <FileClock />
-              </div>
-              <div className="flex flex-col gap-2">
-                <CardTitle className="text-2xl sm:text-3xl">عقود المبيعات</CardTitle>
-                <CardDescription className="max-w-3xl text-sm sm:text-base">
-                  شاشة CRM لمتابعة العقود الموقعة والفعالة والاقتراب من التجديدات مع
-                  وصول مباشر للعميل أو العرض المرتبط.
-                </CardDescription>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">إجمالي العقود: {formatNumber(metrics.total)}</Badge>
-                  <Badge variant="outline">نشطة: {formatNumber(metrics.active)}</Badge>
-                  <Badge variant="outline">قريبة الانتهاء: {formatNumber(metrics.expiringSoon)}</Badge>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title="عقود المبيعات"
+        description="متابعة العقود المرسلة والموقعة والفعالة مع الوصول السريع إلى العميل والعرض المرتبط."
+        icon={FileClock}
+        actions={
+          <>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw data-icon="inline-start" className={isFetching ? "animate-spin" : undefined} />
+              <RefreshCw
+                data-icon="inline-start"
+                className={isFetching ? "animate-spin" : undefined}
+              />
               {isFetching ? "جاري التحديث" : "تحديث"}
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href="/dashboard/sales/proposals">
-                <FileClock data-icon="inline-start" />
+                <CircleDollarSign data-icon="inline-start" />
                 العروض
               </Link>
             </Button>
+          </>
+        }
+      />
+
+      <div className="flex flex-col gap-5">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px_180px] xl:items-center">
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-label="البحث في العقود"
+              value={search}
+              onChange={(event) =>
+                updateFilter(() => setSearch(event.target.value))
+              }
+              placeholder="ابحث بعنوان العقد أو العميل أو العرض"
+              className="pr-10"
+            />
           </div>
-        </CardHeader>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          label="إجمالي العقود"
-          value={formatNumber(metrics.total)}
-          hint="جميع العقود المسجلة"
-          icon={FileClock}
-        />
-        <SummaryCard
-          label="العقود النشطة"
-          value={formatNumber(metrics.active)}
-          hint="عقود قيد التنفيذ أو التفعيل"
-          icon={ShieldCheck}
-        />
-        <SummaryCard
-          label="الموقعة إلكترونياً"
-          value={formatNumber(metrics.signed)}
-          hint="العقود المكتملة التوقيع"
-          icon={CalendarDays}
-        />
-        <SummaryCard
-          label="إجمالي القيمة"
-          value={formatCurrency(metrics.totalValue)}
-          hint="القيمة التراكمية لكل العقود"
-          icon={CircleDollarSign}
-        />
-      </div>
-
-      <Card>
-        <CardHeader className="gap-2">
-          <CardTitle>سجل العقود</CardTitle>
-          <CardDescription>
-            ابحث وصفِّ العقود ثم افتح أي عقد للانتقال مباشرة إلى صفحة التفاصيل.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px_180px] xl:items-center">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  startTransition(() => {
-                    setSearch(value);
-                    setPage(1);
-                  });
-                }}
-                placeholder="ابحث بعنوان العقد أو العميل أو العرض"
-                className="pr-10"
-              />
-            </div>
-
-            <Select
-              value={status}
-              onValueChange={(value) => {
-                startTransition(() => {
-                  setStatus(value as "ALL" | ContractStatusType);
-                  setPage(1);
-                });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="كل الحالات" />
-              </SelectTrigger>
-              <SelectContent>
+          <Select
+            value={status}
+            onValueChange={(value) =>
+              updateFilter(() => setStatus(value as "ALL" | ContractStatusType))
+            }
+          >
+            <SelectTrigger aria-label="تصفية حسب الحالة">
+              <SelectValue placeholder="كل الحالات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>حالة العقد</SelectLabel>
                 <SelectItem value="ALL">كل الحالات</SelectItem>
-                {(Object.values(ContractStatus) as ContractStatusType[]).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {CONTRACT_STATUS_AR[value]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={type}
-              onValueChange={(value) => {
-                startTransition(() => {
-                  setType(value as "ALL" | ContractTypeType);
-                  setPage(1);
-                });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="كل الأنواع" />
-              </SelectTrigger>
-              <SelectContent>
+                {(Object.values(ContractStatus) as ContractStatusType[]).map(
+                  (value) => (
+                    <SelectItem key={value} value={value}>
+                      {CONTRACT_STATUS_AR[value]}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Select
+            value={type}
+            onValueChange={(value) =>
+              updateFilter(() => setType(value as "ALL" | ContractTypeType))
+            }
+          >
+            <SelectTrigger aria-label="تصفية حسب النوع">
+              <SelectValue placeholder="كل الأنواع" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>نوع العقد</SelectLabel>
                 <SelectItem value="ALL">كل الأنواع</SelectItem>
-                <SelectItem value={ContractType.MONTHLY_RETAINER}>اشتراك شهري</SelectItem>
-                <SelectItem value={ContractType.FIXED_PROJECT}>مشروع ثابت</SelectItem>
-                <SelectItem value={ContractType.ONE_TIME_SERVICE}>خدمة مرة واحدة</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={renewal}
-              onValueChange={(value) => {
-                startTransition(() => {
-                  setRenewal(value as "ALL" | "30" | "60" | "90");
-                  setPage(1);
-                });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="التجديدات" />
-              </SelectTrigger>
-              <SelectContent>
+                <SelectItem value={ContractType.MONTHLY_RETAINER}>
+                  اشتراك شهري
+                </SelectItem>
+                <SelectItem value={ContractType.FIXED_PROJECT}>
+                  مشروع ثابت
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Select
+            value={renewal}
+            onValueChange={(value) =>
+              updateFilter(() =>
+                setRenewal(value as "ALL" | "30" | "60" | "90"),
+              )
+            }
+          >
+            <SelectTrigger aria-label="تصفية حسب موعد التجديد">
+              <SelectValue placeholder="التجديدات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>موعد التجديد</SelectLabel>
                 <SelectItem value="ALL">كل المدد</SelectItem>
                 <SelectItem value="30">خلال 30 يوم</SelectItem>
                 <SelectItem value="60">خلال 60 يوم</SelectItem>
                 <SelectItem value="90">خلال 90 يوم</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
 
-          <Separator />
-
-          {filteredContracts.length === 0 ? (
-            <div className="rounded-xl border p-8">
-              <Empty>
-                <EmptyMedia variant="icon">
-                  <Sparkles />
-                </EmptyMedia>
-                <EmptyHeader>
-                  <EmptyTitle>لا توجد نتائج مطابقة</EmptyTitle>
-                  <EmptyDescription>
-                    جرّب تعديل البحث أو تغيير الفلاتر للرجوع إلى قائمة العقود.
-                  </EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      startTransition(() => {
-                        setSearch("");
-                        setStatus("ALL");
-                        setType("ALL");
-                        setRenewal("ALL");
-                        setPage(1);
-                      });
-                    }}
-                  >
-                    مسح الفلاتر
-                  </Button>
-                </EmptyContent>
-              </Empty>
+        {contracts.length === 0 ? (
+          <Empty className="border p-8">
+            <EmptyMedia variant="icon">
+              <ShieldCheck />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle>لا توجد نتائج مطابقة</EmptyTitle>
+              <EmptyDescription>
+                جرّب تعديل البحث أو تغيير الفلاتر.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <>
+            <div className="grid gap-4 xl:hidden">
+              {contracts.map((contract) => (
+                <ContractCard key={contract.id} contract={contract} />
+              ))}
             </div>
-          ) : (
-            <>
-              <div className="grid gap-4 xl:hidden">
-                {pagedContracts.map((contract) => (
-                  <ContractCard key={contract.id} contract={contract} />
-                ))}
-              </div>
-
-              <div className="hidden overflow-hidden rounded-xl border xl:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>العقد</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>العميل</TableHead>
-                      <TableHead>النوع</TableHead>
-                      <TableHead>القيمة</TableHead>
-                      <TableHead>التجديد</TableHead>
-                      <TableHead>التوقيع</TableHead>
-                      <TableHead className="text-left">الانتقال</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagedContracts.map((contract) => (
-                      <ContractRow key={contract.id} contract={contract} />
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {totalPages > 1 ? (
-                <Pagination className="justify-between">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        text="السابق"
-                        onClick={() => setPage((current) => Math.max(1, current - 1))}
-                        disabled={currentPage === 1}
-                      />
-                    </PaginationItem>
-
-                    {Array.from({ length: totalPages }).map((_, index) => {
-                      const pageNumber = index + 1;
-
-                      return (
-                        <PaginationItem key={pageNumber}>
-                          <PaginationLink
-                            isActive={pageNumber === currentPage}
-                            onClick={() => setPage(pageNumber)}
-                          >
-                            {pageNumber}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        text="التالي"
-                        onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                        disabled={currentPage === totalPages}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              ) : null}
-            </>
-          )}
-        </CardContent>
-      </Card>
+            <div className="hidden overflow-hidden rounded-xl border xl:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>العقد</TableHead>
+                    <TableHead>الحالة</TableHead>
+                    <TableHead>العميل</TableHead>
+                    <TableHead>النوع</TableHead>
+                    <TableHead>القيمة</TableHead>
+                    <TableHead>التجديد</TableHead>
+                    <TableHead>التوقيع</TableHead>
+                    <TableHead className="text-left">الانتقال</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contracts.map((contract) => (
+                    <ContractRow key={contract.id} contract={contract} />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {totalPages > 1 ? (
+              <Pagination className="justify-between">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      text="السابق"
+                      onClick={() =>
+                        setPage((current) => Math.max(1, current - 1))
+                      }
+                      disabled={currentPage === 1}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }).map((_, index) => {
+                    const pageNumber = index + 1;
+                    return (
+                      <PaginationItem key={pageNumber}>
+                        <PaginationLink
+                          isActive={pageNumber === currentPage}
+                          onClick={() => setPage(pageNumber)}
+                        >
+                          {pageNumber}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  <PaginationItem>
+                    <PaginationNext
+                      text="التالي"
+                      onClick={() =>
+                        setPage((current) => Math.min(totalPages, current + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            ) : null}
+          </>
+        )}
+      </div>
     </div>
   );
 }
