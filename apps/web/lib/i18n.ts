@@ -28,6 +28,36 @@ export function contractTypeLabel(type: string | null | undefined): string {
   return CONTRACT_TYPE_LABELS[type] ?? type;
 }
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  APPLE_PAY: "أبل باي",
+  MADA: "مدى",
+  VISA_MC: "فيزا/ماستركارد",
+  TABBY: "تابي",
+  TAMARA: "تمارا",
+  BANK_TRANSFER: "تحويل بنكي",
+  CARD: "بطاقة",
+  CASH: "نقدي",
+};
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  PENDING: "معلقة",
+  COMPLETED: "مكتملة",
+  PAID: "مدفوعة",
+  FAILED: "فشلت",
+  REFUNDED: "مستردة",
+  CANCELLED: "ملغاة",
+};
+
+const CLIENT_ACTIVITY_LABELS: Record<string, string> = {
+  CLIENT_CREATED: "إنشاء العميل",
+  CLIENT_UPDATED: "تحديث بيانات العميل",
+  PROFILE_UPDATED: "تحديث الملف التعريفي",
+  CONTRACT_CREATED: "إنشاء عقد",
+  PROJECT_CREATED: "إنشاء مشروع",
+  INVOICE_CREATED: "إصدار فاتورة",
+  PAYMENT_RECEIVED: "استلام دفعة",
+};
+
 const INVOICE_STATUS_LABELS: Record<string, string> = {
   DUE: "مستحقة",
   SENT: "مرسلة",
@@ -55,6 +85,23 @@ export function contractStatusLabel(status: string | null | undefined): string {
 export function invoiceStatusLabel(status: string | null | undefined): string {
   if (!status) return "غير محددة";
   return INVOICE_STATUS_LABELS[status] ?? status;
+}
+
+export function paymentMethodLabel(method: string | null | undefined): string {
+  if (!method) return "غير محددة";
+  return PAYMENT_METHOD_LABELS[method] ?? "طريقة دفع أخرى";
+}
+
+export function paymentStatusLabel(status: string | null | undefined): string {
+  if (!status) return "غير محددة";
+  return PAYMENT_STATUS_LABELS[status] ?? "حالة دفع أخرى";
+}
+
+export function clientActivityLabel(
+  eventType: string | null | undefined,
+): string {
+  if (!eventType) return "تحديث على العميل";
+  return CLIENT_ACTIVITY_LABELS[eventType] ?? "تحديث على العميل";
 }
 
 export function paymentPlanTriggerLabel(
@@ -296,6 +343,28 @@ const SALES_WORKFLOW_FIELD_MESSAGES: Record<string, string> = {
   INVALID_REQUEST_ID: "الطلب المرتبط غير صحيح.",
   INVALID_PROPOSAL_ID: "العرض المرتبط غير صحيح.",
 };
+
+export function clientWorkflowErrorMessage(error: unknown): string {
+  const payload = getApiErrorPayload(error);
+  if (payload.status === 401)
+    return "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.";
+  if (payload.status === 403) return "ليس لديك صلاحية لعرض هذه البيانات.";
+  if (payload.status === "FETCH_ERROR") {
+    return "تعذر الاتصال بالخادم. تحقق من اتصال الشبكة وحاول مرة أخرى.";
+  }
+  return "تعذر تحميل العملاء. يرجى المحاولة مرة أخرى.";
+}
+
+export function clientRelatedErrorMessage(error: unknown): string {
+  const payload = getApiErrorPayload(error);
+  if (payload.status === 401)
+    return "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.";
+  if (payload.status === 403) return "ليس لديك صلاحية لعرض هذه البيانات.";
+  if (payload.status === "FETCH_ERROR") {
+    return "تعذر الاتصال بالخادم. تحقق من اتصال الشبكة وحاول مرة أخرى.";
+  }
+  return "تعذر تحميل هذه البيانات. يرجى المحاولة مرة أخرى.";
+}
 
 export function salesWorkflowErrorMessage(error: unknown): string {
   const payload = getApiErrorPayload(error);

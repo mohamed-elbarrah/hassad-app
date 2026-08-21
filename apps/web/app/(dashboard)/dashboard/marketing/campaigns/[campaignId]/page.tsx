@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
@@ -13,7 +14,6 @@ import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 
-import { FormInputControl } from "@/components/ui/formInputControl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/common/EmptyState";
 
@@ -535,11 +535,7 @@ export default function CampaignDetailPage() {
       {/* ── Metrics Sections ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {metricSections.map((section) => (
-          <Card
-            key={section.title}
-            title={section.title}
-            icon={BarChart3}
-          >
+          <Card key={section.title} title={section.title} icon={BarChart3}>
             <div className="grid grid-cols-2 gap-3">
               {section.metrics.map((metric) => (
                 <MetricCard
@@ -684,7 +680,7 @@ function MetricInput({
         {icon}
         {label}
       </label>
-      <FormInputControl
+      <Input
         type="number"
         min={0}
         value={value}

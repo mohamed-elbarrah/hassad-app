@@ -12,15 +12,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { FormTextareaControl } from "@/components/ui/formTextareaControl";
-import { FormInputControl } from "@/components/ui/formInputControl";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
-  FormSelect,
-  FormSelectTrigger,
-  FormSelectValue,
-  FormSelectContent,
-  FormSelectItem,
-} from "@/components/ui/formSelectControl";
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
@@ -276,7 +276,7 @@ export function PerformanceSection({
                   <TrendingUp className="w-4 h-4 text-muted-foreground" />
                   أفضل الحملات السابقة
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="وش الإعلانات الأكثر نجاحًا وليش نجحت؟"
                   className="min-h-[120px]"
                   {...field}
@@ -294,7 +294,7 @@ export function PerformanceSection({
                   <BarChart3 className="w-4 h-4 text-muted-foreground" />
                   أداء الحملات السابقة
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="مهم ذكر المنصات الإعلانية المستخدمة - نوع المواد الإبداعية (صور – ريل – تصميم اعلاني)، مدة الحملة وتوقيتها, الميزانية المخصصة لها، طريقة قياس النتائج (نقرات، مبيعات، تسجيل،)، النتائج الإيجابية أو السلبية التي خرجتم بها."
                   className="min-h-[120px]"
                   {...field}
@@ -313,22 +313,22 @@ export function PerformanceSection({
                     <Link2 className="w-4 h-4 text-muted-foreground" />
                     الربط
                   </FormLabel>
-                  <FormSelect
+                  <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value || ""}
                     value={field.value || ""}
                   >
-                    <FormSelectTrigger>
-                      <FormSelectValue placeholder="اختر حالة الربط" />
-                    </FormSelectTrigger>
-                    <FormSelectContent>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر حالة الربط" />
+                    </SelectTrigger>
+                    <SelectContent>
                       {TRACKING_OPTIONS.map((opt) => (
-                        <FormSelectItem key={opt.value} value={opt.value}>
+                        <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
-                        </FormSelectItem>
+                        </SelectItem>
                       ))}
-                    </FormSelectContent>
-                  </FormSelect>
+                    </SelectContent>
+                  </Select>
                 </FormItem>
               )}
             />
@@ -342,7 +342,7 @@ export function PerformanceSection({
                     <DollarSign className="w-4 h-4 text-muted-foreground" />
                     الميزانية (شهرياً)
                   </FormLabel>
-                  <FormInputControl
+                  <Input
                     type="number"
                     placeholder="كم ناوي تصرف في الشهر؟"
                     dir="ltr"

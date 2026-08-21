@@ -12,8 +12,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { FormTextareaControl } from "@/components/ui/formTextareaControl";
-import { FormInputControl } from "@/components/ui/formInputControl";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import {
@@ -168,7 +168,7 @@ export function CampaignSection({
                   <Target className="w-4 h-4 text-muted-foreground" />
                   الهدف
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="وش الهدف الأول والثاني من هالحملة؟ وكيف تقيس نجاح حملاتك عادة؟"
                   className="min-h-[80px]"
                   {...field}
@@ -186,7 +186,7 @@ export function CampaignSection({
                   <Megaphone className="w-4 h-4 text-muted-foreground" />
                   تفاصيل الحملة الإعلانية
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="وش بنعلن عنه؟ الحملة لمنتج واحد وإلا مجموعة منتجات؟ إذا مجموعة عطنا أهمها بالترتيب."
                   className="min-h-[120px]"
                   {...field}
@@ -204,7 +204,7 @@ export function CampaignSection({
                   <Gift className="w-4 h-4 text-muted-foreground" />
                   العرض في الحملة
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="وش عرضك القوي؟ وش الحافز والعروض القوية اللي بنصيد فيها العميل؟"
                   className="min-h-[80px]"
                   {...field}
@@ -222,7 +222,7 @@ export function CampaignSection({
                   <ShieldCheck className="w-4 h-4 text-muted-foreground" />
                   الضمانات
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="عندك سياسة إرجاع أو ضمان ذهبي يخلي العميل يشتري وهو مرتاح البال؟"
                   className="min-h-[80px]"
                   {...field}
@@ -240,7 +240,7 @@ export function CampaignSection({
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   المناسبة / الموسم
                 </FormLabel>
-                <FormInputControl
+                <Input
                   placeholder="هل الحملة مرتبطة بموسم أو توقيت معين؟"
                   {...field}
                 />
@@ -257,7 +257,7 @@ export function CampaignSection({
                   <Users className="w-4 h-4 text-muted-foreground" />
                   المنافسون
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="مين منافسينك في السوق؟ عطنا اقوى 3 علامات تجارية منافسة لك"
                   className="min-h-[80px]"
                   {...field}

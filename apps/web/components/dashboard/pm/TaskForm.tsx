@@ -1,5 +1,9 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+
+import { Textarea } from "@/components/ui/textarea";
+
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,8 +20,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { FormInputControl } from "@/components/ui/formInputControl";
-import { FormTextareaControl } from "@/components/ui/formTextareaControl";
 import { Select, SelectItem } from "@/components/design-system/Select";
 import { useCreateTaskMutation } from "@/features/tasks/tasksApi";
 import { useSearchTaskAssigneesQuery } from "@/features/users/usersApi";
@@ -332,10 +334,7 @@ export function TaskForm({
                 <FormItem>
                   <FormLabel>عنوان المهمة</FormLabel>
                   <FormControl>
-                    <FormInputControl
-                      placeholder="أدخل عنوان المهمة"
-                      {...field}
-                    />
+                    <Input placeholder="أدخل عنوان المهمة" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -413,7 +412,7 @@ export function TaskForm({
                 <FormItem>
                   <FormLabel>تاريخ الاستحقاق</FormLabel>
                   <FormControl>
-                    <FormInputControl type="date" {...field} />
+                    <Input type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -427,7 +426,7 @@ export function TaskForm({
                 <FormItem>
                   <FormLabel>الوصف (اختياري)</FormLabel>
                   <FormControl>
-                    <FormTextareaControl
+                    <Textarea
                       placeholder="وصف المهمة"
                       rows={3}
                       {...field}

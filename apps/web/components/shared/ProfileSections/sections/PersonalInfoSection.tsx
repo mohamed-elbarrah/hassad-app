@@ -34,7 +34,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { FormInputControl } from "@/components/ui/formInputControl";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { User, Mail, Phone } from "lucide-react";
@@ -157,10 +157,7 @@ export function PersonalInfoSection({
           {user?.email && (
             <p className="text-xs text-muted-foreground pt-2">
               لتعديل بياناتك الشخصية، انتقل إلى{" "}
-              <a
-                href="/portal/account"
-                className="text-primary underline"
-              >
+              <a href="/portal/account" className="text-primary underline">
                 الحساب الشخصي
               </a>
               .
@@ -198,7 +195,7 @@ export function PersonalInfoSection({
                   الاسم
                   <span className="text-danger-500">*</span>
                 </FormLabel>
-                <FormInputControl placeholder="اسمك الكامل" {...field} />
+                <Input placeholder="اسمك الكامل" {...field} />
                 <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
@@ -213,7 +210,7 @@ export function PersonalInfoSection({
                   <Mail className="w-4 h-4 text-muted-foreground" />
                   البريد الإلكتروني
                 </FormLabel>
-                <FormInputControl
+                <Input
                   placeholder="your@email.com"
                   type="email"
                   dir="ltr"
@@ -234,7 +231,7 @@ export function PersonalInfoSection({
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   رقم التواصل (واتساب)
                 </FormLabel>
-                <FormInputControl
+                <Input
                   placeholder="+9665XXXXXXXX"
                   type="tel"
                   dir="ltr"

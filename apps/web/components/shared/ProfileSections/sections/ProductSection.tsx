@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { FormTextareaControl } from "@/components/ui/formTextareaControl";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
 import { X, Plus, Check, Ban } from "lucide-react";
@@ -213,7 +213,7 @@ export function ProductSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm">قصة المنتج أو الخدمة</FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="قصة البراند علمنا عن البداية و كواليس التصنيع أو تجارب عملائك الأوائل عشان نصنع منها قصة تبيع."
                   className="min-h-[120px]"
                   {...field}
@@ -230,7 +230,7 @@ export function ProductSection({
                 <FormLabel className="text-sm">
                   وصف تفصيلي للمنتج أو الخدمة
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="وش سالفة منتجك / خدمتك؟ اشرح لنا بالتفصيل وش تقدم تخيل العميل واقف قدامك وودك تقنعه"
                   className="min-h-[120px]"
                   {...field}
@@ -245,7 +245,7 @@ export function ProductSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm">القيمة المضافة</FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="وش ميزتك الجوهرية؟ وش الشيء الرهيب اللي يخليك تفرق عن كل الموجودين بالسوق؟"
                   className="min-h-[80px]"
                   {...field}
@@ -260,7 +260,7 @@ export function ProductSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm">المزايا</FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="ليه العميل يختارك؟ وش أهم النقاط اللي تخلي العميل يشتري بدون ما يفكر؟"
                   className="min-h-[80px]"
                   {...field}
@@ -362,7 +362,7 @@ export function ProductSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm">المحتوى</FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="كيف لازم يكون المحتوى؟ حدد اهم النقاط اللي نركز عليها"
                   className="min-h-[80px]"
                   {...field}

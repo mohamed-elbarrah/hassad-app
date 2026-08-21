@@ -14,25 +14,15 @@ import {
 import {
   BUSINESS_TYPE_AR,
   CLIENT_STATUS_AR,
-  CONTRACT_STATUS_AR,
-  INVOICE_STATUS_AR,
   PROJECT_STATUS_AR,
   PROPOSAL_STATUS_AR,
   ClientStatus,
-  type Client,
   type ClientProfile,
 } from "@hassad/shared";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import {
   Card,
   CardContent,
@@ -57,7 +47,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatCurrency, formatDateTime, formatPortalDate, formatNumber } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDateTime,
+  formatPortalDate,
+  formatNumber,
+} from "@/lib/format";
+import {
+  clientActivityLabel,
+  contractStatusLabel,
+  invoiceStatusLabel,
+  paymentMethodLabel,
+  paymentStatusLabel,
+} from "@/lib/i18n";
 
 export type ClientDetailMode =
   | "admin"
@@ -109,7 +111,7 @@ export interface ClientStatItem {
   label: string;
   value: string;
   hint?: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 }
 
 export interface ClientDetailTab {
@@ -204,9 +206,12 @@ function normalizeText(value: unknown) {
   return String(value);
 }
 
-function normalizeList(values: Array<string | null | undefined> | null | undefined) {
+function normalizeList(
+  values: Array<string | null | undefined> | null | undefined,
+) {
   return (values ?? []).filter(
-    (value): value is string => typeof value === "string" && value.trim().length > 0,
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
   );
 }
 
@@ -275,24 +280,20 @@ function ClientRelatedEmpty({
   );
 }
 
-function InfoField({
-  label,
-  value,
-  dir,
-}: ClientInfoFieldItem) {
+function InfoField({ label, value, dir }: ClientInfoFieldItem) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium" dir={dir}>
+    <div className="flex min-w-0 items-start justify-between gap-4 border-b border-border/60 py-3 last:border-b-0">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 truncate text-left text-sm font-medium" dir={dir}>
         {value || "—"}
-      </p>
+      </dd>
     </div>
   );
 }
 
 function TagField({ label, values }: { label: string; values: string[] }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4">
+    <div className="flex flex-col gap-3 border-b border-border/60 py-3 last:border-b-0">
       <p className="text-sm text-muted-foreground">{label}</p>
       {values.length > 0 ? (
         <div className="flex flex-wrap gap-2">
@@ -345,7 +346,14 @@ function getVisibleBusinessSections(mode: ClientDetailMode) {
     case "finance":
       return ["identity", "performance", "visual"];
     case "internal":
-      return ["identity", "product", "audience", "journey", "campaign", "visual"];
+      return [
+        "identity",
+        "product",
+        "audience",
+        "journey",
+        "campaign",
+        "visual",
+      ];
     default:
       return [
         "identity",
@@ -411,7 +419,12 @@ export function buildClientPersonalFields(
     },
     {
       label: "الوصول للبوابة",
-      value: client.hasPortalAccess === undefined ? null : client.hasPortalAccess ? "مفعل" : "غير مفعل",
+      value:
+        client.hasPortalAccess === undefined
+          ? null
+          : client.hasPortalAccess
+            ? "مفعل"
+            : "غير مفعل",
     },
     {
       label: "آخر دخول",
@@ -500,15 +513,24 @@ export function buildClientBusinessSections(
           <InfoField
             label="نوع النشاط"
             value={
-              BUSINESS_TYPE_AR[client.businessType as keyof typeof BUSINESS_TYPE_AR] ||
-              client.businessType
+              BUSINESS_TYPE_AR[
+                client.businessType as keyof typeof BUSINESS_TYPE_AR
+              ] || client.businessType
             }
           />
           <InfoField label="المجال" value={industry} />
-          <InfoField label="الموقع الإلكتروني" value={normalizeText(profile?.website)} dir="ltr" />
+          <InfoField
+            label="الموقع الإلكتروني"
+            value={normalizeText(profile?.website)}
+            dir="ltr"
+          />
           <InfoField
             label="تاريخ الإنشاء"
-            value={client.createdAt ? formatPortalDate(client.createdAt) || "—" : null}
+            value={
+              client.createdAt
+                ? formatPortalDate(client.createdAt) || "—"
+                : null
+            }
           />
         </div>
       ),
@@ -524,7 +546,10 @@ export function buildClientBusinessSections(
       description: "وصف العرض التجاري والقيمة التي يقدمها العميل.",
       content: (
         <div className="grid gap-4 md:grid-cols-2">
-          <InfoField label="قصة المنتج" value={normalizeText(profile?.productInfo?.productStory)} />
+          <InfoField
+            label="قصة المنتج"
+            value={normalizeText(profile?.productInfo?.productStory)}
+          />
           <InfoField
             label="الوصف التفصيلي"
             value={normalizeText(profile?.productInfo?.detailedDescription)}
@@ -533,12 +558,18 @@ export function buildClientBusinessSections(
             label="القيمة المقترحة"
             value={normalizeText(profile?.productInfo?.valueProposition)}
           />
-          <InfoField label="المزايا" value={normalizeText(profile?.productInfo?.advantages)} />
+          <InfoField
+            label="المزايا"
+            value={normalizeText(profile?.productInfo?.advantages)}
+          />
           <InfoField
             label="اتجاه المحتوى"
             value={normalizeText(profile?.productInfo?.contentDirection)}
           />
-          <TagField label="الفوائد الأساسية" values={normalizeList(profile?.productInfo?.benefits)} />
+          <TagField
+            label="الفوائد الأساسية"
+            values={normalizeList(profile?.productInfo?.benefits)}
+          />
         </div>
       ),
       hasContent:
@@ -559,7 +590,10 @@ export function buildClientBusinessSections(
             label="تحليل الجمهور"
             value={normalizeText(profile?.audienceInfo?.customerAnalysis)}
           />
-          <InfoField label="نبرة الصوت" value={normalizeText(profile?.brandVoice?.toneOfVoice)} />
+          <InfoField
+            label="نبرة الصوت"
+            value={normalizeText(profile?.brandVoice?.toneOfVoice)}
+          />
           <InfoField
             label="الحدود التحريرية"
             value={normalizeText(profile?.brandVoice?.boundaries)}
@@ -596,7 +630,10 @@ export function buildClientBusinessSections(
       description: "طريقة الطلب والمتابعة بعد التواصل أو الشراء.",
       content: (
         <div className="grid gap-4 md:grid-cols-2">
-          <TagField label="طرق الطلب" values={normalizeList(profile?.customerJourney?.orderMethods)} />
+          <TagField
+            label="طرق الطلب"
+            values={normalizeList(profile?.customerJourney?.orderMethods)}
+          />
           <InfoField
             label="أدوات المتابعة"
             value={normalizeText(profile?.customerJourney?.followUpTools)}
@@ -613,15 +650,30 @@ export function buildClientBusinessSections(
       description: "أهداف الحملة والعرض والاعتبارات التسويقية المحيطة بها.",
       content: (
         <div className="grid gap-4 md:grid-cols-2">
-          <InfoField label="هدف الحملة" value={normalizeText(profile?.campaignInfo?.campaignGoal)} />
+          <InfoField
+            label="هدف الحملة"
+            value={normalizeText(profile?.campaignInfo?.campaignGoal)}
+          />
           <InfoField
             label="تفاصيل الحملة"
             value={normalizeText(profile?.campaignInfo?.campaignDetails)}
           />
-          <InfoField label="العرض" value={normalizeText(profile?.campaignInfo?.campaignOffer)} />
-          <InfoField label="الضمانات" value={normalizeText(profile?.campaignInfo?.guarantees)} />
-          <InfoField label="الموسم" value={normalizeText(profile?.campaignInfo?.campaignSeason)} />
-          <InfoField label="المنافسون" value={normalizeText(profile?.campaignInfo?.competitors)} />
+          <InfoField
+            label="العرض"
+            value={normalizeText(profile?.campaignInfo?.campaignOffer)}
+          />
+          <InfoField
+            label="الضمانات"
+            value={normalizeText(profile?.campaignInfo?.guarantees)}
+          />
+          <InfoField
+            label="الموسم"
+            value={normalizeText(profile?.campaignInfo?.campaignSeason)}
+          />
+          <InfoField
+            label="المنافسون"
+            value={normalizeText(profile?.campaignInfo?.competitors)}
+          />
         </div>
       ),
       hasContent:
@@ -638,11 +690,26 @@ export function buildClientBusinessSections(
       description: "الأداء السابق، التتبع، والميزانية المتاحة للتنفيذ.",
       content: (
         <div className="grid gap-4 md:grid-cols-2">
-          <InfoField label="أفضل الحملات" value={normalizeText(profile?.pastPerformance?.bestCampaigns)} />
-          <InfoField label="الأداء السابق" value={normalizeText(profile?.pastPerformance?.pastPerformance)} />
-          <InfoField label="إعداد التتبع" value={normalizeText(profile?.pastPerformance?.trackingSetup)} />
-          <InfoField label="الميزانية" value={budgetRange ? formatCurrency(budgetRange) : null} />
-          <TagField label="تقارير سابقة" values={normalizeList(profile?.budgetInfo?.previousReports)} />
+          <InfoField
+            label="أفضل الحملات"
+            value={normalizeText(profile?.pastPerformance?.bestCampaigns)}
+          />
+          <InfoField
+            label="الأداء السابق"
+            value={normalizeText(profile?.pastPerformance?.pastPerformance)}
+          />
+          <InfoField
+            label="إعداد التتبع"
+            value={normalizeText(profile?.pastPerformance?.trackingSetup)}
+          />
+          <InfoField
+            label="الميزانية"
+            value={budgetRange ? formatCurrency(budgetRange) : null}
+          />
+          <TagField
+            label="تقارير سابقة"
+            values={normalizeList(profile?.budgetInfo?.previousReports)}
+          />
         </div>
       ),
       hasContent:
@@ -670,16 +737,22 @@ export function buildClientBusinessSections(
           />
           <InfoField
             label="دليل الهوية"
-            value={normalizeText(profile?.visualIdentityInfo?.brandAssets?.guidelinesUrl)}
+            value={normalizeText(
+              profile?.visualIdentityInfo?.brandAssets?.guidelinesUrl,
+            )}
             dir="ltr"
           />
           <TagField
             label="ألوان العلامة"
-            values={normalizeList(profile?.visualIdentityInfo?.brandAssets?.brandColors)}
+            values={normalizeList(
+              profile?.visualIdentityInfo?.brandAssets?.brandColors,
+            )}
           />
           <TagField
             label="الخطوط"
-            values={normalizeList(profile?.visualIdentityInfo?.brandAssets?.fonts)}
+            values={normalizeList(
+              profile?.visualIdentityInfo?.brandAssets?.fonts,
+            )}
           />
           <TagField
             label="التوجه البصري"
@@ -785,51 +858,22 @@ export function ClientPageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <Card>
-      <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex flex-col gap-3">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/dashboard">الرئيسية</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href={backHref}>{backLabel}</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>{companyName}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Building2 />
-            </div>
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl">{title}</CardTitle>
-              <CardDescription>{description}</CardDescription>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
+    <PageHeader
+      title={title}
+      description={`${description} — ${companyName}`}
+      icon={Building2}
+      actions={
+        <>
           <Button variant="outline" size="sm" asChild>
             <Link href={backHref}>
               <ArrowLeft data-icon="inline-start" />
-              العودة
+              {backLabel}
             </Link>
           </Button>
           {actions}
-        </div>
-      </CardHeader>
-    </Card>
+        </>
+      }
+    />
   );
 }
 
@@ -851,7 +895,10 @@ export function ClientSummaryCard({
     <Card>
       <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-start">
         <Avatar className="size-20">
-          <AvatarImage src={client.user?.avatarUrl ?? undefined} alt={client.companyName} />
+          <AvatarImage
+            src={client.user?.avatarUrl ?? undefined}
+            alt={client.companyName}
+          />
           <AvatarFallback className="text-lg font-semibold">
             {getInitials(client.companyName)}
           </AvatarFallback>
@@ -859,13 +906,19 @@ export function ClientSummaryCard({
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-2xl font-semibold tracking-tight">{client.companyName}</h2>
+            <h2 className="truncate text-2xl font-semibold tracking-tight">
+              {client.companyName}
+            </h2>
             {client.status ? (
               <Badge variant={statusVariant(client.status)}>
-                {CLIENT_STATUS_AR[client.status as keyof typeof CLIENT_STATUS_AR] || client.status}
+                {CLIENT_STATUS_AR[
+                  client.status as keyof typeof CLIENT_STATUS_AR
+                ] || client.status}
               </Badge>
             ) : null}
-            {client.hasPortalAccess ? <Badge variant="outline">بوابة العميل مفعلة</Badge> : null}
+            {client.hasPortalAccess ? (
+              <Badge variant="outline">بوابة العميل مفعلة</Badge>
+            ) : null}
           </div>
 
           <p className="text-sm text-muted-foreground">
@@ -884,22 +937,23 @@ export function ClientSummaryCard({
 
 export function ClientStatsGrid({ stats }: { stats: ClientStatItem[] }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <dl className="grid gap-x-6 md:grid-cols-2">
       {stats.map((item) => (
-        <Card key={item.label}>
-          <CardContent className="flex items-start justify-between gap-4 p-5">
-            <div className="flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">{item.label}</span>
-              <span className="text-lg font-semibold">{item.value}</span>
-              {item.hint ? <span className="text-sm text-muted-foreground">{item.hint}</span> : null}
-            </div>
-            <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-              <item.icon />
-            </div>
-          </CardContent>
-        </Card>
+        <div
+          key={item.label}
+          className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3 last:border-b-0"
+        >
+          <item.icon />
+          <div className="flex min-w-0 flex-col gap-1">
+            <dt className="text-sm text-muted-foreground">{item.label}</dt>
+            <dd className="text-lg font-semibold">{item.value}</dd>
+            {item.hint ? (
+              <dd className="text-sm text-muted-foreground">{item.hint}</dd>
+            ) : null}
+          </div>
+        </div>
       ))}
-    </div>
+    </dl>
   );
 }
 
@@ -929,7 +983,9 @@ export function buildDefaultClientStats(
       },
       {
         label: "آخر تحديث",
-        value: client.updatedAt ? formatPortalDate(client.updatedAt) || "—" : "—",
+        value: client.updatedAt
+          ? formatPortalDate(client.updatedAt) || "—"
+          : "—",
         hint: client.manager?.name || "بدون مدير حساب",
         icon: CalendarDays,
       },
@@ -1002,7 +1058,9 @@ export function ClientProfileCard({
 
           <TabsContent value="personal" className="mt-0">
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">بيانات التواصل والحساب</p>
+              <p className="text-sm text-muted-foreground">
+                بيانات التواصل والحساب
+              </p>
               <div className="grid gap-4 md:grid-cols-2">
                 {personalFields.map((field) => (
                   <InfoField key={field.label} {...field} />
@@ -1013,7 +1071,9 @@ export function ClientProfileCard({
 
           <TabsContent value="business" className="mt-0">
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">ملف النشاط والتسويق</p>
+              <p className="text-sm text-muted-foreground">
+                ملف النشاط والتسويق
+              </p>
               {businessSections.map((section) => (
                 <SectionCard
                   key={section.key}
@@ -1053,7 +1113,9 @@ export function ClientRecordsTabs({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Tabs defaultValue={defaultValue ?? visibleTabs[0]?.value} dir="rtl">
-          <TabsList className={`grid h-auto w-full justify-start rounded-none border-b bg-transparent p-0 ${visibleTabs.length === 5 ? "grid-cols-2 md:grid-cols-5" : visibleTabs.length === 4 ? "grid-cols-2 md:grid-cols-4" : visibleTabs.length === 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+          <TabsList
+            className={`grid h-auto w-full justify-start rounded-none border-b bg-transparent p-0 ${visibleTabs.length === 5 ? "grid-cols-2 md:grid-cols-5" : visibleTabs.length === 4 ? "grid-cols-2 md:grid-cols-4" : visibleTabs.length === 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}
+          >
             {visibleTabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
@@ -1063,7 +1125,9 @@ export function ClientRecordsTabs({
                 <span className="flex items-center gap-2">
                   <span>{tab.label}</span>
                   {typeof tab.count === "number" ? (
-                    <span className="text-xs text-muted-foreground">{formatNumber(tab.count)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatNumber(tab.count)}
+                    </span>
                   ) : null}
                 </span>
               </TabsTrigger>
@@ -1093,7 +1157,9 @@ export function ClientProjectsTable({
   emptyDescription?: string;
 }) {
   if (projects.length === 0) {
-    return <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />;
+    return (
+      <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />
+    );
   }
 
   return (
@@ -1105,7 +1171,9 @@ export function ClientProjectsTable({
             <TableHead>الحالة</TableHead>
             <TableHead>التقدم</TableHead>
             <TableHead>مدير المشروع</TableHead>
-            {hrefBuilder ? <TableHead className="text-left">التفاصيل</TableHead> : null}
+            {hrefBuilder ? (
+              <TableHead className="text-left">التفاصيل</TableHead>
+            ) : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1115,17 +1183,24 @@ export function ClientProjectsTable({
                 <div className="flex flex-col gap-1">
                   <span className="font-medium">{project.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {formatPortalDate(project.startDate) || "—"} إلى {formatPortalDate(project.endDate) || "—"}
+                    {formatPortalDate(project.startDate) || "—"} إلى{" "}
+                    {formatPortalDate(project.endDate) || "—"}
                   </span>
                 </div>
               </TableCell>
               <TableCell>
                 <Badge variant={relatedStatusVariant(project.status)}>
-                  {PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] || project.status}
+                  {PROJECT_STATUS_AR[
+                    project.status as keyof typeof PROJECT_STATUS_AR
+                  ] || project.status}
                 </Badge>
               </TableCell>
-              <TableCell>{formatNumber(project.completionPercentage)}%</TableCell>
-              <TableCell>{project.pmName || project.manager?.name || "—"}</TableCell>
+              <TableCell>
+                {formatNumber(project.completionPercentage)}%
+              </TableCell>
+              <TableCell>
+                {project.pmName || project.manager?.name || "—"}
+              </TableCell>
               {hrefBuilder ? (
                 <TableCell className="text-left">
                   <Button variant="ghost" size="sm" asChild>
@@ -1153,7 +1228,9 @@ export function ClientContractsTable({
   emptyDescription?: string;
 }) {
   if (contracts.length === 0) {
-    return <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />;
+    return (
+      <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />
+    );
   }
 
   return (
@@ -1165,7 +1242,9 @@ export function ClientContractsTable({
             <TableHead>الحالة</TableHead>
             <TableHead>القيمة</TableHead>
             <TableHead>الفترة</TableHead>
-            {hrefBuilder ? <TableHead className="text-left">التفاصيل</TableHead> : null}
+            {hrefBuilder ? (
+              <TableHead className="text-left">التفاصيل</TableHead>
+            ) : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1181,12 +1260,13 @@ export function ClientContractsTable({
               </TableCell>
               <TableCell>
                 <Badge variant={relatedStatusVariant(contract.status)}>
-                  {CONTRACT_STATUS_AR[contract.status as keyof typeof CONTRACT_STATUS_AR] || contract.status}
+                  {contractStatusLabel(contract.status)}
                 </Badge>
               </TableCell>
               <TableCell>{formatCurrency(contract.totalValue)}</TableCell>
               <TableCell>
-                {formatPortalDate(contract.startDate) || "—"} إلى {formatPortalDate(contract.endDate) || "—"}
+                {formatPortalDate(contract.startDate) || "—"} إلى{" "}
+                {formatPortalDate(contract.endDate) || "—"}
               </TableCell>
               {hrefBuilder ? (
                 <TableCell className="text-left">
@@ -1215,7 +1295,9 @@ export function ClientInvoicesTable({
   emptyDescription?: string;
 }) {
   if (invoices.length === 0) {
-    return <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />;
+    return (
+      <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />
+    );
   }
 
   return (
@@ -1227,7 +1309,9 @@ export function ClientInvoicesTable({
             <TableHead>الحالة</TableHead>
             <TableHead>القيمة</TableHead>
             <TableHead>الاستحقاق</TableHead>
-            {hrefBuilder ? <TableHead className="text-left">التفاصيل</TableHead> : null}
+            {hrefBuilder ? (
+              <TableHead className="text-left">التفاصيل</TableHead>
+            ) : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1239,13 +1323,15 @@ export function ClientInvoicesTable({
                   <span className="text-xs text-muted-foreground">
                     {invoice.remainingAmount !== undefined
                       ? `المتبقي ${formatCurrency(invoice.remainingAmount)}`
-                      : formatPortalDate(invoice.issueDate || invoice.createdAt) || "—"}
+                      : formatPortalDate(
+                          invoice.issueDate || invoice.createdAt,
+                        ) || "—"}
                   </span>
                 </div>
               </TableCell>
               <TableCell>
                 <Badge variant={relatedStatusVariant(invoice.status)}>
-                  {INVOICE_STATUS_AR[invoice.status] || invoice.status}
+                  {invoiceStatusLabel(invoice.status)}
                 </Badge>
               </TableCell>
               <TableCell>{formatCurrency(invoice.amount)}</TableCell>
@@ -1275,7 +1361,9 @@ export function ClientPaymentsTable({
   emptyDescription?: string;
 }) {
   if (payments.length === 0) {
-    return <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />;
+    return (
+      <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />
+    );
   }
 
   return (
@@ -1294,9 +1382,11 @@ export function ClientPaymentsTable({
           {payments.map((payment) => (
             <TableRow key={payment.id}>
               <TableCell>{formatCurrency(payment.amount)}</TableCell>
-              <TableCell>{payment.method}</TableCell>
+              <TableCell>{paymentMethodLabel(payment.method)}</TableCell>
               <TableCell>
-                <Badge variant={relatedStatusVariant(payment.status)}>{payment.status}</Badge>
+                <Badge variant={relatedStatusVariant(payment.status)}>
+                  {paymentStatusLabel(payment.status)}
+                </Badge>
               </TableCell>
               <TableCell>{payment.invoiceNumber || "—"}</TableCell>
               <TableCell>{formatDateTime(payment.createdAt)}</TableCell>
@@ -1332,7 +1422,9 @@ export function ClientProposalsTable({
   }
 
   if (proposals.length === 0) {
-    return <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />;
+    return (
+      <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />
+    );
   }
 
   return (
@@ -1344,7 +1436,9 @@ export function ClientProposalsTable({
             <TableHead>الحالة</TableHead>
             <TableHead>القيمة</TableHead>
             <TableHead>المنشئ</TableHead>
-            {hrefBuilder ? <TableHead className="text-left">التفاصيل</TableHead> : null}
+            {hrefBuilder ? (
+              <TableHead className="text-left">التفاصيل</TableHead>
+            ) : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1360,7 +1454,9 @@ export function ClientProposalsTable({
               </TableCell>
               <TableCell>
                 <Badge variant={relatedStatusVariant(proposal.status)}>
-                  {PROPOSAL_STATUS_AR[proposal.status as keyof typeof PROPOSAL_STATUS_AR] || proposal.status}
+                  {PROPOSAL_STATUS_AR[
+                    proposal.status as keyof typeof PROPOSAL_STATUS_AR
+                  ] || proposal.status}
                 </Badge>
               </TableCell>
               <TableCell>{formatCurrency(proposal.totalPrice)}</TableCell>
@@ -1390,7 +1486,9 @@ export function ClientHistoryTable({
   emptyDescription?: string;
 }) {
   if (history.length === 0) {
-    return <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />;
+    return (
+      <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />
+    );
   }
 
   return (
@@ -1408,7 +1506,9 @@ export function ClientHistoryTable({
           {history.map((item) => (
             <TableRow key={item.id}>
               <TableCell>
-                <Badge variant="outline">{item.eventType.replaceAll("_", " ")}</Badge>
+                <Badge variant="outline">
+                  {clientActivityLabel(item.eventType)}
+                </Badge>
               </TableCell>
               <TableCell>{item.description || "—"}</TableCell>
               <TableCell>{item.userName || "—"}</TableCell>

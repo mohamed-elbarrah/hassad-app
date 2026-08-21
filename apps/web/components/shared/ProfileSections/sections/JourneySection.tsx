@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { FormTextareaControl } from "@/components/ui/formTextareaControl";
+import { Textarea } from "@/components/ui/textarea";
 
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { ShoppingCart, ClipboardList } from "lucide-react";
@@ -207,7 +207,7 @@ export function JourneySection({
                   <ClipboardList className="w-4 h-4 text-muted-foreground" />
                   أدوات المتابعة
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="هل عندكم نظام يتابع السلات المتروكة أو العملاء المترددين؟"
                   className="min-h-[80px]"
                   {...field}

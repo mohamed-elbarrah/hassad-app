@@ -23,14 +23,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { FormInputControl } from "@/components/ui/formInputControl";
+import { Input } from "@/components/ui/input";
 import {
-  FormSelect,
-  FormSelectTrigger,
-  FormSelectValue,
-  FormSelectContent,
-  FormSelectItem,
-} from "@/components/ui/formSelectControl";
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { Building2, Briefcase } from "lucide-react";
 import { z } from "zod";
@@ -167,7 +167,7 @@ export function CommunicationSection({
                   اسم النشاط
                   <span className="text-danger-500">*</span>
                 </FormLabel>
-                <FormInputControl placeholder="اسم النشاط" {...field} />
+                <Input placeholder="اسم النشاط" {...field} />
                 <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
@@ -183,22 +183,22 @@ export function CommunicationSection({
                   مجال النشاط
                   <span className="text-danger-500">*</span>
                 </FormLabel>
-                <FormSelect
+                <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value || ""}
                   value={field.value || ""}
                 >
-                  <FormSelectTrigger>
-                    <FormSelectValue placeholder="اختر مجال النشاط" />
-                  </FormSelectTrigger>
-                  <FormSelectContent>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر مجال النشاط" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {INDUSTRIES.map((ind) => (
-                      <FormSelectItem key={ind} value={ind}>
+                      <SelectItem key={ind} value={ind}>
                         {ind}
-                      </FormSelectItem>
+                      </SelectItem>
                     ))}
-                  </FormSelectContent>
-                </FormSelect>
+                  </SelectContent>
+                </Select>
                 <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}

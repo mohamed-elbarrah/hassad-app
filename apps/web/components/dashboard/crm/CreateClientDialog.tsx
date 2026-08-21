@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -13,14 +15,13 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { FormInputControl } from "@/components/ui/formInputControl";
 import {
-  FormSelect,
-  FormSelectContent,
-  FormSelectItem,
-  FormSelectTrigger,
-  FormSelectValue,
-} from "@/components/ui/formSelectControl";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateClientMutation } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { useAppSelector } from "@/lib/hooks";
@@ -101,10 +102,7 @@ export function CreateClientModal({ open, onOpenChange }: Props) {
       </div>
 
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-5"
-        >
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <div className="border border-neutral-200 rounded-2xl p-5 space-y-4 bg-natural-0">
             <p className="text-[15px] font-bold text-natural-100 flex items-center gap-2">
               <Building2 className="h-4 w-4 text-secondary-500" />
@@ -120,10 +118,7 @@ export function CreateClientModal({ open, onOpenChange }: Props) {
                     اسم الشركة <span className="text-danger-500">*</span>
                   </label>
                   <FormControl>
-                    <FormInputControl
-                      placeholder="مثال: شركة النجوم"
-                      {...field}
-                    />
+                    <Input placeholder="مثال: شركة النجوم" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -139,10 +134,7 @@ export function CreateClientModal({ open, onOpenChange }: Props) {
                     اسم جهة الاتصال <span className="text-danger-500">*</span>
                   </label>
                   <FormControl>
-                    <FormInputControl
-                      placeholder="الاسم الكامل للمسؤول"
-                      {...field}
-                    />
+                    <Input placeholder="الاسم الكامل للمسؤول" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -158,7 +150,7 @@ export function CreateClientModal({ open, onOpenChange }: Props) {
                     رقم الواتساب <span className="text-danger-500">*</span>
                   </label>
                   <FormControl>
-                    <FormInputControl
+                    <Input
                       dir="ltr"
                       placeholder="+966 5x xxx xxxx"
                       {...field}
@@ -181,7 +173,7 @@ export function CreateClientModal({ open, onOpenChange }: Props) {
                     </span>
                   </label>
                   <FormControl>
-                    <FormInputControl
+                    <Input
                       dir="ltr"
                       type="email"
                       placeholder="email@example.com"
@@ -213,10 +205,7 @@ export function CreateClientModal({ open, onOpenChange }: Props) {
                     </span>
                   </label>
                   <FormControl>
-                    <FormInputControl
-                      placeholder="الاسم التجاري المعروف به"
-                      {...field}
-                    />
+                    <Input placeholder="الاسم التجاري المعروف به" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -231,25 +220,22 @@ export function CreateClientModal({ open, onOpenChange }: Props) {
                   <label className="text-[13px] font-bold text-natural-100 block">
                     نوع النشاط <span className="text-danger-500">*</span>
                   </label>
-                  <FormSelect
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <FormSelectTrigger>
-                        <FormSelectValue placeholder="اختر النوع" />
-                      </FormSelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر النوع" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormSelectContent>
+                    <SelectContent>
                       {(Object.values(BusinessType) as BusinessType[]).map(
                         (type) => (
-                          <FormSelectItem key={type} value={type}>
+                          <SelectItem key={type} value={type}>
                             {BUSINESS_TYPE_LABELS[type]}
-                          </FormSelectItem>
+                          </SelectItem>
                         ),
                       )}
-                    </FormSelectContent>
-                  </FormSelect>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -267,28 +253,26 @@ export function CreateClientModal({ open, onOpenChange }: Props) {
                         (اختياري)
                       </span>
                     </label>
-                    <FormSelect
+                    <Select
                       value={field.value ?? "AUTO"}
                       onValueChange={(value) =>
                         field.onChange(value === "AUTO" ? undefined : value)
                       }
                     >
                       <FormControl>
-                        <FormSelectTrigger>
-                          <FormSelectValue placeholder="تعيين تلقائي" />
-                        </FormSelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue placeholder="تعيين تلقائي" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormSelectContent>
-                        <FormSelectItem value="AUTO">
-                          تعيين تلقائي
-                        </FormSelectItem>
+                      <SelectContent>
+                        <SelectItem value="AUTO">تعيين تلقائي</SelectItem>
                         {(salesUsers?.items ?? []).map((staff) => (
-                          <FormSelectItem key={staff.id} value={staff.id}>
+                          <SelectItem key={staff.id} value={staff.id}>
                             {staff.name}
-                          </FormSelectItem>
+                          </SelectItem>
                         ))}
-                      </FormSelectContent>
-                    </FormSelect>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

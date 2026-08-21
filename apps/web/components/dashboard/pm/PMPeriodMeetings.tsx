@@ -1,7 +1,20 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+
 import { useState } from "react";
-import { Calendar, CheckCircle2, XCircle, Edit3, Plus, Save, Clock, Video, MapPin, Loader2 } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  Edit3,
+  Plus,
+  Save,
+  Clock,
+  Video,
+  MapPin,
+  Loader2,
+} from "lucide-react";
 import { MeetingStatus } from "@hassad/shared";
 import {
   useCreateMeetingMutation,
@@ -11,7 +24,6 @@ import {
 } from "@/features/projects/periodsApi";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { FormInputControl } from "@/components/ui/formInputControl";
 import { cn } from "@/lib/utils";
 
 const inputClass =
@@ -82,7 +94,7 @@ function CreateMeetingForm({
       className="space-y-3 rounded-xl border border-portal-card-border bg-white p-4"
       dir="rtl"
     >
-      <FormInputControl
+      <Input
         placeholder="عنوان الاجتماع"
         value={form.title}
         onChange={(e) => set({ title: e.target.value })}
@@ -99,7 +111,7 @@ function CreateMeetingForm({
         </label>
         <label className="flex flex-col gap-1 text-xs text-portal-note-text">
           المدة (دقيقة)
-          <FormInputControl
+          <Input
             type="number"
             min={1}
             value={form.durationMin}
@@ -108,12 +120,12 @@ function CreateMeetingForm({
         </label>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <FormInputControl
+        <Input
           placeholder="المكان"
           value={form.location}
           onChange={(e) => set({ location: e.target.value })}
         />
-        <FormInputControl
+        <Input
           placeholder="رابط الاجتماع (اختياري)"
           value={form.meetingLink}
           onChange={(e) => set({ meetingLink: e.target.value })}
@@ -218,7 +230,7 @@ function MeetingRow({
         className="space-y-3 rounded-xl border border-secondary-200 bg-secondary-50/30 p-4"
         dir="rtl"
       >
-        <FormInputControl
+        <Input
           value={editForm.title}
           onChange={(e) => setEdit({ title: e.target.value })}
         />
@@ -234,7 +246,7 @@ function MeetingRow({
           </label>
           <label className="flex flex-col gap-1 text-xs text-portal-note-text">
             المدة (دقيقة)
-            <FormInputControl
+            <Input
               type="number"
               min={1}
               value={editForm.durationMin}
@@ -243,12 +255,12 @@ function MeetingRow({
           </label>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <FormInputControl
+          <Input
             placeholder="المكان"
             value={editForm.location}
             onChange={(e) => setEdit({ location: e.target.value })}
           />
-          <FormInputControl
+          <Input
             placeholder="رابط الاجتماع"
             value={editForm.meetingLink}
             onChange={(e) => setEdit({ meetingLink: e.target.value })}

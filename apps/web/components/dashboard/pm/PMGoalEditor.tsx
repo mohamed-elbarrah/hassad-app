@@ -1,10 +1,11 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+
 import { useState } from "react";
 import { Plus, Save, X, Check, Loader2 } from "lucide-react";
 import type { PeriodGoal, PeriodGoalStatus } from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { FormInputControl } from "@/components/ui/formInputControl";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: PeriodGoalStatus; label: string }[] = [
@@ -48,7 +49,7 @@ function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-badge-gray-bg p-3">
       <div className="flex items-start gap-2">
-        <FormInputControl
+        <Input
           placeholder="عنوان الهدف"
           value={goal.title}
           onChange={(e) => onChange({ ...goal, title: e.target.value })}
@@ -63,7 +64,7 @@ function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
         </button>
       </div>
 
-      <FormInputControl
+      <Input
         placeholder="وصف (اختياري)"
         value={goal.description ?? ""}
         onChange={(e) =>
@@ -160,7 +161,7 @@ export function PMGoalEditor({
       </div>
 
       <div className="flex gap-2">
-        <FormInputControl
+        <Input
           placeholder="إضافة هدف جديد..."
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}

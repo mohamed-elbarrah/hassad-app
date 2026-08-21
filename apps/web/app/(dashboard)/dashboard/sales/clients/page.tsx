@@ -2,32 +2,26 @@
 
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowUpLeft,
   Building2,
-  CircleDollarSign,
-  FolderKanban,
   RefreshCw,
   Search,
   ShieldCheck,
-  UserRound,
   Users,
 } from "lucide-react";
-import { BUSINESS_TYPE_AR, CLIENT_STATUS_AR, ClientStatus, type Client } from "@hassad/shared";
+import {
+  BUSINESS_TYPE_AR,
+  CLIENT_STATUS_AR,
+  ClientStatus,
+  type Client,
+} from "@hassad/shared";
 import { useGetClientsQuery } from "@/features/clients/clientsApi";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
   EmptyContent,
@@ -45,8 +39,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -56,25 +57,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  formatCurrency,
-  formatDateTime,
-  formatNumber,
-  formatRelativeTime,
-} from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
+import { clientWorkflowErrorMessage } from "@/lib/i18n";
 
 const PAGE_SIZE = 12;
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
 
 function statusVariant(status: ClientStatus) {
   switch (status) {
@@ -87,58 +73,44 @@ function statusVariant(status: ClientStatus) {
   }
 }
 
-function getStatusHint(client: Client) {
-  if (client.status === ClientStatus.LEAD) {
-    return client.intakeCompleted ? "الملف مكتمل وجاهز للمتابعة" : "يحتاج استكمال التأهيل";
-  }
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
 
+function statusHint(client: Client) {
+  if (client.status === ClientStatus.LEAD) {
+    return client.intakeCompleted
+      ? "الملف مكتمل وجاهز للمتابعة"
+      : "يحتاج استكمال التأهيل";
+  }
   if (client.status === ClientStatus.ACTIVE) {
     return (client.activeProjects ?? 0) > 0
       ? `${formatNumber(client.activeProjects ?? 0)} مشروع نشط`
       : "عميل نشط بدون مشاريع جارية";
   }
-
   return "يحتاج مراجعة وإعادة تنشيط";
 }
 
-function ClientsPageLoading() {
+function companyType(client: Client) {
+  return BUSINESS_TYPE_AR[client.businessType] ?? client.businessType;
+}
+
+function LoadingState() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-9 w-60" />
-            <Skeleton className="h-4 w-full max-w-2xl" />
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </CardHeader>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index}>
-            <CardContent className="flex items-start justify-between gap-4 p-6">
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-              <Skeleton className="size-11 rounded-xl" />
-            </CardContent>
-          </Card>
-        ))}
+    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-9 w-56" />
+        <Skeleton className="h-4 w-full max-w-2xl" />
       </div>
-
       <Card>
-        <CardHeader className="gap-3">
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-4 w-full max-w-xl" />
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-5 p-6">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
             <Skeleton className="h-11 w-full" />
             <Skeleton className="h-11 w-full" />
@@ -147,17 +119,8 @@ function ClientsPageLoading() {
             {Array.from({ length: 4 }).map((_, index) => (
               <Card key={index}>
                 <CardContent className="flex flex-col gap-4 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="size-11 rounded-full" />
-                      <div className="flex flex-col gap-2">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                    </div>
-                    <Skeleton className="h-6 w-20" />
-                  </div>
-                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-24 w-full" />
                 </CardContent>
               </Card>
             ))}
@@ -192,47 +155,25 @@ function ClientsPageLoading() {
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  hint,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  icon: typeof Users;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-start justify-between gap-4 p-6">
-        <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted-foreground">{label}</span>
-          <span className="text-2xl font-semibold tracking-tight">{value}</span>
-          <span className="text-sm text-muted-foreground">{hint}</span>
-        </div>
-        <div className="flex size-11 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-          <Icon />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function ClientIdentity({ client }: { client: Client }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
       <Avatar className="size-11">
-        <AvatarImage src={client.user?.avatarUrl ?? undefined} alt={client.companyName} />
+        <AvatarImage
+          src={client.user?.avatarUrl ?? undefined}
+          alt={client.companyName}
+        />
         <AvatarFallback>{getInitials(client.companyName)}</AvatarFallback>
       </Avatar>
       <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate font-semibold text-foreground">{client.companyName}</span>
-          {client.portalAccessToken ? <Badge variant="outline">البوابة مفعلة</Badge> : null}
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate font-semibold">{client.companyName}</span>
+          {client.portalAccessToken ? (
+            <Badge variant="outline">البوابة مفعلة</Badge>
+          ) : null}
         </div>
         <span className="truncate text-sm text-muted-foreground">
-          {BUSINESS_TYPE_AR[client.businessType] ?? client.businessType}
+          {companyType(client)}
         </span>
       </div>
     </div>
@@ -240,70 +181,71 @@ function ClientIdentity({ client }: { client: Client }) {
 }
 
 function ClientContact({ client }: { client: Client }) {
-  if (!client.user) {
-    return <span className="text-sm text-muted-foreground">لا يوجد مستخدم مرتبط</span>;
-  }
-
+  if (!client.user)
+    return (
+      <span className="text-sm text-muted-foreground">
+        لا يوجد مستخدم مرتبط
+      </span>
+    );
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <span className="truncate text-sm font-medium">{client.user.name}</span>
-      <span className="truncate text-xs text-muted-foreground">{client.user.email}</span>
-      <span className="text-xs text-muted-foreground">{client.user.phoneWhatsapp || "بدون رقم واتساب"}</span>
+      <span className="truncate text-xs text-muted-foreground">
+        {client.user.email}
+      </span>
+      <span className="text-xs text-muted-foreground">
+        {client.user.phoneWhatsapp || "بدون رقم واتساب"}
+      </span>
     </div>
   );
 }
 
-function ClientMetrics({ client }: { client: Client }) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3">
-        <span className="text-xs text-muted-foreground">المشاريع</span>
-        <span className="font-semibold">{formatNumber(client.totalProjects ?? 0)}</span>
-        <span className="text-xs text-muted-foreground">
-          {formatNumber(client.activeProjects ?? 0)} نشط
-        </span>
-      </div>
-      <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3">
-        <span className="text-xs text-muted-foreground">القيمة التعاقدية</span>
-        <span className="font-semibold">{formatCurrency(client.totalContractValue ?? 0)}</span>
-        <span className="text-xs text-muted-foreground">ملخص سريع للمحفظة</span>
-      </div>
-      <div className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3">
-        <span className="text-xs text-muted-foreground">المحصّل</span>
-        <span className="font-semibold">{formatCurrency(client.totalPaid ?? 0)}</span>
-        <span className="text-xs text-muted-foreground">
-          {client.lastProjectAt ? formatRelativeTime(String(client.lastProjectAt)) : "لا يوجد مشروع حديث"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function SalesClientCard({ client }: { client: Client }) {
+function ClientCard({ client }: { client: Client }) {
   const href = `/dashboard/sales/clients/${client.id}`;
-
   return (
-    <Card className="transition-colors hover:border-primary/40">
+    <Card>
       <CardContent className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <ClientIdentity client={client} />
-          <Badge variant={statusVariant(client.status)}>{CLIENT_STATUS_AR[client.status]}</Badge>
+          <Badge variant={statusVariant(client.status)}>
+            {CLIENT_STATUS_AR[client.status]}
+          </Badge>
         </div>
-
-        <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/30 p-3">
-            <span className="text-xs text-muted-foreground">مدير الحساب</span>
-            <span className="font-medium">{client.manager?.name || client.accountManager || "غير محدد"}</span>
-            <span className="text-xs text-muted-foreground">{getStatusHint(client)}</span>
+        <dl className="grid gap-3 sm:grid-cols-2">
+          <div className="flex min-w-0 flex-col gap-1 border-b border-border/60 pb-3">
+            <dt className="text-xs text-muted-foreground">مدير الحساب</dt>
+            <dd className="truncate text-sm font-medium">
+              {client.manager?.name || client.accountManager || "غير محدد"}
+            </dd>
+            <dd className="text-xs text-muted-foreground">
+              {statusHint(client)}
+            </dd>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/30 p-3">
-            <span className="text-xs text-muted-foreground">جهة التواصل</span>
-            <ClientContact client={client} />
+          <div className="flex min-w-0 flex-col gap-1 border-b border-border/60 pb-3">
+            <dt className="text-xs text-muted-foreground">جهة التواصل</dt>
+            <dd>
+              <ClientContact client={client} />
+            </dd>
           </div>
-        </div>
-
-        <ClientMetrics client={client} />
-
+          <div className="flex min-w-0 flex-col gap-1 border-b border-border/60 pb-3">
+            <dt className="text-xs text-muted-foreground">المشاريع</dt>
+            <dd className="text-sm font-semibold">
+              {formatNumber(client.totalProjects ?? 0)}
+            </dd>
+            <dd className="text-xs text-muted-foreground">
+              {formatNumber(client.activeProjects ?? 0)} نشط
+            </dd>
+          </div>
+          <div className="flex min-w-0 flex-col gap-1 border-b border-border/60 pb-3">
+            <dt className="text-xs text-muted-foreground">المحفظة</dt>
+            <dd className="text-sm font-semibold">
+              {formatCurrency(client.totalContractValue ?? 0)}
+            </dd>
+            <dd className="text-xs text-muted-foreground">
+              محصل {formatCurrency(client.totalPaid ?? 0)}
+            </dd>
+          </div>
+        </dl>
         <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>آخر تحديث: {formatDateTime(client.updatedAt)}</span>
           <Button size="sm" asChild>
@@ -318,34 +260,33 @@ function SalesClientCard({ client }: { client: Client }) {
   );
 }
 
-function SalesClientRow({ client }: { client: Client }) {
-  const router = useRouter();
+function ClientRow({ client }: { client: Client }) {
   const href = `/dashboard/sales/clients/${client.id}`;
-
   return (
-    <TableRow
-      className="cursor-pointer transition-colors hover:bg-muted/30"
-      onClick={() => router.push(href)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          router.push(href);
-        }
-      }}
-      tabIndex={0}
-    >
+    <TableRow>
       <TableCell>
-        <ClientIdentity client={client} />
+        <Link
+          href={href}
+          className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ClientIdentity client={client} />
+        </Link>
       </TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">
-          <Badge variant={statusVariant(client.status)}>{CLIENT_STATUS_AR[client.status]}</Badge>
-          <span className="text-xs text-muted-foreground">{getStatusHint(client)}</span>
+          <Badge variant={statusVariant(client.status)}>
+            {CLIENT_STATUS_AR[client.status]}
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            {statusHint(client)}
+          </span>
         </div>
       </TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">
-          <span>{client.manager?.name || client.accountManager || "غير محدد"}</span>
+          <span>
+            {client.manager?.name || client.accountManager || "غير محدد"}
+          </span>
           <span className="text-xs text-muted-foreground">
             {client.intakeCompleted ? "تأهيل مكتمل" : "التأهيل غير مكتمل"}
           </span>
@@ -370,21 +311,13 @@ function SalesClientRow({ client }: { client: Client }) {
           </span>
         </div>
       </TableCell>
-      <TableCell>
-        <div className="flex flex-col items-start gap-1">
-          <span>{formatRelativeTime(String(client.updatedAt))}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            onClick={(event) => event.stopPropagation()}
-          >
-            <Link href={href}>
-              <ArrowUpLeft data-icon="inline-start" />
-              فتح الملف
-            </Link>
-          </Button>
-        </div>
+      <TableCell className="text-left">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href={href}>
+            <ArrowUpLeft data-icon="inline-start" />
+            فتح الملف
+          </Link>
+        </Button>
       </TableCell>
     </TableRow>
   );
@@ -394,55 +327,33 @@ export default function SalesClientsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ALL" | ClientStatus>("ALL");
   const [page, setPage] = useState(1);
-
   const deferredSearch = useDeferredValue(search);
-
-  const {
-    data,
-    isLoading,
-    isError,
-    isFetching,
-    refetch,
-  } = useGetClientsQuery({ limit: 1000 });
-
+  const { data, error, isLoading, isError, isFetching, refetch } =
+    useGetClientsQuery({ limit: 1000 });
   const clients = useMemo(() => data?.items ?? [], [data]);
-
   const filteredClients = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase();
-
     return clients.filter((client) => {
-      const matchesStatus = status === "ALL" ? true : client.status === status;
-      const matchesSearch = !query
-        ? true
-        : [
-            client.companyName,
-            client.businessName,
-            client.status,
-            client.businessType,
-            client.accountManager,
-            client.manager?.name,
-            client.user?.name,
-            client.user?.email,
-            client.user?.phoneWhatsapp,
-            client.id,
-          ]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(query));
-
+      const matchesStatus = status === "ALL" || client.status === status;
+      const matchesSearch =
+        !query ||
+        [
+          client.companyName,
+          client.businessName,
+          client.status,
+          client.businessType,
+          client.accountManager,
+          client.manager?.name,
+          client.user?.name,
+          client.user?.email,
+          client.user?.phoneWhatsapp,
+          client.id,
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query));
       return matchesStatus && matchesSearch;
     });
   }, [clients, deferredSearch, status]);
-
-  const metrics = useMemo(() => {
-    const total = clients.length;
-    const leads = clients.filter((client) => client.status === ClientStatus.LEAD).length;
-    const active = clients.filter((client) => client.status === ClientStatus.ACTIVE).length;
-    const stopped = clients.filter((client) => client.status === ClientStatus.STOPPED).length;
-    const totalPaid = clients.reduce((sum, client) => sum + (client.totalPaid ?? 0), 0);
-
-    return { total, leads, active, stopped, totalPaid };
-  }, [clients]);
-
   const totalPages = Math.max(1, Math.ceil(filteredClients.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pagedClients = filteredClients.slice(
@@ -450,13 +361,12 @@ export default function SalesClientsPage() {
     currentPage * PAGE_SIZE,
   );
 
-  if (isLoading) {
-    return <ClientsPageLoading />;
-  }
+  if (isLoading) return <LoadingState />;
 
   if (isError) {
     return (
-      <div dir="rtl" className="  ">
+      <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+        <PageHeader title="عملاء المبيعات" icon={Building2} />
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -466,7 +376,7 @@ export default function SalesClientsPage() {
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل العملاء</EmptyTitle>
                 <EmptyDescription>
-                  حدث خطأ أثناء تحميل قائمة العملاء لفريق المبيعات. حاول مرة أخرى.
+                  {clientWorkflowErrorMessage(error)}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
@@ -479,251 +389,164 @@ export default function SalesClientsPage() {
     );
   }
 
+  function updateFilter(callback: () => void) {
+    startTransition(() => {
+      callback();
+      setPage(1);
+    });
+  }
+
   return (
-    <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card className="overflow-hidden">
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-4">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard/sales">المبيعات</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>العملاء</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <PageHeader
+        title="عملاء المبيعات"
+        description="متابعة العملاء المحتملين والحسابات النشطة مع وصول سريع إلى الملف التجاري الكامل."
+        icon={Building2}
+        actions={
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw
+              data-icon="inline-start"
+              className={isFetching ? "animate-spin" : undefined}
+            />
+            {isFetching ? "جاري التحديث" : "تحديث"}
+          </Button>
+        }
+      />
 
-            <div className="flex items-start gap-3">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Building2 />
-              </div>
-              <div className="flex flex-col gap-2">
-                <CardTitle className="text-2xl sm:text-3xl">عملاء المبيعات</CardTitle>
-                <CardDescription className="max-w-3xl text-sm sm:text-base">
-                  شاشة CRM عملية لفريق المبيعات لمتابعة العملاء المحتملين والحسابات النشطة
-                  والرجوع بسرعة إلى الملف الكامل لكل عميل.
-                </CardDescription>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">إجمالي السجلات: {formatNumber(metrics.total)}</Badge>
-                  <Badge variant="outline">عملاء محتملون: {formatNumber(metrics.leads)}</Badge>
-                  <Badge variant="outline">حسابات متوقفة: {formatNumber(metrics.stopped)}</Badge>
-                </div>
-              </div>
-            </div>
+      <div className="flex flex-col gap-5">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-center">
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-label="البحث في العملاء"
+              value={search}
+              onChange={(event) =>
+                updateFilter(() => setSearch(event.target.value))
+              }
+              placeholder="ابحث باسم الشركة أو المسؤول أو جهة التواصل"
+              className="pr-10"
+            />
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw data-icon="inline-start" className={cn(isFetching && "animate-spin")} />
-              {isFetching ? "جاري التحديث" : "تحديث"}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                startTransition(() => {
-                  setStatus("ALL");
-                  setSearch("");
-                  setPage(1);
-                });
-              }}
-            >
-              <UserRound data-icon="inline-start" />
-              إعادة ضبط العرض
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          label="إجمالي العملاء"
-          value={formatNumber(metrics.total)}
-          hint="كل الحسابات الموجودة في مسار المبيعات"
-          icon={Users}
-        />
-        <SummaryCard
-          label="العملاء المحتملون"
-          value={formatNumber(metrics.leads)}
-          hint="سجلات تحتاج متابعة وتحويل"
-          icon={FolderKanban}
-        />
-        <SummaryCard
-          label="الحسابات النشطة"
-          value={formatNumber(metrics.active)}
-          hint="عملاء لديهم تعاون قائم أو محفظة فعالة"
-          icon={ShieldCheck}
-        />
-        <SummaryCard
-          label="إجمالي المحصّل"
-          value={formatCurrency(metrics.totalPaid)}
-          hint="المدفوعات المسجلة عبر العملاء"
-          icon={CircleDollarSign}
-        />
-      </div>
-
-      <Card>
-        <CardHeader className="gap-2">
-          <CardTitle>سجل العملاء</CardTitle>
-          <CardDescription>
-            ابحث وصفِّ العملاء ثم افتح أي عميل للانتقال مباشرة إلى صفحة التفاصيل الحالية.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto] xl:items-center">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  startTransition(() => {
-                    setSearch(value);
-                    setPage(1);
-                  });
-                }}
-                placeholder="ابحث باسم الشركة أو المسؤول أو جهة التواصل"
-                className="pr-10"
-              />
-            </div>
-
-            <Select
-              value={status}
-              onValueChange={(value) => {
-                startTransition(() => {
-                  setStatus(value as "ALL" | ClientStatus);
-                  setPage(1);
-                });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="كل الحالات" />
-              </SelectTrigger>
-              <SelectContent>
+          <Select
+            value={status}
+            onValueChange={(value) =>
+              updateFilter(() => setStatus(value as "ALL" | ClientStatus))
+            }
+          >
+            <SelectTrigger aria-label="تصفية حسب حالة العميل">
+              <SelectValue placeholder="كل الحالات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>حالة العميل</SelectLabel>
                 <SelectItem value="ALL">كل الحالات</SelectItem>
-                {(Object.values(ClientStatus) as ClientStatus[]).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {CLIENT_STATUS_AR[value]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
-              <span className="text-muted-foreground">النتائج الحالية</span>
-              <span className="font-semibold">{formatNumber(filteredClients.length)}</span>
-            </div>
+                {(Object.values(ClientStatus) as ClientStatus[]).map(
+                  (value) => (
+                    <SelectItem key={value} value={value}>
+                      {CLIENT_STATUS_AR[value]}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <div className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm">
+            <span className="text-muted-foreground">النتائج الحالية</span>
+            <span className="font-semibold">
+              {formatNumber(filteredClients.length)}
+            </span>
           </div>
+        </div>
 
-          <Separator />
-
-          {filteredClients.length === 0 ? (
-            <div className="rounded-xl border p-8">
-              <Empty>
-                <EmptyMedia variant="icon">
-                  <Users />
-                </EmptyMedia>
-                <EmptyHeader>
-                  <EmptyTitle>لا توجد نتائج مطابقة</EmptyTitle>
-                  <EmptyDescription>
-                    جرّب تعديل البحث أو عرض جميع الحالات للرجوع إلى كامل قاعدة العملاء.
-                  </EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      startTransition(() => {
-                        setSearch("");
-                        setStatus("ALL");
-                        setPage(1);
-                      });
-                    }}
-                  >
-                    مسح الفلاتر
-                  </Button>
-                </EmptyContent>
-              </Empty>
+        {filteredClients.length === 0 ? (
+          <Empty className="border p-8">
+            <EmptyMedia variant="icon">
+              <ShieldCheck />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle>لا توجد نتائج مطابقة</EmptyTitle>
+              <EmptyDescription>
+                جرّب تعديل البحث أو عرض جميع الحالات.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  updateFilter(() => {
+                    setSearch("");
+                    setStatus("ALL");
+                  })
+                }
+              >
+                مسح الفلاتر
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : (
+          <>
+            <div className="grid gap-4 xl:hidden">
+              {pagedClients.map((client) => (
+                <ClientCard key={client.id} client={client} />
+              ))}
             </div>
-          ) : (
-            <>
-              <div className="grid gap-4 xl:hidden">
-                {pagedClients.map((client) => (
-                  <SalesClientCard key={client.id} client={client} />
-                ))}
-              </div>
-
-              <div className="hidden overflow-hidden rounded-xl border xl:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>العميل</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>المسؤول</TableHead>
-                      <TableHead>جهة التواصل</TableHead>
-                      <TableHead>المحفظة</TableHead>
-                      <TableHead>المشاريع</TableHead>
-                      <TableHead className="text-left">الانتقال</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pagedClients.map((client) => (
-                      <SalesClientRow key={client.id} client={client} />
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {totalPages > 1 ? (
-                <Pagination className="justify-between">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        text="السابق"
-                        onClick={() => setPage((current) => Math.max(1, current - 1))}
-                        disabled={currentPage === 1}
-                      />
+            <div className="hidden overflow-hidden rounded-xl border xl:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>العميل</TableHead>
+                    <TableHead>الحالة</TableHead>
+                    <TableHead>المسؤول</TableHead>
+                    <TableHead>جهة التواصل</TableHead>
+                    <TableHead>المحفظة</TableHead>
+                    <TableHead>المشاريع</TableHead>
+                    <TableHead className="text-left">الانتقال</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pagedClients.map((client) => (
+                    <ClientRow key={client.id} client={client} />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {totalPages > 1 ? (
+              <Pagination className="justify-between">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      text="السابق"
+                      onClick={() =>
+                        setPage((current) => Math.max(1, current - 1))
+                      }
+                      disabled={currentPage === 1}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }).map((_, index) => (
+                    <PaginationItem key={index + 1}>
+                      <PaginationLink
+                        isActive={index + 1 === currentPage}
+                        onClick={() => setPage(index + 1)}
+                      >
+                        {index + 1}
+                      </PaginationLink>
                     </PaginationItem>
-
-                    {Array.from({ length: totalPages }).map((_, index) => {
-                      const pageNumber = index + 1;
-
-                      return (
-                        <PaginationItem key={pageNumber}>
-                          <PaginationLink
-                            isActive={pageNumber === currentPage}
-                            onClick={() => setPage(pageNumber)}
-                          >
-                            {pageNumber}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        text="التالي"
-                        onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                        disabled={currentPage === totalPages}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              ) : null}
-            </>
-          )}
-        </CardContent>
-      </Card>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      text="التالي"
+                      onClick={() =>
+                        setPage((current) => Math.min(totalPages, current + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            ) : null}
+          </>
+        )}
+      </div>
     </div>
   );
 }

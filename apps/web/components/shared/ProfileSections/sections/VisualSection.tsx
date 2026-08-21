@@ -12,8 +12,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { FormTextareaControl } from "@/components/ui/formTextareaControl";
-import { FormInputControl } from "@/components/ui/formInputControl";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
@@ -422,7 +422,7 @@ export function VisualSection({
                   <Image className="w-4 h-4 text-muted-foreground" />
                   تصاميم سابقة
                 </FormLabel>
-                <FormTextareaControl
+                <Textarea
                   placeholder="وش نوع البوستات وتصاميم الصور الإعلانية اللي جابت نتيجة ومبيعات؟"
                   className="min-h-[80px]"
                   {...field}
@@ -549,7 +549,7 @@ function BrandAssetsForm({
 
         <div className="space-y-2">
           <span className="text-xs font-medium text-foreground">الخطوط</span>
-          <FormInputControl
+          <Input
             placeholder="أسماء الخطوط المستخدمة"
             value={fontInput}
             onChange={(e) => onFontInputChange(e.target.value)}
@@ -580,7 +580,7 @@ function VisualDirectionForm({
       </span>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[0, 1, 2].map((i) => (
-          <FormInputControl
+          <Input
             key={i}
             placeholder={`حساب ${i + 1}`}
             value={visualDirection[i] ?? ""}

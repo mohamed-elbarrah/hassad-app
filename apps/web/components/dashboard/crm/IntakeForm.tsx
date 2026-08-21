@@ -1,13 +1,15 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+h
+import { Textarea } from "@/components/ui/textarea";
+
 import { useState, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { BusinessType, ClientSource } from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { FormInputControl } from "@/components/ui/formInputControl";
-import { FormTextareaControl } from "@/components/ui/formTextareaControl";
 // Radix Checkbox removed — causes infinite re-render loops with
 // react-hook-form Controller. Replaced with styled div below.
 import {
@@ -235,7 +237,7 @@ export function IntakeForm({
                       <span className="text-danger-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <FormInputControl
+                      <Input
                         placeholder="مثال: أحمد محمد"
                         autoFocus
                         {...field}
@@ -257,7 +259,7 @@ export function IntakeForm({
                       <span className="text-danger-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <FormInputControl
+                      <Input
                         placeholder="+966 5X XXX XXXX"
                         type="tel"
                         dir="ltr"
@@ -281,10 +283,7 @@ export function IntakeForm({
                     <span className="text-danger-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <FormInputControl
-                      placeholder="مثال: مطعم النخيل"
-                      {...field}
-                    />
+                    <Input placeholder="مثال: مطعم النخيل" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -351,7 +350,7 @@ export function IntakeForm({
                     وصف المشروع (اختياري)
                   </FormLabel>
                   <FormControl>
-                    <FormTextareaControl
+                    <Textarea
                       placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..."
                       className="resize-none h-20"
                       {...field}

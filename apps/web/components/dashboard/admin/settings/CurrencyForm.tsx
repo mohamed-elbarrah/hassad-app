@@ -4,7 +4,8 @@ import { useState, useRef, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, Upload, Save, X, Ban } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { FormInput } from "@/components/ui/formInput";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/design-system/Select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -270,27 +271,45 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
               المعلومات الأساسية
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInput
-                label="رمز العملة"
-                placeholder="مثال: USD"
-                value={formData.code}
-                onChange={(e) => updateField("code", e.target.value)}
-                error={errors.code}
-              />
-              <FormInput
-                label="اسم العملة"
-                placeholder="مثال: دولار أمريكي"
-                value={formData.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                error={errors.name}
-              />
-              <FormInput
-                label="الترميز"
-                placeholder="مثال: $"
-                value={formData.symbol}
-                onChange={(e) => updateField("symbol", e.target.value)}
-                error={errors.symbol}
-              />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="currency-code">رمز العملة</Label>
+                <Input
+                  id="currency-code"
+                  placeholder="مثال: USD"
+                  value={formData.code}
+                  onChange={(e) => updateField("code", e.target.value)}
+                  aria-invalid={Boolean(errors.code)}
+                />
+                {errors.code ? (
+                  <p className="text-sm text-destructive">{errors.code}</p>
+                ) : null}
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="currency-name">اسم العملة</Label>
+                <Input
+                  id="currency-name"
+                  placeholder="مثال: دولار أمريكي"
+                  value={formData.name}
+                  onChange={(e) => updateField("name", e.target.value)}
+                  aria-invalid={Boolean(errors.name)}
+                />
+                {errors.name ? (
+                  <p className="text-sm text-destructive">{errors.name}</p>
+                ) : null}
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="currency-symbol">الترميز</Label>
+                <Input
+                  id="currency-symbol"
+                  placeholder="مثال: $"
+                  value={formData.symbol}
+                  onChange={(e) => updateField("symbol", e.target.value)}
+                  aria-invalid={Boolean(errors.symbol)}
+                />
+                {errors.symbol ? (
+                  <p className="text-sm text-destructive">{errors.symbol}</p>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -315,12 +334,15 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
 
             {formData.symbolType === "SVG_URL" && (
               <div className="mt-4">
-                <FormInput
-                  label="رابط ملف SVG"
-                  placeholder="https://example.com/icon.svg"
-                  value={formData.svgKey}
-                  onChange={(e) => updateField("svgKey", e.target.value)}
-                />
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="currency-svg-url">رابط ملف SVG</Label>
+                  <Input
+                    id="currency-svg-url"
+                    placeholder="https://example.com/icon.svg"
+                    value={formData.svgKey}
+                    onChange={(e) => updateField("svgKey", e.target.value)}
+                  />
+                </div>
               </div>
             )}
 
@@ -375,18 +397,26 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <FormInput
-                  label="سعر الصرف"
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  placeholder="1"
-                  value={String(formData.exchangeRate)}
-                  onChange={(e) =>
-                    updateField("exchangeRate", Number(e.target.value))
-                  }
-                  error={errors.exchangeRate}
-                />
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="currency-exchange-rate">سعر الصرف</Label>
+                  <Input
+                    id="currency-exchange-rate"
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    placeholder="1"
+                    value={String(formData.exchangeRate)}
+                    onChange={(e) =>
+                      updateField("exchangeRate", Number(e.target.value))
+                    }
+                    aria-invalid={Boolean(errors.exchangeRate)}
+                  />
+                  {errors.exchangeRate ? (
+                    <p className="text-sm text-destructive">
+                      {errors.exchangeRate}
+                    </p>
+                  ) : null}
+                </div>
                 <p className="text-xs text-portal-note-text mt-1">
                   سعر العملة مقارنة بالعملة الافتراضية (1{" "}
                   {formData.code || "..."} = {formData.exchangeRate || "..."})

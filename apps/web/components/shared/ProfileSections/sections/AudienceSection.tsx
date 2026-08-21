@@ -12,15 +12,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { FormTextareaControl } from "@/components/ui/formTextareaControl";
-import { FormInputControl } from "@/components/ui/formInputControl";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
-  FormSelect,
-  FormSelectTrigger,
-  FormSelectValue,
-  FormSelectContent,
-  FormSelectItem,
-} from "@/components/ui/formSelectControl";
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import {
@@ -312,22 +312,22 @@ export function AudienceSection({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm">النبرة</FormLabel>
-                    <FormSelect
+                    <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value || ""}
                       value={field.value || ""}
                     >
-                      <FormSelectTrigger>
-                        <FormSelectValue placeholder="اختر النبرة" />
-                      </FormSelectTrigger>
-                      <FormSelectContent>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر النبرة" />
+                      </SelectTrigger>
+                      <SelectContent>
                         {TONE_OPTIONS.map((opt) => (
-                          <FormSelectItem key={opt.value} value={opt.value}>
+                          <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
-                          </FormSelectItem>
+                          </SelectItem>
                         ))}
-                      </FormSelectContent>
-                    </FormSelect>
+                      </SelectContent>
+                    </Select>
                   </FormItem>
                 )}
               />
@@ -341,22 +341,22 @@ export function AudienceSection({
                       <Video className="w-4 h-4 text-muted-foreground" />
                       طريقة الظهور
                     </FormLabel>
-                    <FormSelect
+                    <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value || ""}
                       value={field.value || ""}
                     >
-                      <FormSelectTrigger>
-                        <FormSelectValue placeholder="اختر طريقة الظهور" />
-                      </FormSelectTrigger>
-                      <FormSelectContent>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر طريقة الظهور" />
+                      </SelectTrigger>
+                      <SelectContent>
                         {APPEARANCE_OPTIONS.map((opt) => (
-                          <FormSelectItem key={opt.value} value={opt.value}>
+                          <SelectItem key={opt.value} value={opt.value}>
                             {opt.label}
-                          </FormSelectItem>
+                          </SelectItem>
                         ))}
-                      </FormSelectContent>
-                    </FormSelect>
+                      </SelectContent>
+                    </Select>
                   </FormItem>
                 )}
               />
@@ -371,7 +371,7 @@ export function AudienceSection({
                     <Hash className="w-4 h-4 text-muted-foreground" />
                     الشعار اللفظي
                   </FormLabel>
-                  <FormInputControl
+                  <Input
                     placeholder="وش الشعار اللفظي الثابت لبراندك؟"
                     {...field}
                   />
@@ -388,7 +388,7 @@ export function AudienceSection({
                     <ShieldCheck className="w-4 h-4 text-muted-foreground" />
                     الحدود / العوائق
                   </FormLabel>
-                  <FormTextareaControl
+                  <Textarea
                     placeholder="الخطوط الحمراء: وش الأشياء أو الكلمات اللي ما ودك تطلع في المحتوى أبد؟"
                     className="min-h-[80px]"
                     {...field}
@@ -411,7 +411,7 @@ export function AudienceSection({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm">تحليل العملاء</FormLabel>
-                  <FormTextareaControl
+                  <Textarea
                     placeholder="أوصف لنا عميلك المثالي: كم عمره؟ وش جنسه؟ وين ساكن؟ وش اهتماماته؟"
                     className="min-h-[120px]"
                     {...field}
@@ -496,7 +496,7 @@ function FaqEditor({
           className="rounded-xl border border-border p-4 space-y-3"
         >
           <div className="flex items-center gap-2">
-            <FormInputControl
+            <Input
               value={pair.question}
               onChange={(e) => onUpdate(index, "question", e.target.value)}
               placeholder="السؤال"
@@ -510,7 +510,7 @@ function FaqEditor({
               <X className="w-4 h-4" />
             </button>
           </div>
-          <FormTextareaControl
+          <Textarea
             value={pair.answer}
             onChange={(e) => onUpdate(index, "answer", e.target.value)}
             placeholder="الجواب"
