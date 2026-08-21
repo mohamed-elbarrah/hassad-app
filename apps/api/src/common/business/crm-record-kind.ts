@@ -1,16 +1,13 @@
+import { ClientKind } from "@hassad/shared";
+
+/** The presentation classification for requests/workspace records. */
 export type CrmRecordKind = "lead" | "order";
 
-/**
- * Canonical CRM classification rule.
- * A record becomes an order only after its client has at least one active or
- * completed project. Otherwise it remains a lead.
- */
+/** Derive presentation from the canonical client kind; request rows do not own a second type. */
 export function classifyCrmRecordKind(
-  projects: ReadonlyArray<{ status: string }> | null | undefined,
+  client: { kind?: ClientKind | string | null } | null | undefined,
 ): CrmRecordKind {
-  return projects?.some(
-    (project) => project.status === "ACTIVE" || project.status === "COMPLETED",
-  )
+  return client?.kind === ClientKind.CLIENT || client?.kind === "CLIENT"
     ? "order"
     : "lead";
 }

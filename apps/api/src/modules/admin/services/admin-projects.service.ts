@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ClientKind } from "@hassad/shared";
 import { AdminActionLogService } from "./admin-action-log.service";
 import { ProjectStatus, TaskStatus, TaskPriority } from "@hassad/shared";
 
@@ -283,7 +284,9 @@ export class AdminProjectsService {
       where: { projectId },
       orderBy: { periodNumber: "asc" },
       include: {
-        invoice: { select: { id: true, invoiceNumber: true, status: true, amount: true } },
+        invoice: {
+          select: { id: true, invoiceNumber: true, status: true, amount: true },
+        },
         _count: { select: { tasks: true, deliverables: true, meetings: true } },
       },
     });
@@ -294,11 +297,24 @@ export class AdminProjectsService {
     return this.prisma.projectMember.findMany({
       where: { projectId },
       orderBy: { joinedAt: "asc" },
-      include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, isActive: true } } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            isActive: true,
+          },
+        },
+      },
     });
   }
 
-  async getDeliverables(projectId: string, query: { status?: string; page?: number; limit?: number }) {
+  async getDeliverables(
+    projectId: string,
+    query: { status?: string; page?: number; limit?: number },
+  ) {
     await this.assertProject(projectId);
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
@@ -333,7 +349,10 @@ export class AdminProjectsService {
   }
 
   private async assertProject(projectId: string) {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true },
+    });
     if (!project) throw new NotFoundException("Project not found");
   }
 
@@ -436,12 +455,21 @@ export class AdminProjectsService {
     const before = { status: project.status };
     const after = { status, reason };
 
-    await this.prisma.$transaction([
-      this.prisma.project.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.project.update({
         where: { id: projectId },
         data: { status },
-      }),
-      this.prisma.ledger.create({
+      });
+      if (
+        status === ProjectStatus.ACTIVE ||
+        status === ProjectStatus.COMPLETED
+      ) {
+        await tx.client.update({
+          where: { id: project.clientId },
+          data: { kind: ClientKind.CLIENT },
+        });
+      }
+      await tx.ledger.create({
         data: {
           action: "admin.projects.force-status",
           entity: "project",
@@ -450,8 +478,8 @@ export class AdminProjectsService {
           before,
           after,
         },
-      }),
-    ]);
+      });
+    });
 
     await this.actionLog.record({
       actorId: adminId,
@@ -480,12 +508,21 @@ export class AdminProjectsService {
     };
     const after = { isArchived: false, archivedAt: null, reason };
 
-    await this.prisma.$transaction([
-      this.prisma.project.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.project.update({
         where: { id: projectId },
         data: { isArchived: false, archivedAt: null },
-      }),
-      this.prisma.ledger.create({
+      });
+      if (
+        project.status === ProjectStatus.ACTIVE ||
+        project.status === ProjectStatus.COMPLETED
+      ) {
+        await tx.client.update({
+          where: { id: project.clientId },
+          data: { kind: ClientKind.CLIENT },
+        });
+      }
+      await tx.ledger.create({
         data: {
           action: "admin.projects.unarchive",
           entity: "project",
@@ -494,8 +531,8 @@ export class AdminProjectsService {
           before,
           after,
         },
-      }),
-    ]);
+      });
+    });
 
     await this.actionLog.record({
       actorId: adminId,
@@ -536,6 +573,16 @@ export class AdminProjectsService {
           description: data.description,
         },
       });
+
+      if (
+        created.status === ProjectStatus.ACTIVE ||
+        created.status === ProjectStatus.COMPLETED
+      ) {
+        await tx.client.update({
+          where: { id: created.clientId },
+          data: { kind: ClientKind.CLIENT },
+        });
+      }
 
       await tx.ledger.create({
         data: {

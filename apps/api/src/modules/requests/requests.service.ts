@@ -9,6 +9,7 @@ import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import {
   BusinessType,
+  ClientKind,
   ClientSource,
   ClientStatus,
   ContactLogType,
@@ -719,9 +720,9 @@ export class RequestsService {
         details: { id: dto.clientId },
       });
     }
-    if (client.status === "STOPPED") {
+    if (client.status === "SUSPENDED") {
       throw new BadRequestException({
-        code: "STOPPED_CLIENT_REQUEST_FORBIDDEN",
+        code: "SUSPENDED_CLIENT_REQUEST_FORBIDDEN",
         details: { clientId: dto.clientId },
       });
     }
@@ -896,9 +897,9 @@ export class RequestsService {
             details: { id: dto.existingClient.clientId },
           });
         }
-        if (client.status === ClientStatus.STOPPED) {
+        if (client.status === ClientStatus.SUSPENDED) {
           throw new BadRequestException({
-            code: "STOPPED_CLIENT_REQUEST_FORBIDDEN",
+            code: "SUSPENDED_CLIENT_REQUEST_FORBIDDEN",
             details: { clientId: client.id },
           });
         }
@@ -952,7 +953,8 @@ export class RequestsService {
             businessName: newClient.businessName,
             businessType: newClient.businessType,
             preferredManagerId: newClient.accountManager ?? null,
-            status: ClientStatus.LEAD,
+            kind: ClientKind.LEAD,
+            status: ClientStatus.ACTIVE,
           });
 
         clientId = resolvedClient.client.id;

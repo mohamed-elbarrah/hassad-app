@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
 import type { RequestPipelineGroup } from "../../requests/request-workflow";
+import type { ClientKind, ClientStatus } from "@hassad/shared";
 import {
   IsIn,
   IsInt,
@@ -12,14 +13,18 @@ import {
 
 export class SalesClientQueryDto {
   @IsOptional()
+  @IsIn(["LEAD", "CLIENT"])
+  kind?: ClientKind;
+
+  @IsOptional()
   @IsString()
   @MaxLength(100)
   search?: string;
 
   @IsOptional()
   @IsString()
-  @IsIn(["LEAD", "ACTIVE", "STOPPED"])
-  status?: string;
+  @IsIn(["ACTIVE", "SUSPENDED"])
+  status?: ClientStatus;
 
   @IsOptional()
   @Type(() => Number)

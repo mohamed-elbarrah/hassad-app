@@ -2,9 +2,11 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PipelineStage, RequestStatus } from "@prisma/client";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { classifyCrmRecordKind } from "../../../common/business/crm-record-kind";
 
 const orderDetailClientSelect = {
   id: true,
+  kind: true,
   companyName: true,
   user: {
     select: {
@@ -166,11 +168,14 @@ export class AdminCrmOrdersService {
     ]);
 
     if (!request) {
-      throw new NotFoundException("Request not found");
+      throw new NotFoundException({
+        code: "REQUEST_NOT_FOUND",
+        details: { id },
+      });
     }
 
     return {
-      kind: "request" as const,
+      kind: classifyCrmRecordKind(request.client),
       request,
     };
   }

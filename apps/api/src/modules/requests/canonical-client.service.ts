@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { BusinessType, ClientStatus } from "@hassad/shared";
+import { BusinessType, ClientKind, ClientStatus } from "@hassad/shared";
 import { PrismaService } from "../../prisma/prisma.service";
 import { DirectConversationService } from "../chat/services/direct-conversation.service";
 import { SalesAssignmentService } from "./sales-assignment.service";
@@ -19,6 +19,7 @@ interface UpsertCanonicalClientParams {
   businessName: string;
   businessType: any;
   preferredManagerId?: string | null;
+  kind?: ClientKind;
   status?: ClientStatus;
 }
 
@@ -52,6 +53,7 @@ export class CanonicalClientService {
             companyName: true,
             businessName: true,
             businessType: true,
+            kind: true,
             status: true,
           },
         })
@@ -71,6 +73,7 @@ export class CanonicalClientService {
           companyName: true,
           businessName: true,
           businessType: true,
+          kind: true,
           status: true,
         },
       });
@@ -89,8 +92,8 @@ export class CanonicalClientService {
     }
 
     if (
-      currentStatus === ClientStatus.STOPPED &&
-      desiredStatus === ClientStatus.LEAD
+      currentStatus === ClientStatus.SUSPENDED &&
+      desiredStatus === ClientStatus.ACTIVE
     ) {
       return null;
     }
@@ -135,6 +138,10 @@ export class CanonicalClientService {
 
       if (!existingClient.accountManager && accountManagerId) {
         updateData.accountManager = accountManagerId;
+      }
+
+      if (params.kind && existingClient.kind !== params.kind) {
+        updateData.kind = params.kind;
       }
 
       if (
@@ -200,7 +207,8 @@ export class CanonicalClientService {
         businessName: params.businessName,
         businessType: params.businessType,
         accountManager: accountManagerId ?? undefined,
-        status: params.status ?? ClientStatus.LEAD,
+        kind: params.kind ?? ClientKind.LEAD,
+        status: params.status ?? ClientStatus.ACTIVE,
       },
     });
 

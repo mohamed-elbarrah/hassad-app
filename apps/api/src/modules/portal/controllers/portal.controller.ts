@@ -16,6 +16,7 @@ import {
   Logger,
   ParseUUIDPipe,
 } from "@nestjs/common";
+import { ClientKind } from "@hassad/shared";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { PortalService } from "../services/portal.service";
 import {
@@ -92,6 +93,7 @@ export class PortalController {
         companyName: user.name || "Unknown",
         businessName: user.name || "Unknown",
         businessType: "OTHER",
+        kind: ClientKind.LEAD,
         status: "ACTIVE",
       },
     });

@@ -21,13 +21,13 @@ export function RequirementsForm({ client }: RequirementsFormProps) {
   const statusTone =
     client.status === ClientStatus.ACTIVE
       ? "success"
-      : client.status === ClientStatus.STOPPED
+      : client.status === ClientStatus.SUSPENDED
         ? "danger"
         : "purple";
   const statusLabel =
     client.status === ClientStatus.ACTIVE
       ? "عميل نشط"
-      : client.status === ClientStatus.STOPPED
+      : client.status === ClientStatus.SUSPENDED
         ? "متوقف"
         : "عميل محتمل";
 

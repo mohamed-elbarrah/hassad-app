@@ -34,8 +34,7 @@ const columnHelper = createColumnHelper<Client>();
 
 const STATUS_LABELS: Record<ClientStatus, string> = {
   [ClientStatus.ACTIVE]: "نشط",
-  [ClientStatus.STOPPED]: "متوقف",
-  [ClientStatus.LEAD]: "عميل محتمل",
+  [ClientStatus.SUSPENDED]: "موقوف",
 };
 
 const STATUS_TONE: Record<
@@ -43,8 +42,7 @@ const STATUS_TONE: Record<
   import("@/components/design-system/Pill").PillTone
 > = {
   [ClientStatus.ACTIVE]: "success",
-  [ClientStatus.STOPPED]: "danger",
-  [ClientStatus.LEAD]: "purple",
+  [ClientStatus.SUSPENDED]: "danger",
 };
 
 // ── Table component ───────────────────────────────────────────────────────────

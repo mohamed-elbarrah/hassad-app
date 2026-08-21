@@ -15,43 +15,74 @@ export class CrmClientsService {
       ? {
           OR: [
             { companyName: { contains: search, mode: "insensitive" as const } },
-            { businessName: { contains: search, mode: "insensitive" as const } },
-            { user: { is: { name: { contains: search, mode: "insensitive" as const } } } },
-            { user: { is: { email: { contains: search, mode: "insensitive" as const } } } },
-            { user: { is: { phoneWhatsapp: { contains: search, mode: "insensitive" as const } } } },
+            {
+              businessName: { contains: search, mode: "insensitive" as const },
+            },
+            {
+              user: {
+                is: {
+                  name: { contains: search, mode: "insensitive" as const },
+                },
+              },
+            },
+            {
+              user: {
+                is: {
+                  email: { contains: search, mode: "insensitive" as const },
+                },
+              },
+            },
+            {
+              user: {
+                is: {
+                  phoneWhatsapp: {
+                    contains: search,
+                    mode: "insensitive" as const,
+                  },
+                },
+              },
+            },
             { id: { contains: search, mode: "insensitive" as const } },
           ],
         }
       : undefined;
 
     const clients = await this.prisma.client.findMany({
-        where,
-        include: {
-          user: { select: { name: true, email: true, phoneWhatsapp: true, lastLoginAt: true } },
-          requests: {
-            where: {
-              status: {
-                in: [
-                  RequestStatus.SUBMITTED,
-                  RequestStatus.QUALIFYING,
-                  RequestStatus.PROPOSAL_IN_PROGRESS,
-                  RequestStatus.PROPOSAL_SENT,
-                  RequestStatus.NEGOTIATION,
-                  RequestStatus.CONTRACT_PREPARATION,
-                  RequestStatus.CONTRACT_SENT,
-                ],
-              },
-            },
-            select: { id: true },
-          },
-          _count: {
-            select: { projects: true, contracts: true, proposals: true },
+      where,
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            phoneWhatsapp: true,
+            lastLoginAt: true,
           },
         },
-      });
+        requests: {
+          where: {
+            status: {
+              in: [
+                RequestStatus.SUBMITTED,
+                RequestStatus.QUALIFYING,
+                RequestStatus.PROPOSAL_IN_PROGRESS,
+                RequestStatus.PROPOSAL_SENT,
+                RequestStatus.NEGOTIATION,
+                RequestStatus.CONTRACT_PREPARATION,
+                RequestStatus.CONTRACT_SENT,
+              ],
+            },
+          },
+          select: { id: true },
+        },
+        _count: {
+          select: { projects: true, contracts: true, proposals: true },
+        },
+      },
+    });
 
     const clientRows = clients.map((client) => ({
       id: client.id,
+      kind: client.kind,
       contactName: client.user?.name ?? client.companyName,
       companyName: client.companyName ?? client.businessName ?? "—",
       stage:
@@ -78,7 +109,7 @@ export class CrmClientsService {
           })
         : "No portal session",
       stageTone:
-        client.status === "STOPPED"
+        client.status === "SUSPENDED"
           ? ("warning" as const)
           : client.activeProjects > 0
             ? ("active" as const)
@@ -89,12 +120,11 @@ export class CrmClientsService {
           : ("success" as const),
     }));
 
-    const leadRows = clientRows.filter((client) => client.totalProjects === 0);
     const combined =
       query.filter === "clients"
-        ? clientRows.filter((client) => client.totalProjects > 0)
+        ? clientRows.filter((client) => client.kind === "CLIENT")
         : query.filter === "leads"
-          ? leadRows
+          ? clientRows.filter((client) => client.kind === "LEAD")
           : clientRows;
 
     combined.sort((left, right) =>
@@ -142,103 +172,115 @@ export class CrmClientsService {
     });
 
     if (!client) {
-      throw new NotFoundException("Client not found");
+      throw new NotFoundException({
+        code: "CLIENT_NOT_FOUND",
+        details: { clientId },
+      });
     }
 
-    const [contracts, projects, invoices, payments, historyLogs, ratings, avgResult, overdueInvoicesCount, disputes] =
-      await Promise.all([
-        this.prisma.contract.findMany({
-          where: { clientId },
-          orderBy: { createdAt: "desc" },
-          take: 50,
-          select: {
-            id: true,
-            title: true,
-            status: true,
-            totalValue: true,
-            monthlyValue: true,
-            startDate: true,
-            endDate: true,
-            createdAt: true,
-            type: true,
-            currency: true,
-            _count: { select: { invoices: true } },
+    const [
+      contracts,
+      projects,
+      invoices,
+      payments,
+      historyLogs,
+      ratings,
+      avgResult,
+      overdueInvoicesCount,
+      disputes,
+    ] = await Promise.all([
+      this.prisma.contract.findMany({
+        where: { clientId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          totalValue: true,
+          monthlyValue: true,
+          startDate: true,
+          endDate: true,
+          createdAt: true,
+          type: true,
+          currency: true,
+          _count: { select: { invoices: true } },
+        },
+      }),
+      this.prisma.project.findMany({
+        where: { clientId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          completionPercentage: true,
+          startDate: true,
+          endDate: true,
+          createdAt: true,
+          manager: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.invoice.findMany({
+        where: { clientId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          invoiceNumber: true,
+          amount: true,
+          status: true,
+          issueDate: true,
+          dueDate: true,
+          paidAt: true,
+          createdAt: true,
+          payments: {
+            select: { id: true, amount: true, status: true, createdAt: true },
           },
-        }),
-        this.prisma.project.findMany({
-          where: { clientId },
-          orderBy: { createdAt: "desc" },
-          take: 50,
-          select: {
-            id: true,
-            name: true,
-            status: true,
-            completionPercentage: true,
-            startDate: true,
-            endDate: true,
-            createdAt: true,
-            manager: { select: { id: true, name: true } },
-          },
-        }),
-        this.prisma.invoice.findMany({
-          where: { clientId },
-          orderBy: { createdAt: "desc" },
-          take: 50,
-          select: {
-            id: true,
-            invoiceNumber: true,
-            amount: true,
-            status: true,
-            issueDate: true,
-            dueDate: true,
-            paidAt: true,
-            createdAt: true,
-            payments: {
-              select: { id: true, amount: true, status: true, createdAt: true },
-            },
-          },
-        }),
-        this.prisma.payment.findMany({
-          where: { clientId },
-          orderBy: { createdAt: "desc" },
-          take: 50,
-          select: {
-            id: true,
-            amount: true,
-            method: true,
-            status: true,
-            createdAt: true,
-            invoice: { select: { id: true, invoiceNumber: true } },
-          },
-        }),
-        this.prisma.clientHistoryLog.findMany({
-          where: { clientId },
-          orderBy: { occurredAt: "desc" },
-          take: 20,
-          include: { user: { select: { id: true, name: true } } },
-        }),
-        this.prisma.satisfactionRating.findMany({
-          where: { clientId },
-          orderBy: { createdAt: "desc" },
-          take: 5,
-        }),
-        this.prisma.satisfactionRating.aggregate({
-          where: { clientId },
-          _avg: { score: true },
-        }),
-        this.prisma.invoice.count({
-          where: { clientId, status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] } },
-        }),
-        this.prisma.disputeTicket.findMany({
-          where: { clientId },
-          orderBy: { openedAt: "desc" },
-          take: 20,
-          include: {
-            pm: { select: { id: true, name: true } },
-            project: { select: { id: true, name: true } },
-          },
-        }),
-      ]);
+        },
+      }),
+      this.prisma.payment.findMany({
+        where: { clientId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          amount: true,
+          method: true,
+          status: true,
+          createdAt: true,
+          invoice: { select: { id: true, invoiceNumber: true } },
+        },
+      }),
+      this.prisma.clientHistoryLog.findMany({
+        where: { clientId },
+        orderBy: { occurredAt: "desc" },
+        take: 20,
+        include: { user: { select: { id: true, name: true } } },
+      }),
+      this.prisma.satisfactionRating.findMany({
+        where: { clientId },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      this.prisma.satisfactionRating.aggregate({
+        where: { clientId },
+        _avg: { score: true },
+      }),
+      this.prisma.invoice.count({
+        where: { clientId, status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] } },
+      }),
+      this.prisma.disputeTicket.findMany({
+        where: { clientId },
+        orderBy: { openedAt: "desc" },
+        take: 20,
+        include: {
+          pm: { select: { id: true, name: true } },
+          project: { select: { id: true, name: true } },
+        },
+      }),
+    ]);
 
     return {
       ...client,

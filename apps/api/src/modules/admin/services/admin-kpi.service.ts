@@ -103,9 +103,9 @@ export class AdminKpiService {
           ...dateFilter,
         },
       }),
-      // Churned (STOPPED) in period
+      // Suspended clients in period
       this.prisma.client.count({
-        where: { status: "STOPPED", ...dateFilter },
+        where: { status: "SUSPENDED", ...dateFilter },
       }),
       // Active at period start
       this.prisma.client.count({
@@ -114,7 +114,7 @@ export class AdminKpiService {
             { status: "ACTIVE" },
             ...(to
               ? ([
-                  { status: "STOPPED", suspendedAt: { gte: new Date(to) } },
+                  { status: "SUSPENDED", suspendedAt: { gte: new Date(to) } },
                 ] as const)
               : []),
           ],
@@ -153,8 +153,8 @@ export class AdminKpiService {
         count,
       })),
       activeClients: statusMap["ACTIVE"] ?? 0,
-      suspendedClients: statusMap["STOPPED"] ?? 0,
-      newThisPeriod: statusMap["LEAD"] ?? 0,
+      suspendedClients: statusMap["SUSPENDED"] ?? 0,
+      newThisPeriod: await this.prisma.client.count({ where: { kind: "LEAD", ...dateFilter } }),
       repeatClients: repeatClientCount,
       churnRate:
         activeAtPeriodStart > 0 ? (churned / activeAtPeriodStart) * 100 : 0,

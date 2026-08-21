@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ClientStatus, BusinessType } from "../enums/client";
+import { ClientKind, ClientStatus, BusinessType } from "../enums/client";
 
 /**
  * CreateClientSchema — validates the input required to create a new client directly.
@@ -24,6 +24,7 @@ export const CreateClientSchema = z.object({
     .min(2, "Business name must be at least 2 characters")
     .optional(),
   businessType: z.nativeEnum(BusinessType).optional(),
+  kind: z.nativeEnum(ClientKind).optional(),
   accountManager: z.string().uuid("Invalid user ID format").optional(),
   password: z
     .string()
@@ -44,6 +45,7 @@ export const UpdateClientSchema = z
     email: z.string().email().optional().nullable(),
     businessName: z.string().min(2).optional(),
     businessType: z.nativeEnum(BusinessType).optional(),
+    kind: z.nativeEnum(ClientKind).optional(),
     accountManager: z.string().uuid().optional(),
     status: z.nativeEnum(ClientStatus).optional(),
   })

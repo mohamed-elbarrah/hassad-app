@@ -9,7 +9,7 @@ import type {
   UpsertClientProfileInput,
   Project,
 } from "@hassad/shared";
-import type { ClientStatus } from "@hassad/shared";
+import type { ClientKind, ClientStatus } from "@hassad/shared";
 
 // ── V2 Profile Types (unified with IntakeFormV2) ────────────────────────────────
 
@@ -127,6 +127,7 @@ export interface PaginatedClients {
 }
 
 export interface ClientFilters {
+  kind?: ClientKind;
   status?: ClientStatus;
   search?: string;
   page?: number;

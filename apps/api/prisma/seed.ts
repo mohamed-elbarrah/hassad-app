@@ -813,7 +813,7 @@ async function main() {
         companyName: p.co,
         businessName: p.co,
         businessType: "OTHER",
-        status: "LEAD",
+        status: "ACTIVE",
       } as any,
     });
     const request = await prisma.request.create({
@@ -1714,7 +1714,8 @@ async function main() {
       companyName: "Oasis Retail",
       businessName: "Oasis Retail Group",
       businessType: "STORE",
-      status: "STOPPED",
+      kind: "CLIENT",
+      status: "SUSPENDED",
       accountManager: userIds["SALES"],
     },
   });
@@ -1922,7 +1923,7 @@ async function main() {
       companyName: "Oasis Retail",
       businessName: "Oasis Retail Group",
       businessType: "STORE",
-      status: "LEAD",
+      status: "ACTIVE",
     },
   });
   const oasisLead = await prisma.request.create({

@@ -5,13 +5,14 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import {
   CreateClientDto,
   UpdateClientDto,
   HandoverClientDto,
 } from "../dto/client.dto";
-import { BusinessType, ClientStatus } from "@hassad/shared";
+import { BusinessType, ClientKind, ClientStatus } from "@hassad/shared";
 import { CanonicalClientService } from "../../requests/canonical-client.service";
 
 const BCRYPT_ROUNDS = 12;
@@ -79,7 +80,8 @@ export class ClientsService {
           businessName: dto.businessName || dto.companyName || nameFallback,
           businessType: dto.businessType || BusinessType.OTHER,
           preferredManagerId: dto.accountManager ?? null,
-          status: ClientStatus.LEAD,
+          kind: ClientKind.LEAD,
+          status: ClientStatus.ACTIVE,
         },
       );
 
@@ -101,7 +103,8 @@ export class ClientsService {
   }
 
   async findAll(filters: {
-    status?: string;
+    kind?: ClientKind;
+    status?: ClientStatus;
     search?: string;
     page?: number;
     limit?: number;
@@ -109,12 +112,12 @@ export class ClientsService {
   }) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
-    const where: any = {};
+    const where: Prisma.ClientWhereInput = {};
+    if (filters.kind) where.kind = filters.kind;
     if (filters.status) where.status = filters.status;
     if (filters.search) {
       where.OR = [
         { companyName: { contains: filters.search, mode: "insensitive" } },
-        { contactName: { contains: filters.search, mode: "insensitive" } },
         { businessName: { contains: filters.search, mode: "insensitive" } },
         {
           manager: {
@@ -166,7 +169,8 @@ export class ClientsService {
   }
 
   async findAllForSales(filters: {
-    status?: string;
+    kind?: ClientKind;
+    status?: ClientStatus;
     search?: string;
     page?: number;
     limit?: number;
@@ -193,6 +197,7 @@ export class ClientsService {
         businessName: true,
         businessType: true,
         accountManager: true,
+        kind: true,
         status: true,
         suspendedAt: true,
         suspendedUntil: true,

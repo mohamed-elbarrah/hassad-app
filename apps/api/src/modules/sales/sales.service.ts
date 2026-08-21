@@ -83,7 +83,7 @@ export class SalesService {
         where: { status: ClientStatus.ACTIVE, ...clientScopeWhere },
       }),
       this.prisma.client.count({
-        where: { status: ClientStatus.STOPPED, ...clientScopeWhere },
+        where: { status: ClientStatus.SUSPENDED, ...clientScopeWhere },
       }),
       this.prisma.request.count({
         where: {

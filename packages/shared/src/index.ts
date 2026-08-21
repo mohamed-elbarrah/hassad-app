@@ -32,6 +32,7 @@ import type { ServiceItem } from "./schemas/proposal.schema";
 
 import { UserRole } from "./enums/roles";
 import {
+  ClientKind,
   ClientStatus,
   CLIENT_STATUS_AR,
   BusinessType,
@@ -91,6 +92,7 @@ export interface Client {
   businessName: string;
   businessType: BusinessType;
   accountManager?: string | null;
+  kind: ClientKind;
   status: ClientStatus;
   portalAccessToken?: string | null;
   portalTokenExpiresAt?: Date | string | null;
@@ -291,6 +293,7 @@ export interface UpdateClientInput {
   businessName?: string;
   businessType?: BusinessType;
   accountManager?: string;
+  kind?: ClientKind;
   status?: ClientStatus;
 }
 

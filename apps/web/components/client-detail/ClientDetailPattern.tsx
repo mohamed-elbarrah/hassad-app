@@ -229,7 +229,7 @@ function statusVariant(status?: string | null) {
   switch (status) {
     case ClientStatus.ACTIVE:
       return "secondary";
-    case ClientStatus.STOPPED:
+    case ClientStatus.SUSPENDED:
       return "destructive";
     default:
       return "outline";
@@ -252,7 +252,7 @@ function relatedStatusVariant(status?: string | null) {
     status === "CANCELLED" ||
     status === "OVERDUE" ||
     status === "REJECTED" ||
-    status === "STOPPED"
+    status === "SUSPENDED"
   ) {
     return "destructive";
   }

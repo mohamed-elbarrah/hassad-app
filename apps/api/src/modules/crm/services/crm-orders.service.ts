@@ -9,9 +9,11 @@ import { RequestStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { RequestsService } from "../../requests/requests.service";
 import { getCrmStageForRequestStatus } from "../../requests/request-workflow";
+import { classifyCrmRecordKind } from "../../../common/business/crm-record-kind";
 
 const orderDetailClientSelect = {
   id: true,
+  kind: true,
   companyName: true,
   user: {
     select: {
@@ -176,7 +178,7 @@ export class CrmOrdersService {
     }
 
     return {
-      kind: "request" as const,
+      kind: classifyCrmRecordKind(request.client),
       request,
     };
   }

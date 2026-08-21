@@ -258,7 +258,7 @@ export class AdminWorkspacesService {
         : "No portal session",
       owner: client.manager?.name ?? "Unassigned",
       stageTone:
-        client.status === "STOPPED"
+        client.status === "SUSPENDED"
           ? "warning"
           : client.activeProjects > 0
             ? "active"
@@ -319,7 +319,8 @@ export class AdminWorkspacesService {
           },
           client: {
             select: {
-              projects: { select: { id: true, status: true } },
+              kind: true,
+              projects: { select: { id: true } },
             },
           },
         },
@@ -360,7 +361,7 @@ export class AdminWorkspacesService {
 
       return {
         id: request.id,
-        kind: classifyCrmRecordKind(request.client?.projects),
+        kind: classifyCrmRecordKind(request.client),
         companyName: request.companyName,
         contactName: request.contactName,
         serviceLine,

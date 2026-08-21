@@ -141,7 +141,7 @@ export class CrmOverviewService {
             select: {
               id: true,
               companyName: true,
-              projects: { select: { status: true } },
+              kind: true,
             },
           },
           crmNotes: {
@@ -199,7 +199,7 @@ export class CrmOverviewService {
 
       return {
         id: request.id,
-        kind: classifyCrmRecordKind(request.client?.projects),
+        kind: classifyCrmRecordKind(request.client),
         status,
         companyName: request.companyName,
         contactName: request.contactName,

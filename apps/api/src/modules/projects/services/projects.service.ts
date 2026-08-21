@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { Project, Task, User, Prisma } from "@prisma/client";
+import { Project, Task, User, Prisma, ProjectStatus } from "@prisma/client";
 import {
   CreateProjectDto,
   UpdateProjectDto,
@@ -15,6 +15,7 @@ import {
   TaskStatus,
   TaskPriority,
   UserRole,
+  ClientKind,
 } from "@hassad/shared";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { StorageService } from "../../../common/storage/storage.service";
@@ -59,14 +60,18 @@ export class ProjectsService {
       );
     }
 
-    const createdProject = await this.prisma.project.create({
-      data: {
-        ...dto,
-        startDate: new Date(dto.startDate),
-        endDate: new Date(dto.endDate),
-      },
-    });
+    const createdProject = await this.prisma.$transaction(async (tx) => {
+      const project = await tx.project.create({
+        data: {
+          ...dto,
+          startDate: new Date(dto.startDate),
+          endDate: new Date(dto.endDate),
+        },
+      });
 
+      await this.promoteClientForProject(project.clientId, project.status, tx);
+      return project;
+    });
     this.clientCounterService
       .onProjectStatusChange(createdProject.id)
       .catch(() => undefined);
@@ -114,10 +119,16 @@ export class ProjectsService {
     const data: Record<string, unknown> = { ...dto };
     if (dto.startDate) data.startDate = new Date(dto.startDate);
     if (dto.endDate) data.endDate = new Date(dto.endDate);
-    return this.prisma.project.update({
-      where: { id },
-      data,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const project = await tx.project.update({
+        where: { id },
+        data,
+      });
+      await this.promoteClientForProject(project.clientId, project.status, tx);
+      return project;
     });
+    this.clientCounterService.onProjectStatusChange(id).catch(() => undefined);
+    return updated;
   }
 
   async archive(id: string) {
@@ -259,14 +270,32 @@ export class ProjectsService {
     };
   }
 
+  private async promoteClientForProject(
+    clientId: string,
+    status: ProjectStatus,
+    db: TransactionClient = this.prisma,
+  ) {
+    if (status !== ProjectStatus.ACTIVE && status !== ProjectStatus.COMPLETED) {
+      return;
+    }
+
+    await db.client.update({
+      where: { id: clientId },
+      data: { kind: ClientKind.CLIENT },
+    });
+  }
+
   async updateStatus(id: string, status: string, userId?: string) {
     const project = await this.findOne(id);
 
-    const updated = await this.prisma.project.update({
-      where: { id },
-      data: { status: status as import("@prisma/client").ProjectStatus },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const project = await tx.project.update({
+        where: { id },
+        data: { status: status as ProjectStatus },
+      });
+      await this.promoteClientForProject(project.clientId, project.status, tx);
+      return project;
     });
-
     this.clientCounterService.onProjectStatusChange(id).catch(() => undefined);
 
     let actorName: string | undefined;

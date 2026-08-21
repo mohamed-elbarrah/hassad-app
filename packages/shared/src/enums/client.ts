@@ -134,16 +134,24 @@ export const PIPELINE_STAGE_AR: Record<PipelineStage, string> = {
   [PipelineStage.CONTRACT_SIGNED]: "تم التوقيع",
 };
 
-export enum ClientStatus {
+export enum ClientKind {
   LEAD = "LEAD",
+  CLIENT = "CLIENT",
+}
+
+export const CLIENT_KIND_AR: Record<ClientKind, string> = {
+  [ClientKind.LEAD]: "عميل محتمل",
+  [ClientKind.CLIENT]: "عميل",
+};
+
+export enum ClientStatus {
   ACTIVE = "ACTIVE",
-  STOPPED = "STOPPED",
+  SUSPENDED = "SUSPENDED",
 }
 
 export const CLIENT_STATUS_AR: Record<ClientStatus, string> = {
-  [ClientStatus.LEAD]: "عميل محتمل",
   [ClientStatus.ACTIVE]: "نشط",
-  [ClientStatus.STOPPED]: "متوقف",
+  [ClientStatus.SUSPENDED]: "موقوف",
 };
 
 export enum DurationUnit {

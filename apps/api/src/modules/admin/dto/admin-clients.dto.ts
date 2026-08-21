@@ -11,7 +11,7 @@ import {
   MinLength,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { ClientStatus } from "@hassad/shared";
+import { ClientKind, ClientStatus } from "@hassad/shared";
 
 export class SuspendClientDto {
   @IsString()
@@ -46,6 +46,10 @@ export class QueryClientUsersDto {
   @IsOptional()
   @IsEnum(ClientStatus)
   status?: ClientStatus;
+
+  @IsOptional()
+  @IsEnum(ClientKind)
+  kind?: ClientKind;
 
   @IsOptional()
   @IsIn(["new", "active", "stopped"])

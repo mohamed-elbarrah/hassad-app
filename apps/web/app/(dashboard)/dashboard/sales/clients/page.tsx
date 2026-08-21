@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 import {
   BUSINESS_TYPE_AR,
+  CLIENT_KIND_AR,
   CLIENT_STATUS_AR,
+  ClientKind,
   ClientStatus,
   type Client,
 } from "@hassad/shared";
@@ -66,7 +68,7 @@ function statusVariant(status: ClientStatus) {
   switch (status) {
     case ClientStatus.ACTIVE:
       return "secondary";
-    case ClientStatus.STOPPED:
+    case ClientStatus.SUSPENDED:
       return "destructive";
     default:
       return "outline";
@@ -84,7 +86,7 @@ function getInitials(name: string) {
 }
 
 function statusHint(client: Client) {
-  if (client.status === ClientStatus.LEAD) {
+  if (client.kind === ClientKind.LEAD) {
     return client.intakeCompleted
       ? "الملف مكتمل وجاهز للمتابعة"
       : "يحتاج استكمال التأهيل";
@@ -103,7 +105,7 @@ function companyType(client: Client) {
 
 function LoadingState() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6   ">
+    <div dir="rtl" className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-9 w-56" />
@@ -204,9 +206,12 @@ function ClientCard({ client }: { client: Client }) {
       <CardContent className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <ClientIdentity client={client} />
-          <Badge variant={statusVariant(client.status)}>
-            {CLIENT_STATUS_AR[client.status]}
-          </Badge>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">{CLIENT_KIND_AR[client.kind]}</Badge>
+            <Badge variant={statusVariant(client.status)}>
+              {CLIENT_STATUS_AR[client.status]}
+            </Badge>
+          </div>
         </div>
         <dl className="grid gap-3 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-1 border-b border-border/60 pb-3">
@@ -271,6 +276,7 @@ function ClientRow({ client }: { client: Client }) {
       </TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">
+          <Badge variant="outline">{CLIENT_KIND_AR[client.kind]}</Badge>
           <Badge variant={statusVariant(client.status)}>
             {CLIENT_STATUS_AR[client.status]}
           </Badge>
@@ -323,12 +329,14 @@ function ClientRow({ client }: { client: Client }) {
 export default function SalesClientsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ALL" | ClientStatus>("ALL");
+  const [kind, setKind] = useState<"ALL" | ClientKind>("ALL");
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
   const { data, error, isLoading, isError, isFetching, refetch } =
     useGetSalesClientsQuery({
       search: deferredSearch.trim() || undefined,
       status: status === "ALL" ? undefined : status,
+      kind: kind === "ALL" ? undefined : kind,
       page,
       limit: PAGE_SIZE,
     });
@@ -340,7 +348,7 @@ export default function SalesClientsPage() {
 
   if (isError) {
     return (
-      <div dir="rtl" className="flex flex-col gap-6   ">
+      <div dir="rtl" className="flex flex-col gap-6">
         <PageHeader title="عملاء المبيعات" icon={Building2} />
         <Card>
           <CardContent className="p-8">
@@ -372,7 +380,7 @@ export default function SalesClientsPage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6   ">
+    <div dir="rtl" className="flex flex-col gap-6">
       <PageHeader
         title="عملاء المبيعات"
         description="متابعة العملاء المحتملين والحسابات النشطة مع وصول سريع إلى الملف التجاري الكامل."
@@ -389,7 +397,7 @@ export default function SalesClientsPage() {
       />
 
       <div className="flex flex-col gap-5">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-center">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto] lg:items-center">
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -425,6 +433,28 @@ export default function SalesClientsPage() {
               </SelectGroup>
             </SelectContent>
           </Select>
+          <Select
+            value={kind}
+            onValueChange={(value) =>
+              updateFilter(() => setKind(value as "ALL" | ClientKind))
+            }
+          >
+            <SelectTrigger aria-label="تصفية حسب نوع العلاقة">
+              <SelectValue placeholder="كل الأنواع" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>نوع العلاقة</SelectLabel>
+                <SelectItem value="ALL">كل الأنواع</SelectItem>
+                <SelectItem value={ClientKind.LEAD}>
+                  {CLIENT_KIND_AR[ClientKind.LEAD]}
+                </SelectItem>
+                <SelectItem value={ClientKind.CLIENT}>
+                  {CLIENT_KIND_AR[ClientKind.CLIENT]}
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           <div className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm">
             <span className="text-muted-foreground">النتائج الحالية</span>
             <span className="font-semibold">
@@ -451,6 +481,7 @@ export default function SalesClientsPage() {
                   updateFilter(() => {
                     setSearch("");
                     setStatus("ALL");
+                    setKind("ALL");
                   })
                 }
               >

@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
-import { BUSINESS_TYPE_AR, CLIENT_STATUS_AR, ClientStatus } from "@hassad/shared";
+import { BUSINESS_TYPE_AR, CLIENT_STATUS_AR, ClientKind, ClientStatus } from "@hassad/shared";
 import type { Client } from "@hassad/shared";
 
 import { CreateClientDialog } from "./create-client-dialog";
@@ -44,7 +44,7 @@ function statusVariant(status: ClientStatus) {
   switch (status) {
     case ClientStatus.ACTIVE:
       return "secondary";
-    case ClientStatus.STOPPED:
+    case ClientStatus.SUSPENDED:
       return "destructive";
     default:
       return "outline";
@@ -157,7 +157,7 @@ export default function ClientsPage() {
   const metrics = useMemo(() => {
     const total = clients.length;
     const active = clients.filter((client) => client.status === ClientStatus.ACTIVE).length;
-    const leads = clients.filter((client) => client.status === ClientStatus.LEAD).length;
+    const leads = clients.filter((client) => client.kind === ClientKind.LEAD).length;
     const linkedUsers = clients.filter((client) => Boolean(client.userId)).length;
     const totalRevenue = clients.reduce((sum, client) => sum + (client.totalPaid || 0), 0);
 

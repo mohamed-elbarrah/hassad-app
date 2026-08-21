@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
-import { UserRole, ClientStatus, BusinessType } from "@hassad/shared";
+import { UserRole, ClientKind, ClientStatus, BusinessType } from "@hassad/shared";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { JwtPayload } from "../common/decorators/current-user.decorator";
@@ -352,7 +352,8 @@ export class AuthService {
         companyName: dto.name,
         businessName: dto.name,
         businessType: dto.businessType,
-        status: ClientStatus.LEAD,
+        kind: ClientKind.LEAD,
+        status: ClientStatus.ACTIVE,
       });
 
       return { code: "USER_REGISTERED" };
@@ -452,7 +453,8 @@ export class AuthService {
         companyName: data.name,
         businessName: data.name,
         businessType: BusinessType.OTHER,
-        status: ClientStatus.LEAD,
+        kind: ClientKind.LEAD,
+        status: ClientStatus.ACTIVE,
       });
 
       return createdUser;

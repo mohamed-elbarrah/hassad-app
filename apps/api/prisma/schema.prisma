@@ -259,6 +259,7 @@ model Client {
   businessName         String                   @map("business_name")
   businessType         BusinessType             @map("business_type")
   accountManager       String?                  @map("account_manager")
+  kind                 ClientKind               @default(LEAD)
   status               ClientStatus
   suspendedAt          DateTime?                @map("suspended_at")
   suspendedUntil       DateTime?                @map("suspended_until")
@@ -1949,10 +1950,14 @@ enum RequestStatus {
   CANCELLED
 }
 
-enum ClientStatus {
+enum ClientKind {
   LEAD
+  CLIENT
+}
+
+enum ClientStatus {
   ACTIVE
-  STOPPED
+  SUSPENDED
 }
 
 enum ContactLogType {

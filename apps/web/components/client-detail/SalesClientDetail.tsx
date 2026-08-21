@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import type { ClientProfile } from "@hassad/shared";
+import { CLIENT_KIND_AR, ClientKind, type ClientProfile } from "@hassad/shared";
 import {
   ArrowRight,
   Building2,
@@ -137,7 +137,7 @@ function Status({ value, label }: { value: string; label: string }) {
     "CANCELLED",
     "OVERDUE",
     "LATE",
-    "STOPPED",
+    "SUSPENDED",
     "FAILED",
   ].includes(value);
   return (
@@ -582,16 +582,21 @@ export function SalesClientDetail({
                   </p>
                 </div>
               </div>
-              <Status
-                value={client.status ?? "UNKNOWN"}
-                label={
-                  client.status === "ACTIVE"
-                    ? "نشط"
-                    : client.status === "STOPPED"
-                      ? "متوقف"
-                      : "غير محدد"
-                }
-              />
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">
+                  {CLIENT_KIND_AR[client.kind ?? ClientKind.LEAD]}
+                </Badge>
+                <Status
+                  value={client.status ?? "UNKNOWN"}
+                  label={
+                    client.status === "ACTIVE"
+                      ? "نشط"
+                      : client.status === "SUSPENDED"
+                        ? "موقوف"
+                        : "غير محدد"
+                  }
+                />
+              </div>
               <div className="flex flex-col gap-3 text-sm">
                 {user?.name && (
                   <p className="flex items-center gap-2">

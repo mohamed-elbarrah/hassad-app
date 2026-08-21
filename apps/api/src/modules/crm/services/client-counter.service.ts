@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ClientKind } from "@hassad/shared";
 
 /**
  * Owns the denormalized counter fields on the `Client` row.
@@ -50,7 +51,12 @@ export class ClientCounterService {
 
     await this.prisma.client.update({
       where: { id: clientId },
-      data: update,
+      data: {
+        ...update,
+        ...(update.activeProjects > 0 || update.completedProjects > 0
+          ? { kind: ClientKind.CLIENT }
+          : {}),
+      },
     });
 
     // Audit-log write is best-effort. The counter update above is the

@@ -31,17 +31,13 @@ export class AdminClientsService {
     } else if (query.segment === "active") {
       conditions.push({ clientProfile: { activeProjects: { gt: 0 } } });
     } else if (query.segment === "stopped") {
-      conditions.push({ clientProfile: { status: "STOPPED" } });
+      conditions.push({ clientProfile: { status: "SUSPENDED" } });
     }
 
-    if (query.status === "LEAD") {
-      conditions.push({
-        OR: [
-          { clientProfile: { status: "LEAD" } },
-          { clientProfile: null },
-        ],
-      });
-    } else if (query.status) {
+    if (query.kind) {
+      conditions.push({ clientProfile: { kind: query.kind } });
+    }
+    if (query.status) {
       conditions.push({ clientProfile: { status: query.status } });
     }
 
@@ -71,7 +67,8 @@ export class AdminClientsService {
       email: u.email,
       companyName: u.clientProfile?.companyName ?? null,
       businessType: u.clientProfile?.businessType ?? null,
-      status: u.clientProfile?.status ?? "LEAD",
+      kind: u.clientProfile?.kind ?? "LEAD",
+      status: u.clientProfile?.status ?? "ACTIVE",
       portalAccess: u.clientProfile?.portalAccessToken ? true : false,
       totalProjects: u.clientProfile?.totalProjects ?? 0,
       activeProjects: u.clientProfile?.activeProjects ?? 0,
@@ -97,17 +94,14 @@ export class AdminClientsService {
       this.prisma.user.count({
         where: {
           ...whereClient,
-          OR: [
-            { clientProfile: { status: "LEAD" } },
-            { clientProfile: null },
-          ],
+          OR: [{ clientProfile: { kind: "LEAD" } }, { clientProfile: null }],
         },
       }),
       this.prisma.user.count({
         where: { ...whereClient, clientProfile: { status: "ACTIVE" } },
       }),
       this.prisma.user.count({
-        where: { ...whereClient, clientProfile: { status: "STOPPED" } },
+        where: { ...whereClient, clientProfile: { status: "SUSPENDED" } },
       }),
       this.prisma.user.count({
         where: {
@@ -141,9 +135,9 @@ export class AdminClientsService {
         filters.status === "stopped" ||
         filters.status === "inactive"
       ) {
-        clientWhere.status = "STOPPED";
+        clientWhere.status = "SUSPENDED";
       } else if (filters.status === "lead") {
-        clientWhere.status = "LEAD";
+        clientWhere.kind = "LEAD";
       }
     }
 
@@ -273,7 +267,8 @@ export class AdminClientsService {
         },
       },
     });
-    if (!user) throw new NotFoundException("العميل غير موجود");
+    if (!user)
+      throw new NotFoundException({ code: "CLIENT_NOT_FOUND", details: {} });
 
     return {
       id: user.id,
@@ -318,7 +313,11 @@ export class AdminClientsService {
           },
         },
         profile: true,
-        requests: { orderBy: { createdAt: "desc" }, take: 1, select: { source: true } },
+        requests: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { source: true },
+        },
         _count: {
           select: {
             contracts: true,
@@ -332,7 +331,8 @@ export class AdminClientsService {
       },
     });
 
-    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (!client)
+      throw new NotFoundException({ code: "CLIENT_NOT_FOUND", details: {} });
 
     const [
       contracts,
@@ -512,7 +512,8 @@ export class AdminClientsService {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
     });
-    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (!client)
+      throw new NotFoundException({ code: "CLIENT_NOT_FOUND", details: {} });
 
     const skip = (page - 1) * limit;
 
@@ -556,13 +557,20 @@ export class AdminClientsService {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
     });
-    if (!client) throw new NotFoundException("العميل غير موجود");
-    if (client.status === "STOPPED")
-      throw new BadRequestException("العميل موقوف بالفعل");
+    if (!client)
+      throw new NotFoundException({
+        code: "CLIENT_NOT_FOUND",
+        details: { clientId },
+      });
+    if (client.status === "SUSPENDED")
+      throw new BadRequestException({
+        code: "CLIENT_ALREADY_SUSPENDED",
+        details: { clientId },
+      });
 
     const before = { status: client.status, suspendedAt: client.suspendedAt };
     const after = {
-      status: "STOPPED",
+      status: "SUSPENDED",
       reason,
       suspendedUntil: suspendedUntil ?? null,
     };
@@ -571,7 +579,7 @@ export class AdminClientsService {
       this.prisma.client.update({
         where: { id: clientId },
         data: {
-          status: "STOPPED",
+          status: "SUSPENDED",
           suspendedAt: new Date(),
           suspendedUntil: suspendedUntil ? new Date(suspendedUntil) : null,
           suspendReason: reason,
@@ -609,16 +617,23 @@ export class AdminClientsService {
       afterState: after,
     });
 
-    return { success: true };
+    return { clientId, status: "SUSPENDED" };
   }
 
   async reactivate(clientId: string, reason: string, adminId: string) {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
     });
-    if (!client) throw new NotFoundException("العميل غير موجود");
-    if (client.status !== "STOPPED")
-      throw new BadRequestException("العميل غير موقوف");
+    if (!client)
+      throw new NotFoundException({
+        code: "CLIENT_NOT_FOUND",
+        details: { clientId },
+      });
+    if (client.status !== "SUSPENDED")
+      throw new BadRequestException({
+        code: "CLIENT_NOT_SUSPENDED",
+        details: { clientId },
+      });
 
     const before = { status: client.status, suspendedAt: client.suspendedAt };
     const after = { status: "ACTIVE" };
@@ -665,7 +680,7 @@ export class AdminClientsService {
       afterState: after,
     });
 
-    return { success: true };
+    return { clientId, status: "ACTIVE" };
   }
 
   async assignManager(
@@ -678,8 +693,10 @@ export class AdminClientsService {
       this.prisma.client.findUnique({ where: { id: clientId } }),
       this.prisma.user.findUnique({ where: { id: accountManagerId } }),
     ]);
-    if (!client) throw new NotFoundException("العميل غير موجود");
-    if (!manager) throw new NotFoundException("المستخدم غير موجود");
+    if (!client)
+      throw new NotFoundException({ code: "CLIENT_NOT_FOUND", details: {} });
+    if (!manager)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const before = { accountManager: client.accountManager };
     const after = {
@@ -727,7 +744,7 @@ export class AdminClientsService {
       afterState: after,
     });
 
-    return { success: true, managerName: manager.name };
+    return { clientId, managerName: manager.name };
   }
 
   private formatClientResponse(client: any) {

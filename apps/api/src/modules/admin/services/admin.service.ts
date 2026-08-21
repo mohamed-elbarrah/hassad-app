@@ -401,7 +401,7 @@ export class AdminService {
     ] = await Promise.all([
       this.prisma.request.count({ where: dateFilter }),
       this.prisma.client.count({
-        where: { status: { not: "STOPPED" }, ...dateFilter },
+        where: { status: { not: "SUSPENDED" }, ...dateFilter },
       }),
       this.prisma.proposal.count({ where: dateFilter }),
       this.prisma.contract.count({ where: contractDateFilter }),
