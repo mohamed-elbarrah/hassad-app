@@ -4,8 +4,8 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Building2 } from "lucide-react";
 import {
-  useGetClientByIdQuery,
-  useGetClientProfileQuery,
+  useGetSalesClientByIdQuery,
+  useGetSalesClientProfileQuery,
 } from "@/features/clients/clientsApi";
 import { useGetProjectsQuery } from "@/features/projects/projectsApi";
 import { useGetContractsQuery } from "@/features/contracts/contractsApi";
@@ -85,8 +85,8 @@ export default function ClientProfilePage({
   const { id } = use(params);
   const [newRequestOpen, setNewRequestOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const clientQuery = useGetClientByIdQuery(id);
-  const profileQuery = useGetClientProfileQuery(id, {
+  const clientQuery = useGetSalesClientByIdQuery(id);
+  const profileQuery = useGetSalesClientProfileQuery(id, {
     skip: clientQuery.isError || clientQuery.isLoading,
   });
   const projectsQuery = useGetProjectsQuery(
@@ -107,7 +107,7 @@ export default function ClientProfilePage({
     const forbidden = isForbidden(clientQuery.error);
 
     return (
-      <main dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <main dir="rtl" className="  ">
         <State
           title={forbidden ? "الوصول غير متاح" : "لم يتم العثور على العميل"}
           description={

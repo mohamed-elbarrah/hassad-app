@@ -10,6 +10,31 @@ import {
   Min,
 } from "class-validator";
 
+export class SalesClientQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(["LEAD", "ACTIVE", "STOPPED"])
+  status?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
 export class SalesPipelineQueryDto {
   @IsOptional()
   @IsString()

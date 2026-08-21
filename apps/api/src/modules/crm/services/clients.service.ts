@@ -33,14 +33,20 @@ export class ClientsService {
           where: { email: dto.email.trim().toLowerCase() },
         });
         if (existingUser) {
-          throw new ConflictException("A user with this email already exists");
+          throw new ConflictException({
+            code: "EMAIL_ALREADY_IN_USE",
+            details: { email: dto.email.trim().toLowerCase() },
+          });
         }
 
         const role = await tx.role.findFirst({
           where: { name: "CLIENT" },
         });
         if (!role) {
-          throw new BadRequestException("CLIENT role not found");
+          throw new BadRequestException({
+            code: "CLIENT_ROLE_NOT_FOUND",
+            details: {},
+          });
         }
 
         const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -109,6 +115,26 @@ export class ClientsService {
       where.OR = [
         { companyName: { contains: filters.search, mode: "insensitive" } },
         { contactName: { contains: filters.search, mode: "insensitive" } },
+        { businessName: { contains: filters.search, mode: "insensitive" } },
+        {
+          manager: {
+            name: { contains: filters.search, mode: "insensitive" },
+          },
+        },
+        {
+          user: {
+            OR: [
+              { name: { contains: filters.search, mode: "insensitive" } },
+              { email: { contains: filters.search, mode: "insensitive" } },
+              {
+                phoneWhatsapp: {
+                  contains: filters.search,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          },
+        },
       ];
     }
 
@@ -137,6 +163,87 @@ export class ClientsService {
     ]);
 
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async findAllForSales(filters: {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const result = await this.findAll(filters);
+    return {
+      ...result,
+      items: result.items.map(
+        ({
+          portalAccessToken: _portalAccessToken,
+          portalTokenExpiresAt: _portalTokenExpiresAt,
+          ...client
+        }) => client,
+      ),
+    };
+  }
+
+  async findOneForSales(id: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        companyName: true,
+        businessName: true,
+        businessType: true,
+        accountManager: true,
+        status: true,
+        suspendedAt: true,
+        suspendedUntil: true,
+        suspendReason: true,
+        suspendedById: true,
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
+        intakeCompleted: true,
+        totalProjects: true,
+        activeProjects: true,
+        completedProjects: true,
+        cancelledProjects: true,
+        totalContractValue: true,
+        totalInvoiced: true,
+        totalPaid: true,
+        lastProjectAt: true,
+        avgSatisfactionScore: true,
+        manager: { select: { id: true, name: true, email: true } },
+        profile: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneWhatsapp: true,
+            avatarUrl: true,
+          },
+        },
+        historyLogs: {
+          orderBy: { occurredAt: "desc" },
+          take: 50,
+          select: {
+            id: true,
+            eventType: true,
+            description: true,
+            occurredAt: true,
+            user: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    if (!client) {
+      throw new NotFoundException({
+        code: "CLIENT_NOT_FOUND",
+        details: { id },
+      });
+    }
+
+    return client;
   }
 
   async findOne(id: string) {
@@ -170,7 +277,10 @@ export class ClientsService {
     });
 
     if (!client) {
-      throw new NotFoundException(`Client with ID ${id} not found`);
+      throw new NotFoundException({
+        code: "CLIENT_NOT_FOUND",
+        details: { id },
+      });
     }
 
     return client;
@@ -205,8 +315,9 @@ export class ClientsService {
   }
 
   async handover(id: string, userId: string, dto: HandoverClientDto) {
-    throw new BadRequestException(
-      "Direct client handover is disabled. Create projects from signed contracts so the request workflow remains canonical.",
-    );
+    throw new BadRequestException({
+      code: "CLIENT_HANDOVER_DISABLED",
+      details: {},
+    });
   }
 }

@@ -36,7 +36,10 @@ export class ClientProfileService {
 
     const ownedClientId = await this.resolveClientIdForUser(user.id);
     if (!ownedClientId || ownedClientId !== clientId) {
-      throw new ForbiddenException("You can only access your own profile");
+      throw new ForbiddenException({
+        code: "CLIENT_PROFILE_ACCESS_DENIED",
+        details: { clientId },
+      });
     }
   }
 
@@ -68,7 +71,10 @@ export class ClientProfileService {
     });
 
     if (!client) {
-      throw new NotFoundException(`Client with ID ${clientId} not found`);
+      throw new NotFoundException({
+        code: "CLIENT_NOT_FOUND",
+        details: { id: clientId },
+      });
     }
 
     // Return only non-sensitive client fields + full profile
@@ -254,7 +260,10 @@ export class ClientProfileService {
       where: { clientId },
     });
     if (!existing) {
-      throw new NotFoundException("Client profile not found");
+      throw new NotFoundException({
+        code: "CLIENT_PROFILE_NOT_FOUND",
+        details: { clientId },
+      });
     }
     await this.prisma.clientProfile.delete({
       where: { clientId },

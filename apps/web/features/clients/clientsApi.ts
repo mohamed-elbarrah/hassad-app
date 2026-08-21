@@ -150,7 +150,13 @@ export interface HandoverResult {
 export const clientsApi = createApi({
   reducerPath: "clientsApi",
   baseQuery,
-  tagTypes: ["Client", "ClientProfile", "Project", "AdminClientUsers", "AdminClientStats"],
+  tagTypes: [
+    "Client",
+    "ClientProfile",
+    "Project",
+    "AdminClientUsers",
+    "AdminClientStats",
+  ],
   endpoints: (builder) => ({
     /** GET /v1/clients — paginated + filtered list */
     getClients: builder.query<PaginatedClients, ClientFilters>({
@@ -158,6 +164,21 @@ export const clientsApi = createApi({
         url: "/clients",
         params: filters,
       }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map(({ id }) => ({
+                type: "Client" as const,
+                id,
+              })),
+              { type: "Client", id: "LIST" },
+            ]
+          : [{ type: "Client", id: "LIST" }],
+    }),
+
+    /** GET /v1/sales/clients — sales-owned paginated + filtered list */
+    getSalesClients: builder.query<PaginatedClients, ClientFilters>({
+      query: (filters = {}) => ({ url: "/sales/clients", params: filters }),
       providesTags: (result) =>
         result
           ? [
@@ -222,6 +243,18 @@ export const clientsApi = createApi({
       ],
     }),
 
+    /** GET /v1/sales/clients/:id — sales-owned detail */
+    getSalesClientById: builder.query<Client, string>({
+      query: (id) => `/sales/clients/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Client", id }],
+    }),
+
+    /** GET /v1/sales/clients/:id/profile */
+    getSalesClientProfile: builder.query<ClientProfile | null, string>({
+      query: (id) => `/sales/clients/${id}/profile`,
+      providesTags: (_result, _err, id) => [{ type: "ClientProfile", id }],
+    }),
+
     /** GET /v1/clients/:id/profile */
     getClientProfile: builder.query<ClientProfile, string>({
       query: (id) => `/clients/${id}/profile`,
@@ -271,6 +304,21 @@ export const clientsApi = createApi({
      * This is the canonical endpoint for updating client profile from both
      * intake form submission and profile edit.
      */
+    upsertSalesClientProfileV2: builder.mutation<
+      ClientProfile,
+      { id: string; data: UpsertClientProfileV2Input }
+    >({
+      query: ({ id, data }) => ({
+        url: `/sales/clients/${id}/profile/v2`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: (_result, _err, { id }) => [
+        { type: "ClientProfile", id },
+        { type: "Client", id },
+      ],
+    }),
+
     upsertClientProfileV2: builder.mutation<
       ClientProfile,
       { id: string; data: UpsertClientProfileV2Input }
@@ -291,12 +339,16 @@ export const clientsApi = createApi({
 export const {
   useGetClientsQuery,
   useGetClientByIdQuery,
+  useGetSalesClientsQuery,
+  useGetSalesClientByIdQuery,
   useCreateClientMutation,
   useUpdateClientMutation,
   useHandoverClientMutation,
   useGetClientProfileQuery,
+  useGetSalesClientProfileQuery,
   useGetClientTeamViewQuery,
   useUpsertClientProfileMutation,
   useGetClientProfileV2Query,
   useUpsertClientProfileV2Mutation,
+  useUpsertSalesClientProfileV2Mutation,
 } = clientsApi;

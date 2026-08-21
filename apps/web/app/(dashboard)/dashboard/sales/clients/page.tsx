@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpLeft,
@@ -16,7 +16,7 @@ import {
   ClientStatus,
   type Client,
 } from "@hassad/shared";
-import { useGetClientsQuery } from "@/features/clients/clientsApi";
+import { useGetSalesClientsQuery } from "@/features/clients/clientsApi";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -103,7 +103,7 @@ function companyType(client: Client) {
 
 function LoadingState() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <div className="flex flex-col gap-3">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-9 w-56" />
@@ -168,9 +168,6 @@ function ClientIdentity({ client }: { client: Client }) {
       <div className="flex min-w-0 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate font-semibold">{client.companyName}</span>
-          {client.portalAccessToken ? (
-            <Badge variant="outline">البوابة مفعلة</Badge>
-          ) : null}
         </div>
         <span className="truncate text-sm text-muted-foreground">
           {companyType(client)}
@@ -329,43 +326,21 @@ export default function SalesClientsPage() {
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
   const { data, error, isLoading, isError, isFetching, refetch } =
-    useGetClientsQuery({ limit: 1000 });
-  const clients = useMemo(() => data?.items ?? [], [data]);
-  const filteredClients = useMemo(() => {
-    const query = deferredSearch.trim().toLowerCase();
-    return clients.filter((client) => {
-      const matchesStatus = status === "ALL" || client.status === status;
-      const matchesSearch =
-        !query ||
-        [
-          client.companyName,
-          client.businessName,
-          client.status,
-          client.businessType,
-          client.accountManager,
-          client.manager?.name,
-          client.user?.name,
-          client.user?.email,
-          client.user?.phoneWhatsapp,
-          client.id,
-        ]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(query));
-      return matchesStatus && matchesSearch;
+    useGetSalesClientsQuery({
+      search: deferredSearch.trim() || undefined,
+      status: status === "ALL" ? undefined : status,
+      page,
+      limit: PAGE_SIZE,
     });
-  }, [clients, deferredSearch, status]);
-  const totalPages = Math.max(1, Math.ceil(filteredClients.length / PAGE_SIZE));
+  const clients = data?.items ?? [];
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
   const currentPage = Math.min(page, totalPages);
-  const pagedClients = filteredClients.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
 
   if (isLoading) return <LoadingState />;
 
   if (isError) {
     return (
-      <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="flex flex-col gap-6   ">
         <PageHeader title="عملاء المبيعات" icon={Building2} />
         <Card>
           <CardContent className="p-8">
@@ -397,7 +372,7 @@ export default function SalesClientsPage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <PageHeader
         title="عملاء المبيعات"
         description="متابعة العملاء المحتملين والحسابات النشطة مع وصول سريع إلى الملف التجاري الكامل."
@@ -453,12 +428,12 @@ export default function SalesClientsPage() {
           <div className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm">
             <span className="text-muted-foreground">النتائج الحالية</span>
             <span className="font-semibold">
-              {formatNumber(filteredClients.length)}
+              {formatNumber(data?.total ?? 0)}
             </span>
           </div>
         </div>
 
-        {filteredClients.length === 0 ? (
+        {clients.length === 0 ? (
           <Empty className="border p-8">
             <EmptyMedia variant="icon">
               <ShieldCheck />
@@ -486,7 +461,7 @@ export default function SalesClientsPage() {
         ) : (
           <>
             <div className="grid gap-4 xl:hidden">
-              {pagedClients.map((client) => (
+              {clients.map((client) => (
                 <ClientCard key={client.id} client={client} />
               ))}
             </div>
@@ -504,7 +479,7 @@ export default function SalesClientsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pagedClients.map((client) => (
+                  {clients.map((client) => (
                     <ClientRow key={client.id} client={client} />
                   ))}
                 </TableBody>

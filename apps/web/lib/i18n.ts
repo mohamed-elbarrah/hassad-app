@@ -346,6 +346,13 @@ const SALES_WORKFLOW_FIELD_MESSAGES: Record<string, string> = {
 
 export function clientWorkflowErrorMessage(error: unknown): string {
   const payload = getApiErrorPayload(error);
+  const code = payload.data?.error?.code;
+  if (code === "CLIENT_NOT_FOUND" || code === "CLIENT_PROFILE_NOT_FOUND") {
+    return "لم يتم العثور على بيانات العميل.";
+  }
+  if (code === "CLIENT_PROFILE_ACCESS_DENIED") {
+    return "ليس لديك صلاحية لعرض ملف العميل.";
+  }
   if (payload.status === 401)
     return "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.";
   if (payload.status === 403) return "ليس لديك صلاحية لعرض هذه البيانات.";
@@ -357,6 +364,13 @@ export function clientWorkflowErrorMessage(error: unknown): string {
 
 export function clientRelatedErrorMessage(error: unknown): string {
   const payload = getApiErrorPayload(error);
+  const code = payload.data?.error?.code;
+  if (code === "CLIENT_NOT_FOUND" || code === "CLIENT_PROFILE_NOT_FOUND") {
+    return "لم يتم العثور على البيانات المرتبطة بالعميل.";
+  }
+  if (code === "CLIENT_PROFILE_ACCESS_DENIED") {
+    return "ليس لديك صلاحية لعرض بيانات العميل المرتبطة.";
+  }
   if (payload.status === 401)
     return "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.";
   if (payload.status === 403) return "ليس لديك صلاحية لعرض هذه البيانات.";

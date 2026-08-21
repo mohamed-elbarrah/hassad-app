@@ -544,7 +544,7 @@ export function SalesClientDetail({
   ] as const;
 
   return (
-    <main dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <main dir="rtl" className="flex flex-col gap-6  ">
       <PageHeader
         title="تفاصيل العميل"
         description="ملف موحد للعلاقة التجارية والمالية مع العميل."
@@ -887,7 +887,7 @@ function RecordTable<T extends { id: string }>({
 
 export function SalesClientDetailLoading() {
   return (
-    <main dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <main dir="rtl" className="flex flex-col gap-6  ">
       <Skeleton className="h-16 w-full" />
       <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <Skeleton className="h-80" />

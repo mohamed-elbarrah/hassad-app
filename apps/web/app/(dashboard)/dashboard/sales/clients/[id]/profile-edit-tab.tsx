@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
-import { useUpsertClientProfileV2Mutation } from "@/features/clients/clientsApi";
-import type { IntakeFormV2Input } from "@hassad/shared";
+import {
+  useUpsertSalesClientProfileV2Mutation,
+  type UpsertClientProfileV2Input,
+} from "@/features/clients/clientsApi";
+import type { ClientProfile, IntakeFormV2Input } from "@hassad/shared";
+import { salesWorkflowErrorMessage } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
@@ -21,7 +25,7 @@ import {
 
 interface ProfileEditTabProps {
   clientId: string;
-  profile: any;
+  profile: ClientProfile | null;
 }
 
 type FormData = {
@@ -30,7 +34,7 @@ type FormData = {
 
 export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
   const [upsertProfile, { isLoading: isSaving }] =
-    useUpsertClientProfileV2Mutation();
+    useUpsertSalesClientProfileV2Mutation();
 
   const [formData, setFormData] = useState<FormData>({});
   const [isDirty, setIsDirty] = useState(false);
@@ -38,18 +42,17 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
   // Initialize form data when profile loads
   useEffect(() => {
     if (profile) {
-      const p = profile as any;
       setFormData({
-        communicationInfo: p.communicationInfo ?? undefined,
-        productInfo: p.productInfo ?? undefined,
-        audienceInfo: p.audienceInfo ?? undefined,
-        brandVoice: p.brandVoice ?? undefined,
-        customerJourney: p.customerJourney ?? undefined,
-        campaignInfo: p.campaignInfo ?? undefined,
-        pastPerformance: p.pastPerformance ?? undefined,
-        budgetInfo: p.budgetInfo ?? undefined,
-        visualIdentityInfo: p.visualIdentityInfo ?? undefined,
-      });
+        communicationInfo: profile.communicationInfo ?? undefined,
+        productInfo: profile.productInfo ?? undefined,
+        audienceInfo: profile.audienceInfo ?? undefined,
+        brandVoice: profile.brandVoice ?? undefined,
+        customerJourney: profile.customerJourney ?? undefined,
+        campaignInfo: profile.campaignInfo ?? undefined,
+        pastPerformance: profile.pastPerformance ?? undefined,
+        budgetInfo: profile.budgetInfo ?? undefined,
+        visualIdentityInfo: profile.visualIdentityInfo ?? undefined,
+      } as FormData);
     }
   }, [profile]);
 
@@ -65,27 +68,31 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
     try {
       await upsertProfile({
         id: clientId,
-        data: formData as any,
+        data: formData as UpsertClientProfileV2Input,
       }).unwrap();
       toast.success("تم حفظ التغييرات بنجاح");
       setIsDirty(false);
-    } catch (error: any) {
-      toast.error(error.message || "حدث خطأ أثناء الحفظ");
+    } catch (error: unknown) {
+      toast.error(salesWorkflowErrorMessage(error));
     }
   }, [clientId, formData, upsertProfile]);
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="flex flex-col gap-6" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-foreground">
             تعديل الملف التعريفي
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">قم بتحديث معلومات العميل</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            قم بتحديث معلومات العميل
+          </p>
         </div>
         {isDirty ? (
-          <span className="text-xs text-destructive">لديك تغييرات غير محفوظة</span>
+          <span className="text-xs text-destructive">
+            لديك تغييرات غير محفوظة
+          </span>
         ) : null}
       </div>
 
@@ -171,7 +178,11 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
       {/* Global Save Button */}
       <Separator />
       <div className="sticky bottom-0 flex items-center justify-end gap-3 bg-background p-4">
-        <Button type="button" onClick={handleSave} disabled={!isDirty || isSaving}>
+        <Button
+          type="button"
+          onClick={handleSave}
+          disabled={!isDirty || isSaving}
+        >
           {isSaving ? (
             "جاري الحفظ..."
           ) : (
