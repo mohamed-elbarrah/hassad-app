@@ -33,6 +33,7 @@ import {
   ProjectStatus,
   CampaignStatus,
   RequestStatus,
+  BusinessType,
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
 import { StorageService } from "../../../common/storage/storage.service";
@@ -1972,6 +1973,22 @@ export class PortalService {
     }[] = [],
   ) {
     const token = randomBytes(32).toString("hex");
+    const communicationInfo =
+      (dto.communicationInfo as unknown as Record<string, unknown>) ?? {};
+    const businessName =
+      typeof communicationInfo.businessName === "string" &&
+      communicationInfo.businessName.trim().length > 0
+        ? communicationInfo.businessName.trim()
+        : undefined;
+    const requestedBusinessType = communicationInfo.businessType;
+    const businessType = Object.values(BusinessType).includes(
+      requestedBusinessType as BusinessType,
+    )
+      ? (requestedBusinessType as BusinessType)
+      : undefined;
+    const communicationInfoJson = dto.communicationInfo
+      ? (dto.communicationInfo as unknown as Prisma.InputJsonValue)
+      : undefined;
 
     return this.prisma.$transaction(async (tx) => {
       const intakeForm = await tx.portalIntakeForm.upsert({
@@ -1994,7 +2011,7 @@ export class PortalService {
           uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
           // V2 sections (carry over on final submit)
           currentStep: dto.currentStep ?? undefined,
-          communicationInfo: dto.communicationInfo ?? undefined,
+          communicationInfo: communicationInfoJson,
           productInfo: dto.productInfo ?? undefined,
           audienceInfo: dto.audienceInfo ?? undefined,
           brandVoice: dto.brandVoice ?? undefined,
@@ -2025,7 +2042,7 @@ export class PortalService {
           visualReferences: dto.visualReferences,
           uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
           currentStep: dto.currentStep ?? undefined,
-          communicationInfo: dto.communicationInfo ?? undefined,
+          communicationInfo: communicationInfoJson,
           productInfo: dto.productInfo ?? undefined,
           audienceInfo: dto.audienceInfo ?? undefined,
           brandVoice: dto.brandVoice ?? undefined,
@@ -2051,7 +2068,7 @@ export class PortalService {
           budgetRangeMax: dto.budgetRangeMax,
           brandAssets: dto.brandAssets,
           // V2 fields (unified with IntakeFormV2)
-          communicationInfo: dto.communicationInfo ?? undefined,
+          communicationInfo: communicationInfoJson,
           productInfo: dto.productInfo ?? undefined,
           audienceInfo: dto.audienceInfo ?? undefined,
           brandVoice: dto.brandVoice ?? undefined,
@@ -2071,7 +2088,7 @@ export class PortalService {
           budgetRangeMax: dto.budgetRangeMax,
           brandAssets: dto.brandAssets,
           // V2 fields
-          communicationInfo: dto.communicationInfo ?? undefined,
+          communicationInfo: communicationInfoJson,
           productInfo: dto.productInfo ?? undefined,
           audienceInfo: dto.audienceInfo ?? undefined,
           brandVoice: dto.brandVoice ?? undefined,
@@ -2083,9 +2100,49 @@ export class PortalService {
         },
       });
 
+      const client = await tx.client.findUnique({
+        where: { id: clientId },
+        select: { userId: true },
+      });
+      if (!client) {
+        throw new NotFoundException({
+          code: "CLIENT_NOT_FOUND",
+          details: { id: clientId },
+        });
+      }
+
       await tx.client.update({
         where: { id: clientId },
-        data: { intakeCompleted: true },
+        data: {
+          companyName: businessName,
+          businessName,
+          businessType,
+          intakeCompleted: true,
+        },
+      });
+
+      const user = client.userId
+        ? await tx.user.findUnique({
+            where: { id: client.userId },
+            select: { name: true, email: true, phoneWhatsapp: true },
+          })
+        : null;
+
+      await tx.request.updateMany({
+        where: {
+          clientId,
+          internalNotes: "INTAKE_REQUIRED",
+          status: { not: RequestStatus.CANCELLED },
+        },
+        data: {
+          companyName: businessName,
+          businessName,
+          businessType,
+          contactName: user?.name,
+          phoneWhatsapp: user?.phoneWhatsapp,
+          email: user?.email,
+          internalNotes: null,
+        },
       });
 
       return intakeForm;
@@ -2119,18 +2176,16 @@ export class PortalService {
 
   async saveDraft(clientId: string, dto: SaveDraftDto) {
     const token = randomBytes(32).toString("hex");
+    const communicationInfoJson = dto.communicationInfo
+      ? (dto.communicationInfo as unknown as Prisma.InputJsonValue)
+      : undefined;
 
     return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.portalIntakeForm.findUnique({
-        where: { clientId },
-        select: { id: true, token: true },
-      });
-
       return tx.portalIntakeForm.upsert({
         where: { clientId },
         update: {
           currentStep: dto.currentStep ?? undefined,
-          communicationInfo: dto.communicationInfo ?? undefined,
+          communicationInfo: communicationInfoJson,
           productInfo: dto.productInfo ?? undefined,
           audienceInfo: dto.audienceInfo ?? undefined,
           brandVoice: dto.brandVoice ?? undefined,
@@ -2144,7 +2199,7 @@ export class PortalService {
           clientId,
           token: token,
           currentStep: dto.currentStep ?? 1,
-          communicationInfo: dto.communicationInfo ?? undefined,
+          communicationInfo: communicationInfoJson,
           productInfo: dto.productInfo ?? undefined,
           audienceInfo: dto.audienceInfo ?? undefined,
           brandVoice: dto.brandVoice ?? undefined,
@@ -2522,11 +2577,12 @@ export class PortalService {
           key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
           break;
         case "week":
-        default:
+        default: {
           const weekStart = new Date(d);
           weekStart.setDate(d.getDate() - d.getDay());
           key = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
           break;
+        }
       }
 
       if (buckets[key]) {
@@ -2631,8 +2687,8 @@ export class PortalService {
         conversions = 0,
         spend = 0,
         totalCtr = 0,
-        totalConvRate = 0,
-        count = snaps.length;
+        totalConvRate = 0;
+      const count = snaps.length;
       for (const s of snaps) {
         impressions += s.impressions;
         clicks += s.clicks;

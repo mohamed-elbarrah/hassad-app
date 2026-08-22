@@ -5,17 +5,21 @@ import {
   IsObject,
   IsArray,
   IsDateString,
+  IsDefined,
   IsEnum,
   IsBoolean,
   IsNumber,
   IsInt,
   IsNotEmpty,
+  Matches,
+  ValidateNested,
   MaxLength,
+  MinLength,
   Min,
   Max,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { ProjectStatus } from "@hassad/shared";
+import { BusinessType, ProjectStatus } from "@hassad/shared";
 
 export enum ReportGranularity {
   DAY = "day",
@@ -143,6 +147,39 @@ export class CreateRevisionDto {
   requestDescription: string;
 }
 
+export class IntakeCommunicationInfoDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  businessName?: string;
+
+  @IsOptional()
+  @IsEnum(BusinessType)
+  businessType?: BusinessType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  industry?: string;
+}
+
+export class RequiredIntakeCommunicationInfoDto {
+  @IsString()
+  @MinLength(2)
+  @MaxLength(200)
+  @Matches(/\S/)
+  businessName: string;
+
+  @IsEnum(BusinessType)
+  businessType: BusinessType;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  @Matches(/\S/)
+  industry: string;
+}
+
 export class CreateIntakeFormDto {
   // Section 1: Business Basics
   @IsOptional()
@@ -219,14 +256,15 @@ export class CreateIntakeFormDto {
     size?: number;
   }>;
 
-  // V2: New JSON sections (all optional)
+  // V2: New JSON sections (all optional except business identity)
   @IsOptional()
   @IsNumber()
   currentStep?: number;
 
-  @IsOptional()
-  @IsObject()
-  communicationInfo?: any;
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => RequiredIntakeCommunicationInfoDto)
+  communicationInfo: RequiredIntakeCommunicationInfoDto;
 
   @IsOptional()
   @IsObject()
@@ -267,8 +305,9 @@ export class SaveDraftDto {
   currentStep?: number;
 
   @IsOptional()
-  @IsObject()
-  communicationInfo?: any;
+  @ValidateNested()
+  @Type(() => IntakeCommunicationInfoDto)
+  communicationInfo?: IntakeCommunicationInfoDto;
 
   @IsOptional()
   @IsObject()

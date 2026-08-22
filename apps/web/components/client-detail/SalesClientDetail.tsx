@@ -68,6 +68,7 @@ export interface SalesClientDetailData {
     businessType: string;
     kind?: ClientKind | null;
     status?: string | null;
+    intakeCompleted?: boolean;
     createdAt?: string | Date;
     totalProjects?: number | null;
     activeProjects?: number | null;
@@ -280,15 +281,31 @@ function BusinessProfile({
             "هوية النشاط",
             "البيانات الأساسية للنشاط والعميل.",
             <>
-              <ProfileField label="اسم الشركة" value={client.companyName} />
+              <ProfileField
+                label="اسم الشركة"
+                value={
+                  client.intakeCompleted === false
+                    ? "بانتظار استكمال بيانات العميل"
+                    : client.companyName
+                }
+              />
               <ProfileField
                 label="اسم النشاط"
                 value={
-                  profile?.communicationInfo?.businessName ??
-                  client.businessName
+                  client.intakeCompleted === false
+                    ? "بانتظار استكمال بيانات العميل"
+                    : (profile?.communicationInfo?.businessName ??
+                      client.businessName)
                 }
               />
-              <ProfileField label="نوع النشاط" value={client.businessType} />
+              <ProfileField
+                label="نوع النشاط"
+                value={
+                  client.intakeCompleted === false
+                    ? "بانتظار استكمال بيانات العميل"
+                    : client.businessType
+                }
+              />
               <ProfileField
                 label="المجال"
                 value={
@@ -507,7 +524,10 @@ export function SalesClientDetail({
   contractsNotice,
   invoicesNotice,
 }: SalesClientDetailData) {
-  const name = client.companyName || client.businessName || "عميل";
+  const intakePending = client.intakeCompleted === false;
+  const name = intakePending
+    ? client.user?.name || "عميل جديد"
+    : client.companyName || client.businessName || "عميل";
   const user = client.user;
   const paid = invoices
     .flatMap((invoice) => invoice.payments ?? [])
@@ -597,6 +617,11 @@ export function SalesClientDetail({
                         : "غير محدد"
                   }
                 />
+                <Badge variant={intakePending ? "outline" : "secondary"}>
+                  {intakePending
+                    ? "بانتظار بيانات العميل"
+                    : "بيانات العميل مكتملة"}
+                </Badge>
               </div>
               <div className="flex flex-col gap-3 text-sm">
                 {user?.name && (
@@ -640,9 +665,11 @@ export function SalesClientDetail({
               <div className="flex justify-between gap-3">
                 <span className="text-muted-foreground">اسم النشاط</span>
                 <span>
-                  {profile?.communicationInfo?.businessName ??
-                    client.businessName ??
-                    "—"}
+                  {client.intakeCompleted === false
+                    ? "بانتظار استكمال بيانات العميل"
+                    : (profile?.communicationInfo?.businessName ??
+                      client.businessName ??
+                      "—")}
                 </span>
               </div>
               <div className="flex justify-between gap-3">

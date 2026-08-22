@@ -14,7 +14,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -34,7 +34,11 @@ import {
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { Building2, Briefcase } from "lucide-react";
 import { z } from "zod";
-import { CommunicationInfoSchema } from "@hassad/shared";
+import {
+  BUSINESS_TYPE_AR,
+  BusinessType,
+  CommunicationInfoSchema,
+} from "@hassad/shared";
 import type { CommunicationInfo } from "../types";
 import { SectionLayout, NavigationButtons } from "../SectionLayout";
 import type { ProfileMode } from "../types";
@@ -74,16 +78,21 @@ export function CommunicationSection({
 }: CommunicationSectionProps) {
   const form = useForm<CommunicationForm>({
     resolver: zodResolver(CommunicationInfoSchema),
-    defaultValues: initialData ?? {
-      businessName: "",
-      industry: "",
+    defaultValues: {
+      businessName: initialData?.businessName ?? "",
+      businessType: initialData?.businessType ?? BusinessType.OTHER,
+      industry: initialData?.industry ?? "",
     },
     mode: "onChange",
   });
 
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
-      form.reset(initialData);
+      form.reset({
+        businessName: initialData.businessName ?? "",
+        businessType: initialData.businessType ?? BusinessType.OTHER,
+        industry: initialData.industry ?? "",
+      });
     }
   }, [initialData, form]);
 
@@ -91,14 +100,13 @@ export function CommunicationSection({
     onValid?.(form.formState.isValid);
   }, [form.formState.isValid, onValid]);
 
-  useEffect(() => {
-    if (mode === "view") return;
+  const watchedValues = useWatch({ control: form.control });
 
-    const sub = form.watch((values) => {
-      onDataChange?.(values as CommunicationForm);
-    });
-    return () => sub.unsubscribe();
-  }, [form, onDataChange, mode]);
+  useEffect(() => {
+    if (mode !== "view") {
+      onDataChange?.(watchedValues as CommunicationForm);
+    }
+  }, [mode, onDataChange, watchedValues]);
 
   const onSubmit = useCallback(
     (data: CommunicationForm) => {
@@ -115,6 +123,13 @@ export function CommunicationSection({
 
     const fields = [
       { icon: Building2, label: "اسم النشاط", value: data.businessName },
+      {
+        icon: Building2,
+        label: "نوع النشاط",
+        value: data.businessType
+          ? BUSINESS_TYPE_AR[data.businessType]
+          : undefined,
+      },
       { icon: Briefcase, label: "المجال", value: data.industry },
     ];
 
@@ -123,7 +138,7 @@ export function CommunicationSection({
 
     return (
       <SectionLayout mode="view" title="بيانات النشاط">
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           {fields.map(
             (f) =>
               f.value && (
@@ -156,18 +171,61 @@ export function CommunicationSection({
       }
     >
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex flex-col gap-5"
+        >
           <FormField
             control={form.control}
             name="businessName"
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2 text-sm">
-                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                  <Building2 className="size-4 text-muted-foreground" />
                   اسم النشاط
-                  <span className="text-danger-500">*</span>
+                  <span className="text-destructive">*</span>
                 </FormLabel>
                 <Input placeholder="اسم النشاط" {...field} />
+                <FormMessage>{fieldState.error?.message}</FormMessage>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="businessType"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel
+                  htmlFor="communication-business-type"
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <Building2 className="size-4 text-muted-foreground" />
+                  نوع النشاط
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value || BusinessType.OTHER}
+                  value={field.value || BusinessType.OTHER}
+                >
+                  <SelectTrigger
+                    id="communication-business-type"
+                    className="min-h-11"
+                  >
+                    <SelectValue placeholder="اختر نوع النشاط" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(BusinessType).map((value) => (
+                      <SelectItem
+                        key={value}
+                        value={value}
+                        className="min-h-11"
+                      >
+                        {BUSINESS_TYPE_AR[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
@@ -178,17 +236,23 @@ export function CommunicationSection({
             name="industry"
             render={({ field, fieldState }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-2 text-sm">
-                  <Briefcase className="w-4 h-4 text-muted-foreground" />
+                <FormLabel
+                  htmlFor="communication-industry"
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <Briefcase className="size-4 text-muted-foreground" />
                   مجال النشاط
-                  <span className="text-danger-500">*</span>
+                  <span className="text-destructive">*</span>
                 </FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value || ""}
                   value={field.value || ""}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    id="communication-industry"
+                    className="min-h-11"
+                  >
                     <SelectValue placeholder="اختر مجال النشاط" />
                   </SelectTrigger>
                   <SelectContent>

@@ -18,6 +18,7 @@ import {
   getDealValue,
   getInitials,
   getRequestStatusBadgeVariant,
+  getSalesPipelineCompanyName,
   getSalesPipelineDisplayName,
   getServicePreview,
 } from "./presentation";
@@ -67,7 +68,7 @@ export function SalesPipelineCard({
           </span>
           <span className="flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
             <Building2 className="size-3 shrink-0" />
-            {request.companyName}
+            {getSalesPipelineCompanyName(request)}
           </span>
         </div>
         <Badge

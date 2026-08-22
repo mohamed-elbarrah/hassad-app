@@ -13,18 +13,10 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import {
-  BUSINESS_TYPE_AR,
-  CLIENT_SOURCE_AR,
-  ClientSource,
-  type BusinessType,
-  type Client,
-} from "@hassad/shared";
+import { BUSINESS_TYPE_AR, type Client } from "@hassad/shared";
 import type { RequestServiceItem } from "@/features/requests/requestsApi";
-import {
-  useCreateSalesRequestForClientMutation,
-  useCreateSalesRequestMutation,
-} from "@/features/sales/salesApi";
+import { useCreateSalesRequestForClientMutation } from "@/features/sales/salesApi";
+import { useCreateSalesRequestForNewClientMutation } from "@/features/sales/salesApi";
 import { useGetSalesClientsQuery } from "@/features/clients/clientsApi";
 import {
   salesRequestCreationLoadErrorMessage,
@@ -68,13 +60,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,34 +69,6 @@ import { toast } from "sonner";
 
 type RequestMode = "existing" | "new";
 
-const BUSINESS_OPTIONS: Array<{ value: BusinessType; label: string }> = [
-  { value: "RESTAURANT" as BusinessType, label: BUSINESS_TYPE_AR.RESTAURANT },
-  { value: "CLINIC" as BusinessType, label: BUSINESS_TYPE_AR.CLINIC },
-  { value: "STORE" as BusinessType, label: BUSINESS_TYPE_AR.STORE },
-  { value: "SERVICE" as BusinessType, label: BUSINESS_TYPE_AR.SERVICE },
-  { value: "OTHER" as BusinessType, label: BUSINESS_TYPE_AR.OTHER },
-];
-
-const SOURCE_OPTIONS: Array<{ value: ClientSource; label: string }> = [
-  {
-    value: ClientSource.PLATFORM,
-    label: CLIENT_SOURCE_AR[ClientSource.PLATFORM],
-  },
-  {
-    value: ClientSource.WEBSITE,
-    label: CLIENT_SOURCE_AR[ClientSource.WEBSITE],
-  },
-  {
-    value: ClientSource.WHATSAPP,
-    label: CLIENT_SOURCE_AR[ClientSource.WHATSAPP],
-  },
-  {
-    value: ClientSource.REFERRAL,
-    label: CLIENT_SOURCE_AR[ClientSource.REFERRAL],
-  },
-  { value: ClientSource.AD, label: CLIENT_SOURCE_AR[ClientSource.AD] },
-];
-
 function getInitials(name: string) {
   return name
     .split(" ")
@@ -120,6 +77,19 @@ function getInitials(name: string) {
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+}
+
+function getClientDisplayName(client: Client) {
+  if (client.intakeCompleted === false) {
+    return client.user?.name || "عميل جديد";
+  }
+  return client.user?.name || client.companyName;
+}
+
+function getClientBusinessLabel(client: Client) {
+  return client.intakeCompleted === false
+    ? "بانتظار استكمال بيانات العميل"
+    : client.companyName;
 }
 
 function LoadingState() {
@@ -206,15 +176,15 @@ function ClientPicker({
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <Avatar className="size-10">
                   <AvatarFallback>
-                    {getInitials(value.companyName)}
+                    {getInitials(getClientDisplayName(value))}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate font-semibold text-foreground">
-                    {value.user?.name || value.companyName}
+                    {getClientDisplayName(value)}
                   </span>
                   <span className="truncate text-sm text-muted-foreground">
-                    {value.companyName}
+                    {getClientBusinessLabel(value)}
                   </span>
                 </div>
               </div>
@@ -247,15 +217,15 @@ function ClientPicker({
                 >
                   <Avatar className="size-10">
                     <AvatarFallback>
-                      {getInitials(client.companyName)}
+                      {getInitials(getClientDisplayName(client))}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="truncate font-medium">
-                      {client.user?.name || client.companyName}
+                      {getClientDisplayName(client)}
                     </span>
                     <span className="truncate text-xs text-muted-foreground">
-                      {client.companyName}
+                      {getClientBusinessLabel(client)}
                     </span>
                   </div>
                 </CommandItem>
@@ -376,13 +346,9 @@ export default function NewOrderPage() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [existingNotes, setExistingNotes] = useState("");
 
-  const [companyName, setCompanyName] = useState("");
-  const [contactName, setContactName] = useState("");
   const [phoneWhatsapp, setPhoneWhatsapp] = useState("");
   const [email, setEmail] = useState("");
-  const [businessName, setBusinessName] = useState("");
-  const [businessType, setBusinessType] = useState<BusinessType | "">("");
-  const [source, setSource] = useState<ClientSource>(ClientSource.PLATFORM);
+  const [password, setPassword] = useState("");
   const [newNotes, setNewNotes] = useState("");
 
   const {
@@ -404,8 +370,8 @@ export default function NewOrderPage() {
   } = useGetServicesQuery(undefined);
   const [createRequestForClient, { isLoading: isCreatingExisting }] =
     useCreateSalesRequestForClientMutation();
-  const [createRequest, { isLoading: isCreatingNew }] =
-    useCreateSalesRequestMutation();
+  const [createNewClientRequest, { isLoading: isCreatingNew }] =
+    useCreateSalesRequestForNewClientMutation();
 
   const clients = useMemo(() => clientsData?.items ?? [], [clientsData]);
   const services = useMemo(() => servicesData ?? [], [servicesData]);
@@ -459,13 +425,8 @@ export default function NewOrderPage() {
   }
 
   async function handleNewSubmit() {
-    if (
-      !companyName.trim() ||
-      !contactName.trim() ||
-      !phoneWhatsapp.trim() ||
-      !businessType
-    ) {
-      toast.error("أكمل بيانات العميل الجديد الأساسية أولًا");
+    if (!email.trim() || !phoneWhatsapp.trim() || password.length < 8) {
+      toast.error("أدخل البريد والهاتف وكلمة مرور من 8 أحرف على الأقل");
       return;
     }
 
@@ -475,19 +436,17 @@ export default function NewOrderPage() {
     }
 
     try {
-      const request = await createRequest({
-        contactName: contactName.trim(),
-        companyName: companyName.trim(),
-        businessName: businessName.trim() || companyName.trim(),
+      const request = await createNewClientRequest({
+        email: email.trim(),
         phoneWhatsapp: phoneWhatsapp.trim(),
-        email: email.trim() || undefined,
-        businessType,
-        source,
+        password,
         notes: newNotes.trim() || undefined,
         services: selectedServicesPayload,
       }).unwrap();
 
-      toast.success("تم إنشاء الطلب الجديد بنجاح");
+      toast.success(
+        "تم إنشاء حساب العميل والطلب. سيكمل العميل بيانات نشاطه من البوابة.",
+      );
       router.push(`/dashboard/sales/requests/${request.id}`);
     } catch (error) {
       toast.error(salesWorkflowErrorMessage(error));
@@ -593,16 +552,15 @@ export default function NewOrderPage() {
                       <div className="flex items-start gap-3">
                         <Avatar className="size-11">
                           <AvatarFallback>
-                            {getInitials(selectedClient.companyName)}
+                            {getInitials(getClientDisplayName(selectedClient))}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex min-w-0 flex-1 flex-col gap-1">
                           <span className="font-semibold">
-                            {selectedClient.user?.name ||
-                              selectedClient.companyName}
+                            {getClientDisplayName(selectedClient)}
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            {selectedClient.companyName}
+                            {getClientBusinessLabel(selectedClient)}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {BUSINESS_TYPE_AR[selectedClient.businessType] ||
@@ -693,12 +651,13 @@ export default function NewOrderPage() {
                   <p className="text-xs text-muted-foreground">العميل</p>
                   <p className="mt-2 font-medium">
                     {selectedClient
-                      ? selectedClient.user?.name || selectedClient.companyName
+                      ? getClientDisplayName(selectedClient)
                       : "لم يتم اختيار عميل بعد"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedClient?.companyName ||
-                      "ابدأ بالبحث في القائمة المنسدلة"}
+                    {selectedClient
+                      ? getClientBusinessLabel(selectedClient)
+                      : "ابدأ بالبحث في القائمة المنسدلة"}
                   </p>
                 </div>
 
@@ -722,41 +681,25 @@ export default function NewOrderPage() {
           <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
             <Card>
               <CardHeader className="gap-2">
-                <CardTitle>بيانات العميل الجديد</CardTitle>
+                <CardTitle>إنشاء حساب العميل الجديد</CardTitle>
                 <CardDescription>
-                  أدخل بيانات العميل ثم أضف الخدمات المطلوبة.
+                  أدخل بيانات الدخول فقط. سيكمل العميل بيانات نشاطه التجاري من
+                  البوابة بعد تسجيل الدخول.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="companyName">اسم الشركة</Label>
+                    <Label htmlFor="email">البريد الإلكتروني</Label>
                     <Input
-                      id="companyName"
-                      value={companyName}
-                      onChange={(event) => setCompanyName(event.target.value)}
-                      placeholder="مثال: شركة النخبة"
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="name@company.com"
                       className="min-h-11"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="businessName">الاسم التجاري</Label>
-                    <Input
-                      id="businessName"
-                      value={businessName}
-                      onChange={(event) => setBusinessName(event.target.value)}
-                      placeholder="إن وجد"
-                      className="min-h-11"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="contactName">اسم جهة الاتصال</Label>
-                    <Input
-                      id="contactName"
-                      value={contactName}
-                      onChange={(event) => setContactName(event.target.value)}
-                      placeholder="اسم المسؤول"
-                      className="min-h-11"
+                      autoComplete="email"
+                      maxLength={254}
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -767,66 +710,29 @@ export default function NewOrderPage() {
                       onChange={(event) => setPhoneWhatsapp(event.target.value)}
                       placeholder="+212..."
                       className="min-h-11"
+                      autoComplete="tel"
+                      maxLength={30}
                     />
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <div className="flex flex-col gap-2 md:col-span-2">
+                    <Label htmlFor="newClientPassword">
+                      كلمة المرور المؤقتة
+                    </Label>
                     <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      placeholder="name@company.com"
+                      id="newClientPassword"
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="8 أحرف على الأقل"
                       className="min-h-11"
+                      autoComplete="new-password"
+                      maxLength={128}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      سلّم كلمة المرور للعميل بأمان، ويفضل استخدام رابط دعوة في
+                      بيئة الإنتاج.
+                    </p>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="businessType">نوع النشاط</Label>
-                    <Select
-                      value={businessType}
-                      onValueChange={(value) =>
-                        setBusinessType(value as BusinessType)
-                      }
-                    >
-                      <SelectTrigger id="businessType" className="min-h-11">
-                        <SelectValue placeholder="اختر نوع النشاط" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BUSINESS_OPTIONS.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={option.value}
-                            className="min-h-11"
-                          >
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="clientSource">مصدر العميل</Label>
-                  <Select
-                    value={source}
-                    onValueChange={(value) => setSource(value as ClientSource)}
-                  >
-                    <SelectTrigger id="clientSource" className="min-h-11">
-                      <SelectValue placeholder="اختر المصدر" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SOURCE_OPTIONS.map((option) => (
-                        <SelectItem
-                          key={option.value}
-                          value={option.value}
-                          className="min-h-11"
-                        >
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -844,7 +750,8 @@ export default function NewOrderPage() {
                   <div className="flex flex-col gap-1">
                     <span className="text-sm font-medium">جاهز للإنشاء</span>
                     <span className="text-sm text-muted-foreground">
-                      سيتم إنشاء العميل والطلب والخدمات في خطوة واحدة.
+                      سيتم إنشاء حساب العميل والطلب والخدمات، ثم يكمل العميل
+                      بياناته من البوابة.
                     </span>
                   </div>
                   <Button
@@ -860,7 +767,7 @@ export default function NewOrderPage() {
                     ) : (
                       <PlusCircle data-icon="inline-start" />
                     )}
-                    {isCreatingNew ? "جاري الإنشاء" : "إنشاء الطلب"}
+                    {isCreatingNew ? "جاري الإنشاء" : "إنشاء الحساب والطلب"}
                   </Button>
                 </div>
               </CardContent>

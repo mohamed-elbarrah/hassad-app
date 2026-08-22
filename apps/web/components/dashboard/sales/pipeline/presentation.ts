@@ -20,9 +20,19 @@ export function getInitials(label: string) {
 }
 
 export function getSalesPipelineDisplayName(request: SalesPipelineItem) {
+  if (request.client?.intakeCompleted === false) {
+    return request.client.user?.name || "عميل جديد";
+  }
+
   return (
     request.contactName || request.client?.companyName || request.companyName
   );
+}
+
+export function getSalesPipelineCompanyName(request: SalesPipelineItem) {
+  return request.client?.intakeCompleted === false
+    ? "بانتظار استكمال بيانات العميل"
+    : request.companyName;
 }
 
 export function getRequestStatusBadgeVariant(

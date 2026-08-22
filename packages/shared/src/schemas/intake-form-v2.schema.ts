@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { BusinessType } from "../enums/client";
 
 // ── Section schemas ───────────────────────────────────────────
 
 export const CommunicationInfoSchema = z.object({
   businessName: z.string().min(2, "اسم النشاط يجب أن يكون 2 أحرف على الأقل"),
+  businessType: z.nativeEnum(BusinessType),
   industry: z.string().min(1, "مجال النشاط مطلوب"),
 });
 

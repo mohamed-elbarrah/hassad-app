@@ -9,7 +9,7 @@ import type {
   UpsertClientProfileInput,
   Project,
 } from "@hassad/shared";
-import type { ClientKind, ClientStatus } from "@hassad/shared";
+import type { BusinessType, ClientKind, ClientStatus } from "@hassad/shared";
 import type {
   PaginatedProjects,
   ProjectFilters,
@@ -27,6 +27,7 @@ export interface CommunicationInfo {
   // enforcement: `CommunicationInfoSchema` (in @hassad/shared)
   // only accepts business fields.
   businessName?: string;
+  businessType?: BusinessType;
   industry?: string;
 }
 

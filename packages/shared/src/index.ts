@@ -139,6 +139,7 @@ export interface ClientHistoryLogItem {
 export interface CommunicationInfo {
   contactName?: string;
   businessName?: string;
+  businessType?: BusinessType;
   industry?: string;
   contactNumber?: string;
   email?: string;
@@ -618,7 +619,6 @@ export interface DeliverableTemplate {
   sortOrder: number;
   createdAt: Date | string;
 }
-
 
 export interface ProjectProgress {
   projectId: string;

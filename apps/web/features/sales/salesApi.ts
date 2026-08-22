@@ -6,6 +6,7 @@ import {
   type CreateRequestContactLogPayload,
   type CreateRequestForClientPayload,
   type CreateRequestPayload,
+  type CreateSalesNewClientRequestPayload,
   type RequestContactLogItem,
   type RequestDetail,
   type RequestItem,
@@ -110,6 +111,21 @@ export const salesApi = createApi({
       ],
     }),
 
+    createSalesRequestForNewClient: builder.mutation<
+      RequestItem,
+      CreateSalesNewClientRequestPayload
+    >({
+      query: (body) => ({
+        url: "/sales/requests/for-new-client",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [
+        { type: "SalesPipeline", id: "LIST" },
+        { type: "SalesMetrics", id: "SUMMARY" },
+      ],
+    }),
+
     createSalesRequestForClient: builder.mutation<
       RequestItem,
       CreateRequestForClientPayload
@@ -127,9 +143,7 @@ export const salesApi = createApi({
 
     getSalesRequestById: builder.query<RequestDetail, string>({
       query: (id) => ({ url: `/sales/requests/${id}` }),
-      providesTags: (_result, _error, id) => [
-        { type: "SalesPipeline", id },
-      ],
+      providesTags: (_result, _error, id) => [{ type: "SalesPipeline", id }],
     }),
 
     getSalesPipeline: builder.query<
@@ -213,6 +227,7 @@ export const salesApi = createApi({
 
 export const {
   useCreateSalesRequestForClientMutation,
+  useCreateSalesRequestForNewClientMutation,
   useCreateSalesRequestMutation,
   useGetSalesMetricsQuery,
   useGetSalesRequestByIdQuery,

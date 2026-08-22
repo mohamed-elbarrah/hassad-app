@@ -41,6 +41,7 @@ import {
   getDealValue,
   getInitials,
   getRequestStatusBadgeVariant,
+  getSalesPipelineCompanyName,
   getSalesPipelineDisplayName,
   getServicePreview,
 } from "./presentation";
@@ -156,7 +157,7 @@ export function SalesPipelineTable({
                         </span>
                         <span className="flex items-center gap-1 truncate text-xs text-muted-foreground">
                           <Building2 className="size-3 shrink-0" />
-                          {request.companyName}
+                          {getSalesPipelineCompanyName(request)}
                         </span>
                         <span
                           dir="ltr"

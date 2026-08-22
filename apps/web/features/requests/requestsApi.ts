@@ -27,6 +27,14 @@ export interface CreateRequestPayload {
   services?: RequestServiceItem[];
 }
 
+export interface CreateSalesNewClientRequestPayload {
+  email: string;
+  phoneWhatsapp: string;
+  password: string;
+  notes?: string;
+  services: RequestServiceItem[];
+}
+
 export interface RequestAssignee {
   id: string;
   name: string;
@@ -39,6 +47,7 @@ export interface RequestClientSummary {
   userId?: string | null;
   kind?: ClientKind;
   status?: ClientStatus;
+  intakeCompleted?: boolean;
   totalProjects?: number;
   activeProjects?: number;
   manager?: {

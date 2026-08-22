@@ -158,21 +158,27 @@ function LoadingState() {
 }
 
 function ClientIdentity({ client }: { client: Client }) {
+  const displayName = client.intakeCompleted
+    ? client.companyName
+    : client.user?.name || "عميل جديد";
+
   return (
     <div className="flex min-w-0 items-center gap-3">
       <Avatar className="size-11">
         <AvatarImage
           src={client.user?.avatarUrl ?? undefined}
-          alt={client.companyName}
+          alt={displayName}
         />
-        <AvatarFallback>{getInitials(client.companyName)}</AvatarFallback>
+        <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
       </Avatar>
       <div className="flex min-w-0 flex-col gap-1">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate font-semibold">{client.companyName}</span>
+          <span className="truncate font-semibold">{displayName}</span>
         </div>
         <span className="truncate text-sm text-muted-foreground">
-          {companyType(client)}
+          {client.intakeCompleted
+            ? companyType(client)
+            : "بانتظار بيانات العميل"}
         </span>
       </div>
     </div>

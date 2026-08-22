@@ -44,7 +44,7 @@ export type ProfileMode = "wizard" | "edit" | "view";
  */
 export type CommunicationInfo = Pick<
   SharedCommunicationInfo,
-  "businessName" | "industry"
+  "businessName" | "businessType" | "industry"
 >;
 
 export type {

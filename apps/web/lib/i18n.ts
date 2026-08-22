@@ -422,6 +422,8 @@ const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
   INVALID_REQUEST_STATUS_TRANSITION: "لا يمكن نقل الطلب إلى هذه المرحلة.",
   REQUEST_STATUS_CHANGED:
     "تم تحديث الطلب من مستخدم آخر. حدّث الصفحة وحاول مرة أخرى.",
+  EMAIL_ALREADY_IN_USE: "البريد الإلكتروني مستخدم بالفعل.",
+  CLIENT_ROLE_NOT_FOUND: "تعذر إنشاء حساب العميل. تواصل مع مسؤول النظام.",
 };
 
 const SALES_WORKFLOW_FIELD_MESSAGES: Record<string, string> = {

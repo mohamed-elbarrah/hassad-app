@@ -30,6 +30,7 @@ import {
   CreateRequestDto,
 } from "./dto/request.dto";
 import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
+import { CreateSalesNewClientRequestDto } from "./dto/create-sales-new-client-request.dto";
 import type { RequestQueryDto } from "./dto/request-query.dto";
 import type { CrmCreateRequestIntakeDto } from "../crm/dto/crm-requests.dto";
 import {
@@ -151,6 +152,7 @@ export class RequestsService {
           select: {
             id: true,
             companyName: true,
+            intakeCompleted: true,
             userId: true,
             totalProjects: true,
             activeProjects: true,
@@ -422,6 +424,7 @@ export class RequestsService {
             businessType: true,
             kind: true,
             status: true,
+            intakeCompleted: true,
             userId: true,
             totalProjects: true,
             activeProjects: true,
@@ -794,6 +797,157 @@ export class RequestsService {
     return createdRequest;
   }
 
+  async createSalesRequestForNewClient(
+    dto: CreateSalesNewClientRequestDto,
+    userId: string,
+    accessScope?: RequestAccessScope,
+  ) {
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    const preferredManagerId = accessScope?.assignedSalesId ?? userId;
+
+    return this.prisma.$transaction(async (tx) => {
+      const existingUser = await tx.user.findUnique({
+        where: { email: normalizedEmail },
+        select: { id: true },
+      });
+      if (existingUser) {
+        throw new ConflictException({
+          code: "EMAIL_ALREADY_IN_USE",
+          details: { email: normalizedEmail },
+        });
+      }
+
+      const role = await tx.role.findFirst({
+        where: { name: UserRole.CLIENT },
+        select: { id: true },
+      });
+      if (!role) {
+        throw new BadRequestException({
+          code: "CLIENT_ROLE_NOT_FOUND",
+          details: {},
+        });
+      }
+
+      const passwordHash = await bcrypt.hash(dto.password, 12);
+      const user = await tx.user.create({
+        data: {
+          name: normalizedEmail.split("@")[0],
+          email: normalizedEmail,
+          phoneWhatsapp: dto.phoneWhatsapp.trim(),
+          passwordHash,
+          roleId: role.id,
+        },
+        select: { id: true, name: true, email: true, phoneWhatsapp: true },
+      });
+
+      const accountLabel = `PENDING_INTAKE_${user.id}`;
+      const { client } =
+        await this.canonicalClientService.upsertCanonicalClient(tx, {
+          userId: user.id,
+          companyName: accountLabel,
+          businessName: accountLabel,
+          businessType: BusinessType.OTHER,
+          preferredManagerId,
+          kind: ClientKind.LEAD,
+          status: ClientStatus.ACTIVE,
+        });
+
+      const request = await tx.request.create({
+        data: {
+          clientId: client.id,
+          submittedBy: userId,
+          assignedSalesId: client.accountManager ?? preferredManagerId,
+          companyName: accountLabel,
+          contactName: user.name,
+          phoneWhatsapp: user.phoneWhatsapp ?? "",
+          email: user.email,
+          businessName: accountLabel,
+          businessType: BusinessType.OTHER,
+          source: ClientSource.DIRECT,
+          notes: dto.notes?.trim() || undefined,
+          internalNotes: "INTAKE_REQUIRED",
+          status: RequestStatus.SUBMITTED,
+          crmStage: "NEW",
+        },
+      });
+
+      await tx.requestService.createMany({
+        data: dto.services.map((service) => ({
+          requestId: request.id,
+          serviceId: service.serviceId,
+          quantity: service.quantity ?? 1,
+          notes: service.notes,
+        })),
+      });
+
+      await tx.requestStatusHistory.create({
+        data: {
+          requestId: request.id,
+          toStatus: RequestStatus.SUBMITTED,
+          changedBy: userId,
+          note: "REQUEST_CREATED_FOR_NEW_CLIENT_INTAKE",
+        },
+      });
+
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId: client.id,
+          userId,
+          eventType: "CLIENT_CREATED_FOR_SALES_REQUEST",
+          description: "CLIENT_CREATED_FOR_SALES_REQUEST",
+          metadata: { requestId: request.id, intakeCompleted: false },
+        },
+      });
+
+      return tx.request.findUniqueOrThrow({
+        where: { id: request.id },
+        select: {
+          id: true,
+          clientId: true,
+          submittedBy: true,
+          assignedSalesId: true,
+          companyName: true,
+          contactName: true,
+          phoneWhatsapp: true,
+          email: true,
+          businessName: true,
+          businessType: true,
+          source: true,
+          notes: true,
+          status: true,
+          contactAttemptCount: true,
+          lastContactAt: true,
+          createdAt: true,
+          updatedAt: true,
+          client: {
+            select: {
+              id: true,
+              companyName: true,
+              userId: true,
+              kind: true,
+              status: true,
+              intakeCompleted: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phoneWhatsapp: true,
+                },
+              },
+            },
+          },
+          assignee: { select: USER_SUMMARY_SELECT },
+          services: {
+            include: {
+              service: { select: { id: true, name: true, nameAr: true } },
+            },
+          },
+        },
+      });
+    });
+  }
+
   async createForClient(
     dto: CreateRequestForClientDto,
     userId: string,
@@ -856,7 +1010,7 @@ export class RequestsService {
           clientId: dto.clientId,
           submittedBy: userId,
           assignedSalesId: salesId ?? undefined,
-          source: "DIRECT",
+          source: ClientSource.DIRECT,
           status: RequestStatus.SUBMITTED,
           notes: dto.notes ?? undefined,
           companyName: client.companyName,

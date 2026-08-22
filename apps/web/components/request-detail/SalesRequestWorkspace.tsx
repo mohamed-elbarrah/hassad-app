@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -421,8 +421,22 @@ function SummaryCard({ request }: { request: RequestDetail }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="اسم النشاط" value={request.businessName} />
-          <Field label="نوع النشاط" value={businessType} />
+          <Field
+            label="اسم النشاط"
+            value={
+              request.client?.intakeCompleted === false
+                ? "بانتظار استكمال بيانات العميل"
+                : request.businessName
+            }
+          />
+          <Field
+            label="نوع النشاط"
+            value={
+              request.client?.intakeCompleted === false
+                ? "بانتظار استكمال بيانات العميل"
+                : businessType
+            }
+          />
           <Field label="مصدر الطلب" value={sourceLabel} />
         </div>
 
@@ -497,7 +511,11 @@ function ClientCard({ request }: { request: RequestDetail }) {
             <div className="min-w-0">
               <CardTitle className="text-lg">العميل</CardTitle>
               <p className="truncate text-sm text-muted-foreground">
-                {client?.companyName || request.companyName || "عميل غير محدد"}
+                {client?.intakeCompleted === false
+                  ? "بانتظار استكمال بيانات العميل"
+                  : client?.companyName ||
+                    request.companyName ||
+                    "عميل غير محدد"}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Badge variant="outline">{clientKindLabel(clientKind)}</Badge>
@@ -508,6 +526,15 @@ function ClientCard({ request }: { request: RequestDetail }) {
                 >
                   {client ? clientStatusLabel(client.status) : "غير مرتبط"}
                 </Badge>
+                {client ? (
+                  <Badge
+                    variant={client.intakeCompleted ? "secondary" : "outline"}
+                  >
+                    {client.intakeCompleted
+                      ? "بيانات مكتملة"
+                      : "بانتظار بيانات العميل"}
+                  </Badge>
+                ) : null}
               </div>
             </div>
           </div>
@@ -616,9 +643,6 @@ function ActivityTimeline({ request }: { request: RequestDetail }) {
   const totalPages = Math.max(1, data?.totalPages ?? 1);
   const currentPage = Math.min(page, totalPages);
 
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
   const contactActivities: Activity[] = contactLogs.map((log) => ({
     id: `contact-${log.id}`,
     type: "contact" as const,
@@ -1012,7 +1036,9 @@ export function SalesRequestWorkspace({
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
-                    {request.companyName || "طلب مبيعات"}
+                    {request.client?.intakeCompleted === false
+                      ? "طلب عميل جديد"
+                      : request.companyName || "طلب مبيعات"}
                   </h2>
                   <Badge variant={requestStatusVariant(request.status)}>
                     {stageLabel}

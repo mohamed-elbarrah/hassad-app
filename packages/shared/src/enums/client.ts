@@ -12,6 +12,7 @@ export enum ClientSource {
   WEBSITE = "WEBSITE",
   WHATSAPP = "WHATSAPP",
   PLATFORM = "PLATFORM",
+  DIRECT = "DIRECT",
 }
 
 export const BUSINESS_TYPE_AR: Record<BusinessType, string> = {
@@ -28,6 +29,7 @@ export const CLIENT_SOURCE_AR: Record<ClientSource, string> = {
   [ClientSource.WEBSITE]: "الموقع الإلكتروني",
   [ClientSource.WHATSAPP]: "واتساب",
   [ClientSource.PLATFORM]: "المنصة",
+  [ClientSource.DIRECT]: "مباشر",
 };
 
 export enum PipelineStage {

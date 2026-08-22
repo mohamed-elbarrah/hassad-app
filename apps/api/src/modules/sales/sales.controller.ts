@@ -12,6 +12,7 @@ import { SalesService } from "./sales.service";
 import { RequestsService } from "../requests/requests.service";
 import { RequestIdParamDto } from "../requests/dto/request-query.dto";
 import { CreateRequestForClientDto } from "../requests/dto/request-for-client.dto";
+import { CreateSalesNewClientRequestDto } from "../requests/dto/create-sales-new-client-request.dto";
 import {
   CreateRequestContactLogDto,
   CreateRequestDto,
@@ -92,6 +93,20 @@ export class SalesController {
   ) {
     const accessScope = this.salesService.getRequestAccessScope(user);
     return this.requestsService.createForClient(dto, user.id, accessScope);
+  }
+
+  @Post("requests/for-new-client")
+  @RequirePermissions("requests.create")
+  createSalesRequestForNewClient(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateSalesNewClientRequestDto,
+  ) {
+    const accessScope = this.salesService.getRequestAccessScope(user);
+    return this.requestsService.createSalesRequestForNewClient(
+      dto,
+      user.id,
+      accessScope,
+    );
   }
 
   @Get("requests/:id")

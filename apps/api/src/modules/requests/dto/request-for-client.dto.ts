@@ -11,7 +11,7 @@ import {
 import { Type } from "class-transformer";
 
 export class RequestServiceItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   serviceId: string;
 

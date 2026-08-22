@@ -6,9 +6,11 @@ import {
   IsObject,
   IsUrl,
   IsBoolean,
+  IsEnum,
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
+import { BusinessType } from "@hassad/shared";
 
 // ── Legacy Brand Assets ───────────────────────────────────────────────────────
 
@@ -40,6 +42,10 @@ export class CommunicationInfoDto {
   @IsOptional()
   @IsString()
   businessName?: string;
+
+  @IsOptional()
+  @IsEnum(BusinessType)
+  businessType?: BusinessType;
 
   @IsOptional()
   @IsString()
