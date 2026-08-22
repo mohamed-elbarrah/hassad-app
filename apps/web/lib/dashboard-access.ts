@@ -1,4 +1,4 @@
-import { UserRole } from "@hassad/shared";
+import { UserRole, type User } from "@hassad/shared";
 
 /**
  * Routes that are available to every authenticated staff dashboard.
@@ -71,4 +71,15 @@ export function canAccessDashboardPath(
 
 export function getRoleHome(role: UserRole | string) {
   return roleHome[role as UserRole] ?? "/dashboard";
+}
+
+export function getPostLoginPath(
+  user: Pick<User, "role" | "intakeCompleted">,
+  callbackUrl?: string | null,
+) {
+  if (user.role === UserRole.CLIENT && !user.intakeCompleted) {
+    return "/portal/profile/setup";
+  }
+
+  return callbackUrl ?? getRoleHome(user.role);
 }

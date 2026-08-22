@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
-import { getRoleHome } from "@/lib/dashboard-access";
+import { getPostLoginPath } from "@/lib/dashboard-access";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function DashboardPage() {
       return;
     }
 
-    router.replace(getRoleHome(user.role));
+    router.replace(getPostLoginPath(user));
   }, [user, isAuthenticated, isInitialized, router]);
 
   return (

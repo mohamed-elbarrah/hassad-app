@@ -10,7 +10,7 @@ import { useLoginMutation } from "@/features/auth/authApi";
 import { useAppDispatch } from "@/lib/hooks";
 import { setCredentials } from "@/features/auth/authSlice";
 import { authErrorMessage } from "@/lib/i18n";
-import { getRoleHome } from "@/lib/dashboard-access";
+import { getPostLoginPath } from "@/lib/dashboard-access";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { AuthInput } from "./AuthInput";
@@ -49,7 +49,7 @@ export function LoginForm() {
       dispatch(setCredentials({ user: data.user }));
 
       const callbackUrl = searchParams.get("callbackUrl");
-      router.push(callbackUrl || getRoleHome(data.user.role));
+      router.push(getPostLoginPath(data.user, callbackUrl));
     } catch (err: unknown) {
       setGlobalError(authErrorMessage(err));
     }
