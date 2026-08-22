@@ -1,10 +1,11 @@
 "use client";
 
-import { startTransition, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowUpLeft,
+  Check,
   ClipboardList,
   Loader2,
   PlusCircle,
@@ -24,9 +25,17 @@ import {
   useCreateSalesRequestForClientMutation,
   useCreateSalesRequestMutation,
 } from "@/features/sales/salesApi";
-import { useGetClientsQuery } from "@/features/clients/clientsApi";
-import { salesWorkflowErrorMessage } from "@/lib/i18n";
-import { useGetServicesQuery, type ServiceCatalogItem } from "@/features/services/servicesApi";
+import { useGetSalesClientsQuery } from "@/features/clients/clientsApi";
+import {
+  salesRequestCreationLoadErrorMessage,
+  salesWorkflowErrorMessage,
+} from "@/lib/i18n";
+import { ErrorState } from "@/components/design-system/EmptyState";
+import { PageHeader } from "@/components/common/PageHeader";
+import {
+  useGetServicesQuery,
+  type ServiceCatalogItem,
+} from "@/features/services/servicesApi";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,11 +68,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -79,10 +93,22 @@ const BUSINESS_OPTIONS: Array<{ value: BusinessType; label: string }> = [
 ];
 
 const SOURCE_OPTIONS: Array<{ value: ClientSource; label: string }> = [
-  { value: ClientSource.PLATFORM, label: CLIENT_SOURCE_AR[ClientSource.PLATFORM] },
-  { value: ClientSource.WEBSITE, label: CLIENT_SOURCE_AR[ClientSource.WEBSITE] },
-  { value: ClientSource.WHATSAPP, label: CLIENT_SOURCE_AR[ClientSource.WHATSAPP] },
-  { value: ClientSource.REFERRAL, label: CLIENT_SOURCE_AR[ClientSource.REFERRAL] },
+  {
+    value: ClientSource.PLATFORM,
+    label: CLIENT_SOURCE_AR[ClientSource.PLATFORM],
+  },
+  {
+    value: ClientSource.WEBSITE,
+    label: CLIENT_SOURCE_AR[ClientSource.WEBSITE],
+  },
+  {
+    value: ClientSource.WHATSAPP,
+    label: CLIENT_SOURCE_AR[ClientSource.WHATSAPP],
+  },
+  {
+    value: ClientSource.REFERRAL,
+    label: CLIENT_SOURCE_AR[ClientSource.REFERRAL],
+  },
   { value: ClientSource.AD, label: CLIENT_SOURCE_AR[ClientSource.AD] },
 ];
 
@@ -98,7 +124,7 @@ function getInitials(name: string) {
 
 function LoadingState() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6 ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -179,13 +205,17 @@ function ClientPicker({
             {value ? (
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <Avatar className="size-10">
-                  <AvatarFallback>{getInitials(value.companyName)}</AvatarFallback>
+                  <AvatarFallback>
+                    {getInitials(value.companyName)}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate font-semibold text-foreground">
                     {value.user?.name || value.companyName}
                   </span>
-                  <span className="truncate text-sm text-muted-foreground">{value.companyName}</span>
+                  <span className="truncate text-sm text-muted-foreground">
+                    {value.companyName}
+                  </span>
                 </div>
               </div>
             ) : (
@@ -200,6 +230,7 @@ function ClientPicker({
             value={query}
             onValueChange={onQueryChange}
             placeholder="ابحث بالاسم أو الشركة"
+            aria-label="البحث في العملاء"
           />
           <CommandList>
             <CommandEmpty>لا توجد نتائج مطابقة</CommandEmpty>
@@ -212,10 +243,12 @@ function ClientPicker({
                     onSelect(client);
                     onOpenChange(false);
                   }}
-                  className="flex items-center gap-3"
+                  className="min-h-11 flex items-center gap-3"
                 >
                   <Avatar className="size-10">
-                    <AvatarFallback>{getInitials(client.companyName)}</AvatarFallback>
+                    <AvatarFallback>
+                      {getInitials(client.companyName)}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="truncate font-medium">
@@ -265,7 +298,9 @@ function ServiceList({
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-semibold">الخدمات المطلوبة</h3>
-        <Badge variant="outline">{formatNumber(selectedServiceIds.length)} خدمة</Badge>
+        <Badge variant="outline">
+          {formatNumber(selectedServiceIds.length)} خدمة
+        </Badge>
       </div>
 
       <div className="relative">
@@ -274,7 +309,8 @@ function ServiceList({
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="ابحث عن خدمة"
-          className="pr-10"
+          aria-label="البحث في الخدمات"
+          className="min-h-11 pr-10"
         />
       </div>
 
@@ -282,29 +318,30 @@ function ServiceList({
         {filtered.map((service) => {
           const checked = selectedServiceIds.includes(service.id);
           return (
-            <div
+            <Button
               key={service.id}
-              role="button"
-              tabIndex={0}
+              type="button"
+              variant="outline"
+              aria-pressed={checked}
               onClick={() => onToggleService(service.id)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  onToggleService(service.id);
-                }
-              }}
               className={cn(
-                "flex w-full cursor-pointer items-center gap-3 rounded-xl border p-4 text-start transition-colors hover:border-primary/40 hover:bg-muted/20",
+                "flex h-auto w-full items-center gap-3 rounded-xl border p-4 text-start transition-colors hover:border-primary/40 hover:bg-muted/20",
                 checked && "border-primary bg-primary/5",
               )}
             >
-              <Checkbox
-                checked={checked}
-                onCheckedChange={() => onToggleService(service.id)}
-                onClick={(event) => event.stopPropagation()}
-              />
+              <span
+                className={cn(
+                  "flex size-4 shrink-0 items-center justify-center rounded-sm border",
+                  checked
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border",
+                )}
+                aria-hidden="true"
+              >
+                {checked ? <Check className="size-3" /> : null}
+              </span>
               <span className="truncate font-medium">{service.nameAr}</span>
-            </div>
+            </Button>
           );
         })}
       </div>
@@ -316,7 +353,9 @@ function ServiceList({
           </EmptyMedia>
           <EmptyHeader>
             <EmptyTitle>لا توجد خدمات</EmptyTitle>
-            <EmptyDescription>لم نعثر على خدمة مطابقة للبحث الحالي.</EmptyDescription>
+            <EmptyDescription>
+              لم نعثر على خدمة مطابقة للبحث الحالي.
+            </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : null}
@@ -331,6 +370,9 @@ export default function NewOrderPage() {
   const [clientQuery, setClientQuery] = useState("");
   const [serviceQuery, setServiceQuery] = useState("");
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedClientSnapshot, setSelectedClientSnapshot] =
+    useState<Client | null>(null);
+  const deferredClientQuery = useDeferredValue(clientQuery);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [existingNotes, setExistingNotes] = useState("");
 
@@ -343,8 +385,23 @@ export default function NewOrderPage() {
   const [source, setSource] = useState<ClientSource>(ClientSource.PLATFORM);
   const [newNotes, setNewNotes] = useState("");
 
-  const { data: clientsData, isLoading: clientsLoading, refetch: refetchClients } = useGetClientsQuery({ limit: 1000 });
-  const { data: servicesData, isLoading: servicesLoading, refetch: refetchServices } = useGetServicesQuery(undefined);
+  const {
+    data: clientsData,
+    isLoading: clientsLoading,
+    isError: isClientsError,
+    error: clientsError,
+    refetch: refetchClients,
+  } = useGetSalesClientsQuery({
+    limit: 100,
+    search: deferredClientQuery.trim() || undefined,
+  });
+  const {
+    data: servicesData,
+    isLoading: servicesLoading,
+    isError: isServicesError,
+    error: servicesError,
+    refetch: refetchServices,
+  } = useGetServicesQuery(undefined);
   const [createRequestForClient, { isLoading: isCreatingExisting }] =
     useCreateSalesRequestForClientMutation();
   const [createRequest, { isLoading: isCreatingNew }] =
@@ -354,8 +411,10 @@ export default function NewOrderPage() {
   const services = useMemo(() => servicesData ?? [], [servicesData]);
 
   const selectedClient = useMemo(
-    () => clients.find((client) => client.id === selectedClientId) ?? null,
-    [clients, selectedClientId],
+    () =>
+      clients.find((client) => client.id === selectedClientId) ??
+      selectedClientSnapshot,
+    [clients, selectedClientId, selectedClientSnapshot],
   );
 
   const selectedServiceItems = useMemo(
@@ -363,10 +422,12 @@ export default function NewOrderPage() {
     [selectedServices, services],
   );
 
-  const selectedServicesPayload: RequestServiceItem[] = selectedServices.map((serviceId) => ({
-    serviceId,
-    quantity: 1,
-  }));
+  const selectedServicesPayload: RequestServiceItem[] = selectedServices.map(
+    (serviceId) => ({
+      serviceId,
+      quantity: 1,
+    }),
+  );
   const totalSelectedValue = selectedServiceItems.reduce(
     (sum, service) => sum + (service.basePrice ?? 0),
     0,
@@ -398,7 +459,12 @@ export default function NewOrderPage() {
   }
 
   async function handleNewSubmit() {
-    if (!companyName.trim() || !contactName.trim() || !phoneWhatsapp.trim() || !businessType) {
+    if (
+      !companyName.trim() ||
+      !contactName.trim() ||
+      !phoneWhatsapp.trim() ||
+      !businessType
+    ) {
       toast.error("أكمل بيانات العميل الجديد الأساسية أولًا");
       return;
     }
@@ -434,52 +500,66 @@ export default function NewOrderPage() {
     return <LoadingState />;
   }
 
+  if (isClientsError || isServicesError) {
+    return (
+      <div dir="rtl" className="flex flex-col gap-6 ">
+        <ErrorState
+          title="تعذر تحميل بيانات الطلب الجديد"
+          message={salesRequestCreationLoadErrorMessage(
+            clientsError ?? servicesError,
+          )}
+          onRetry={() => {
+            void refetchClients();
+            void refetchServices();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      <Card className="overflow-hidden">
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/dashboard/sales/pipeline">
-                  <ArrowUpLeft data-icon="inline-start" />
-                  العودة إلى المبيعات
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  startTransition(() => {
-                    refetchClients();
-                    refetchServices();
-                  });
-                }}
-              >
-                <RefreshCw data-icon="inline-start" />
-                تحديث البيانات
-              </Button>
-            </div>
+    <div dir="rtl" className="flex flex-col gap-6 ">
+      <PageHeader
+        title="طلب جديد"
+        description="أنشئ طلبًا لعميل موجود أو سجل عميلًا جديدًا ثم أضف الخدمات المطلوبة."
+        icon={PlusCircle}
+        actions={
+          <>
+            <Button variant="outline" size="sm" className="min-h-11" asChild>
+              <Link href="/dashboard/sales/pipeline">
+                <ArrowUpLeft data-icon="inline-start" />
+                العودة إلى المبيعات
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-11"
+              onClick={() => {
+                startTransition(() => {
+                  refetchClients();
+                  refetchServices();
+                });
+              }}
+            >
+              <RefreshCw data-icon="inline-start" />
+              تحديث البيانات
+            </Button>
+          </>
+        }
+      />
 
-            <div className="flex items-start gap-3">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <PlusCircle />
-              </div>
-              <div className="flex flex-col gap-2">
-                <CardTitle className="text-2xl sm:text-3xl">طلب جديد</CardTitle>
-                <CardDescription className="max-w-3xl text-sm sm:text-base">
-                  أنشئ طلبًا لعميل موجود أو سجل عميلًا جديدًا ثم أضف الخدمات المطلوبة.
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
-      <Tabs value={mode} onValueChange={(value) => setMode(value as RequestMode)}>
-        <TabsList className="grid w-full max-w-xl grid-cols-2">
-          <TabsTrigger value="existing">عميل موجود</TabsTrigger>
-          <TabsTrigger value="new">عميل جديد</TabsTrigger>
+      <Tabs
+        value={mode}
+        onValueChange={(value) => setMode(value as RequestMode)}
+      >
+        <TabsList className="grid h-auto min-h-11 w-full max-w-xl grid-cols-2">
+          <TabsTrigger value="existing" className="min-h-11">
+            عميل موجود
+          </TabsTrigger>
+          <TabsTrigger value="new" className="min-h-11">
+            عميل جديد
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="existing" className="mt-4">
@@ -488,7 +568,8 @@ export default function NewOrderPage() {
               <CardHeader className="gap-2">
                 <CardTitle>اختيار العميل</CardTitle>
                 <CardDescription>
-                  ابحث ثم اختر من قائمة منسدلة صغيرة. بعد الاختيار تظهر الخدمات داخل نفس البطاقة.
+                  ابحث ثم اختر من قائمة منسدلة صغيرة. بعد الاختيار تظهر الخدمات
+                  داخل نفس البطاقة.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-5">
@@ -501,6 +582,7 @@ export default function NewOrderPage() {
                   onQueryChange={setClientQuery}
                   onSelect={(client) => {
                     setSelectedClientId(client.id);
+                    setSelectedClientSnapshot(client);
                     setSelectedServices([]);
                   }}
                 />
@@ -510,17 +592,21 @@ export default function NewOrderPage() {
                     <div className="rounded-xl border bg-muted/20 p-4">
                       <div className="flex items-start gap-3">
                         <Avatar className="size-11">
-                          <AvatarFallback>{getInitials(selectedClient.companyName)}</AvatarFallback>
+                          <AvatarFallback>
+                            {getInitials(selectedClient.companyName)}
+                          </AvatarFallback>
                         </Avatar>
                         <div className="flex min-w-0 flex-1 flex-col gap-1">
                           <span className="font-semibold">
-                            {selectedClient.user?.name || selectedClient.companyName}
+                            {selectedClient.user?.name ||
+                              selectedClient.companyName}
                           </span>
                           <span className="text-sm text-muted-foreground">
                             {selectedClient.companyName}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {BUSINESS_TYPE_AR[selectedClient.businessType] || selectedClient.businessType}
+                            {BUSINESS_TYPE_AR[selectedClient.businessType] ||
+                              selectedClient.businessType}
                           </span>
                         </div>
                       </div>
@@ -545,7 +631,9 @@ export default function NewOrderPage() {
                       <Textarea
                         id="existing-notes"
                         value={existingNotes}
-                        onChange={(event) => setExistingNotes(event.target.value)}
+                        onChange={(event) =>
+                          setExistingNotes(event.target.value)
+                        }
                         placeholder="أي توضيحات إضافية لفريق المبيعات..."
                         rows={4}
                       />
@@ -553,14 +641,23 @@ export default function NewOrderPage() {
 
                     <div className="flex items-center justify-between gap-3 rounded-xl border bg-muted/20 p-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-sm font-medium">جاهز للإرسال</span>
+                        <span className="text-sm font-medium">
+                          جاهز للإرسال
+                        </span>
                         <span className="text-sm text-muted-foreground">
                           سيتم ربط الطلب مباشرة بالعميل المحدد.
                         </span>
                       </div>
-                      <Button onClick={handleExistingSubmit} disabled={isSubmitting}>
+                      <Button
+                        className="min-h-11"
+                        onClick={handleExistingSubmit}
+                        disabled={isSubmitting}
+                      >
                         {isCreatingExisting ? (
-                          <Loader2 data-icon="inline-start" className="animate-spin" />
+                          <Loader2
+                            data-icon="inline-start"
+                            className="animate-spin"
+                          />
                         ) : (
                           <ClipboardList data-icon="inline-start" />
                         )}
@@ -595,16 +692,23 @@ export default function NewOrderPage() {
                 <div className="rounded-xl border bg-muted/20 p-4">
                   <p className="text-xs text-muted-foreground">العميل</p>
                   <p className="mt-2 font-medium">
-                    {selectedClient ? selectedClient.user?.name || selectedClient.companyName : "لم يتم اختيار عميل بعد"}
+                    {selectedClient
+                      ? selectedClient.user?.name || selectedClient.companyName
+                      : "لم يتم اختيار عميل بعد"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedClient?.companyName || "ابدأ بالبحث في القائمة المنسدلة"}
+                    {selectedClient?.companyName ||
+                      "ابدأ بالبحث في القائمة المنسدلة"}
                   </p>
                 </div>
 
                 <div className="rounded-xl border bg-muted/20 p-4">
-                  <p className="text-xs text-muted-foreground">الخدمات المحددة</p>
-                  <p className="mt-2 font-medium">{formatNumber(selectedServices.length)} خدمة</p>
+                  <p className="text-xs text-muted-foreground">
+                    الخدمات المحددة
+                  </p>
+                  <p className="mt-2 font-medium">
+                    {formatNumber(selectedServices.length)} خدمة
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     القيمة التقديرية: {formatCurrency(totalSelectedValue)}
                   </p>
@@ -632,6 +736,7 @@ export default function NewOrderPage() {
                       value={companyName}
                       onChange={(event) => setCompanyName(event.target.value)}
                       placeholder="مثال: شركة النخبة"
+                      className="min-h-11"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -641,6 +746,7 @@ export default function NewOrderPage() {
                       value={businessName}
                       onChange={(event) => setBusinessName(event.target.value)}
                       placeholder="إن وجد"
+                      className="min-h-11"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -650,6 +756,7 @@ export default function NewOrderPage() {
                       value={contactName}
                       onChange={(event) => setContactName(event.target.value)}
                       placeholder="اسم المسؤول"
+                      className="min-h-11"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -659,6 +766,7 @@ export default function NewOrderPage() {
                       value={phoneWhatsapp}
                       onChange={(event) => setPhoneWhatsapp(event.target.value)}
                       placeholder="+212..."
+                      className="min-h-11"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
@@ -669,20 +777,27 @@ export default function NewOrderPage() {
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       placeholder="name@company.com"
+                      className="min-h-11"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label>نوع النشاط</Label>
+                    <Label htmlFor="businessType">نوع النشاط</Label>
                     <Select
                       value={businessType}
-                      onValueChange={(value) => setBusinessType(value as BusinessType)}
+                      onValueChange={(value) =>
+                        setBusinessType(value as BusinessType)
+                      }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="businessType" className="min-h-11">
                         <SelectValue placeholder="اختر نوع النشاط" />
                       </SelectTrigger>
                       <SelectContent>
                         {BUSINESS_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
+                          <SelectItem
+                            key={option.value}
+                            value={option.value}
+                            className="min-h-11"
+                          >
                             {option.label}
                           </SelectItem>
                         ))}
@@ -692,14 +807,21 @@ export default function NewOrderPage() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <Label>مصدر العميل</Label>
-                  <Select value={source} onValueChange={(value) => setSource(value as ClientSource)}>
-                    <SelectTrigger>
+                  <Label htmlFor="clientSource">مصدر العميل</Label>
+                  <Select
+                    value={source}
+                    onValueChange={(value) => setSource(value as ClientSource)}
+                  >
+                    <SelectTrigger id="clientSource" className="min-h-11">
                       <SelectValue placeholder="اختر المصدر" />
                     </SelectTrigger>
                     <SelectContent>
                       {SOURCE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
+                          className="min-h-11"
+                        >
                           {option.label}
                         </SelectItem>
                       ))}
@@ -725,9 +847,16 @@ export default function NewOrderPage() {
                       سيتم إنشاء العميل والطلب والخدمات في خطوة واحدة.
                     </span>
                   </div>
-                  <Button onClick={handleNewSubmit} disabled={isSubmitting}>
+                  <Button
+                    className="min-h-11"
+                    onClick={handleNewSubmit}
+                    disabled={isSubmitting}
+                  >
                     {isCreatingNew ? (
-                      <Loader2 data-icon="inline-start" className="animate-spin" />
+                      <Loader2
+                        data-icon="inline-start"
+                        className="animate-spin"
+                      />
                     ) : (
                       <PlusCircle data-icon="inline-start" />
                     )}
@@ -740,7 +869,9 @@ export default function NewOrderPage() {
             <Card>
               <CardHeader className="gap-2">
                 <CardTitle>الخدمات المطلوبة</CardTitle>
-                <CardDescription>اختر الخدمات المطلوبة لهذا العميل الجديد.</CardDescription>
+                <CardDescription>
+                  اختر الخدمات المطلوبة لهذا العميل الجديد.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ServiceList

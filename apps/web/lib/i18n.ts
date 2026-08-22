@@ -486,6 +486,22 @@ export function salesWorkflowErrorMessage(error: unknown): string {
   return "تعذر تنفيذ العملية. يرجى المحاولة مرة أخرى.";
 }
 
+export function salesRequestCreationLoadErrorMessage(error: unknown): string {
+  const payload = getApiErrorPayload(error);
+  const code = payload.data?.error?.code;
+
+  if (code === "PERMISSION_DENIED" || payload.status === 403) {
+    return "ليس لديك صلاحية لتحميل بيانات الطلب الجديد.";
+  }
+  if (code === "AUTHENTICATION_REQUIRED" || payload.status === 401) {
+    return SALES_WORKFLOW_ERROR_MESSAGES.AUTHENTICATION_REQUIRED;
+  }
+  if (payload.status === "FETCH_ERROR") {
+    return "تعذر الاتصال بالخادم. تحقق من اتصال الشبكة وحاول مرة أخرى.";
+  }
+  return "تعذر تحميل بيانات الطلب الجديد. يرجى المحاولة مرة أخرى.";
+}
+
 export function salesRequestLoadErrorMessage(error: unknown): string {
   const payload = getApiErrorPayload(error);
   const code = payload.data?.error?.code;

@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpLeft,
@@ -91,22 +91,16 @@ function getInitials(name: string) {
 }
 
 function getCompanyLabel(proposal: ProposalListItem) {
-  return (
-    proposal.client?.companyName ??
-    proposal.request?.companyName ??
-    proposal.lead?.companyName ??
-    "—"
-  );
+  return proposal.request?.companyName ?? proposal.client?.companyName ?? "—";
 }
 
 function getContactLabel(proposal: ProposalListItem) {
-  return proposal.request?.contactName ?? proposal.lead?.contactName ?? "—";
+  return proposal.request?.contactName ?? proposal.client?.companyName ?? "—";
 }
 
 function getSourceLabel(proposal: ProposalListItem) {
-  if (proposal.client) return "عميل";
   if (proposal.request) return "طلب";
-  if (proposal.lead) return "عميل محتمل";
+  if (proposal.client) return "عميل";
   return "غير مرتبط";
 }
 
@@ -365,60 +359,24 @@ function ProposalRow({ proposal }: { proposal: ProposalListItem }) {
 export default function SalesProposalsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ALL" | ProposalStatusType>("ALL");
-  const [source, setSource] = useState<"ALL" | "client" | "request" | "lead">(
-    "ALL",
-  );
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
 
   const { data, error, isLoading, isError, isFetching, refetch } =
-    useGetSalesProposalsQuery({ limit: 100 });
-
-  const proposals = useMemo(() => data?.items ?? [], [data]);
-
-  const filteredProposals = useMemo(() => {
-    const query = deferredSearch.trim().toLowerCase();
-
-    return proposals.filter((proposal) => {
-      const matchesStatus =
-        status === "ALL" ? true : proposal.status === status;
-      const proposalSource = proposal.client
-        ? "client"
-        : proposal.request
-          ? "request"
-          : proposal.lead
-            ? "lead"
-            : "unknown";
-      const matchesSource = source === "ALL" ? true : proposalSource === source;
-      const matchesSearch = !query
-        ? true
-        : [
-            proposal.title,
-            proposal.serviceDescription,
-            proposal.client?.companyName,
-            proposal.request?.companyName,
-            proposal.request?.contactName,
-            proposal.lead?.companyName,
-            proposal.lead?.contactName,
-            proposal.creator?.name,
-            proposal.id,
-          ]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(query));
-
-      return matchesStatus && matchesSource && matchesSearch;
+    useGetSalesProposalsQuery({
+      search: deferredSearch.trim() || undefined,
+      status: status === "ALL" ? undefined : status,
+      page,
+      limit: PAGE_SIZE,
     });
-  }, [deferredSearch, proposals, source, status]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredProposals.length / PAGE_SIZE),
-  );
+  const proposals = data?.items ?? [];
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
   const currentPage = Math.min(page, totalPages);
-  const pagedProposals = filteredProposals.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -475,7 +433,7 @@ export default function SalesProposalsPage() {
       />
 
       <div className="flex flex-col gap-5">
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px_auto] xl:items-center">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto] xl:items-center">
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -519,39 +477,17 @@ export default function SalesProposalsPage() {
             </SelectContent>
           </Select>
 
-          <Select
-            value={source}
-            onValueChange={(value) => {
-              startTransition(() => {
-                setSource(value as "ALL" | "client" | "request" | "lead");
-                setPage(1);
-              });
-            }}
-          >
-            <SelectTrigger aria-label="تصفية مصدر العرض">
-              <SelectValue placeholder="كل المصادر" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="ALL">كل المصادر</SelectItem>
-                <SelectItem value="client">عملاء</SelectItem>
-                <SelectItem value="request">طلبات</SelectItem>
-                <SelectItem value="lead">عملاء محتملون</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-
           <div className="flex items-center justify-between gap-3 rounded-xl border bg-muted/20 px-4 py-3 text-sm">
             <span className="text-muted-foreground">النتائج الحالية</span>
             <span className="font-semibold">
-              {formatNumber(filteredProposals.length)}
+              {formatNumber(data?.total ?? 0)}
             </span>
           </div>
         </div>
 
         <Separator />
 
-        {filteredProposals.length === 0 ? (
+        {proposals.length === 0 ? (
           <div className="rounded-xl border p-8">
             <Empty>
               <EmptyMedia variant="icon">
@@ -560,8 +496,7 @@ export default function SalesProposalsPage() {
               <EmptyHeader>
                 <EmptyTitle>لا توجد نتائج مطابقة</EmptyTitle>
                 <EmptyDescription>
-                  جرّب تعديل البحث أو تغيير الحالة والمصدر للرجوع إلى قائمة
-                  العروض.
+                  جرّب تعديل البحث أو تغيير الحالة للرجوع إلى قائمة العروض.
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
@@ -571,7 +506,6 @@ export default function SalesProposalsPage() {
                     startTransition(() => {
                       setSearch("");
                       setStatus("ALL");
-                      setSource("ALL");
                       setPage(1);
                     });
                   }}
@@ -584,7 +518,7 @@ export default function SalesProposalsPage() {
         ) : (
           <>
             <div className="grid gap-4 xl:hidden">
-              {pagedProposals.map((proposal) => (
+              {proposals.map((proposal) => (
                 <ProposalCard key={proposal.id} proposal={proposal} />
               ))}
             </div>
@@ -603,7 +537,7 @@ export default function SalesProposalsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pagedProposals.map((proposal) => (
+                  {proposals.map((proposal) => (
                     <ProposalRow key={proposal.id} proposal={proposal} />
                   ))}
                 </TableBody>
@@ -625,7 +559,6 @@ export default function SalesProposalsPage() {
 
                   {Array.from({ length: totalPages }).map((_, index) => {
                     const pageNumber = index + 1;
-
                     return (
                       <PaginationItem key={pageNumber}>
                         <PaginationLink

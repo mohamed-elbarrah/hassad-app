@@ -16,6 +16,21 @@ export class RequestIdParamDto {
   id: string;
 }
 
+export class RequestContactLogQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
 export class RequestQueryDto {
   @IsOptional()
   @IsEnum(RequestStatus)

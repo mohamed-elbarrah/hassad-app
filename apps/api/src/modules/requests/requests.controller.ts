@@ -17,7 +17,11 @@ import {
   UpdateRequestStatusDto,
 } from "./dto/request.dto";
 import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
-import { RequestIdParamDto, RequestQueryDto } from "./dto/request-query.dto";
+import {
+  RequestContactLogQueryDto,
+  RequestIdParamDto,
+  RequestQueryDto,
+} from "./dto/request-query.dto";
 import { RequestsService } from "./requests.service";
 import { getGenericRequestAccessScope } from "./request-access";
 
@@ -103,10 +107,11 @@ export class RequestsController {
   @RequirePermissions("requests.read")
   getContactLogs(
     @Param() params: RequestIdParamDto,
+    @Query() filters: RequestContactLogQueryDto,
     @CurrentUser() user: AuthUser,
   ) {
     const accessScope = getGenericRequestAccessScope(user);
-    return this.requestsService.getContactLogs(params.id, accessScope);
+    return this.requestsService.getContactLogs(params.id, filters, accessScope);
   }
 
   @Post("for-client")

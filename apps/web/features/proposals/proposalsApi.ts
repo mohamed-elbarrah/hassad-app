@@ -18,9 +18,9 @@ export interface ProposalListItem extends Omit<Proposal, "shareLinkToken"> {
     id: string;
     companyName: string;
     contactName?: string;
-    status?: string;
+    businessName?: string;
+    clientId?: string;
   } | null;
-  lead?: { id: string; contactName: string; companyName: string };
   creator?: { id: string; name: string };
 }
 
@@ -95,6 +95,10 @@ export interface PaginatedProposals {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface ProposalCreateResult extends ProposalListItem {
+  shareLinkToken?: string | null;
 }
 
 export interface ProposalFilters {
@@ -174,24 +178,25 @@ export const proposalsApi = createApi({
     }),
 
     /** One-step: multipart/form-data upload anchored to the request. */
-    createProposal: builder.mutation<ProposalListItem, CreateProposalFormInput>(
-      {
-        query: (input) => {
-          const formData = new FormData();
-          formData.append("requestId", input.requestId);
-          formData.append("title", input.title);
-          formData.append("serviceDescription", input.serviceDescription);
-          formData.append("file", input.file, input.file.name);
-          formData.append("servicesList", JSON.stringify(input.servicesList));
-          formData.append("totalPrice", String(input.totalPrice));
-          formData.append("durationDays", String(input.durationDays));
-          formData.append("durationUnit", input.durationUnit);
+    createProposal: builder.mutation<
+      ProposalCreateResult,
+      CreateProposalFormInput
+    >({
+      query: (input) => {
+        const formData = new FormData();
+        formData.append("requestId", input.requestId);
+        formData.append("title", input.title);
+        formData.append("serviceDescription", input.serviceDescription);
+        formData.append("file", input.file, input.file.name);
+        formData.append("servicesList", JSON.stringify(input.servicesList));
+        formData.append("totalPrice", String(input.totalPrice));
+        formData.append("durationDays", String(input.durationDays));
+        formData.append("durationUnit", input.durationUnit);
 
-          return { url: "/proposals", method: "POST", body: formData };
-        },
-        invalidatesTags: [{ type: "Proposal", id: "LIST" }],
+        return { url: "/proposals", method: "POST", body: formData };
       },
-    ),
+      invalidatesTags: [{ type: "Proposal", id: "LIST" }],
+    }),
 
     updateProposal: builder.mutation<
       ProposalListItem,
@@ -209,7 +214,7 @@ export const proposalsApi = createApi({
     }),
 
     createSalesProposal: builder.mutation<
-      ProposalListItem,
+      ProposalCreateResult,
       CreateProposalFormInput
     >({
       query: (input) => {

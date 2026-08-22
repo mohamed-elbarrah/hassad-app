@@ -10,6 +10,14 @@ import type {
   Project,
 } from "@hassad/shared";
 import type { ClientKind, ClientStatus } from "@hassad/shared";
+import type {
+  PaginatedProjects,
+  ProjectFilters,
+} from "@/features/projects/projectsApi";
+import type {
+  PaginatedInvoices,
+  InvoiceFilters,
+} from "@/features/finance/financeApi";
 
 // ── V2 Profile Types (unified with IntakeFormV2) ────────────────────────────────
 
@@ -155,6 +163,7 @@ export const clientsApi = createApi({
     "Client",
     "ClientProfile",
     "Project",
+    "Invoice",
     "AdminClientUsers",
     "AdminClientStats",
   ],
@@ -256,6 +265,30 @@ export const clientsApi = createApi({
       providesTags: (_result, _err, id) => [{ type: "ClientProfile", id }],
     }),
 
+    /** GET /v1/sales/clients/:id/projects */
+    getSalesClientProjects: builder.query<
+      PaginatedProjects,
+      { id: string; filters?: ProjectFilters }
+    >({
+      query: ({ id, filters = {} }) => ({
+        url: `/sales/clients/${id}/projects`,
+        params: filters,
+      }),
+      providesTags: (_result, _err, { id }) => [{ type: "Project", id }],
+    }),
+
+    /** GET /v1/sales/clients/:id/invoices */
+    getSalesClientInvoices: builder.query<
+      PaginatedInvoices,
+      { id: string; filters?: InvoiceFilters }
+    >({
+      query: ({ id, filters = {} }) => ({
+        url: `/sales/clients/${id}/invoices`,
+        params: filters,
+      }),
+      providesTags: (_result, _err, { id }) => [{ type: "Invoice", id }],
+    }),
+
     /** GET /v1/clients/:id/profile */
     getClientProfile: builder.query<ClientProfile, string>({
       query: (id) => `/clients/${id}/profile`,
@@ -347,6 +380,8 @@ export const {
   useHandoverClientMutation,
   useGetClientProfileQuery,
   useGetSalesClientProfileQuery,
+  useGetSalesClientProjectsQuery,
+  useGetSalesClientInvoicesQuery,
   useGetClientTeamViewQuery,
   useUpsertClientProfileMutation,
   useGetClientProfileV2Query,

@@ -4,12 +4,17 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   Min,
 } from "class-validator";
 import { ContractStatus, ContractType } from "@hassad/shared";
 
 export class SalesContractQueryDto {
+  @IsOptional()
+  @IsUUID()
+  clientId?: string;
+
   @IsOptional()
   @IsString()
   search?: string;

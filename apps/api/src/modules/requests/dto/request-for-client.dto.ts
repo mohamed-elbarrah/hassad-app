@@ -1,10 +1,12 @@
 import {
+  ArrayMinSize,
   IsArray,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
   Min,
+  ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
 
@@ -29,7 +31,9 @@ export class CreateRequestForClientDto {
   clientId: string;
 
   @IsArray()
-  @IsNotEmpty()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => RequestServiceItemDto)
   services: RequestServiceItemDto[];
 
   @IsOptional()

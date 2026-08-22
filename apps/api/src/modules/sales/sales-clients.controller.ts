@@ -13,6 +13,8 @@ import { RequirePermissions } from "../../common/decorators/permissions.decorato
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { ClientsService } from "../crm/services/clients.service";
 import { ClientProfileService } from "../crm/services/client-profile.service";
+import { ProjectsService } from "../projects/services/projects.service";
+import { FinanceService } from "../finance/services/finance.service";
 import {
   UpsertClientProfileDto,
   UpsertClientProfileV2Dto,
@@ -32,6 +34,8 @@ export class SalesClientsController {
   constructor(
     private readonly clientsService: ClientsService,
     private readonly profileService: ClientProfileService,
+    private readonly projectsService: ProjectsService,
+    private readonly financeService: FinanceService,
   ) {}
 
   @Get()
@@ -47,6 +51,18 @@ export class SalesClientsController {
   @Get(":id/profile")
   getProfile(@Param("id") id: string, @CurrentUser() user: AuthUser) {
     return this.profileService.getByClientId(id, user);
+  }
+
+  @Get(":id/projects")
+  @RequirePermissions("projects.read")
+  getProjects(@Param("id") id: string, @Query() filters: any) {
+    return this.projectsService.findAll({ ...filters, clientId: id });
+  }
+
+  @Get(":id/invoices")
+  @RequirePermissions("finance.read")
+  getInvoices(@Param("id") id: string, @Query() filters: any) {
+    return this.financeService.findAllInvoices({ ...filters, clientId: id });
   }
 
   @Put(":id/profile/v2")

@@ -75,6 +75,14 @@ export interface RequestContactLogItem {
   };
 }
 
+export interface PaginatedRequestContactLogs {
+  items: RequestContactLogItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface RequestServiceSummary {
   id: string;
   serviceId: string;
@@ -284,9 +292,15 @@ export const requestsApi = createApi({
       ],
     }),
 
-    /** GET /v1/requests/:id/contact-log — get contact logs for a request */
-    getRequestContactLogs: builder.query<RequestContactLogItem[], string>({
-      query: (id) => ({ url: `/requests/${id}/contact-log` }),
+    /** GET /v1/requests/:id/contact-log — paginated contact logs for a request */
+    getRequestContactLogs: builder.query<
+      PaginatedRequestContactLogs,
+      { id: string; page?: number; limit?: number }
+    >({
+      query: ({ id, page, limit }) => ({
+        url: `/requests/${id}/contact-log`,
+        params: { page, limit },
+      }),
     }),
   }),
 });

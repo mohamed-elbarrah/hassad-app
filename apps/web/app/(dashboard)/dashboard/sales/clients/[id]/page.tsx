@@ -5,12 +5,12 @@ import Link from "next/link";
 import { ArrowLeft, Building2 } from "lucide-react";
 import {
   useGetSalesClientByIdQuery,
+  useGetSalesClientInvoicesQuery,
   useGetSalesClientProfileQuery,
+  useGetSalesClientProjectsQuery,
 } from "@/features/clients/clientsApi";
-import { useGetProjectsQuery } from "@/features/projects/projectsApi";
-import { useGetContractsQuery } from "@/features/contracts/contractsApi";
-import { useGetInvoicesQuery } from "@/features/finance/financeApi";
-import { NewRequestForClientModal } from "@/components/dashboard/crm/NewRequestForClientModal";
+import { useGetSalesContractsQuery } from "@/features/contracts/contractsApi";
+import { NewRequestForClientModal } from "@/components/dashboard/sales/NewRequestForClientModal";
 import { ProfileEditTab } from "./profile-edit-tab";
 import {
   SalesClientDetail,
@@ -89,16 +89,16 @@ export default function ClientProfilePage({
   const profileQuery = useGetSalesClientProfileQuery(id, {
     skip: clientQuery.isError || clientQuery.isLoading,
   });
-  const projectsQuery = useGetProjectsQuery(
-    { clientId: id },
+  const projectsQuery = useGetSalesClientProjectsQuery(
+    { id, filters: { page: 1, limit: 100 } },
     { skip: clientQuery.isError || clientQuery.isLoading },
   );
-  const contractsQuery = useGetContractsQuery(
-    { clientId: id },
+  const contractsQuery = useGetSalesContractsQuery(
+    { clientId: id, page: 1, limit: 100 },
     { skip: clientQuery.isError || clientQuery.isLoading },
   );
-  const invoicesQuery = useGetInvoicesQuery(
-    { clientId: id },
+  const invoicesQuery = useGetSalesClientInvoicesQuery(
+    { id, filters: { page: 1, limit: 100 } },
     { skip: clientQuery.isError || clientQuery.isLoading },
   );
 

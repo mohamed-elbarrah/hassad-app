@@ -66,6 +66,7 @@ export interface SalesClientDetailData {
     companyName: string;
     businessName?: string | null;
     businessType: string;
+    kind?: ClientKind | null;
     status?: string | null;
     createdAt?: string | Date;
     totalProjects?: number | null;

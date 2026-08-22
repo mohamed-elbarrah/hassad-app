@@ -177,6 +177,7 @@ export interface ContractFilters {
 }
 
 export interface SalesContractFilters {
+  clientId?: string;
   status?: ContractStatus;
   type?: ContractType;
   renewal?: "30" | "60" | "90";

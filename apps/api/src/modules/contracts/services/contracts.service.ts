@@ -1010,6 +1010,7 @@ export class ContractsService {
       ...(accessScope?.assignedSalesId
         ? { request: buildRequestAccessWhere(accessScope) }
         : {}),
+      ...(filters.clientId ? { clientId: filters.clientId } : {}),
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.type ? { type: filters.type } : {}),
       ...(search

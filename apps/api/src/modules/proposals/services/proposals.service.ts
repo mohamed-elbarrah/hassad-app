@@ -108,14 +108,59 @@ export class ProposalsService {
     if (filters.status) where.status = filters.status as ProposalStatus;
     if (filters.requestId) where.requestId = filters.requestId;
     if (filters.search) {
-      where.title = { contains: filters.search, mode: "insensitive" };
+      where.OR = [
+        { title: { contains: filters.search, mode: "insensitive" } },
+        {
+          serviceDescription: { contains: filters.search, mode: "insensitive" },
+        },
+        {
+          request: {
+            companyName: { contains: filters.search, mode: "insensitive" },
+          },
+        },
+        {
+          request: {
+            contactName: { contains: filters.search, mode: "insensitive" },
+          },
+        },
+        {
+          request: {
+            businessName: { contains: filters.search, mode: "insensitive" },
+          },
+        },
+        {
+          client: {
+            companyName: { contains: filters.search, mode: "insensitive" },
+          },
+        },
+        {
+          client: {
+            businessName: { contains: filters.search, mode: "insensitive" },
+          },
+        },
+        {
+          creator: { name: { contains: filters.search, mode: "insensitive" } },
+        },
+        { id: { contains: filters.search, mode: "insensitive" } },
+      ];
     }
 
     const [items, total] = await Promise.all([
       this.prisma.proposal.findMany({
         where,
         include: {
-          request: true,
+          client: {
+            select: { id: true, companyName: true },
+          },
+          request: {
+            select: {
+              id: true,
+              companyName: true,
+              contactName: true,
+              businessName: true,
+              clientId: true,
+            },
+          },
           creator: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: "desc" },

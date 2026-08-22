@@ -808,6 +808,13 @@ export class RequestsService {
         companyName: true,
         businessName: true,
         businessType: true,
+        user: {
+          select: {
+            name: true,
+            email: true,
+            phoneWhatsapp: true,
+          },
+        },
       },
     });
     if (!client) {
@@ -852,11 +859,12 @@ export class RequestsService {
           source: "DIRECT",
           status: RequestStatus.SUBMITTED,
           notes: dto.notes ?? undefined,
-          companyName: "",
-          contactName: "",
-          phoneWhatsapp: "",
-          businessName: "",
-          businessType: "OTHER",
+          companyName: client.companyName,
+          contactName: client.user?.name ?? client.companyName,
+          phoneWhatsapp: client.user?.phoneWhatsapp ?? "",
+          email: client.user?.email ?? null,
+          businessName: client.businessName,
+          businessType: client.businessType,
         },
       });
 
@@ -1336,7 +1344,11 @@ export class RequestsService {
     });
   }
 
-  async getContactLogs(requestId: string, accessScope?: RequestAccessScope) {
+  async getContactLogs(
+    requestId: string,
+    filters: { page?: number; limit?: number } = {},
+    accessScope?: RequestAccessScope,
+  ) {
     const request = await this.prisma.request.findFirst({
       where: { id: requestId, ...buildRequestAccessWhere(accessScope) },
       select: { id: true },
@@ -1349,11 +1361,26 @@ export class RequestsService {
       });
     }
 
-    return this.prisma.requestContactLog.findMany({
-      where: { requestId },
-      include: { user: { select: USER_SUMMARY_SELECT } },
-      orderBy: { contactedAt: "desc" },
-      take: 100,
-    });
+    const page = Number(filters.page) || 1;
+    const limit = Number(filters.limit) || 20;
+    const where = { requestId };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.requestContactLog.findMany({
+        where,
+        include: { user: { select: USER_SUMMARY_SELECT } },
+        orderBy: { contactedAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.requestContactLog.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -22,11 +23,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ClientKind, ContactLogResult, RequestStatus } from "@hassad/shared";
-import type {
-  CreateRequestContactLogPayload,
-  RequestContactLogItem,
-  RequestDetail,
-  RequestStatusHistoryItem,
+import {
+  useGetRequestContactLogsQuery,
+  type CreateRequestContactLogPayload,
+  type RequestContactLogItem,
+  type RequestDetail,
+  type RequestStatusHistoryItem,
 } from "@/features/requests/requestsApi";
 import { RequestContactLogDialog } from "@/components/request-detail/RequestContactLogDialog";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -42,6 +44,7 @@ import {
 } from "@/components/ui/card";
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -59,6 +62,14 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   formatCurrency,
   formatDateTime,
@@ -594,20 +605,35 @@ type Activity =
     };
 
 function ActivityTimeline({ request }: { request: RequestDetail }) {
-  const activities: Activity[] = [
-    ...(request.contactLogs ?? []).map((log) => ({
-      id: `contact-${log.id}`,
-      type: "contact" as const,
-      at: log.contactedAt,
-      log,
-    })),
-    ...(request.statusHistory ?? []).map((entry) => ({
+  const [page, setPage] = useState(1);
+  const limit = 20;
+  const { data, isLoading, isError, refetch } = useGetRequestContactLogsQuery({
+    id: request.id,
+    page,
+    limit,
+  });
+  const contactLogs = data?.items ?? [];
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const currentPage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+  const contactActivities: Activity[] = contactLogs.map((log) => ({
+    id: `contact-${log.id}`,
+    type: "contact" as const,
+    at: log.contactedAt,
+    log,
+  }));
+  const statusActivities: Activity[] = (request.statusHistory ?? []).map(
+    (entry) => ({
       id: `status-${entry.id}`,
       type: "status" as const,
       at: entry.changedAt,
       entry,
-    })),
-  ].sort(
+    }),
+  );
+  const activities = [...contactActivities, ...statusActivities].sort(
     (left, right) => new Date(right.at).getTime() - new Date(left.at).getTime(),
   );
 
@@ -616,11 +642,46 @@ function ActivityTimeline({ request }: { request: RequestDetail }) {
       <CardHeader className="gap-2">
         <CardTitle className="text-lg">النشاط</CardTitle>
         <CardDescription>
-          سجل موحد للتواصل وتغييرات مرحلة الطلب.
+          {data?.total != null
+            ? `سجل التواصل (${formatNumber(data.total)} سجل) مع تغييرات المرحلة.`
+            : "سجل التواصل وتغييرات المرحلة في مكان واحد."}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {activities.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col gap-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="flex gap-3 border-b pb-6 last:border-b-0 last:pb-0"
+              >
+                <Skeleton className="size-9 rounded-full" />
+                <div className="flex-1 space-y-3 pb-4">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : isError ? (
+          <Empty className="border bg-muted/20 p-8">
+            <EmptyMedia variant="icon">
+              <Clock3 />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle>تعذر تحميل النشاط</EmptyTitle>
+              <EmptyDescription>
+                تعذر تحميل سجلات التواصل. حاول إعادة المحاولة.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button variant="outline" onClick={() => refetch()}>
+                إعادة المحاولة
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : activities.length === 0 ? (
           <Empty className="border bg-muted/20 p-8">
             <EmptyMedia variant="icon">
               <Clock3 />
@@ -633,76 +694,120 @@ function ActivityTimeline({ request }: { request: RequestDetail }) {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col">
-            {activities.map((activity, index) => (
-              <div
-                key={activity.id}
-                className="relative flex gap-3 border-b pb-6 last:border-b-0 last:pb-0"
-              >
-                <div className="relative flex w-9 shrink-0 justify-center">
-                  {index < activities.length - 1 ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col">
+              {activities.map((activity, index) => (
+                <div
+                  key={activity.id}
+                  className="relative flex gap-3 border-b pb-6 last:border-b-0 last:pb-0"
+                >
+                  <div className="relative flex w-9 shrink-0 justify-center">
+                    {index < activities.length - 1 ? (
+                      <div
+                        className="absolute inset-y-9 w-px bg-border"
+                        aria-hidden="true"
+                      />
+                    ) : null}
                     <div
-                      className="absolute inset-y-9 w-px bg-border"
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                  <div
-                    className={cn(
-                      "relative z-10 flex size-9 items-center justify-center rounded-full border bg-background",
-                      activity.type === "contact"
-                        ? "border-primary/30 bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground",
-                    )}
-                  >
+                      className={cn(
+                        "relative z-10 flex size-9 items-center justify-center rounded-full border bg-background",
+                        activity.type === "contact"
+                          ? "border-primary/30 bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground",
+                      )}
+                    >
+                      {activity.type === "contact" ? (
+                        <ContactActivityIcon type={activity.log.type} />
+                      ) : (
+                        <ArrowLeftRight className="size-4" aria-hidden="true" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="min-w-0 flex-1 pb-4">
                     {activity.type === "contact" ? (
-                      <ContactActivityIcon type={activity.log.type} />
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-medium">
+                            تواصل عبر{" "}
+                            {requestContactTypeLabel(activity.log.type)}
+                          </p>
+                          <Badge variant={resultVariant(activity.log.result)}>
+                            {requestContactResultLabel(activity.log.result)}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.log.user?.name || "مستخدم غير محدد"} •{" "}
+                          {formatDateTime(activity.log.contactedAt)}
+                        </p>
+                        {activity.log.notes?.trim() ? (
+                          <p className="whitespace-pre-wrap break-words rounded-lg bg-muted/40 px-3 py-2 text-sm leading-6 text-muted-foreground">
+                            {activity.log.notes}
+                          </p>
+                        ) : null}
+                      </div>
                     ) : (
-                      <ArrowLeftRight className="size-4" aria-hidden="true" />
+                      <div className="flex flex-col gap-2">
+                        <p className="font-medium">
+                          {activity.entry.fromStatus
+                            ? `انتقل الطلب من ${requestStatusLabel(activity.entry.fromStatus)} إلى ${requestStatusLabel(activity.entry.toStatus)}`
+                            : `بدأ الطلب في مرحلة ${requestStatusLabel(activity.entry.toStatus)}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.entry.changer?.name || "النظام"} •{" "}
+                          {formatDateTime(activity.entry.changedAt)}
+                        </p>
+                        {activity.entry.note?.trim() ? (
+                          <p className="whitespace-pre-wrap break-words rounded-lg bg-muted/40 px-3 py-2 text-sm leading-6 text-muted-foreground">
+                            {activity.entry.note}
+                          </p>
+                        ) : null}
+                      </div>
                     )}
                   </div>
                 </div>
-                <div className="min-w-0 flex-1 pb-4">
-                  {activity.type === "contact" ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-medium">
-                          تواصل عبر {requestContactTypeLabel(activity.log.type)}
-                        </p>
-                        <Badge variant={resultVariant(activity.log.result)}>
-                          {requestContactResultLabel(activity.log.result)}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.log.user?.name || "مستخدم غير محدد"} •{" "}
-                        {formatDateTime(activity.log.contactedAt)}
-                      </p>
-                      {activity.log.notes?.trim() ? (
-                        <p className="whitespace-pre-wrap break-words rounded-lg bg-muted/40 px-3 py-2 text-sm leading-6 text-muted-foreground">
-                          {activity.log.notes}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      <p className="font-medium">
-                        {activity.entry.fromStatus
-                          ? `انتقل الطلب من ${requestStatusLabel(activity.entry.fromStatus)} إلى ${requestStatusLabel(activity.entry.toStatus)}`
-                          : `بدأ الطلب في مرحلة ${requestStatusLabel(activity.entry.toStatus)}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.entry.changer?.name || "النظام"} •{" "}
-                        {formatDateTime(activity.entry.changedAt)}
-                      </p>
-                      {activity.entry.note?.trim() ? (
-                        <p className="whitespace-pre-wrap break-words rounded-lg bg-muted/40 px-3 py-2 text-sm leading-6 text-muted-foreground">
-                          {activity.entry.note}
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {totalPages > 1 ? (
+              <Pagination className="justify-between border-t pt-4">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      direction="rtl"
+                      text="السابق"
+                      onClick={() =>
+                        setPage((current) => Math.max(1, current - 1))
+                      }
+                      disabled={currentPage === 1 || isLoading}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }).map((_, index) => {
+                    const pageNumber = index + 1;
+                    return (
+                      <PaginationItem key={pageNumber}>
+                        <PaginationLink
+                          isActive={pageNumber === currentPage}
+                          onClick={() => setPage(pageNumber)}
+                          disabled={isLoading}
+                        >
+                          {pageNumber}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  <PaginationItem>
+                    <PaginationNext
+                      direction="rtl"
+                      text="التالي"
+                      onClick={() =>
+                        setPage((current) => Math.min(totalPages, current + 1))
+                      }
+                      disabled={currentPage === totalPages || isLoading}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            ) : null}
           </div>
         )}
       </CardContent>
@@ -871,8 +976,6 @@ export function SalesRequestWorkspace({
   isAddingContactLog?: boolean;
 }) {
   const stageLabel = requestStatusLabel(request.status);
-  const activityCount =
-    (request.contactLogs?.length ?? 0) + (request.statusHistory?.length ?? 0);
   const recordCount =
     request.proposals.length +
     request.contracts.length +
@@ -939,9 +1042,7 @@ export function SalesRequestWorkspace({
         <div className="overflow-x-auto">
           <TabsList className="min-w-max">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-            <TabsTrigger value="activity">
-              النشاط ({formatNumber(activityCount)})
-            </TabsTrigger>
+            <TabsTrigger value="activity">النشاط</TabsTrigger>
             <TabsTrigger value="records">
               السجلات التجارية ({formatNumber(recordCount)})
             </TabsTrigger>
