@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowLeftRight,
   ArrowUpRight,
   Building2,
   CalendarClock,
@@ -17,9 +18,8 @@ import {
   MessageCircle,
   Phone,
   PhoneCall,
-  Send,
   UserRound,
-  UsersRound,
+  type LucideIcon,
 } from "lucide-react";
 import { ClientKind, ContactLogResult, RequestStatus } from "@hassad/shared";
 import type {
@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   formatCurrency,
   formatDateTime,
@@ -179,112 +180,217 @@ function Journey({
     request.status,
     ...(request.capabilities?.allowedNextStatuses ?? []),
   ].filter((status, index, statuses) => statuses.indexOf(status) === index);
-  return (
-    <div className="flex flex-col gap-4 border-t px-6 py-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold">رحلة الطلب</h3>
-          <p className="text-sm text-muted-foreground">
-            تابع انتقال الطلب بين المراحل واتخذ الخطوة التالية من نفس المكان.
-          </p>
-        </div>
-        {onStageChange && request.capabilities?.canUpdateStatus ? (
-          <div className="flex items-center gap-2">
-            <Label htmlFor="sales-request-stage" className="sr-only">
-              تغيير مرحلة الطلب
-            </Label>
-            <Select
-              value={request.status}
-              onValueChange={(value) => onStageChange(value as RequestStatus)}
-              disabled={isUpdatingStage}
-            >
-              <SelectTrigger id="sales-request-stage" className="w-44">
-                <SelectValue placeholder="تغيير المرحلة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {allowedStatuses.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {requestStatusLabel(status)}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        ) : null}
-      </div>
-      {isCancelled ? (
-        <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-destructive">
-          <CircleAlert aria-hidden="true" />
-          <div className="flex flex-col gap-1">
-            <span className="font-medium">تم إلغاء هذا الطلب</span>
-            <span className="text-sm text-destructive/80">
-              لا توجد مراحل تشغيلية تالية لهذا السجل.
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start">
-            {REQUEST_STAGE_ORDER.map((status, index) => {
-              const isCurrent = status === request.status;
-              const isComplete = currentIndex >= 0 && index < currentIndex;
-              const isLast = index === REQUEST_STAGE_ORDER.length - 1;
+  const nextStatus = request.capabilities?.allowedNextStatuses?.find(
+    (status) => status !== RequestStatus.CANCELLED,
+  );
 
-              return (
-                <div
-                  key={status}
-                  className="flex min-w-0 flex-1 items-center gap-3"
-                  aria-current={isCurrent ? "step" : undefined}
+  return (
+    <Card>
+      <CardHeader className="gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="text-lg">رحلة الطلب</CardTitle>
+            <CardDescription>
+              اعرف موضع الطلب والخطوة التالية دون مغادرة هذه الصفحة.
+            </CardDescription>
+          </div>
+          {onStageChange && request.capabilities?.canUpdateStatus ? (
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <Label htmlFor="sales-request-stage" className="sr-only">
+                تغيير مرحلة الطلب
+              </Label>
+              <Select
+                value={request.status}
+                onValueChange={(value) => onStageChange(value as RequestStatus)}
+                disabled={isUpdatingStage}
+              >
+                <SelectTrigger
+                  id="sales-request-stage"
+                  className="min-h-11 w-full sm:w-48"
                 >
-                  <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center">
-                    <div
-                      className={cn(
-                        "flex size-9 items-center justify-center rounded-full border text-sm font-semibold",
-                        isCurrent &&
-                          "border-primary bg-primary text-primary-foreground",
-                        isComplete &&
-                          "border-primary/30 bg-primary/10 text-primary",
-                        !isCurrent &&
-                          !isComplete &&
-                          "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {isComplete ? <Check aria-hidden="true" /> : index + 1}
-                    </div>
-                    <span
-                      className={cn(
-                        "text-xs leading-5",
-                        isCurrent
-                          ? "font-semibold text-foreground"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {requestStatusLabel(status)}
-                    </span>
-                  </div>
-                  {!isLast ? (
-                    <div
-                      className={cn(
-                        "hidden h-px flex-1 md:block",
-                        isComplete ? "bg-primary/40" : "bg-border",
-                      )}
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/50 px-4 py-3 text-sm">
-            <span className="text-muted-foreground">
-              المرحلة الحالية منذ{" "}
-              {formatRelativeTime(request.currentStageSince)}
-            </span>
-          </div>
+                  <SelectValue placeholder="تغيير المرحلة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {allowedStatuses.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {requestStatusLabel(status)}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
         </div>
-      )}
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        {isCancelled ? (
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-destructive">
+            <CircleAlert
+              className="mt-0.5 size-5 shrink-0"
+              aria-hidden="true"
+            />
+            <div className="flex flex-col gap-1">
+              <span className="font-medium">تم إلغاء هذا الطلب</span>
+              <span className="text-sm text-destructive/80">
+                لا توجد مراحل تشغيلية تالية لهذا السجل.
+              </span>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="hidden md:block">
+              <div
+                className="relative grid grid-cols-9 gap-0 before:absolute before:inset-x-[5.5%] before:top-5 before:h-px before:bg-border"
+                role="list"
+                aria-label="مراحل الطلب"
+              >
+                {REQUEST_STAGE_ORDER.map((status, index) => {
+                  const isCurrent = status === request.status;
+                  const isComplete = currentIndex >= 0 && index < currentIndex;
+
+                  return (
+                    <div
+                      key={status}
+                      className="relative z-10 flex min-w-0 flex-col items-center gap-3 text-center"
+                      role="listitem"
+                      aria-current={isCurrent ? "step" : undefined}
+                    >
+                      <div
+                        className={cn(
+                          "flex size-10 items-center justify-center rounded-full border-2 bg-background text-sm font-semibold transition-colors",
+                          isCurrent &&
+                            "border-primary bg-primary text-primary-foreground",
+                          isComplete &&
+                            "border-primary/40 bg-primary/10 text-primary",
+                          !isCurrent &&
+                            !isComplete &&
+                            "border-border text-muted-foreground",
+                        )}
+                      >
+                        {isComplete ? (
+                          <Check className="size-4" aria-hidden="true" />
+                        ) : (
+                          index + 1
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "max-w-24 text-xs leading-5",
+                          isCurrent
+                            ? "font-semibold text-foreground"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {requestStatusLabel(status)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div
+              className="flex flex-col md:hidden"
+              role="list"
+              aria-label="مراحل الطلب"
+            >
+              {REQUEST_STAGE_ORDER.map((status, index) => {
+                const isCurrent = status === request.status;
+                const isComplete = currentIndex >= 0 && index < currentIndex;
+                const isLast = index === REQUEST_STAGE_ORDER.length - 1;
+
+                return (
+                  <div
+                    key={status}
+                    className="relative flex gap-3 pb-3 last:pb-0"
+                    role="listitem"
+                    aria-current={isCurrent ? "step" : undefined}
+                  >
+                    <div className="relative flex w-8 shrink-0 justify-center">
+                      {!isLast ? (
+                        <div
+                          className={cn(
+                            "absolute inset-y-8 w-px",
+                            isComplete ? "bg-primary/40" : "bg-border",
+                          )}
+                          aria-hidden="true"
+                        />
+                      ) : null}
+                      <div
+                        className={cn(
+                          "relative z-10 flex size-8 items-center justify-center rounded-full border-2 bg-background text-xs font-semibold",
+                          isCurrent &&
+                            "border-primary bg-primary text-primary-foreground",
+                          isComplete &&
+                            "border-primary/40 bg-primary/10 text-primary",
+                          !isCurrent &&
+                            !isComplete &&
+                            "border-border text-muted-foreground",
+                        )}
+                      >
+                        {isComplete ? (
+                          <Check className="size-3.5" aria-hidden="true" />
+                        ) : (
+                          index + 1
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+                      <span
+                        className={cn(
+                          "truncate text-sm",
+                          isCurrent
+                            ? "font-semibold text-foreground"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {requestStatusLabel(status)}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {isCurrent
+                          ? "الحالية"
+                          : isComplete
+                            ? "مكتملة"
+                            : "لاحقة"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="grid gap-3 border-t pt-4 sm:grid-cols-3">
+              <StageContext
+                label="المرحلة الحالية"
+                value={requestStatusLabel(request.status)}
+              />
+              <StageContext
+                label="المرحلة التالية"
+                value={
+                  nextStatus
+                    ? requestStatusLabel(nextStatus)
+                    : "لا توجد خطوة تالية"
+                }
+              />
+              <StageContext
+                label="في المرحلة منذ"
+                value={formatRelativeTime(request.currentStageSince)}
+              />
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function StageContext({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="truncate text-sm font-medium">{value}</span>
     </div>
   );
 }
@@ -303,8 +409,7 @@ function SummaryCard({ request }: { request: RequestDetail }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="اسم الشركة" value={request.companyName} />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="اسم النشاط" value={request.businessName} />
           <Field label="نوع النشاط" value={businessType} />
           <Field label="مصدر الطلب" value={sourceLabel} />
@@ -360,115 +465,115 @@ function SummaryCard({ request }: { request: RequestDetail }) {
   );
 }
 
-function ContactPanel({ request }: { request: RequestDetail }) {
+function ClientCard({ request }: { request: RequestDetail }) {
+  const client = request.client;
+  const clientKind = client?.kind ?? ClientKind.LEAD;
   const contactName = request.contactName || request.client?.user?.name;
   const phone = request.phoneWhatsapp || request.client?.user?.phoneWhatsapp;
   const email = request.email || request.client?.user?.email;
+  const whatsappHref = getWhatsAppHref(phone);
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">معلومات التواصل</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="size-10">
-            <AvatarFallback>{getInitials(contactName)}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <p className="truncate font-medium">
-              {contactName || "جهة اتصال غير محددة"}
-            </p>
-            <p className="truncate text-sm text-muted-foreground">
-              {request.assignee?.name || "بدون مسؤول محدد"}
-            </p>
+      <CardHeader className="gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar className="size-12 shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {getInitials(contactName || client?.companyName)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <CardTitle className="text-lg">العميل</CardTitle>
+              <p className="truncate text-sm text-muted-foreground">
+                {client?.companyName || request.companyName || "عميل غير محدد"}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="outline">{clientKindLabel(clientKind)}</Badge>
+                <Badge
+                  variant={
+                    client?.status === "SUSPENDED" ? "destructive" : "secondary"
+                  }
+                >
+                  {client ? clientStatusLabel(client.status) : "غير مرتبط"}
+                </Badge>
+              </div>
+            </div>
           </div>
+          {client ? (
+            <Button
+              asChild
+              variant="outline"
+              className="min-h-11 w-full sm:w-auto"
+            >
+              <Link href={`/dashboard/sales/clients/${client.id}`}>
+                فتح ملف العميل
+                <ArrowUpRight data-icon="inline-end" />
+              </Link>
+            </Button>
+          ) : null}
         </div>
-        <Separator />
-        <div className="flex flex-col gap-3 text-sm">
-          <div
-            className={cn(
-              "flex items-center gap-3 rounded-md p-2",
-              phone ? "text-foreground" : "text-muted-foreground",
-            )}
-            dir="ltr"
-          >
-            <Phone aria-hidden="true" />
-            <span>{phone || "لا يوجد رقم هاتف"}</span>
-          </div>
+        <CardDescription>
+          بيانات العميل وجهة الاتصال المرتبطة بهذا الطلب.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        <div className="grid gap-4 border-t pt-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="جهة الاتصال" value={contactName} />
+          <Field
+            label="المسؤول"
+            value={request.assignee?.name || client?.manager?.name}
+          />
+          <Field label="الهاتف" value={phone} dir="ltr" />
+          <Field label="البريد الإلكتروني" value={email} dir="ltr" />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {phone ? (
+            <Button asChild variant="outline" size="sm" className="min-h-11">
+              <a
+                href={`tel:${phone}`}
+                dir="ltr"
+                className="min-h-11"
+                aria-label={`الاتصال بـ ${phone}`}
+              >
+                <Phone data-icon="inline-start" />
+                اتصال
+              </a>
+            </Button>
+          ) : null}
           {email ? (
-            <a
-              href={`mailto:${email}`}
-              className="flex items-center gap-3 rounded-md p-2 text-foreground hover:bg-muted"
-              dir="ltr"
-            >
-              <Mail aria-hidden="true" />
-              <span className="truncate">{email}</span>
-            </a>
-          ) : (
-            <div
-              className="flex items-center gap-3 rounded-md p-2 text-muted-foreground"
-              dir="ltr"
-            >
-              <Mail aria-hidden="true" />
-              <span>لا يوجد بريد إلكتروني</span>
-            </div>
-          )}
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={`mailto:${email}`}
+                dir="ltr"
+                className="min-h-11"
+                aria-label={`إرسال بريد إلى ${email}`}
+              >
+                <Mail data-icon="inline-start" />
+                بريد إلكتروني
+              </a>
+            </Button>
+          ) : null}
+          {whatsappHref ? (
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noreferrer"
+                className="min-h-11"
+                aria-label="فتح محادثة واتساب"
+              >
+                <MessageCircle data-icon="inline-start" />
+                واتساب
+              </a>
+            </Button>
+          ) : null}
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ClientContextCard({ request }: { request: RequestDetail }) {
-  const client = request.client;
-  const clientKind = client?.kind ?? ClientKind.LEAD;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">العميل المرتبط</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {client ? (
-          <>
-            <div className="flex items-start gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                <Building2 aria-hidden="true" />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-medium">{client.companyName}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Badge variant="outline">{clientKindLabel(clientKind)}</Badge>
-                  <Badge
-                    variant={
-                      client.status === "SUSPENDED"
-                        ? "destructive"
-                        : "secondary"
-                    }
-                  >
-                    {clientStatusLabel(client.status)}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            <Separator />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field
-                label="المسؤول"
-                value={client.manager?.name || "غير محدد"}
-              />
-              <Field
-                label="المشاريع"
-                value={formatNumber(client.totalProjects ?? 0)}
-              />
-            </div>
-          </>
-        ) : (
+        {!client ? (
           <p className="text-sm text-muted-foreground">
             لم يتم ربط هذا الطلب بملف عميل بعد.
           </p>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -508,15 +613,11 @@ function ActivityTimeline({ request }: { request: RequestDetail }) {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <CardTitle>النشاط والتواصل</CardTitle>
-            <CardDescription>
-              سجل زمني واضح لكل ما حدث في هذا الطلب.
-            </CardDescription>
-          </div>
-        </div>
+      <CardHeader className="gap-2">
+        <CardTitle className="text-lg">النشاط</CardTitle>
+        <CardDescription>
+          سجل موحد للتواصل وتغييرات مرحلة الطلب.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
@@ -527,58 +628,56 @@ function ActivityTimeline({ request }: { request: RequestDetail }) {
             <EmptyHeader>
               <EmptyTitle>لا يوجد نشاط بعد</EmptyTitle>
               <EmptyDescription>
-                سجّل أول تواصل أو غيّر مرحلة الطلب ليظهر النشاط هنا.
+                ستظهر هنا محاولات التواصل وتغييرات المرحلة عند تسجيلها.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-0">
+          <div className="flex flex-col">
             {activities.map((activity, index) => (
               <div
                 key={activity.id}
-                className="relative flex gap-4 pb-6 last:pb-0"
+                className="relative flex gap-3 border-b pb-6 last:border-b-0 last:pb-0"
               >
-                <div className="relative flex w-5 shrink-0 justify-center">
+                <div className="relative flex w-9 shrink-0 justify-center">
                   {index < activities.length - 1 ? (
                     <div
-                      className="absolute inset-y-5 border-r border-border"
+                      className="absolute inset-y-9 w-px bg-border"
                       aria-hidden="true"
                     />
                   ) : null}
                   <div
                     className={cn(
-                      "relative z-10 mt-1 flex size-5 items-center justify-center rounded-full border-2 bg-background",
+                      "relative z-10 flex size-9 items-center justify-center rounded-full border bg-background",
                       activity.type === "contact"
-                        ? "border-primary"
-                        : "border-muted-foreground/40",
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground",
                     )}
                   >
-                    <div
-                      className="size-1.5 rounded-full bg-current"
-                      aria-hidden="true"
-                    />
+                    {activity.type === "contact" ? (
+                      <ContactActivityIcon type={activity.log.type} />
+                    ) : (
+                      <ArrowLeftRight className="size-4" aria-hidden="true" />
+                    )}
                   </div>
                 </div>
-                <div className="min-w-0 flex-1 rounded-lg border p-4">
+                <div className="min-w-0 flex-1 pb-4">
                   {activity.type === "contact" ? (
-                    <div className="flex flex-col gap-3">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="font-medium">
-                            تم التواصل عبر{" "}
-                            {requestContactTypeLabel(activity.log.type)}
-                          </p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {activity.log.user?.name || "مستخدم غير محدد"} •{" "}
-                            {formatDateTime(activity.log.contactedAt)}
-                          </p>
-                        </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-medium">
+                          تواصل عبر {requestContactTypeLabel(activity.log.type)}
+                        </p>
                         <Badge variant={resultVariant(activity.log.result)}>
                           {requestContactResultLabel(activity.log.result)}
                         </Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.log.user?.name || "مستخدم غير محدد"} •{" "}
+                        {formatDateTime(activity.log.contactedAt)}
+                      </p>
                       {activity.log.notes?.trim() ? (
-                        <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                        <p className="whitespace-pre-wrap break-words rounded-lg bg-muted/40 px-3 py-2 text-sm leading-6 text-muted-foreground">
                           {activity.log.notes}
                         </p>
                       ) : null}
@@ -588,14 +687,14 @@ function ActivityTimeline({ request }: { request: RequestDetail }) {
                       <p className="font-medium">
                         {activity.entry.fromStatus
                           ? `انتقل الطلب من ${requestStatusLabel(activity.entry.fromStatus)} إلى ${requestStatusLabel(activity.entry.toStatus)}`
-                          : `تم إنشاء الطلب في مرحلة ${requestStatusLabel(activity.entry.toStatus)}`}
+                          : `بدأ الطلب في مرحلة ${requestStatusLabel(activity.entry.toStatus)}`}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {activity.entry.changer?.name || "النظام"} •{" "}
                         {formatDateTime(activity.entry.changedAt)}
                       </p>
                       {activity.entry.note?.trim() ? (
-                        <p className="text-sm leading-6 text-muted-foreground">
+                        <p className="whitespace-pre-wrap break-words rounded-lg bg-muted/40 px-3 py-2 text-sm leading-6 text-muted-foreground">
                           {activity.entry.note}
                         </p>
                       ) : null}
@@ -611,6 +710,19 @@ function ActivityTimeline({ request }: { request: RequestDetail }) {
   );
 }
 
+function ContactActivityIcon({ type }: { type: string }) {
+  const Icon =
+    type === "WHATSAPP"
+      ? MessageCircle
+      : type === "EMAIL"
+        ? Mail
+        : type === "MEETING"
+          ? CalendarClock
+          : PhoneCall;
+
+  return <Icon className="size-4" aria-hidden="true" />;
+}
+
 function CommercialRecords({ request }: { request: RequestDetail }) {
   const hasRecords =
     request.proposals.length > 0 ||
@@ -620,9 +732,9 @@ function CommercialRecords({ request }: { request: RequestDetail }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>المسار التجاري</CardTitle>
+        <CardTitle className="text-lg">السجلات التجارية</CardTitle>
         <CardDescription>
-          العروض والعقود والمشروع المرتبط بهذا الطلب.
+          العروض والعقود والمشروع المرتبط بهذا الطلب في مكان واحد.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -639,112 +751,105 @@ function CommercialRecords({ request }: { request: RequestDetail }) {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="divide-y">
             {request.proposals.map((proposal) => (
-              <div
+              <CommercialRecordRow
                 key={proposal.id}
-                className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <FileText aria-hidden="true" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium">{proposal.title}</span>
-                    <span className="text-sm text-muted-foreground">
-                      عرض سعر • {formatDateTime(proposal.createdAt)}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {typeof proposal.totalPrice === "number" ? (
-                    <span className="text-sm font-medium">
-                      {formatCurrency(proposal.totalPrice)}
-                    </span>
-                  ) : null}
-                  <Badge
-                    variant={
-                      proposal.status === "APPROVED" ? "secondary" : "outline"
-                    }
-                  >
-                    {proposalStatusLabel(proposal.status)}
-                  </Badge>
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/dashboard/sales/proposals/${proposal.id}`}>
-                      فتح
-                      <ArrowUpRight data-icon="inline-end" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+                icon={FileText}
+                title={proposal.title}
+                typeLabel="عرض سعر"
+                createdAt={proposal.createdAt}
+                amount={proposal.totalPrice}
+                status={proposalStatusLabel(proposal.status)}
+                statusVariant={
+                  proposal.status === "APPROVED" ? "secondary" : "outline"
+                }
+                href={`/dashboard/sales/proposals/${proposal.id}`}
+              />
             ))}
 
             {request.contracts.map((contract) => (
-              <div
+              <CommercialRecordRow
                 key={contract.id}
-                className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <FileSignature aria-hidden="true" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium">{contract.title}</span>
-                    <span className="text-sm text-muted-foreground">
-                      عقد • {formatDateTime(contract.createdAt)}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {typeof contract.totalValue === "number" ? (
-                    <span className="text-sm font-medium">
-                      {formatCurrency(contract.totalValue)}
-                    </span>
-                  ) : null}
-                  <Badge
-                    variant={
-                      contract.status === "SIGNED" ||
-                      contract.status === "ACTIVE"
-                        ? "secondary"
-                        : "outline"
-                    }
-                  >
-                    {contractStatusLabel(contract.status)}
-                  </Badge>
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/dashboard/sales/contracts/${contract.id}`}>
-                      فتح
-                      <ArrowUpRight data-icon="inline-end" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
+                icon={FileSignature}
+                title={contract.title}
+                typeLabel="عقد"
+                createdAt={contract.createdAt}
+                amount={contract.totalValue}
+                status={contractStatusLabel(contract.status)}
+                statusVariant={
+                  contract.status === "SIGNED" || contract.status === "ACTIVE"
+                    ? "secondary"
+                    : "outline"
+                }
+                href={`/dashboard/sales/contracts/${contract.id}`}
+              />
             ))}
 
             {request.project ? (
-              <div className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <Building2 aria-hidden="true" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium">{request.project.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      مشروع • {formatDateTime(request.project.createdAt)}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">
-                    {portalProjectStatusLabel(request.project.status)}
-                  </Badge>
-                </div>
-              </div>
+              <CommercialRecordRow
+                icon={Building2}
+                title={request.project.name}
+                typeLabel="مشروع"
+                createdAt={request.project.createdAt}
+                status={portalProjectStatusLabel(request.project.status)}
+                statusVariant="secondary"
+              />
             ) : null}
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function CommercialRecordRow({
+  icon: Icon,
+  title,
+  typeLabel,
+  createdAt,
+  amount,
+  status,
+  statusVariant,
+  href,
+}: {
+  icon: LucideIcon;
+  title: string;
+  typeLabel: string;
+  createdAt: string;
+  amount?: number;
+  status: string;
+  statusVariant: "secondary" | "outline";
+  href?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <Icon className="size-5" aria-hidden="true" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate font-medium">{title}</p>
+          <p className="text-sm text-muted-foreground">
+            {typeLabel} • {formatDateTime(createdAt)}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        {typeof amount === "number" ? (
+          <span className="text-sm font-medium">{formatCurrency(amount)}</span>
+        ) : null}
+        <Badge variant={statusVariant}>{status}</Badge>
+        {href ? (
+          <Button asChild size="sm" variant="outline" className="min-h-11">
+            <Link href={href} aria-label={`فتح ${typeLabel}: ${title}`}>
+              فتح
+              <ArrowUpRight data-icon="inline-end" />
+            </Link>
+          </Button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -766,194 +871,147 @@ export function SalesRequestWorkspace({
   isAddingContactLog?: boolean;
 }) {
   const stageLabel = requestStatusLabel(request.status);
-  const clientKind = request.client?.kind ?? ClientKind.LEAD;
-  const phone = request.phoneWhatsapp || request.client?.user?.phoneWhatsapp;
-  const email = request.email || request.client?.user?.email;
-  const whatsappHref = getWhatsAppHref(phone);
-  const nextStatus = request.capabilities?.allowedNextStatuses?.find(
-    (status) => status !== RequestStatus.CANCELLED,
-  );
+  const activityCount =
+    (request.contactLogs?.length ?? 0) + (request.statusHistory?.length ?? 0);
+  const recordCount =
+    request.proposals.length +
+    request.contracts.length +
+    (request.project ? 1 : 0);
 
   return (
-    <div
-      className="flex min-h-full flex-col gap-6    "
-      dir="rtl"
-    >
+    <div className="flex min-h-full flex-col gap-5" dir="rtl">
       <PageHeader
         title="تفاصيل طلب المبيعات"
-        description="مراجعة تفاصيل الطلب ومتابعة الخطوة التالية مع العميل."
+        description="مراجعة الطلب ومتابعة الخطوة التالية مع العميل."
         icon={ClipboardList}
         actions={
-          <>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <span className="text-xs text-muted-foreground">
               طلب #{request.id.slice(0, 8)}
             </span>
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline" size="sm" className="min-h-11">
               <Link href={backHref}>
                 <ArrowLeft data-icon="inline-start" />
                 {backLabel}
               </Link>
             </Button>
-          </>
+          </div>
         }
       />
 
-      <Card className="overflow-hidden border-primary/15">
-        <CardContent className="flex flex-col gap-5 p-0">
-          <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
-              <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm">
-                <Building2 className="size-7" aria-hidden="true" />
+      <Card className="border-primary/15">
+        <CardContent className="flex flex-col gap-4 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Building2 className="size-6" aria-hidden="true" />
               </div>
-              <div className="flex min-w-0 flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
-                    {request.companyName}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
+                    {request.companyName || "طلب مبيعات"}
                   </h2>
-                  <Badge
-                    variant={requestStatusVariant(request.status)}
-                    className="px-3 py-1"
-                  >
+                  <Badge variant={requestStatusVariant(request.status)}>
                     {stageLabel}
                   </Badge>
-                  <Badge variant="outline" className="px-3 py-1">
-                    {clientKindLabel(clientKind)}
-                  </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {request.contactName || "جهة اتصال غير محددة"} • تم إنشاء
-                  الطلب {formatRelativeTime(request.createdAt)}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  تم إنشاء الطلب {formatRelativeTime(request.createdAt)}
                 </p>
-                <div className="flex flex-wrap gap-2 text-sm">
-                  {phone ? (
-                    <a
-                      href={`tel:${phone}`}
-                      dir="ltr"
-                      className="inline-flex items-center gap-2 rounded-md bg-muted/60 px-3 py-1.5 text-foreground transition-colors hover:bg-muted"
-                    >
-                      <Phone aria-hidden="true" /> {phone}
-                    </a>
-                  ) : null}
-                  {email ? (
-                    <a
-                      href={`mailto:${email}`}
-                      dir="ltr"
-                      className="inline-flex max-w-full items-center gap-2 rounded-md bg-muted/60 px-3 py-1.5 text-foreground transition-colors hover:bg-muted"
-                    >
-                      <Mail aria-hidden="true" />
-                      <span className="truncate">{email}</span>
-                    </a>
-                  ) : null}
-                  <span className="inline-flex items-center gap-2 rounded-md bg-muted/60 px-3 py-1.5 text-muted-foreground">
-                    <CalendarClock aria-hidden="true" /> آخر تحديث{" "}
-                    {formatRelativeTime(request.updatedAt)}
-                  </span>
-                </div>
               </div>
             </div>
-
-            <div className="flex w-full flex-wrap gap-2 lg:w-auto lg:max-w-sm lg:justify-end">
-              {onAddContactLog && request.capabilities?.canLogContact ? (
-                <RequestContactLogDialog
-                  onSubmit={onAddContactLog}
-                  isSubmitting={isAddingContactLog}
-                  variant="default"
-                  size="sm"
-                />
-              ) : null}
-              {whatsappHref ? (
-                <Button asChild variant="outline" size="sm">
-                  <a href={whatsappHref} target="_blank" rel="noreferrer">
-                    <MessageCircle data-icon="inline-start" /> واتساب
-                  </a>
-                </Button>
-              ) : null}
-              {request.client ? (
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/dashboard/sales/clients/${request.client.id}`}>
-                    <UsersRound data-icon="inline-start" /> ملف العميل
-                  </Link>
-                </Button>
-              ) : null}
-            </div>
+            {onAddContactLog && request.capabilities?.canLogContact ? (
+              <RequestContactLogDialog
+                onSubmit={onAddContactLog}
+                isSubmitting={isAddingContactLog}
+                variant="default"
+                size="sm"
+                className="min-h-11"
+              />
+            ) : null}
           </div>
-
-          <Separator />
-
-          <div className="grid gap-3 bg-muted/30 px-6 py-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-center gap-3">
-              <Send className="size-4 text-primary" aria-hidden="true" />
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground">
-                  التقدم التالي
-                </span>
-                <span className="truncate text-sm font-medium">
-                  {nextStatus
-                    ? requestStatusLabel(nextStatus)
-                    : "لا توجد خطوة تالية"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <UserRound
-                className="size-4 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground">المسؤول</span>
-                <span className="truncate text-sm font-medium">
-                  {request.assignee?.name || "غير محدد"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <PhoneCall
-                className="size-4 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground">آخر تواصل</span>
-                <span className="truncate text-sm font-medium">
-                  {request.lastContactAt
-                    ? formatRelativeTime(request.lastContactAt)
-                    : "لا يوجد"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <History
-                className="size-4 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground">
-                  محاولات التواصل
-                </span>
-                <span className="truncate text-sm font-medium">
-                  {formatNumber(request.contactAttemptCount)} محاولة
-                </span>
-              </div>
-            </div>
-          </div>
-          <Journey
-            request={request}
-            onStageChange={onStageChange}
-            isUpdatingStage={isUpdatingStage}
-          />
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
-        <div className="flex min-w-0 flex-col gap-6">
-          <SummaryCard request={request} />
-          <ActivityTimeline request={request} />
-          <CommercialRecords request={request} />
-        </div>
+      <ClientCard request={request} />
 
-        <aside className="flex min-w-0 flex-col gap-6">
-          <ContactPanel request={request} />
-          <ClientContextCard request={request} />
-        </aside>
+      <Tabs defaultValue="overview" dir="rtl" className="flex flex-col gap-4">
+        <div className="overflow-x-auto">
+          <TabsList className="min-w-max">
+            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
+            <TabsTrigger value="activity">
+              النشاط ({formatNumber(activityCount)})
+            </TabsTrigger>
+            <TabsTrigger value="records">
+              السجلات التجارية ({formatNumber(recordCount)})
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="overview" className="mt-0">
+          <div className="flex flex-col gap-6">
+            <Journey
+              request={request}
+              onStageChange={onStageChange}
+              isUpdatingStage={isUpdatingStage}
+            />
+            <div className="grid gap-3 rounded-lg border bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StageSignal
+                icon={CalendarClock}
+                label="آخر تحديث"
+                value={formatRelativeTime(request.updatedAt)}
+              />
+              <StageSignal
+                icon={PhoneCall}
+                label="آخر تواصل"
+                value={
+                  request.lastContactAt
+                    ? formatRelativeTime(request.lastContactAt)
+                    : "لا يوجد"
+                }
+              />
+              <StageSignal
+                icon={History}
+                label="محاولات التواصل"
+                value={`${formatNumber(request.contactAttemptCount)} محاولة`}
+              />
+              <StageSignal
+                icon={UserRound}
+                label="المسؤول"
+                value={request.assignee?.name || "غير محدد"}
+              />
+            </div>
+            <SummaryCard request={request} />
+          </div>
+        </TabsContent>
+        <TabsContent value="activity" className="mt-0">
+          <ActivityTimeline request={request} />
+        </TabsContent>
+        <TabsContent value="records" className="mt-0">
+          <CommercialRecords request={request} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function StageSignal({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <Icon
+        className="size-4 shrink-0 text-muted-foreground"
+        aria-hidden="true"
+      />
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="truncate text-sm font-medium">{value}</p>
       </div>
     </div>
   );
@@ -961,52 +1019,56 @@ export function SalesRequestWorkspace({
 
 export function SalesRequestWorkspaceLoading() {
   return (
-    <div
-      className="flex flex-col gap-6    "
-      dir="rtl"
-    >
+    <div className="flex flex-col gap-5" dir="rtl">
       <div className="flex items-center justify-between">
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-5 w-24" />
       </div>
       <Card>
-        <CardContent className="flex flex-col gap-5 p-6">
-          <div className="flex items-start gap-4">
-            <Skeleton className="size-14 rounded-xl" />
+        <CardContent className="flex flex-col gap-4 p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <Skeleton className="size-12 rounded-xl" />
             <div className="flex flex-1 flex-col gap-3">
-              <Skeleton className="h-7 w-64" />
-              <Skeleton className="h-4 w-80" />
-              <Skeleton className="h-4 w-96 max-w-full" />
+              <Skeleton className="h-7 w-56 max-w-full" />
+              <Skeleton className="h-4 w-72 max-w-full" />
             </div>
           </div>
-          <Skeleton className="h-4 w-full" />
         </CardContent>
       </Card>
       <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-72" />
+        <CardHeader className="gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-4 w-64 max-w-full" />
+            </div>
+            <Skeleton className="h-9 w-32" />
+          </div>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-3 md:grid-cols-9">
+        <CardContent className="flex flex-col gap-5">
+          <div className="hidden gap-3 md:grid md:grid-cols-9">
             {Array.from({ length: 9 }).map((_, index) => (
-              <Skeleton key={index} className="h-14 rounded-lg" />
+              <Skeleton key={index} className="h-16 rounded-lg" />
             ))}
           </div>
-          <Skeleton className="h-10 w-full" />
+          <div className="flex flex-col gap-2 md:hidden">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} className="h-11 rounded-lg" />
+            ))}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton key={index} className="h-10 rounded-lg" />
+            ))}
+          </div>
         </CardContent>
       </Card>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
-        <div className="flex flex-col gap-6">
-          <Skeleton className="h-[34rem] rounded-xl" />
-          <Skeleton className="h-[28rem] rounded-xl" />
-        </div>
-        <div className="flex flex-col gap-6">
-          <Skeleton className="h-52 rounded-xl" />
-          <Skeleton className="h-72 rounded-xl" />
-          <Skeleton className="h-64 rounded-xl" />
-        </div>
-      </div>
+      <Card>
+        <CardContent className="flex flex-col gap-4 p-5">
+          <Skeleton className="h-9 w-72 max-w-full" />
+          <Skeleton className="h-64 rounded-lg" />
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -30,6 +30,7 @@ interface RequestContactLogDialogProps {
   isSubmitting?: boolean;
   variant?: ButtonProps["variant"];
   size?: ButtonProps["size"];
+  className?: string;
   allowedTypes?: readonly ContactLogType[];
   onSubmit: (payload: CreateRequestContactLogPayload) => Promise<void>;
 }
@@ -39,6 +40,7 @@ export function RequestContactLogDialog({
   isSubmitting,
   variant = "outline",
   size = "default",
+  className,
   allowedTypes = Object.values(ContactLogType),
   onSubmit,
 }: RequestContactLogDialogProps) {
@@ -70,6 +72,7 @@ export function RequestContactLogDialog({
         <Button
           variant={variant}
           size={size}
+          className={className}
           disabled={disabled || isSubmitting}
         >
           تسجيل تواصل
@@ -91,7 +94,7 @@ export function RequestContactLogDialog({
                 value={type}
                 onValueChange={(value) => setType(value as ContactLogType)}
               >
-                <SelectTrigger id={`${id}-type`}>
+                <SelectTrigger id={`${id}-type`} className="min-h-11">
                   <SelectValue placeholder="اختر النوع" />
                 </SelectTrigger>
                 <SelectContent>
@@ -112,7 +115,7 @@ export function RequestContactLogDialog({
                 value={result}
                 onValueChange={(value) => setResult(value as ContactLogResult)}
               >
-                <SelectTrigger id={`${id}-result`}>
+                <SelectTrigger id={`${id}-result`} className="min-h-11">
                   <SelectValue placeholder="اختر النتيجة" />
                 </SelectTrigger>
                 <SelectContent>
@@ -141,10 +144,18 @@ export function RequestContactLogDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button
+            variant="outline"
+            className="min-h-11"
+            onClick={() => setOpen(false)}
+          >
             إلغاء
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button
+            className="min-h-11"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "جارٍ الحفظ..." : "حفظ التواصل"}
           </Button>
         </DialogFooter>
