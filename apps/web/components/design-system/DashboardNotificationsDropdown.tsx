@@ -28,16 +28,22 @@ export function resolveDashboardUrl(
 
   if (entityType === "project") return `/dashboard/pm/projects/${entityId}`;
 
-  if (entityType === "proposal") return `/dashboard/sales/proposals`;
+  if (entityType === "proposal")
+    return `/dashboard/sales/proposals/${entityId}`;
 
-  if (entityType === "contract") return `/dashboard/sales/contracts`;
+  if (entityType === "contract")
+    return `/dashboard/sales/contracts/${entityId}`;
 
   if (entityType === "deliverable") return `/dashboard/tasks/${entityId}`;
 
-  if (entityType === "campaign") return `/dashboard/marketing/campaigns`;
+  if (entityType === "campaign")
+    return `/dashboard/marketing/campaigns/${entityId}`;
 
-  if (entityType === "invoice" || entityType === "INVOICE")
-    return `/dashboard/finance/invoices`;
+  if (entityType === "invoice" || entityType === "INVOICE") {
+    if (role === UserRole.ADMIN)
+      return `/dashboard/admin/finance/invoices/${entityId}`;
+    return `/dashboard/finance/invoices/${entityId}`;
+  }
 
   if (entityType === "conversation") return `/dashboard/messages`;
 

@@ -155,7 +155,7 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full min-w-0 has-[[data-variant=inset]]:bg-sidebar",
+              "group/sidebar-wrapper flex h-dvh w-full min-w-0 overflow-hidden has-[[data-variant=inset]]:bg-sidebar",
               className,
             )}
             ref={ref}
@@ -211,6 +211,7 @@ const Sidebar = React.forwardRef<
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
           <SheetContent
             data-sidebar="sidebar"
+            id="dashboard-sidebar"
             data-mobile="true"
             className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
             style={
@@ -241,7 +242,7 @@ const Sidebar = React.forwardRef<
       >
         <div
           className={cn(
-            "sticky top-0 z-10 hidden h-svh w-[--sidebar-width] transition-[width] duration-200 ease-linear md:flex",
+            "sticky top-0 z-10 hidden h-full w-[--sidebar-width] transition-[width] duration-200 ease-linear md:flex",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -254,6 +255,7 @@ const Sidebar = React.forwardRef<
         >
           <div
             data-sidebar="sidebar"
+            id="dashboard-sidebar"
             className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=collapsed]:group-data-[variant=floating]:border-none group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
           >
             {children}
@@ -269,7 +271,7 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isMobile, openMobile, state } = useSidebar();
 
   return (
     <Button
@@ -283,6 +285,8 @@ const SidebarTrigger = React.forwardRef<
         toggleSidebar();
       }}
       {...props}
+      aria-expanded={isMobile ? openMobile : state === "expanded"}
+      aria-controls="dashboard-sidebar"
     >
       <PanelLeft className="rtl:rotate-180" />
       <span className="sr-only">Toggle Sidebar</span>
@@ -328,7 +332,7 @@ const SidebarInset = React.forwardRef<
     <main
       ref={ref}
       className={cn(
-        "relative flex w-full flex-1 flex-col min-w-0 bg-background",
+        "relative flex h-full w-full flex-1 flex-col min-w-0 overflow-hidden bg-background",
         "md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ms-2 md:peer-data-[variant=inset]:ms-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
         className,
       )}

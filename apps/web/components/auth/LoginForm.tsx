@@ -3,7 +3,6 @@
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { UserRole } from "@hassad/shared";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -11,6 +10,7 @@ import { useLoginMutation } from "@/features/auth/authApi";
 import { useAppDispatch } from "@/lib/hooks";
 import { setCredentials } from "@/features/auth/authSlice";
 import { authErrorMessage } from "@/lib/i18n";
+import { getRoleHome } from "@/lib/dashboard-access";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { AuthInput } from "./AuthInput";
@@ -42,16 +42,6 @@ export function LoginForm() {
     defaultValues: { email: "", password: "", rememberMe: false },
   });
 
-  const ROLE_ROUTES: Record<UserRole, string> = {
-    [UserRole.ADMIN]: "/dashboard/admin",
-    [UserRole.PM]: "/dashboard/pm",
-    [UserRole.SALES]: "/dashboard/sales",
-    [UserRole.ACCOUNTANT]: "/dashboard/finance",
-    [UserRole.MARKETING]: "/dashboard/marketing",
-    [UserRole.TEAM]: "/dashboard/team",
-    [UserRole.CLIENT]: "/portal",
-  };
-
   async function onSubmit(values: LoginFormValues) {
     try {
       setGlobalError(null);
@@ -59,9 +49,7 @@ export function LoginForm() {
       dispatch(setCredentials({ user: data.user }));
 
       const callbackUrl = searchParams.get("callbackUrl");
-      router.push(
-        callbackUrl || ROLE_ROUTES[data.user.role as UserRole] || "/dashboard",
-      );
+      router.push(callbackUrl || getRoleHome(data.user.role));
     } catch (err: unknown) {
       setGlobalError(authErrorMessage(err));
     }

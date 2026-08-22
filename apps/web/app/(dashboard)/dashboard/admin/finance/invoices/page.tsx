@@ -656,7 +656,7 @@ export default function AdminFinanceInvoicesPage() {
               </div>
               {selectedInvoice ? (
                 <Button asChild>
-                  <Link href={`/dashboard/finance/invoices/${selectedInvoice.id}`}>
+                  <Link href={`/dashboard/admin/finance/invoices/${selectedInvoice.id}`}>
                     <ArrowUpRight />
                     فتح الصفحة الكاملة
                   </Link>

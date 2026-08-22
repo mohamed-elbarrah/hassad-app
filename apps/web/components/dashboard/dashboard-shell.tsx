@@ -2,7 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
@@ -16,7 +23,17 @@ import {
 import { useTheme } from "next-themes";
 import { UserRole } from "@hassad/shared";
 
-import { adminNavSections, roleNavSections } from "@/lib/navigation";
+import {
+  adminNavSections,
+  roleNavSections,
+  sharedNavSections,
+  type NavItem,
+} from "@/lib/navigation";
+import {
+  canAccessDashboardPath,
+  getRoleHome,
+  roleLabels,
+} from "@/lib/dashboard-access";
 import { useAppSelector } from "@/lib/hooks";
 import { useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
@@ -53,62 +70,37 @@ import {
   SidebarProvider,
   SidebarSeparator,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
-const roleHome: Record<UserRole, string> = {
-  [UserRole.ADMIN]: "/dashboard/admin",
-  [UserRole.PM]: "/dashboard/pm",
-  [UserRole.SALES]: "/dashboard/sales",
-  [UserRole.ACCOUNTANT]: "/dashboard/finance",
-  [UserRole.MARKETING]: "/dashboard/marketing",
-  [UserRole.TEAM]: "/dashboard/team",
-  [UserRole.CLIENT]: "/portal",
-};
-
-const roleLabels: Record<UserRole, string> = {
-  [UserRole.ADMIN]: "الإدارة",
-  [UserRole.PM]: "إدارة المشاريع",
-  [UserRole.SALES]: "المبيعات",
-  [UserRole.ACCOUNTANT]: "المالية",
-  [UserRole.MARKETING]: "التسويق",
-  [UserRole.TEAM]: "الفريق",
-  [UserRole.CLIENT]: "العميل",
-};
-
-const rolePrefixes: Record<UserRole, string[]> = {
-  [UserRole.ADMIN]: ["/dashboard/admin"],
-  [UserRole.PM]: ["/dashboard/pm"],
-  [UserRole.SALES]: ["/dashboard/sales"],
-  [UserRole.ACCOUNTANT]: ["/dashboard/finance"],
-  [UserRole.MARKETING]: ["/dashboard/marketing"],
-  [UserRole.TEAM]: ["/dashboard/team", "/dashboard/designer"],
-  [UserRole.CLIENT]: ["/portal"],
-};
-
-const commonPrefixes = [
-  "/dashboard/account",
-  "/dashboard/notifications",
-  "/dashboard/messages",
-  "/dashboard/tasks",
-  "/dashboard/finance",
-];
-
-const exactActivePaths = new Set([
-  "/dashboard",
-  "/dashboard/admin",
-  "/dashboard/pm",
-  "/dashboard/sales",
-  "/dashboard/finance",
-  "/dashboard/marketing",
-  "/dashboard/team",
-]);
-
-function isActiveLink(href: string, pathname: string) {
-  if (exactActivePaths.has(href)) {
-    return pathname === href;
+function isActiveLink(item: Pick<NavItem, "url" | "exact">, pathname: string) {
+  if (item.exact) {
+    return pathname === item.url;
   }
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return pathname === item.url || pathname.startsWith(`${item.url}/`);
+}
+
+function getActiveNavItem(items: NavItem[], pathname: string) {
+  return items
+    .filter((item) => isActiveLink(item, pathname))
+    .sort((left, right) => right.url.length - left.url.length)[0];
+}
+
+function isExactPathActive(href: string, pathname: string) {
+  return pathname === href;
+}
+
+const subscribeToHydration = () => () => {};
+const getClientHydrationSnapshot = () => true;
+const getServerHydrationSnapshot = () => false;
+
+function useHydrated() {
+  return useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot,
+  );
 }
 
 function getInitials(name: string) {
@@ -128,7 +120,8 @@ function DashboardNotificationsButton() {
   });
 
   const unreadCount = data?.count ?? 0;
-  const displayCount = unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
+  const displayCount =
+    unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
 
   return (
     <Button
@@ -154,11 +147,7 @@ function DashboardNotificationsButton() {
 
 function DashboardThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useHydrated();
 
   if (!mounted) {
     return (
@@ -173,7 +162,7 @@ function DashboardThemeToggle() {
     );
   }
 
-  const currentTheme = theme === "system" ? "system" : resolvedTheme ?? theme;
+  const currentTheme = theme === "system" ? "system" : (resolvedTheme ?? theme);
   const ThemeIcon =
     currentTheme === "dark"
       ? MoonStar
@@ -194,10 +183,16 @@ function DashboardThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
-        <DropdownMenuItem onClick={() => setTheme("light")}>فاتح</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>داكن</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          فاتح
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          داكن
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => setTheme("system")}>النظام</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          النظام
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -209,12 +204,24 @@ function DashboardSidebarContent() {
   const dispatch = useAppDispatch();
   const [logoutMutation] = useLogoutMutation();
   const { user } = useAppSelector((state) => state.auth);
+  const { isMobile, setOpenMobile } = useSidebar();
+  const isAdmin = user?.role === UserRole.ADMIN;
+
+  const [openSectionOverride, setOpenSectionOverride] = useState<
+    string | null | undefined
+  >(undefined);
+
+  const handleNavigation = () => {
+    setOpenSectionOverride(undefined);
+    if (isMobile) setOpenMobile(false);
+  };
 
   const sections = useMemo(() => {
     if (!user) return [];
 
-    const sourceSections =
-      user.role === UserRole.ADMIN ? adminNavSections : roleNavSections;
+    const sourceSections = isAdmin
+      ? [...adminNavSections, ...sharedNavSections]
+      : [...roleNavSections, ...sharedNavSections];
 
     return sourceSections
       .map((section) => ({
@@ -222,19 +229,18 @@ function DashboardSidebarContent() {
         items: section.items.filter((item) => item.roles.includes(user.role)),
       }))
       .filter((section) => section.items.length > 0);
-  }, [user]);
+  }, [user, isAdmin]);
 
-  const [openSection, setOpenSection] = useState<string | null>(null);
-
-  useEffect(() => {
-    const activeSection = sections.find((section) =>
-      section.items.some((item) => isActiveLink(item.url, pathname)),
-    );
-
-    if (activeSection) {
-      setOpenSection(activeSection.label);
-    }
-  }, [pathname, sections]);
+  const activeSection = useMemo(
+    () =>
+      sections.find((section) => getActiveNavItem(section.items, pathname)) ??
+      null,
+    [pathname, sections],
+  );
+  const openSection =
+    openSectionOverride === undefined
+      ? (activeSection?.label ?? null)
+      : openSectionOverride;
 
   const settingsUrl =
     user?.role === UserRole.ADMIN
@@ -250,7 +256,7 @@ function DashboardSidebarContent() {
     >
       <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
         <Link
-          href={user ? roleHome[user.role] : "/dashboard"}
+          href={user ? getRoleHome(user.role) : "/dashboard"}
           className="flex items-center gap-3 rounded-xl px-2 py-1.5"
         >
           <Image src="/masar.svg" alt="Hassad" width={40} height={40} />
@@ -265,81 +271,128 @@ function DashboardSidebarContent() {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-3">
-        {sections.map((section) => {
-          if (section.items.length === 1) {
-            const item = section.items[0];
-            const Icon = item.icon;
-            const active = isActiveLink(item.url, pathname);
+      <nav aria-label="التنقل الرئيسي" className="flex min-h-0 flex-1 flex-col">
+        <SidebarContent className="px-2 py-3">
+          {isAdmin ? (
+            sections.map((section) => {
+              if (section.items.length === 1) {
+                const item = section.items[0];
+                const Icon = item.icon;
+                const active =
+                  getActiveNavItem(section.items, pathname)?.url === item.url;
 
-            return (
-              <SidebarGroup key={section.label}>
-                <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                        <Link href={item.url}>
+                return (
+                  <SidebarGroup key={section.label}>
+                    <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={active}
+                            tooltip={item.title}
+                          >
+                            <Link
+                              href={item.url}
+                              aria-current={active ? "page" : undefined}
+                              onClick={handleNavigation}
+                            >
+                              <Icon />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                );
+              }
+
+              const isOpen = openSection === section.label;
+              const activeUrl = getActiveNavItem(section.items, pathname)?.url;
+
+              return (
+                <Collapsible
+                  key={section.label}
+                  open={isOpen}
+                  onOpenChange={(open) => {
+                    if (!open && activeSection?.label === section.label) return;
+                    setOpenSectionOverride(open ? section.label : null);
+                  }}
+                  className="group/collapsible"
+                >
+                  <SidebarGroup>
+                    <SidebarGroupLabel asChild>
+                      <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 transition-colors hover:text-sidebar-foreground">
+                        <span>{section.label}</span>
+                        <ChevronDown className="mr-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </CollapsibleTrigger>
+                    </SidebarGroupLabel>
+
+                    <CollapsibleContent>
+                      <SidebarGroupContent className="pt-1">
+                        <SidebarMenu>
+                          {section.items.map((item) => {
+                            const Icon = item.icon;
+                            const active = activeUrl === item.url;
+
+                            return (
+                              <SidebarMenuItem key={item.url}>
+                                <SidebarMenuButton
+                                  asChild
+                                  isActive={active}
+                                  tooltip={item.title}
+                                >
+                                  <Link
+                                    href={item.url}
+                                    aria-current={active ? "page" : undefined}
+                                    onClick={handleNavigation}
+                                  >
+                                    <Icon />
+                                    <span>{item.title}</span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            );
+                          })}
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </CollapsibleContent>
+                  </SidebarGroup>
+                </Collapsible>
+              );
+            })
+          ) : (
+            <SidebarMenu>
+              {sections
+                .flatMap((section) => section.items)
+                .map((item) => {
+                  const Icon = item.icon;
+                  const active = isActiveLink(item, pathname);
+
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={item.title}
+                      >
+                        <Link
+                          href={item.url}
+                          aria-current={active ? "page" : undefined}
+                          onClick={handleNavigation}
+                        >
                           <Icon />
                           <span>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            );
-          }
-
-          const isOpen = openSection === section.label;
-
-          return (
-            <Collapsible
-              key={section.label}
-              open={isOpen}
-              onOpenChange={(open) => {
-                setOpenSection(open ? section.label : null);
-              }}
-              className="group/collapsible"
-            >
-              <SidebarGroup>
-                <SidebarGroupLabel asChild>
-                  <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 transition-colors hover:text-sidebar-foreground">
-                    <span>{section.label}</span>
-                    <ChevronDown className="mr-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                  </CollapsibleTrigger>
-                </SidebarGroupLabel>
-
-                <CollapsibleContent>
-                  <SidebarGroupContent className="pt-1">
-                    <SidebarMenu>
-                      {section.items.map((item) => {
-                        const Icon = item.icon;
-                        const active = isActiveLink(item.url, pathname);
-
-                        return (
-                          <SidebarMenuItem key={item.url}>
-                            <SidebarMenuButton
-                              asChild
-                              isActive={active}
-                              tooltip={item.title}
-                            >
-                              <Link href={item.url}>
-                                <Icon />
-                                <span>{item.title}</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        );
-                      })}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
-          );
-        })}
-      </SidebarContent>
+                  );
+                })}
+            </SidebarMenu>
+          )}
+        </SidebarContent>
+      </nav>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
         {user && (
@@ -363,8 +416,18 @@ function DashboardSidebarContent() {
 
         <SidebarMenu className="pt-2">
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActiveLink(settingsUrl, pathname)}>
-              <Link href={settingsUrl}>
+            <SidebarMenuButton
+              asChild
+              isActive={isExactPathActive(settingsUrl, pathname)}
+              tooltip="الإعدادات"
+            >
+              <Link
+                href={settingsUrl}
+                aria-current={
+                  isExactPathActive(settingsUrl, pathname) ? "page" : undefined
+                }
+                onClick={handleNavigation}
+              >
                 <Settings />
                 <span>الإعدادات</span>
               </Link>
@@ -372,6 +435,7 @@ function DashboardSidebarContent() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
+              tooltip="تسجيل الخروج"
               className="text-destructive hover:text-destructive"
               onClick={async () => {
                 if (!user) return;
@@ -394,23 +458,15 @@ function DashboardSidebarContent() {
   );
 }
 
-export function DashboardShell({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const { user, isAuthenticated, isInitialized } = useAppSelector(
     (state) => state.auth,
   );
 
   useDashboardNotificationSocket();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!mounted || !isInitialized) return;
@@ -425,20 +481,8 @@ export function DashboardShell({
       return;
     }
 
-    if (user && pathname && user.role !== UserRole.ADMIN) {
-      const allowedPrefixes = [
-        ...commonPrefixes,
-        ...(rolePrefixes[user.role] ?? []),
-      ];
-
-      const isDashboardRoot = pathname === "/dashboard";
-      const isAllowed =
-        isDashboardRoot ||
-        allowedPrefixes.some((prefix) => pathname.startsWith(prefix));
-
-      if (!isAllowed) {
-        router.replace(roleHome[user.role] ?? "/dashboard");
-      }
+    if (user && pathname && !canAccessDashboardPath(user.role, pathname)) {
+      router.replace(getRoleHome(user.role));
     }
   }, [isAuthenticated, isInitialized, mounted, pathname, router, user]);
 
@@ -461,15 +505,18 @@ export function DashboardShell({
     <SidebarProvider
       defaultOpen
       dir="rtl"
-      style={{
-        "--sidebar-width": "18rem",
-        "--sidebar-width-icon": "3.25rem",
-      } as CSSProperties}
+      className="overflow-hidden"
+      style={
+        {
+          "--sidebar-width": "18rem",
+          "--sidebar-width-icon": "3.25rem",
+        } as CSSProperties
+      }
     >
       <DashboardSidebarContent />
       <SidebarInset>
-        <div className="flex min-h-svh flex-col bg-background">
-          <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:h-20 lg:px-6">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+          <header className="z-20 shrink-0 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:h-20 lg:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <SidebarTrigger className="shrink-0" />
               <div className="min-w-0">
@@ -507,7 +554,9 @@ export function DashboardShell({
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 lg:p-6">
+            {children}
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

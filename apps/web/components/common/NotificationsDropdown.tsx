@@ -39,11 +39,11 @@ export function resolveEntityUrl(
   }
   if (entityType === "proposal") {
     if (role === UserRole.CLIENT) return `/portal/proposals/${entityId}`;
-    return `/dashboard/sales/proposals`;
+    return `/dashboard/sales/proposals/${entityId}`;
   }
   if (entityType === "contract") {
     if (role === UserRole.CLIENT) return `/portal/contracts/${entityId}`;
-    return `/dashboard/sales/contracts`;
+    return `/dashboard/sales/contracts/${entityId}`;
   }
   if (entityType === "deliverable") {
     if (role === UserRole.CLIENT) return `/portal/deliverables/${entityId}`;
@@ -51,7 +51,7 @@ export function resolveEntityUrl(
   }
   if (entityType === "campaign") {
     if (role === UserRole.CLIENT) return `/portal/campaigns/${entityId}`;
-    return `/dashboard/marketing/campaigns`;
+    return `/dashboard/marketing/campaigns/${entityId}`;
   }
   if (entityType === "marketing_strategy") {
     if (role === UserRole.CLIENT)
@@ -62,11 +62,13 @@ export function resolveEntityUrl(
   }
   if (entityType === "invoice" || entityType === "INVOICE") {
     if (role === UserRole.CLIENT) return `/portal/finance`;
-    return `/dashboard/accountant/invoices`;
+    if (role === UserRole.ADMIN)
+      return `/dashboard/admin/finance/invoices/${entityId}`;
+    return `/dashboard/finance/invoices/${entityId}`;
   }
   if (entityType === "conversation") {
     if (role === UserRole.CLIENT) return `/portal/projects`;
-    return `/dashboard/chat`;
+    return `/dashboard/messages`;
   }
   return null;
 }

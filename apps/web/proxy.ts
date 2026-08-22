@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { canAccessDashboardPath, getRoleHome } from "@/lib/dashboard-access";
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET;
 
@@ -67,7 +68,7 @@ export default async function proxy(request: NextRequest) {
       isAuthenticated &&
       (pathname.startsWith("/login") || pathname.startsWith("/signup"))
     ) {
-      const home = role === "CLIENT" ? "/portal" : "/dashboard";
+      const home = role ? getRoleHome(role) : "/dashboard";
       return NextResponse.redirect(new URL(home, request.url));
     }
     return NextResponse.next();
@@ -87,6 +88,13 @@ export default async function proxy(request: NextRequest) {
       }
       if (pathname.startsWith("/portal") && role !== "CLIENT") {
         return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+      if (
+        pathname.startsWith("/dashboard") &&
+        role !== "ADMIN" &&
+        !canAccessDashboardPath(role, pathname)
+      ) {
+        return NextResponse.redirect(new URL(getRoleHome(role), request.url));
       }
     }
     return NextResponse.next();

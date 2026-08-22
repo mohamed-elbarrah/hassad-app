@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Search,
   Sparkles,
+  Kanban,
   Users,
 } from "lucide-react";
 import {
@@ -464,9 +465,9 @@ export default function SalesProposalsPage() {
               {isFetching ? "جاري التحديث" : "تحديث"}
             </Button>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard/sales/requests">
-                <Users data-icon="inline-start" />
-                الطلبات
+              <Link href="/dashboard/sales/pipeline">
+                <Kanban data-icon="inline-start" />
+                لوحة المبيعات
               </Link>
             </Button>
           </>

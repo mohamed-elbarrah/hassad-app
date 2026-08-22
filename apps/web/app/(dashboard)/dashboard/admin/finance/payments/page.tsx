@@ -572,7 +572,7 @@ export default function AdminFinancePaymentsPage() {
             {selectedPayment?.invoiceId ? (
               <div className="flex w-full justify-end">
                 <Button asChild>
-                  <Link href={`/dashboard/finance/invoices/${selectedPayment.invoiceId}`}>
+                  <Link href={`/dashboard/admin/finance/invoices/${selectedPayment.invoiceId}`}>
                     <ArrowUpRight />
                     فتح الفاتورة الكاملة
                   </Link>

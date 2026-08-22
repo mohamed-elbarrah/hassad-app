@@ -24,7 +24,6 @@ import {
   Activity,
   FileBarChart,
   Lock,
-  Settings,
   Database,
   Globe,
   AlertTriangle,
@@ -35,12 +34,17 @@ import {
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
 
-export type NavSubItem = { title: string; url: string };
+export type NavSubItem = {
+  title: string;
+  url: string;
+  exact?: boolean;
+};
 export type NavItem = {
   title: string;
-  url?: string;
+  url: string;
   icon: LucideIcon;
   roles: string[];
+  exact?: boolean;
   items?: NavSubItem[];
 };
 export type NavSection = { label: string; items: NavItem[] };
@@ -53,6 +57,7 @@ export const adminNavSections: NavSection[] = [
       {
         title: "نظرة عامة",
         url: "/dashboard/admin",
+        exact: true,
         icon: LayoutDashboard,
         roles: ["ADMIN"],
       },
@@ -127,6 +132,7 @@ export const adminNavSections: NavSection[] = [
       {
         title: "نظرة عامة",
         url: "/dashboard/admin/finance",
+        exact: true,
         icon: PiggyBank,
         roles: ["ADMIN"],
       },
@@ -194,12 +200,6 @@ export const adminNavSections: NavSection[] = [
     label: "الإعدادات",
     items: [
       {
-        title: "الإعدادات",
-        url: "/dashboard/admin/settings",
-        icon: Settings,
-        roles: ["ADMIN"],
-      },
-      {
         title: "التكاملات",
         url: "/dashboard/admin/integrations",
         icon: Globe,
@@ -230,6 +230,7 @@ export const roleNavSections: NavSection[] = [
       {
         title: "لوحة مدير المشروع",
         url: "/dashboard/pm",
+        exact: true,
         icon: Briefcase,
         roles: ["PM"],
       },
@@ -257,12 +258,6 @@ export const roleNavSections: NavSection[] = [
         icon: Ticket,
         roles: ["PM"],
       },
-      {
-        title: "المحادثات",
-        url: "/dashboard/messages",
-        icon: MessageSquare,
-        roles: ["PM"],
-      },
     ],
   },
   {
@@ -277,6 +272,7 @@ export const roleNavSections: NavSection[] = [
       {
         title: "لوحة المبيعات",
         url: "/dashboard/sales/pipeline",
+        exact: true,
         icon: Kanban,
         roles: ["SALES"],
       },
@@ -298,12 +294,6 @@ export const roleNavSections: NavSection[] = [
         icon: FileSignature,
         roles: ["SALES"],
       },
-      {
-        title: "المحادثات",
-        url: "/dashboard/messages",
-        icon: MessageSquare,
-        roles: ["SALES"],
-      },
     ],
   },
   {
@@ -315,12 +305,6 @@ export const roleNavSections: NavSection[] = [
         icon: ClipboardList,
         roles: ["TEAM"],
       },
-      {
-        title: "المحادثات",
-        url: "/dashboard/messages",
-        icon: MessageSquare,
-        roles: ["TEAM"],
-      },
     ],
   },
   {
@@ -329,6 +313,7 @@ export const roleNavSections: NavSection[] = [
       {
         title: "لوحة التحكم",
         url: "/dashboard/marketing",
+        exact: true,
         icon: BarChart3,
         roles: ["MARKETING"],
       },
@@ -336,12 +321,6 @@ export const roleNavSections: NavSection[] = [
         title: "المهام المسندة",
         url: "/dashboard/marketing/tasks",
         icon: ListChecks,
-        roles: ["MARKETING"],
-      },
-      {
-        title: "المحادثات",
-        url: "/dashboard/messages",
-        icon: MessageSquare,
         roles: ["MARKETING"],
       },
     ],
@@ -352,6 +331,7 @@ export const roleNavSections: NavSection[] = [
       {
         title: "لوحة التحكم المالية",
         url: "/dashboard/finance",
+        exact: true,
         icon: BarChart3,
         roles: ["ACCOUNTANT"],
       },
@@ -379,11 +359,22 @@ export const roleNavSections: NavSection[] = [
         icon: Shield,
         roles: ["ACCOUNTANT"],
       },
+    ],
+  },
+];
+
+/* ── Shared dashboard navigation ───────────────────────────────────────────── */
+
+export const sharedNavSections: NavSection[] = [
+  {
+    label: "التواصل",
+    items: [
       {
         title: "المحادثات",
         url: "/dashboard/messages",
+        exact: true,
         icon: MessageSquare,
-        roles: ["ACCOUNTANT"],
+        roles: ["ADMIN", "PM", "SALES", "TEAM", "MARKETING", "ACCOUNTANT"],
       },
     ],
   },
@@ -395,4 +386,5 @@ export const roleNavSections: NavSection[] = [
 export const navSections: NavSection[] = [
   ...adminNavSections,
   ...roleNavSections,
+  ...sharedNavSections,
 ];

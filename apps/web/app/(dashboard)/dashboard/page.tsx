@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
-import { UserRole } from "@hassad/shared";
+import { getRoleHome } from "@/lib/dashboard-access";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -19,23 +19,7 @@ export default function DashboardPage() {
       return;
     }
 
-    // Direct mapping to the new valid paths
-    const roleRoutes: Record<UserRole, string> = {
-      [UserRole.ADMIN]: "/dashboard/admin",
-      [UserRole.PM]: "/dashboard/pm",
-      [UserRole.SALES]: "/dashboard/sales",
-      [UserRole.ACCOUNTANT]: "/dashboard/finance",
-      [UserRole.MARKETING]: "/dashboard/marketing",
-      [UserRole.TEAM]: "/dashboard/team",
-      [UserRole.CLIENT]: "/portal", // Clients go to (portal)
-    };
-
-    const targetPath = roleRoutes[user.role as UserRole];
-    if (targetPath) {
-      router.replace(targetPath);
-    } else {
-      router.replace("/");
-    }
+    router.replace(getRoleHome(user.role));
   }, [user, isAuthenticated, isInitialized, router]);
 
   return (

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export default function AdminLayout({
+export default function TeamLayout({
   children,
 }: {
   children: ReactNode;

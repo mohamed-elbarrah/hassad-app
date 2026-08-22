@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -378,13 +377,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
           <h1 className="text-xl font-semibold">{project.name}</h1>
           <PmStatusBadge domain="project" status={project.status} />
           {p.client && (
-            <Link
-              href={`/dashboard/sales/clients/${p.client.id}`}
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
+            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
               <Building2 className="size-4" />
               {p.client.companyName}
-            </Link>
+            </span>
           )}
         </div>
         <ProjectForm project={project} currentUserId={user.id} />
