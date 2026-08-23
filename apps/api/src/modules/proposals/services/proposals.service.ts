@@ -81,8 +81,7 @@ export class ProposalsService {
           entityType: "proposal",
           eventType: "PROPOSAL_SENT",
           userId: recipientId,
-          title: "عرض فني جديد بانتظار مراجعتك",
-          body: `تم إرسال عرض فني جديد لك: "${created.proposal.title}". يمكنك الاطلاع عليه والرد من خلال الرابط المرسل.`,
+          metadata: { proposalId: created.proposal.id, proposalTitle: created.proposal.title },
         })
         .catch(() => undefined);
     }
@@ -410,8 +409,7 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_APPROVED",
       userId: proposal.createdBy,
-      title: "تمت الموافقة على العرض الفني",
-      body: `تمت الموافقة على العرض الفني "${proposal.title}"`,
+      metadata: { proposalId: proposal.id, proposalTitle: proposal.title },
     });
 
     return updatedProposal;
@@ -430,8 +428,7 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_REJECTED",
       userId: proposal.createdBy,
-      title: "تم رفض العرض الفني",
-      body: `تم رفض العرض الفني "${proposal.title}"`,
+      metadata: { proposalId: proposal.id, proposalTitle: proposal.title },
     });
 
     return updated;
@@ -503,8 +500,7 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_APPROVED_BY_CLIENT",
       userId: proposal.createdBy,
-      title: "وافق العميل على العرض الفني",
-      body: `وافق العميل على العرض الفني "${proposal.title}"${notes ? ` — ملاحظاته: ${notes}` : ""}`,
+      metadata: { proposalId: proposal.id, proposalTitle: proposal.title, notes: notes ?? null },
     });
 
     return {
@@ -542,8 +538,7 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_REVISION_REQUESTED",
       userId: proposal.createdBy,
-      title: "طلب تعديل على العرض الفني",
-      body: `طلب العميل تعديلاً على العرض الفني "${proposal.title}"${notes ? `: ${notes}` : ""}`,
+      metadata: { proposalId: proposal.id, proposalTitle: proposal.title, notes: notes ?? null },
     });
 
     return {

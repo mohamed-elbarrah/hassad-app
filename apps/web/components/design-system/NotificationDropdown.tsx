@@ -5,18 +5,21 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCheck, BellOff, ExternalLink } from "lucide-react";
 import { formatRelativeTime } from "@/lib/format";
+import { notificationPresentation } from "@/lib/i18n";
 import Link from "next/link";
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
 
 export interface NotificationItemBase {
   id: string;
-  title: string;
-  body: string;
+  title?: string;
+  body?: string;
   isRead: boolean;
   createdAt: string;
   entityType?: string | null;
   entityId?: string | null;
+  eventType?: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface NotificationDropdownProps {
@@ -279,6 +282,11 @@ function NotificationListItem({
   notification: NotificationItemBase;
   onSelect: (n: NotificationItemBase) => void;
 }) {
+  const presentation = notificationPresentation(
+    notification.eventType,
+    notification.metadata,
+  );
+
   return (
     <button
       className="w-full text-right px-4 py-3 hover:bg-neutral-50 transition-colors border-b border-portal-divider last:border-0"
@@ -301,7 +309,7 @@ function NotificationListItem({
                 lineHeight: "21px",
               }}
             >
-              {notification.title}
+              {presentation.title}
             </p>
             {!notification.isRead && (
               <span
@@ -314,7 +322,7 @@ function NotificationListItem({
             className="text-xs text-right mt-0.5 line-clamp-2"
             style={{ color: "rgba(0, 0, 0, 0.6)", lineHeight: "18px" }}
           >
-            {notification.body}
+            {presentation.body}
           </p>
           <p
             className="text-xs text-right mt-1"
@@ -498,7 +506,10 @@ export function NotificationDropdown({
                   color: "var(--color-text)",
                 }}
               >
-                {selectedNotification.title}
+                {notificationPresentation(
+                  selectedNotification.eventType,
+                  selectedNotification.metadata,
+                ).title}
               </h3>
               <p
                 className="text-right mt-1"
@@ -521,7 +532,10 @@ export function NotificationDropdown({
                   color: "rgba(0, 0, 0, 0.6)",
                 }}
               >
-                {selectedNotification.body}
+                {notificationPresentation(
+                  selectedNotification.eventType,
+                  selectedNotification.metadata,
+                ).body}
               </p>
             </div>
             <div className="flex flex-row-reverse gap-2 p-5 pt-0">

@@ -31,7 +31,12 @@ export class PmProjectActionsService {
       },
     });
 
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project) {
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId },
+      });
+    }
     return project;
   }
 
@@ -73,7 +78,12 @@ export class PmProjectActionsService {
       where: { id: taskId, projectId },
       select: { id: true },
     });
-    if (!task) throw new NotFoundException("Task not found");
+    if (!task) {
+      throw new NotFoundException({
+        code: "TASK_NOT_FOUND",
+        details: { taskId },
+      });
+    }
     await this.ownedProject(projectId, userId);
     return this.tasksService.assign(taskId, userId, { userId: assigneeId });
   }
@@ -96,12 +106,22 @@ export class PmProjectActionsService {
           where: { id: dto.periodId, projectId },
           select: { id: true },
         });
-        if (!period) throw new NotFoundException("Period not found");
+        if (!period) {
+          throw new NotFoundException({
+            code: "PERIOD_NOT_FOUND",
+            details: { periodId: dto.periodId },
+          });
+        }
         periodId = period.id;
       } else {
         periodId = (await this.periodsService.getActivePeriod(projectId))?.id ?? (await this.prisma.projectPeriod.findFirst({ where: { projectId }, orderBy: { periodNumber: "asc" }, select: { id: true } }))?.id ?? null;
       }
-      if (!periodId) throw new BadRequestException("Retainer projects require a period to schedule a meeting");
+      if (!periodId) {
+        throw new BadRequestException({
+          code: "PERIOD_REQUIRED_FOR_RETAINER",
+          details: { projectId },
+        });
+      }
     }
 
     const meeting = await this.prisma.projectMeeting.create({
@@ -120,12 +140,11 @@ export class PmProjectActionsService {
 
     if (project.client?.userId) {
       this.notificationsService.createNotification({
-        entityId: meeting.id,
+        entityId: projectId,
         entityType: "project",
         eventType: "MEETING_SCHEDULED",
         userId: project.client.userId,
-        title: "تم جدولة اجتماع جديد",
-        body: dto.title,
+        metadata: { meetingId: meeting.id, meetingTitle: dto.title, projectId },
       }).catch(() => undefined);
     }
 
@@ -145,7 +164,12 @@ export class PmProjectActionsService {
     const existing = await this.prisma.projectMeeting.findFirst({
       where: { id: meetingId, projectId },
     });
-    if (!existing) throw new NotFoundException("Meeting not found");
+    if (!existing) {
+      throw new NotFoundException({
+        code: "MEETING_NOT_FOUND",
+        details: { meetingId },
+      });
+    }
 
     const data: Prisma.ProjectMeetingUpdateInput = {};
     if (dto.title !== undefined) data.title = dto.title;
@@ -167,8 +191,11 @@ export class PmProjectActionsService {
         entityType: "project",
         eventType: "MEETING_UPDATED",
         userId: project.client.userId,
-        title: "تحديث اجتماع",
-        body: dto.title ?? updated.title,
+        metadata: {
+          meetingId,
+          meetingTitle: dto.title ?? updated.title,
+          projectId,
+        },
       }).catch(() => undefined);
     }
 
@@ -207,6 +234,23 @@ export class PmProjectActionsService {
     };
   }
 
+  async deleteFile(userId: string, projectId: string, fileId: string) {
+    await this.ownedProject(projectId, userId);
+    const file = await this.prisma.projectFile.findFirst({
+      where: { id: fileId, projectId },
+      select: { filePath: true },
+    });
+    if (!file) {
+      throw new NotFoundException({
+        code: "FILE_NOT_FOUND",
+        details: { fileId },
+      });
+    }
+    await this.storageService.deleteByKey(file.filePath);
+    await this.prisma.projectFile.delete({ where: { id: fileId } });
+    return { code: "PROJECT_FILE_DELETED" };
+  }
+
   async getFileDownloadUrl(userId: string, projectId: string, fileId: string) {
     await this.ownedProject(projectId, userId);
     const file = await this.prisma.projectFile.findFirst({
@@ -214,7 +258,12 @@ export class PmProjectActionsService {
       select: { filePath: true },
     });
 
-    if (!file) throw new NotFoundException("File not found");
+    if (!file) {
+      throw new NotFoundException({
+        code: "FILE_NOT_FOUND",
+        details: { fileId },
+      });
+    }
     return { url: await this.storageService.getPresignedUrl(file.filePath) };
   }
 
@@ -227,7 +276,12 @@ export class PmProjectActionsService {
         where: { id: dto.periodId, projectId },
         select: { id: true },
       });
-      if (!period) throw new NotFoundException("Period not found");
+      if (!period) {
+        throw new NotFoundException({
+          code: "PERIOD_NOT_FOUND",
+          details: { periodId: dto.periodId },
+        });
+      }
       periodId = period.id;
     }
 
@@ -256,16 +310,25 @@ export class PmProjectActionsService {
 
     if (project.client?.userId) {
       this.notificationsService.createNotification({
-        entityId: created.id,
+        entityId: projectId,
         entityType: "project",
         eventType: "PROJECT_FILE_UPLOADED",
         userId: project.client.userId,
-        title: "تم رفع ملف جديد",
-        body: file.originalname,
+        metadata: { projectId, fileId: created.id, fileName: file.originalname },
       }).catch(() => undefined);
     }
 
-    return created;
+    return {
+      id: created.id,
+      projectId: created.projectId,
+      periodId: created.periodId,
+      fileName: created.fileName,
+      fileType: created.fileType,
+      fileSize: created.fileSize,
+      uploadedAt: created.uploadedAt.toISOString(),
+      uploadedBy: userId,
+      url: await this.storageService.getPresignedUrl(created.filePath),
+    };
   }
 
   async isRetainerProject(projectId: string) {

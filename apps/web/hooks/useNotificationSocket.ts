@@ -49,6 +49,12 @@ export function useNotificationSocket() {
       );
     });
 
+    socket.on("broadcast", () => {
+      dispatch(
+        portalNotificationsApi.util.invalidateTags(["PortalNotification"]),
+      );
+    });
+
     socket.on("unreadCount", (payload: { count: number }) => {
       dispatch(
         portalNotificationsApi.util.updateQueryData(

@@ -141,8 +141,6 @@ async function main() {
             data: {
               eventId: event.id,
               userId: projectManagerId,
-              title: "تم إنشاء مشروع جديد تلقائياً",
-              body: `تم إنشاء مشروع "${created.name}" بعد توقيع العقد. يمكنك الآن توزيع المهام على الفريق.`,
               channel: "in-app",
               sentAt: new Date(),
             },

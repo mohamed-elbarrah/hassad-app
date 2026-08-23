@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { ProjectStatus, TaskPriority, TaskStatus } from "@hassad/shared";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ProjectsService } from "../../projects/services/projects.service";
+import type { PmProjectsQueryDto, PmProjectUpdateDto } from "../dto/pm-projects.dto";
 
 const pmProjectDetailInclude = Prisma.validator<Prisma.ProjectInclude>()({
   client: { select: { id: true, companyName: true } },
@@ -138,7 +140,10 @@ export type PmProjectCard = {
 
 @Injectable()
 export class PmProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly projectsService: ProjectsService,
+  ) {}
 
   private ownedWhere(userId: string) {
     return {
@@ -147,9 +152,35 @@ export class PmProjectsService {
     };
   }
 
-  async list(userId: string): Promise<{ items: PmProjectCard[] }> {
-    const projects = await this.prisma.project.findMany({
-      where: this.ownedWhere(userId),
+  async list(
+    userId: string,
+    query: PmProjectsQueryDto,
+  ): Promise<{
+    items: PmProjectCard[];
+    meta: { total: number; page: number; limit: number; totalPages: number };
+  }> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 12;
+    const search = query.search?.trim();
+    const where = {
+      ...this.ownedWhere(userId),
+      ...(query.status ? { status: query.status } : {}),
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: "insensitive" as const } },
+              {
+                client: {
+                  companyName: { contains: search, mode: "insensitive" as const },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+    const [projects, total] = await Promise.all([
+      this.prisma.project.findMany({
+      where,
       select: {
         id: true,
         name: true,
@@ -175,7 +206,11 @@ export class PmProjectsService {
         },
       },
       orderBy: [{ updatedAt: "desc" }],
-    });
+      skip: (page - 1) * limit,
+      take: limit,
+      }),
+      this.prisma.project.count({ where }),
+    ]);
 
     return {
       items: projects.map((project) => {
@@ -211,7 +246,50 @@ export class PmProjectsService {
           updatedAt: project.updatedAt.toISOString(),
         };
       }),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
+  }
+
+  async update(userId: string, id: string, dto: PmProjectUpdateDto) {
+    if (Object.keys(dto).length === 0) {
+      throw new BadRequestException({
+        code: "VALIDATION_ERROR",
+        details: { fields: { project: { code: "REQUIRED" } } },
+      });
+    }
+
+    const project = await this.prisma.project.findFirst({
+      where: { id, ...this.ownedWhere(userId) },
+      select: { id: true },
+    });
+    if (!project) {
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId: id },
+      });
+    }
+
+    return this.projectsService.update(id, dto);
+  }
+
+  async updateStatus(userId: string, id: string, status: ProjectStatus) {
+    const project = await this.prisma.project.findFirst({
+      where: { id, ...this.ownedWhere(userId) },
+      select: { id: true },
+    });
+    if (!project) {
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId: id },
+      });
+    }
+
+    return this.projectsService.updateStatus(id, status, userId);
   }
 
   async detail(userId: string, id: string) {
@@ -225,7 +303,10 @@ export class PmProjectsService {
     })) as PmProjectDetailRecord | null;
 
     if (!project) {
-      throw new NotFoundException("Project not found");
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId: id },
+      });
     }
 
     const invoices = new Map<string, NonNullable<PmProjectDetailRecord["invoiceItems"]>[number]["invoice"]>();
@@ -250,7 +331,8 @@ export class PmProjectsService {
       include: { user: { select: { id: true, name: true } } },
     });
 
-    const { invoiceItems, ...rest } = project;
+    const { invoiceItems: _invoiceItems, ...rest } = project;
+    void _invoiceItems;
 
     return {
       ...rest,

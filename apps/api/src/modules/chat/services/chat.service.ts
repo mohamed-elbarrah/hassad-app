@@ -721,21 +721,12 @@ export class ChatService {
       conversation.participants.find(
         (participant: any) => participant.userId === senderId,
       )?.user?.name ?? "عضو";
-    const truncatedContent =
-      content.length > 100 ? `${content.substring(0, 97)}...` : content;
-    const suffix =
-      attachmentCount > 0
-        ? ` (${attachmentCount} مرفق${attachmentCount > 1 ? "ات" : ""})`
-        : "";
-
     await this.notificationsService.notifyUsers({
       userIds: recipients,
-      title: `رسالة جديدة من ${sender}`,
-      message: truncatedContent + suffix,
       entityId: conversation.id,
       entityType: "conversation",
       eventType: "NEW_MESSAGE",
-      metadata: { messageId },
+      metadata: { messageId, senderName: sender, attachmentCount },
     });
   }
 }

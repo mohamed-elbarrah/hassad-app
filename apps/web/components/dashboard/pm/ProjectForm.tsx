@@ -44,10 +44,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import {
   useCreateProjectMutation,
-  useUpdateProjectMutation,
+  useUpdatePmProjectMutation,
 } from "@/features/projects/projectsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
+import { projectErrorMessage } from "@/lib/i18n";
 
 const schema = z.object({
   name: z.string().min(2, "اسم المشروع يجب أن يكون حرفين على الأقل"),
@@ -96,7 +97,7 @@ export function ProjectForm({
     { skip: !open },
   );
   const [createProject, { isLoading: creating }] = useCreateProjectMutation();
-  const [updateProject, { isLoading: updating }] = useUpdateProjectMutation();
+  const [updateProject, { isLoading: updating }] = useUpdatePmProjectMutation();
   const saving = creating || updating;
   async function submit(values: Values) {
     try {
@@ -120,12 +121,8 @@ export function ProjectForm({
         editing ? "تم تحديث المشروع بنجاح." : "تم إنشاء المشروع بنجاح.",
       );
       setOpen(false);
-    } catch {
-      toast.error(
-        editing
-          ? "فشل تحديث المشروع. يرجى المحاولة مجدداً."
-          : "فشل إنشاء المشروع. يرجى المحاولة مجدداً.",
-      );
+    } catch (error) {
+      toast.error(projectErrorMessage(error));
     }
   }
   return (

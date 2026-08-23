@@ -31,7 +31,7 @@ import { ProjectKanbanBoard } from "@/components/dashboard/pm/ProjectKanbanBoard
 import { PageHeader } from "@/components/common/PageHeader";
 import {
   type ProjectListItem,
-  useGetProjectsQuery,
+  useGetPmProjectsTableQuery,
 } from "@/features/projects/projectsApi";
 import { formatDate } from "@/lib/format";
 import { useAppSelector } from "@/lib/hooks";
@@ -53,11 +53,10 @@ export default function PmProjectsPage() {
   const [view, setView] = useState<"kanban" | "table">("kanban");
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<"ALL" | ProjectStatus>("ALL");
-  const { data, isLoading, isError } = useGetProjectsQuery(
+  const { data, isLoading, isError } = useGetPmProjectsTableQuery(
     {
       search: search || undefined,
       status: status === "ALL" ? undefined : status,
-      projectManagerId: user?.role === "PM" ? user.id : undefined,
       page: view === "table" ? page : undefined,
       limit: view === "table" ? PAGE_SIZE : 100,
     },
@@ -130,7 +129,6 @@ export default function PmProjectsPage() {
 
       {view === "kanban" && (
         <ProjectKanbanBoard
-          projectManagerId={user.role === "PM" ? user.id : undefined}
           search={search || undefined}
           status={status === "ALL" ? undefined : status}
         />

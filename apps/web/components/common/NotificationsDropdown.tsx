@@ -17,6 +17,11 @@ import type { NotificationItem } from "@/features/notifications/notificationsApi
 import Link from "next/link";
 import { UserRole } from "@hassad/shared";
 import { formatRelativeTime } from "@/lib/format";
+import {
+  notificationErrorMessage,
+  notificationPresentation,
+} from "@/lib/i18n";
+import { toast } from "sonner";
 
 // Role-aware URL resolver — uses canonical redirect which handles EMPLOYEE/PM/ADMIN
 export function resolveEntityUrl(
@@ -80,6 +85,8 @@ function NotificationListItem({
   notification: NotificationItem;
   onSelect: (n: NotificationItem) => void;
 }) {
+  const presentation = notificationPresentation(notification.eventType, notification.metadata);
+
   return (
     <button
       className={`w-full text-right px-4 py-3 hover:bg-muted/50 transition-colors border-b last:border-0 ${
@@ -95,10 +102,10 @@ function NotificationListItem({
           <p
             className={`text-sm truncate ${!notification.isRead ? "font-medium" : ""}`}
           >
-            {notification.title}
+            {presentation.title}
           </p>
           <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {notification.body}
+            {presentation.body}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             {formatRelativeTime(notification.createdAt as string)}
@@ -138,7 +145,11 @@ export function NotificationsDropdown() {
 
   async function handleSelect(notification: NotificationItem) {
     if (!notification.isRead) {
-      await markAsRead(notification.id);
+      try {
+        await markAsRead(notification.id).unwrap();
+      } catch (error) {
+        toast.error(notificationErrorMessage(error));
+      }
     }
     setSelectedNotification(notification);
   }
@@ -183,7 +194,13 @@ export function NotificationsDropdown() {
               variant="ghost"
               size="sm"
               className="h-7 text-xs gap-1"
-              onClick={() => markAllAsRead()}
+              onClick={async () => {
+                try {
+                  await markAllAsRead().unwrap();
+                } catch (error) {
+                  toast.error(notificationErrorMessage(error));
+                }
+              }}
               icon={<CheckCheck className="h-3 w-3" />}
             >
               تعليم الكل كمقروء
@@ -233,7 +250,10 @@ export function NotificationsDropdown() {
       <Dialog
         open={!!selectedNotification}
         onOpenChange={(open) => !open && setSelectedNotification(null)}
-        title={selectedNotification?.title}
+        title={notificationPresentation(
+          selectedNotification?.eventType,
+          selectedNotification?.metadata,
+        ).title}
         description={
           selectedNotification?.createdAt
             ? formatRelativeTime(selectedNotification.createdAt as string)
@@ -274,7 +294,10 @@ export function NotificationsDropdown() {
         }
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap">
-          {selectedNotification?.body}
+          {notificationPresentation(
+            selectedNotification?.eventType,
+            selectedNotification?.metadata,
+          ).body}
         </p>
       </Dialog>
     </>

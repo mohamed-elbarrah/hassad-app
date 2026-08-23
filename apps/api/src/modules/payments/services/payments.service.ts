@@ -376,8 +376,6 @@ export class PaymentsService implements OnModuleInit {
               payment.invoice.createdBy,
               clientUser?.userId,
             ].filter(Boolean) as string[],
-            title: "تم دفع الفاتورة",
-            message: `تم دفع الفاتورة ${payment.invoice.invoiceNumber} بالكامل`,
             entityId: payment.invoiceId,
             entityType: "INVOICE",
             eventType: "INVOICE_PAID",

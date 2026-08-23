@@ -5,12 +5,9 @@ import { NotificationsService } from "../../notifications/services/notifications
 import { ClientCounterService } from "../../crm/services/client-counter.service";
 import {
   InvoiceStatus,
-  ContractStatus,
   ProjectPeriodStatus,
   PaymentPlanTriggerType,
 } from "@hassad/shared";
-import type { Prisma } from "@prisma/client";
-
 @Injectable()
 export class BillingCronService {
   private readonly logger = new Logger(BillingCronService.name);
@@ -104,8 +101,6 @@ export class BillingCronService {
             entityType: "INVOICE",
             eventType: "INVOICE_REMINDER",
             userId: recipientId,
-            title: "تذكير بدفع الفاتورة",
-            body: `الفاتورة "${invoice.contract?.title ?? invoice.invoiceNumber}" مستحقة ${dayLabel}. يرجى سداد المبلغ ${invoice.amount} ر.س`,
           })
           .catch(() => undefined);
       }
@@ -218,10 +213,9 @@ export class BillingCronService {
           await this.notificationsService
             .notifyUsers({
               userIds: recipientIds,
-              title: "تم تعليق المشروع",
-              message: `تم تعليق المشروع بسبب عدم سداد الفاتورة "${invoice.contract?.title ?? invoice.invoiceNumber}". يرجى متابعة السداد لاستئناف العمل.`,
+              metadata: { projectId: project.id, invoiceId: invoice.id, contractTitle: invoice.contract?.title ?? invoice.invoiceNumber },
               entityId: project.id,
-              entityType: "PROJECT",
+              entityType: "project",
               eventType: "PROJECT_SUSPENDED",
             })
             .catch(() => undefined);
@@ -306,8 +300,7 @@ export class BillingCronService {
         if (recipientIds.length > 0) {
           await this.notificationsService.notifyUsers({
             userIds: recipientIds,
-            title: "تم إلغاء العقد تلقائياً",
-            message: `تم إلغاء العقد "${invoice.contract.title}" لعدم سداد الدفعة المقدمة خلال ${graceDays} أيام`,
+            metadata: { contractId: invoice.contract.id, contractTitle: invoice.contract.title, graceDays },
             entityId: invoice.contract.id,
             entityType: "CONTRACT",
             eventType: "CONTRACT_CANCELLED",
@@ -355,8 +348,7 @@ export class BillingCronService {
 
     await this.notificationsService.notifyUsers({
       userIds: financeUsers.map((u) => u.id),
-      title: "فواتير متأخرة +30 يوماً",
-      message: `يوجد ${overdue.length} فاتورة متأخرة منذ أكثر من 30 يوماً بحاجة للمتابعة.`,
+      metadata: { overdueCount: overdue.length, daysOverdue: 30 },
       entityId: "overdue-escalation",
       entityType: "INVOICE",
       eventType: "INVOICE_ESCALATED",

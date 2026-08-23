@@ -252,8 +252,6 @@ export class ContractsService {
         entityType: "project",
         eventType: "PROJECT_CREATED_FROM_CONTRACT",
         userId: projectManagerId,
-        title: "تم إنشاء مشروع جديد تلقائياً",
-        body: `تم إنشاء مشروع "${project.name}" بعد توقيع العقد. يمكنك الآن توزيع المهام على الفريق.`,
         metadata: {
           contractId: contract.id,
           clientId: contract.clientId,
@@ -485,8 +483,6 @@ export class ContractsService {
         contract.client.accountManager,
         projectManager?.projectManagerId,
       ].filter(Boolean) as string[],
-      title: "تم تفعيل العقد",
-      message: `تم تفعيل العقد "${contract.title}" بعد استلام الدفعة المقدمة.`,
       entityId: contractId,
       entityType: "CONTRACT",
       eventType: "CONTRACT_ACTIVATED",
@@ -503,8 +499,6 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_ACTIVATED",
           userId: clientUser.userId,
-          title: "تم تفعيل العقد",
-          body: `تم تفعيل العقد "${contract.title}". فريق العمل جاهز لبدء مشروعك.`,
         })
         .catch(() => undefined);
     }
@@ -691,8 +685,6 @@ export class ContractsService {
         .notifyUsers({
           userIds: resumeRecipients,
           excludeUserIds: [userId],
-          title: "تم استئناف الفترة",
-          message: `تم استئناف الفترة رقم ${period.periodNumber} بعد سداد الفاتورة`,
           entityId: period.id,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIOD_RESUMED",
@@ -987,8 +979,6 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_SENT",
           userId: recipientId,
-          title: "عقد جديد بانتظار توقيعك",
-          body: `العقد "${created.contract.title}" جاهز لمراجعته وتوقيعه`,
         })
         .catch(() => undefined);
     }
@@ -1515,8 +1505,6 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_SIGNED",
           userId: contract.createdBy,
-          title: "تم توقيع العقد",
-          body: `العميل وقّع على العقد "${contract.title}"`,
         })
         .catch(() => undefined);
 
@@ -1527,8 +1515,6 @@ export class ContractsService {
             entityType: "contract",
             eventType: "CONTRACT_SIGNED",
             userId: clientUser.userId,
-            title: "تم توقيع العقد بنجاح",
-            body: `تم توقيع العقد "${contract.title}" بنجاح. سيتم بدء العمل على مشروعك قريباً.`,
           })
           .catch(() => undefined);
       }
@@ -1620,8 +1606,6 @@ export class ContractsService {
     if (notifyUserIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: notifyUserIds,
-        title: "تم إرسال العقد",
-        message: `أرسل ${actorName ?? "النظام"} العقد "${contract.title}" إلى ${contract.client.companyName}`,
         entityId: id,
         entityType: "CONTRACT",
         eventType: "CONTRACT_SENT",
@@ -1639,8 +1623,6 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_SENT",
           userId: clientUser.userId,
-          title: "عقد جديد بانتظار توقيعك",
-          body: `العقد "${contract.title}" جاهز لمراجعته وتوقيعه`,
         })
         .catch(() => undefined);
     }
@@ -1732,8 +1714,6 @@ export class ContractsService {
         Boolean,
       ) as string[],
       excludeUserIds: [userId],
-      title: "تم توقيع العقد",
-      message: `تم توقيع العقد "${contract.title}" مع ${contract.client.companyName}`,
       entityId: id,
       entityType: "CONTRACT",
       eventType: "CONTRACT_SIGNED",
@@ -1782,8 +1762,6 @@ export class ContractsService {
         Boolean,
       ) as string[],
       excludeUserIds: [actorId],
-      title: "تم إلغاء العقد",
-      message: `ألغى ${cancelActorName} العقد "${contract.title}" مع ${contract.client.companyName}`,
       entityId: id,
       entityType: "CONTRACT",
       eventType: "CONTRACT_CANCELLED",
@@ -1800,8 +1778,6 @@ export class ContractsService {
           entityType: "contract",
           eventType: "CONTRACT_CANCELLED",
           userId: clientUser.userId,
-          title: "تم إلغاء العقد",
-          body: `تم إلغاء العقد "${contract.title}". للاستفسار، يرجى التواصل مع فريقنا.`,
         })
         .catch(() => undefined);
     }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
@@ -64,6 +64,16 @@ export class PmProjectActionsController {
   @RequirePermissions("projects.read")
   listFiles(@CurrentUser("id") userId: string, @Param("id") projectId: string) {
     return this.service.listFiles(userId, projectId);
+  }
+
+  @Delete("projects/:id/files/:fileId")
+  @RequirePermissions("projects.update")
+  deleteFile(
+    @CurrentUser("id") userId: string,
+    @Param("id") projectId: string,
+    @Param("fileId") fileId: string,
+  ) {
+    return this.service.deleteFile(userId, projectId, fileId);
   }
 
   @Get("projects/:id/files/:fileId/download")

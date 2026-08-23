@@ -255,8 +255,6 @@ export class CrmProposalsService {
           entityType: "proposal",
           eventType: "PROPOSAL_SENT",
           userId: recipientId,
-          title: "New proposal is ready",
-          body: `A new proposal titled "${proposal.title}" was sent for review.`,
         })
         .catch(() => undefined);
     }

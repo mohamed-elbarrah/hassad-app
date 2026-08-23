@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from "@nestjs/common";
 import { FilePurpose } from "@prisma/client";
 import { TaskDepartment, TaskPriority, TaskStatus } from "@hassad/shared";
 
@@ -15,6 +21,28 @@ export class PmTasksService {
     private readonly storageService: StorageService,
   ) {}
 
+  private async execute<T>(operation: () => Promise<T>, code: string) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error instanceof HttpException) {
+        const response = error.getResponse();
+        if (
+          typeof response === "object" &&
+          response !== null &&
+          "code" in response
+        ) {
+          throw error;
+        }
+        throw new HttpException(
+          { code, details: {} },
+          error.getStatus(),
+        );
+      }
+      throw new InternalServerErrorException({ code, details: {} });
+    }
+  }
+
   private async ownedTask(taskId: string, userId: string) {
     const task = await this.prisma.task.findFirst({
       where: { id: taskId, project: { projectManagerId: userId } },
@@ -22,7 +50,10 @@ export class PmTasksService {
     });
 
     if (!task) {
-      throw new NotFoundException("Task not found");
+      throw new NotFoundException({
+        code: "TASK_NOT_FOUND",
+        details: { taskId },
+      });
     }
 
     return task;
@@ -51,8 +82,8 @@ export class PmTasksService {
     });
 
     const query = (filters.search ?? "").trim().toLowerCase();
-    const items = tasks
-      .filter((task: any) => {
+    return tasks
+      .filter((task) => {
         if (!query) return true;
         return [
           task.title,
@@ -66,67 +97,91 @@ export class PmTasksService {
           .toLowerCase()
           .includes(query);
       })
-      .slice(0, filters.limit ?? 100)
-      .map((task: any) => ({
-        id: task.id,
-        title: task.title,
-        description: task.description ?? "",
-        projectId: task.projectId,
-        projectName: task.project?.name ?? "Unknown project",
-        clientName: task.project?.client?.companyName ?? "Unknown client",
-        projectStatus: task.project?.status ?? null,
-        department: task.department?.name ?? TaskDepartment.DESIGN,
-        assigneeName: task.assignee?.name ?? null,
-        status: task.status,
-        priority: task.priority,
-        dueDate: task.dueDate,
-        periodLabel: task.period?.periodNumber ? `P${task.period.periodNumber}` : "No period",
-        isClientVisible: !!task.isVisibleToClient,
-        revisionCount: task.revisionCount ?? 0,
-        periodNumber: task.period?.periodNumber ?? null,
-      }));
+      .slice(0, filters.limit ?? 100);
+  }
 
-    return { items };
+  async stats(userId: string) {
+    return this.tasksService.pmStats(userId);
   }
 
   async detail(userId: string, taskId: string) {
     await this.ownedTask(taskId, userId);
-    return this.tasksService.findOne(taskId);
+    return this.execute(
+      () => this.tasksService.findOne(taskId),
+      "TASK_NOT_FOUND",
+    );
   }
 
   async changeStatus(userId: string, taskId: string, status: TaskStatus) {
     await this.ownedTask(taskId, userId);
-    return this.tasksService.changeStatus(taskId, userId, status);
+    return this.execute(
+      () => this.tasksService.changeStatus(taskId, userId, status),
+      "TASK_STATUS_UPDATE_FAILED",
+    );
   }
 
   async assign(userId: string, taskId: string, assigneeId: string) {
     await this.ownedTask(taskId, userId);
-    return this.tasksService.assign(taskId, userId, { userId: assigneeId });
+    return this.execute(
+      () => this.tasksService.assign(taskId, userId, { userId: assigneeId }),
+      "TASK_ASSIGNMENT_FAILED",
+    );
   }
 
   async addComment(userId: string, taskId: string, content: string, isInternal = true) {
     await this.ownedTask(taskId, userId);
-    return this.tasksService.addComment(taskId, userId, { content, isInternal });
+    return this.execute(
+      () => this.tasksService.addComment(taskId, userId, { content, isInternal }),
+      "TASK_COMMENT_FAILED",
+    );
   }
 
   async listComments(userId: string, taskId: string) {
     await this.ownedTask(taskId, userId);
-    return { items: await this.tasksService.getComments(taskId) };
+    return {
+      items: await this.execute(
+        () => this.tasksService.getComments(taskId),
+        "TASK_COMMENTS_LOAD_FAILED",
+      ),
+    };
   }
 
   async listFiles(userId: string, taskId: string) {
     await this.ownedTask(taskId, userId);
-    return { items: await this.tasksService.getFiles(taskId) };
+    return {
+      items: await this.execute(
+        () => this.tasksService.getFiles(taskId),
+        "TASK_FILES_LOAD_FAILED",
+      ),
+    };
   }
 
   async downloadFile(userId: string, taskId: string, fileId: string) {
     await this.ownedTask(taskId, userId);
-    return { url: await this.tasksService.getDownloadUrl(taskId, fileId) };
+    return {
+      url: await this.execute(
+        () => this.tasksService.getDownloadUrl(taskId, fileId),
+        "TASK_FILE_DOWNLOAD_FAILED",
+      ),
+    };
+  }
+
+  async deleteFile(userId: string, taskId: string, fileId: string) {
+    await this.ownedTask(taskId, userId);
+    return this.execute(
+      () => this.tasksService.deleteFile(taskId, fileId),
+      "TASK_FILE_DELETE_FAILED",
+    );
   }
 
   async uploadFile(userId: string, taskId: string, file: Express.Multer.File, purpose?: FilePurpose) {
     await this.ownedTask(taskId, userId);
-    if (!file) throw new BadRequestException("Task file is required");
+    if (!file) {
+      throw new BadRequestException({
+        code: "TASK_FILE_REQUIRED",
+        details: { taskId },
+      });
+    }
 
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.TASK_FILE,
@@ -139,12 +194,15 @@ export class PmTasksService {
       },
     });
 
-    return this.tasksService.addFile(taskId, userId, {
+    return this.execute(
+      () => this.tasksService.addFile(taskId, userId, {
       key: uploadResult.key,
       originalName: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
-      purpose: purpose ?? FilePurpose.REFERENCE,
-    });
+        purpose: purpose ?? FilePurpose.REFERENCE,
+      }),
+      "TASK_FILE_UPLOAD_FAILED",
+    );
   }
 }

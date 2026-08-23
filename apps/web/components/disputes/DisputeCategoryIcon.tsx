@@ -62,7 +62,7 @@ export function DisputeCategoryIcon({
           styles.container,
         )}
       >
-        <Icon className={cn(sizeClasses.icon, styles.icon)} />
+        <Icon aria-hidden="true" className={cn(sizeClasses.icon, styles.icon)} />
       </div>
       {showLabel && (
         <span className={cn(sizeClasses.text, "font-medium text-foreground")}>

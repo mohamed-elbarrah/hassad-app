@@ -21,7 +21,7 @@ export function DisputeEmptyState({
       <CardContent className="p-8">
         <Empty>
           <EmptyMedia variant="icon">
-            <Ticket />
+            <Ticket aria-hidden="true" />
           </EmptyMedia>
           <EmptyHeader>
             <EmptyTitle>{hasFilter ? "لا توجد تذاكر تطابق بحثك" : "لا توجد تذاكر نزاع"}</EmptyTitle>

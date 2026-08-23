@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
@@ -17,6 +17,12 @@ export class PmTasksController {
   @RequirePermissions("tasks.read")
   list(@CurrentUser("id") userId: string, @Query() query: PmTasksQueryDto) {
     return this.service.list(userId, query);
+  }
+
+  @Get("stats")
+  @RequirePermissions("tasks.read")
+  stats(@CurrentUser("id") userId: string) {
+    return this.service.stats(userId);
   }
 
   @Get(":id")
@@ -59,6 +65,16 @@ export class PmTasksController {
   @RequirePermissions("tasks.read")
   downloadFile(@CurrentUser("id") userId: string, @Param("id") id: string, @Param("fileId") fileId: string) {
     return this.service.downloadFile(userId, id, fileId);
+  }
+
+  @Delete(":id/files/:fileId")
+  @RequirePermissions("tasks.update")
+  deleteFile(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Param("fileId") fileId: string,
+  ) {
+    return this.service.deleteFile(userId, id, fileId);
   }
 
   @Post(":id/files")

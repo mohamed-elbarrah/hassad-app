@@ -9,6 +9,7 @@ import type {
   TaskComment,
   TaskStatus,
   TaskPriority,
+  TaskDepartment,
   FilePurpose,
 } from "@hassad/shared";
 
@@ -65,8 +66,9 @@ export interface PmTasksFilters {
   status?: TaskStatus;
   priority?: TaskPriority;
   projectId?: string;
-  dept?: string;
-  deptName?: string;
+  department?: TaskDepartment;
+  search?: string;
+  limit?: number;
   dueBefore?: string;
   dueAfter?: string;
 }
@@ -88,6 +90,23 @@ export const tasksApi = createApi({
               { type: "Task", id: `PROJECT_${projectId}` },
             ]
           : [{ type: "Task", id: `PROJECT_${projectId}` }],
+    }),
+
+    /** POST /v1/pm/projects/:projectId/tasks — PM-owned task creation */
+    createPmProjectTask: builder.mutation<
+      Task,
+      CreateTaskInput & { projectId: string }
+    >({
+      query: ({ projectId, ...body }) => ({
+        url: `/pm/projects/${projectId}/tasks`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
+        { type: "Task", id: `PROJECT_${projectId}` },
+      ],
     }),
 
     /** GET /v1/tasks/:id — single task with full relations */
@@ -150,7 +169,10 @@ export const tasksApi = createApi({
     }),
 
     /** PATCH /v1/tasks/:id/archive — toggle archive */
-    toggleArchiveTask: builder.mutation<{ message: string }, string>({
+    toggleArchiveTask: builder.mutation<
+      { code: string; archived: boolean },
+      string
+    >({
       query: (id) => ({ url: `/tasks/${id}/archive`, method: "PATCH" }),
       invalidatesTags: (_result, _error, id) => [
         { type: "Task", id },
@@ -159,6 +181,81 @@ export const tasksApi = createApi({
         { type: "Task", id: "PM_TASKS" },
         { type: "Task", id: "PM_STATS" },
       ],
+    }),
+
+    /** GET /v1/pm/tasks/:id — PM-owned task detail */
+    getPmTaskById: builder.query<TaskWithProject, string>({
+      query: (taskId) => `/pm/tasks/${taskId}`,
+      providesTags: (_result, _error, taskId) => [{ type: "Task", id: taskId }],
+    }),
+
+    /** GET /v1/pm/tasks/:taskId/files */
+    getPmTaskFiles: builder.query<TaskFile[], string>({
+      query: (taskId) => `/pm/tasks/${taskId}/files`,
+      transformResponse: (response: { items: TaskFile[] }) => response.items,
+      providesTags: (_result, _error, taskId) => [
+        { type: "Task", id: `FILES_${taskId}` },
+      ],
+    }),
+
+    /** GET /v1/pm/tasks/:taskId/comments */
+    getPmTaskComments: builder.query<TaskComment[], string>({
+      query: (taskId) => `/pm/tasks/${taskId}/comments`,
+      transformResponse: (response: { items: TaskComment[] }) => response.items,
+      providesTags: (_result, _error, taskId) => [
+        { type: "Task", id: `COMMENTS_${taskId}` },
+      ],
+    }),
+
+    /** POST /v1/pm/tasks/:taskId/comments */
+    addPmTaskComment: builder.mutation<
+      TaskComment,
+      { taskId: string; content: string }
+    >({
+      query: ({ taskId, content }) => ({
+        url: `/pm/tasks/${taskId}/comments`,
+        method: "POST",
+        body: { content },
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [
+        { type: "Task", id: `COMMENTS_${taskId}` },
+      ],
+    }),
+
+    /** POST /v1/pm/tasks/:taskId/files */
+    uploadPmTaskFile: builder.mutation<
+      TaskFile,
+      { taskId: string; file: File; purpose?: FilePurpose }
+    >({
+      query: ({ taskId, file, purpose }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (purpose) formData.append("purpose", purpose);
+        return { url: `/pm/tasks/${taskId}/files`, method: "POST", body: formData };
+      },
+      invalidatesTags: (_result, _error, { taskId }) => [
+        { type: "Task", id: `FILES_${taskId}` },
+      ],
+    }),
+
+    /** DELETE /v1/pm/tasks/:taskId/files/:fileId */
+    deletePmTaskFile: builder.mutation<void, { taskId: string; fileId: string }>({
+      query: ({ taskId, fileId }) => ({
+        url: `/pm/tasks/${taskId}/files/${fileId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [
+        { type: "Task", id: `FILES_${taskId}` },
+      ],
+    }),
+
+    /** GET /v1/pm/tasks/:taskId/files/:fileId/download */
+    getPmTaskFileDownload: builder.query<
+      { url: string },
+      { taskId: string; fileId: string }
+    >({
+      query: ({ taskId, fileId }) =>
+        `/pm/tasks/${taskId}/files/${fileId}/download`,
     }),
 
     /** GET /v1/tasks/:taskId/files */
@@ -278,18 +375,35 @@ export const tasksApi = createApi({
       ],
     }),
 
-    /** GET /v1/tasks/pm — all tasks across PM's projects */
+    /** PATCH /v1/pm/tasks/:id/status — PM-owned status update */
+    changePmTaskStatus: builder.mutation<
+      Task,
+      { id: string; status: TaskStatus }
+    >({
+      query: ({ id, status }) => ({
+        url: `/pm/tasks/${id}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Task", id },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
+      ],
+    }),
+
+    /** GET /v1/pm/tasks — all tasks across PM's projects */
     getPmTasks: builder.query<TaskWithProject[], PmTasksFilters>({
       query: (filters = {}) => ({
-        url: "/tasks/pm",
+        url: "/pm/tasks",
         params: filters,
       }),
       providesTags: [{ type: "Task", id: "PM_TASKS" }],
     }),
 
-    /** GET /v1/tasks/pm/stats — aggregated stats for PM's projects */
+    /** GET /v1/pm/tasks/stats — aggregated stats for PM's projects */
     getPmTaskStats: builder.query<PmTaskStats, void>({
-      query: () => "/tasks/pm/stats",
+      query: () => "/pm/tasks/stats",
       providesTags: [{ type: "Task", id: "PM_STATS" }],
     }),
 
@@ -326,12 +440,20 @@ export const {
   useGetTasksByProjectQuery,
   useGetTaskByIdQuery,
   useCreateTaskMutation,
+  useCreatePmProjectTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
   useGetMyTasksQuery,
   useGetMyTaskStatsQuery,
   useToggleArchiveTaskMutation,
   useGetTaskFilesQuery,
+  useGetPmTaskByIdQuery,
+  useGetPmTaskFilesQuery,
+  useGetPmTaskCommentsQuery,
+  useAddPmTaskCommentMutation,
+  useUploadPmTaskFileMutation,
+  useDeletePmTaskFileMutation,
+  useLazyGetPmTaskFileDownloadQuery,
   useUploadTaskFileMutation,
   useDeleteTaskFileMutation,
   useGetTaskCommentsQuery,
@@ -340,6 +462,7 @@ export const {
   useSubmitTaskMutation,
   useApproveTaskMutation,
   useChangeTaskStatusMutation,
+  useChangePmTaskStatusMutation,
   useRejectTaskMutation,
   useAssignTaskMutation,
   useGetPmTasksQuery,

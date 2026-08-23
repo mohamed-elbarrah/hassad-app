@@ -47,6 +47,10 @@ export function useDashboardNotificationSocket() {
       dispatch(notificationsApi.util.invalidateTags(["Notification"]));
     });
 
+    socket.on("broadcast", () => {
+      dispatch(notificationsApi.util.invalidateTags(["Notification"]));
+    });
+
     socket.on("unreadCount", (payload: { count: number }) => {
       dispatch(
         notificationsApi.util.updateQueryData(

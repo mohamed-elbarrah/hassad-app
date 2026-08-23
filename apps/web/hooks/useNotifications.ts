@@ -1,13 +1,19 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
+import type { NotificationEventPayload } from "@hassad/shared";
 import { useSocket } from "./useSocket";
+
+type BroadcastSocketPayload = {
+  eventType: "BROADCAST";
+  metadata: Record<string, unknown> | null;
+};
 
 export function useNotifications() {
   const { socket, isConnected, shouldPoll } = useSocket();
 
   const onNotification = useCallback(
-    (handler: (notification: any) => void) => {
+    (handler: (notification: NotificationEventPayload) => void) => {
       socket?.on("notification", handler);
       return () => {
         socket?.off("notification", handler);
@@ -27,7 +33,7 @@ export function useNotifications() {
   );
 
   const onBroadcast = useCallback(
-    (handler: (data: any) => void) => {
+    (handler: (data: BroadcastSocketPayload) => void) => {
       socket?.on("broadcast", handler);
       return () => {
         socket?.off("broadcast", handler);

@@ -5,9 +5,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowUpRight,
-  BarChart3,
   Bell,
-  CheckCircle2,
   ClipboardList,
   Megaphone,
   MousePointerClick,
@@ -32,7 +30,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -49,6 +46,7 @@ import {
   useGetMyTaskStatsQuery,
 } from "@/features/tasks/tasksApi";
 import { formatCurrency, formatNumber, formatRelativeTime } from "@/lib/format";
+import { notificationPresentation } from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
 
 export default function MarketingDashboardPage() {
@@ -265,24 +263,30 @@ export default function MarketingDashboardPage() {
               />
             ) : (
               <div className="flex flex-col gap-4">
-                {(notificationsData?.data || []).map((notification) => (
+                {(notificationsData?.data || []).map((notification) => {
+                  const presentation = notificationPresentation(
+                    notification.eventType,
+                    notification.metadata,
+                  );
+                  return (
                   <div key={notification.id} className="flex gap-3">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
                       <Bell />
                     </div>
                     <div>
                       <p className="text-sm font-medium">
-                        {notification.title}
+                        {presentation.title}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {notification.body}
+                        {presentation.body}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatRelativeTime(notification.createdAt as string)}
                       </p>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

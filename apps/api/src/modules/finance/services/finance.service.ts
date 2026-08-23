@@ -115,8 +115,7 @@ export class FinanceService {
         entityType: "INVOICE",
         eventType: "INVOICE_CREATED",
         userId: clientUser.userId,
-        title: "فاتورة جديدة",
-        body: `تم إنشاء فاتورة جديدة بمبلغ ${invoice.amount} ر.س`,
+        metadata: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: invoice.amount },
       });
     }
 
@@ -225,8 +224,7 @@ export class FinanceService {
           entityType: "invoice",
           eventType: "INVOICE_CREATED",
           userId: clientUser.userId,
-          title: "تم إنشاء فاتورة تلقائية",
-          body: `تم إنشاء فاتورة تلقائية رقم ${invoiceNumber} للعقد "${contract.title}"`,
+          metadata: { invoiceId: invoice.id, invoiceNumber, contractId: contract.id, contractTitle: contract.title },
         })
         .catch(() => undefined);
     }
@@ -308,8 +306,7 @@ export class FinanceService {
           entityType: "invoice",
           eventType: "INVOICE_CREATED",
           userId: clientUser.userId,
-          title: "تم إنشاء فاتورة",
-          body: `تم إنشاء فاتورة "${params.label}" بمبلغ ${params.amount} ر.س للعقد "${contract.title}"`,
+          metadata: { invoiceId: invoice.id, invoiceLabel: params.label, amount: params.amount, contractId: contract.id, contractTitle: contract.title },
         })
         .catch(() => undefined);
     }
@@ -432,8 +429,7 @@ export class FinanceService {
         entityType: "PAYMENT",
         eventType: "PAYMENT_RECEIVED",
         userId: clientUser.userId,
-        title: "تم استلام دفع",
-        body: `تم استلام دفعة بقيمة ${payment.amount} ر.س للفاتورة "${invoice.invoiceNumber}"`,
+        metadata: { paymentId: payment.id, invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: payment.amount },
       });
     }
 
@@ -1060,8 +1056,6 @@ export class FinanceService {
   // ── Actions ─────────────────────────────────────────────────────────────────
 
   async getActions() {
-    const now = new Date();
-
     const [lateInvoices, unsentInvoices, failedPayments, pendingSalaries] =
       await Promise.all([
         this.prisma.invoice.findMany({
@@ -1575,8 +1569,7 @@ export class FinanceService {
         entityType: "invoice",
         eventType: "INVOICE_SENT",
         userId: clientUser.userId,
-        title: "تم إرسال فاتورة",
-        body: `تم إرسال الفاتورة "${invoice.invoiceNumber}" إليك للمراجعة والدفع`,
+        metadata: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: invoice.amount },
       });
     }
 
@@ -1624,8 +1617,7 @@ export class FinanceService {
         entityType: "invoice",
         eventType: "INVOICE_REMINDER",
         userId: clientUser.userId,
-        title: "تذكير بدفع الفاتورة",
-        body: `تذكير: الفاتورة "${invoice.invoiceNumber}" بمبلغ ${invoice.amount} ر.س مستحقة الدفع`,
+        metadata: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: invoice.amount },
       });
     }
 

@@ -92,8 +92,6 @@ export class CampaignsService {
     await this.notifications.notifyUsers({
       userIds: [pmId, marketerId],
       excludeUserIds: [creatorId],
-      title: "حملة جديدة",
-      message: `تم إنشاء حملة جديدة "${campaign.name}" للمهمة "${task.title}"`,
       entityId: campaign.id,
       entityType: "CAMPAIGN",
       eventType: "MARKETING_CAMPAIGN_CREATED",
@@ -363,8 +361,6 @@ export class CampaignsService {
       await this.notifications.notifyUsers({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: "تحديث أداء الحملة",
-        message: `تم تحديث نتائج الحملة "${campaign.name}"`,
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_METRICS_UPDATED",
@@ -450,8 +446,6 @@ export class CampaignsService {
       await this.notifications.notifyUsers({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: "تحديث حالة الحملة",
-        message: `تم تغيير حالة الحملة "${campaign.name}" إلى ${STATUS_AR[status] ?? status}`,
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_CAMPAIGN_STATUS_CHANGED",
@@ -497,8 +491,6 @@ export class CampaignsService {
       await this.notifications.notifyUsers({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: "حملة تحتاج تحسين",
-        message: `تم وضع علامة "تحتاج تحسين" على الحملة "${campaign.name}"`,
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_OPTIMIZATION_REQUIRED",

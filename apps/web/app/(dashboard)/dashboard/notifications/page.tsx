@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -50,6 +51,10 @@ import type { NotificationItem } from "@/features/notifications/notificationsApi
 import { useAppSelector } from "@/lib/hooks";
 import { formatRelativeTime } from "@/lib/format";
 import { resolveEntityUrl } from "@/components/common/NotificationsDropdown";
+import {
+  notificationErrorMessage,
+  notificationPresentation,
+} from "@/lib/i18n";
 
 const PAGE_SIZE = 20;
 
@@ -77,7 +82,13 @@ export default function NotificationsPage() {
   const hasUnread = (data?.unreadCount ?? 0) > 0;
 
   async function handleClickNotification(notification: NotificationItem) {
-    if (!notification.isRead) await markAsRead(notification.id);
+    if (!notification.isRead) {
+      try {
+        await markAsRead(notification.id).unwrap();
+      } catch (error) {
+        toast.error(notificationErrorMessage(error));
+      }
+    }
     setSelectedNotification(notification);
   }
 
@@ -125,7 +136,13 @@ export default function NotificationsPage() {
                 variant="outline"
                 size="sm"
                 className="shrink-0 self-start"
-                onClick={() => markAllAsRead()}
+                onClick={async () => {
+                  try {
+                    await markAllAsRead().unwrap();
+                  } catch (error) {
+                    toast.error(notificationErrorMessage(error));
+                  }
+                }}
               >
                 <CheckCheck aria-hidden="true" data-icon="inline-start" />
                 تعليم الكل كمقروء
@@ -193,7 +210,9 @@ export default function NotificationsPage() {
             </Empty>
           ) : (
             <div className="flex flex-col divide-y">
-              {notifications.map((notification) => (
+              {notifications.map((notification) => {
+                const presentation = notificationPresentation(notification.eventType, notification.metadata);
+                return (
                 <button
                   key={notification.id}
                   type="button"
@@ -215,17 +234,18 @@ export default function NotificationsPage() {
                           : "font-semibold text-foreground"
                       }`}
                     >
-                      {notification.title}
+                      {presentation.title}
                     </span>
                     <span className="line-clamp-2 text-sm text-muted-foreground">
-                      {notification.body}
+                      {presentation.body}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {formatRelativeTime(notification.createdAt as string)}
                     </span>
                   </span>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -269,7 +289,12 @@ export default function NotificationsPage() {
           closeLabel="إغلاق نافذة الإشعار"
         >
           <DialogHeader className="text-right sm:text-right">
-            <DialogTitle>{selectedNotification?.title}</DialogTitle>
+            <DialogTitle>
+              {notificationPresentation(
+                selectedNotification?.eventType,
+                selectedNotification?.metadata,
+              ).title}
+            </DialogTitle>
             <DialogDescription>
               {selectedNotification?.createdAt
                 ? formatRelativeTime(selectedNotification.createdAt as string)
@@ -278,7 +303,10 @@ export default function NotificationsPage() {
           </DialogHeader>
           <div className="max-h-80 overflow-y-auto rounded-md bg-muted/50 p-4">
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-              {selectedNotification?.body}
+              {notificationPresentation(
+                selectedNotification?.eventType,
+                selectedNotification?.metadata,
+              ).body}
             </p>
           </div>
           <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">

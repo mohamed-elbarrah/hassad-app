@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { notificationPresentation } from "@/lib/i18n";
 import {
   Sheet,
   SheetContent,
@@ -169,6 +170,8 @@ function PortalNotificationMenu() {
           isRead: boolean;
           entityType?: string | null;
           entityId?: string | null;
+          eventType?: string;
+          metadata?: Record<string, unknown> | null;
         }>;
       }
     )?.data ?? [];
@@ -216,7 +219,12 @@ function PortalNotificationMenu() {
           </div>
         ) : notifications.length ? (
           <DropdownMenuGroup>
-            {notifications.map((notification) => (
+            {notifications.map((notification) => {
+              const presentation = notificationPresentation(
+                notification.eventType,
+                notification.metadata,
+              );
+              return (
               <DropdownMenuItem
                 key={notification.id}
                 className="items-start"
@@ -225,17 +233,18 @@ function PortalNotificationMenu() {
                 <UserRound className="mt-0.5" />
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate font-medium">
-                    {notification.title}
+                    {presentation.title}
                   </span>
                   <span className="line-clamp-2 text-xs text-muted-foreground">
-                    {notification.body}
+                    {presentation.body}
                   </span>
                 </span>
                 {!notification.isRead && (
                   <Badge variant="secondary">جديد</Badge>
                 )}
               </DropdownMenuItem>
-            ))}
+              );
+            })}
           </DropdownMenuGroup>
         ) : (
           <p className="p-4 text-center text-sm text-muted-foreground">
@@ -281,7 +290,10 @@ export function PortalSidebar() {
   );
   const [openGroup, setOpenGroup] = useState<string | null>(activeGroup);
 
-  useEffect(() => setOpenGroup(activeGroup), [activeGroup]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setOpenGroup(activeGroup));
+    return () => cancelAnimationFrame(frame);
+  }, [activeGroup]);
 
   return (
     <Sidebar

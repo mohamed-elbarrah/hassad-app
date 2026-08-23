@@ -4,16 +4,14 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import { TaskStatus } from "@hassad/shared";
 import {
-  useGetTasksByProjectQuery,
-  useStartTaskMutation,
-  useSubmitTaskMutation,
-  useApproveTaskMutation,
-  useRejectTaskMutation,
+  useGetPmTasksQuery,
+  useChangePmTaskStatusMutation,
 } from "@/features/tasks/tasksApi";
 import { KanbanBoard } from "@/components/dashboard/kanban";
 import { TASK_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/task-status";
 import { TaskKanbanCardContent } from "@/components/dashboard/kanban/cards/TaskKanbanCardContent";
 import type { TaskWithMeta } from "@/lib/utils/task-status";
+import { pmErrorMessage } from "@/lib/i18n";
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -28,11 +26,8 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
     data: tasks,
     isLoading,
     isError,
-  } = useGetTasksByProjectQuery(projectId);
-  const [startTask] = useStartTaskMutation();
-  const [submitTask] = useSubmitTaskMutation();
-  const [approveTask] = useApproveTaskMutation();
-  const [rejectTask] = useRejectTaskMutation();
+  } = useGetPmTasksQuery({ projectId, limit: 100 });
+  const [changeTaskStatus] = useChangePmTaskStatusMutation();
 
   const typedTasks = (tasks ?? []) as TaskWithMeta[];
 
@@ -45,38 +40,27 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
       if (newStatus === currentStatus) return;
 
       try {
-        if (
-          (currentStatus === TaskStatus.TODO ||
+        const validTransition =
+          ((currentStatus === TaskStatus.TODO ||
             currentStatus === TaskStatus.REVISION) &&
-          newStatus === TaskStatus.IN_PROGRESS
-        ) {
-          await startTask(itemId).unwrap();
-        } else if (
-          currentStatus === TaskStatus.IN_PROGRESS &&
-          newStatus === TaskStatus.IN_REVIEW
-        ) {
-          await submitTask(itemId).unwrap();
-        } else if (
-          currentStatus === TaskStatus.IN_REVIEW &&
-          newStatus === TaskStatus.DONE
-        ) {
-          await approveTask(itemId).unwrap();
-        } else if (
-          currentStatus === TaskStatus.IN_REVIEW &&
-          newStatus === TaskStatus.REVISION
-        ) {
-          await rejectTask(itemId).unwrap();
-        } else {
+            newStatus === TaskStatus.IN_PROGRESS) ||
+          (currentStatus === TaskStatus.IN_PROGRESS &&
+            newStatus === TaskStatus.IN_REVIEW) ||
+          (currentStatus === TaskStatus.IN_REVIEW &&
+            (newStatus === TaskStatus.DONE ||
+              newStatus === TaskStatus.REVISION));
+
+        if (!validTransition) {
           toast.error("الانتقال غير مسموح في مسار حالة المهام");
+          return;
         }
+
+        await changeTaskStatus({ id: itemId, status: newStatus }).unwrap();
       } catch (err: unknown) {
-        const message =
-          (err as { data?: { message?: string } })?.data?.message ??
-          "فشل تحديث حالة المهمة";
-        toast.error(message);
+        toast.error(pmErrorMessage(err));
       }
     },
-    [startTask, submitTask, approveTask, rejectTask],
+    [changeTaskStatus],
   );
 
   // ── Render card ──────────────────────────────────────────────────────

@@ -161,6 +161,11 @@ export function authErrorMessage(error: unknown): string {
 const PROJECT_ERROR_MESSAGES: Record<string, string> = {
   PROJECT_NOT_FOUND: "المشروع غير موجود.",
   PROJECT_STATUS_UPDATE_FAILED: "تعذر تحديث حالة المشروع.",
+  TASK_NOT_FOUND: "المهمة غير موجودة.",
+  PERIOD_NOT_FOUND: "الفترة غير موجودة.",
+  PERIOD_REQUIRED_FOR_RETAINER: "يجب تحديد فترة لهذا النوع من المشاريع.",
+  MEETING_NOT_FOUND: "الاجتماع غير موجود.",
+  FILE_NOT_FOUND: "الملف غير موجود.",
   PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
   VALIDATION_ERROR: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
   REQUEST_FAILED: "تعذر تنفيذ العملية. حاول مرة أخرى.",
@@ -550,6 +555,197 @@ export function salesWorkflowValidationMessages(
   );
 }
 
+const NOTIFICATION_PRESENTATIONS: Record<string, { title: string; body: string }> = {
+  TASK_ASSIGNED: { title: "تم إسناد مهمة", body: "تم إسناد مهمة جديدة إليك." },
+  PROJECT_STATUS_CHANGED: { title: "تغيرت حالة مشروع", body: "تم تحديث حالة أحد مشاريعك." },
+  PROJECT_STALLED: { title: "مشروع متعثر", body: "يوجد مشروع يحتاج إلى المراجعة." },
+  UNASSIGNED_REQUEST: { title: "طلبات غير معينة", body: "توجد طلبات تحتاج إلى التوزيع." },
+  STALE_REQUEST: { title: "طلب بحاجة للمتابعة", body: "يوجد طلب لم يتم تحديثه مؤخراً." },
+  CLIENT_INACTIVE: { title: "عميل غير نشط", body: "يوجد عميل يحتاج إلى المتابعة." },
+  WORKLOAD_WARNING: { title: "تنبيه حمل العمل", body: "يوجد تنبيه متعلق بحمل العمل." },
+  MEETING_SCHEDULED: { title: "تمت جدولة اجتماع", body: "تمت جدولة اجتماع جديد." },
+  MEETING_UPDATED: { title: "تم تحديث اجتماع", body: "تم تحديث تفاصيل اجتماع." },
+  PROJECT_FILE_UPLOADED: { title: "تم رفع ملف مشروع", body: "تم رفع ملف جديد إلى أحد مشاريعك." },
+  DISPUTE_OPENED: { title: "نزاع جديد", body: "تم فتح نزاع جديد يحتاج إلى المتابعة." },
+  DISPUTE_APPROVED: { title: "تمت الموافقة على النزاع", body: "تمت الموافقة على النزاع." },
+  DISPUTE_REJECTED: { title: "تم رفض النزاع", body: "تم رفض النزاع." },
+  DISPUTE_NEW_MESSAGE: { title: "رسالة جديدة في النزاع", body: "لديك رسالة جديدة في أحد النزاعات." },
+  DISPUTE_CLIENT_CONFIRM: { title: "تأكيد حل النزاع", body: "أكد العميل حل النزاع." },
+  DISPUTE_CLIENT_ESCALATE: { title: "تم تصعيد النزاع", body: "طلب العميل تصعيد النزاع." },
+  DISPUTE_PM_RESOLVED: { title: "تم حل النزاع", body: "تم تأكيد حل النزاع." },
+  DISPUTE_CLOSED: { title: "أُغلق النزاع", body: "تم إغلاق النزاع." },
+  DISPUTE_PM_CHANGED: { title: "تغير مدير النزاع", body: "تم تحديث مدير النزاع." },
+  DISPUTE_AUTO_ESCALATED: { title: "تصعيد تلقائي للنزاع", body: "تم تصعيد النزاع تلقائياً." },
+  DISPUTE_REMINDER_DAY1: { title: "تذكير بالنزاع", body: "يرجى تأكيد حل النزاع." },
+  DISPUTE_REMINDER_DAY2: { title: "تذكير ثانٍ بالنزاع", body: "لم يتم تأكيد حل النزاع بعد." },
+  DISPUTE_REMINDER_DAY3: { title: "تذكير نهائي بالنزاع", body: "سيتم تصعيد النزاع عند عدم الرد." },
+  PROPOSAL_SENT: { title: "تم إرسال العرض", body: "تم إرسال عرض جديد للمراجعة." },
+  PROPOSAL_APPROVED: { title: "تمت الموافقة على العرض", body: "تمت الموافقة على العرض." },
+  PROPOSAL_APPROVED_BY_CLIENT: { title: "وافق العميل على العرض", body: "وافق العميل على العرض." },
+  PROPOSAL_REJECTED: { title: "تم رفض العرض", body: "تم رفض العرض." },
+  PROPOSAL_REVISION_REQUESTED: { title: "مطلوب تعديل العرض", body: "طلب العميل تعديلات على العرض." },
+  CONTRACT_SENT: { title: "تم إرسال العقد", body: "تم إرسال عقد جديد للمراجعة." },
+  CONTRACT_ACTIVATED: { title: "تم تفعيل العقد", body: "تم تفعيل العقد." },
+  CONTRACT_SIGNED: { title: "تم توقيع العقد", body: "تم توقيع العقد." },
+  CONTRACT_CANCELLED: { title: "تم إلغاء العقد", body: "تم إلغاء العقد." },
+  CONTRACT_EXPIRED: { title: "انتهى العقد", body: "انتهت مدة أحد العقود." },
+  CONTRACT_EXPIRING: { title: "العقد يقترب من الانتهاء", body: "يوجد عقد يقترب من تاريخ الانتهاء." },
+  RENEWAL_ESCALATED: { title: "تجديد العقد يحتاج متابعة", body: "يحتاج عقد إلى متابعة عاجلة للتجديد." },
+  PROJECT_CREATED_FROM_CONTRACT: { title: "تم إنشاء مشروع", body: "تم إنشاء مشروع من عقد." },
+  PROJECT_SUSPENDED: { title: "تم تعليق المشروع", body: "تم تعليق أحد المشاريع." },
+  PERIOD_RESUMED: { title: "تم استئناف الفترة", body: "تم استئناف فترة المشروع." },
+  INVOICE_CREATED: { title: "تم إنشاء فاتورة", body: "تم إنشاء فاتورة جديدة." },
+  INVOICE_SENT: { title: "تم إرسال الفاتورة", body: "تم إرسال فاتورة للمراجعة." },
+  INVOICE_REMINDER: { title: "تذكير بالفاتورة", body: "يوجد تذكير متعلق بفاتورة." },
+  INVOICE_ESCALATED: { title: "فاتورة متأخرة", body: "تحتاج فاتورة إلى متابعة." },
+  INVOICE_ISSUED: { title: "تم إصدار الفاتورة", body: "تم إصدار فاتورة لفترة المشروع." },
+  INVOICE_PAID: { title: "تم سداد الفاتورة", body: "تم تسجيل سداد فاتورة." },
+  PAYMENT_RECEIVED: { title: "تم استلام دفعة", body: "تم استلام دفعة جديدة." },
+  TASK_STARTED: { title: "بدأت المهمة", body: "بدأ تنفيذ إحدى المهام." },
+  TASK_SUBMITTED: { title: "تم تسليم المهمة", body: "تم تسليم مهمة للمراجعة." },
+  TASK_APPROVED: { title: "تم اعتماد المهمة", body: "تم اعتماد المهمة." },
+  TASK_REJECTED: { title: "تم رفض المهمة", body: "تحتاج المهمة إلى تعديلات." },
+  TASK_COMMENT_ADDED: { title: "تعليق جديد على المهمة", body: "تمت إضافة تعليق إلى مهمة." },
+  TASK_DELAYED: { title: "مهمة متأخرة", body: "توجد مهمة تحتاج إلى المتابعة." },
+  PROJECT_AWAITING_REVIEW: { title: "المشروع بانتظار المراجعة", body: "يوجد مشروع بانتظار المراجعة." },
+  NEW_MESSAGE: { title: "رسالة جديدة", body: "لديك رسالة جديدة." },
+  PERIODS_GENERATED: { title: "تم إنشاء فترات المشروع", body: "تم إنشاء فترات جديدة للمشروع." },
+  PERIOD_CLOSED: { title: "تم إغلاق الفترة", body: "تم إغلاق فترة من فترات المشروع." },
+  MEETING_CANCELLED: { title: "تم إلغاء الاجتماع", body: "تم إلغاء اجتماع." },
+  MEETING_RESCHEDULED: { title: "تم تأجيل الاجتماع", body: "تم تأجيل اجتماع." },
+  MEETING_DONE: { title: "اكتمل الاجتماع", body: "اكتمل اجتماع." },
+  MARKETING_CAMPAIGN_CREATED: { title: "تم إنشاء حملة", body: "تم إنشاء حملة تسويقية جديدة." },
+  MARKETING_CAMPAIGN_STATUS_CHANGED: { title: "تغيرت حالة الحملة", body: "تم تحديث حالة حملة تسويقية." },
+  MARKETING_METRICS_UPDATED: { title: "تحديث مؤشرات الحملة", body: "تم تحديث مؤشرات حملة تسويقية." },
+  MARKETING_OPTIMIZATION_REQUIRED: { title: "مطلوب تحسين الحملة", body: "تحتاج حملة تسويقية إلى التحسين." },
+  MARKETING_STRATEGY_APPROVED: { title: "تم اعتماد الاستراتيجية", body: "تم اعتماد الاستراتيجية التسويقية." },
+  MARKETING_STRATEGY_REJECTED: { title: "تم رفض الاستراتيجية", body: "تم رفض الاستراتيجية التسويقية." },
+  MARKETING_STRATEGY_REVISION_REQUESTED: { title: "مطلوب تعديل الاستراتيجية", body: "طُلب تعديل الاستراتيجية التسويقية." },
+  MARKETING_STRATEGY_SENT: { title: "تم إرسال الاستراتيجية", body: "تم إرسال الاستراتيجية التسويقية للمراجعة." },
+  ACTION_ITEM_SNOOZED: { title: "تم تأجيل بند الإجراء", body: "تم تأجيل بند إجراء." },
+  ACTION_ITEM_SNOOZE_EXPIRED: { title: "انتهى تأجيل بند الإجراء", body: "عاد بند الإجراء للمتابعة." },
+  SYSTEM_FAILURE: { title: "تنبيه من النظام", body: "يوجد خلل يحتاج إلى المراجعة." },
+  BACKUP_COMPLETED: { title: "اكتمل النسخ الاحتياطي", body: "اكتملت عملية النسخ الاحتياطي." },
+  BACKUP_FAILED: { title: "فشل النسخ الاحتياطي", body: "فشلت عملية النسخ الاحتياطي." },
+  BACKUP_STARTED: { title: "بدأ النسخ الاحتياطي", body: "بدأت عملية النسخ الاحتياطي." },
+  BROADCAST: { title: "إعلان جديد", body: "لديك إعلان جديد." },
+  CLIENT_COUNTERS_UPDATED: { title: "تحديث بيانات العملاء", body: "تم تحديث مؤشرات العملاء." },
+  CLIENT_CREATED_FOR_SALES_REQUEST: { title: "تم إنشاء عميل", body: "تم إنشاء عميل من طلب مبيعات." },
+  CLIENT_REQUEST_CREATED: { title: "طلب عميل جديد", body: "تم إنشاء طلب عميل جديد." },
+  CLIENT_UPDATED: { title: "تم تحديث العميل", body: "تم تحديث بيانات العميل." },
+  CONTRACT_CONVERTED_TO_PROJECT: { title: "تم تحويل العقد إلى مشروع", body: "تم إنشاء مشروع من العقد." },
+  DELIVERABLE_APPROVED: { title: "تم اعتماد التسليمة", body: "تم اعتماد إحدى التسليمات." },
+  DELIVERABLE_REVISION: { title: "مطلوب تعديل التسليمة", body: "طُلب تعديل إحدى التسليمات." },
+  GATEWAY_FAILURE: { title: "خلل في بوابة الدفع", body: "يوجد خلل في بوابة الدفع يحتاج إلى المراجعة." },
+  PROJECT_APPROVED: { title: "تم اعتماد المشروع", body: "تم اعتماد أحد المشاريع." },
+  PROJECT_REVISION_REQUESTED: { title: "مطلوب تعديل المشروع", body: "طُلب تعديل أحد المشاريع." },
+  REQUEST_SUBMITTED: { title: "تم إرسال الطلب", body: "تم إرسال طلب جديد للمراجعة." },
+  WEBHOOK_FAILURE: { title: "خلل في التكامل", body: "يوجد خلل في أحد التكاملات." },
+};
+
+export function notificationPresentation(
+  eventType: string | undefined,
+  metadata?: Record<string, unknown> | null,
+): { title: string; body: string } {
+  const presentation =
+    (eventType && NOTIFICATION_PRESENTATIONS[eventType]) ?? {
+      title: "إشعار جديد",
+      body: "لديك إشعار جديد.",
+    };
+  const broadcastTitle = typeof metadata?.title === "string" ? metadata.title : null;
+  const broadcastBody = typeof metadata?.body === "string" ? metadata.body : null;
+  if (eventType === "BROADCAST" && broadcastTitle && broadcastBody) {
+    return { title: broadcastTitle, body: broadcastBody };
+  }
+  const ticketNumber = typeof metadata?.ticketNumber === "string" || typeof metadata?.ticketNumber === "number" ? String(metadata.ticketNumber) : null;
+  const reason = typeof metadata?.reason === "string" ? metadata.reason : null;
+  if (ticketNumber && eventType?.startsWith("DISPUTE_")) {
+    const reminderNumber = typeof metadata?.reminderNumber === "number" ? metadata.reminderNumber : null;
+    const role = typeof metadata?.role === "string" ? metadata.role : null;
+    const roleText = role === "new_pm" ? " تم تعيينك مديراً للمشروع." : role === "old_pm" ? " تم تغيير مدير المشروع." : "";
+    return { ...presentation, body: `${presentation.body} #${ticketNumber}${reminderNumber ? ` — التذكير رقم ${reminderNumber}` : ""}${reason ? ` — ${reason}` : ""}${roleText}` };
+  }
+  const delayedTaskTitle = typeof metadata?.taskTitle === "string" ? metadata.taskTitle : null;
+  const daysOverdue = typeof metadata?.daysOverdue === "number" ? metadata.daysOverdue : 0;
+  if (delayedTaskTitle && eventType === "TASK_DELAYED") {
+    return { ...presentation, body: `المهمة «${delayedTaskTitle}» متأخرة ${daysOverdue} يوماً.` };
+  }
+  const senderName = typeof metadata?.senderName === "string" ? metadata.senderName : null;
+  const attachmentCount = typeof metadata?.attachmentCount === "number" ? metadata.attachmentCount : 0;
+  if (senderName && eventType === "NEW_MESSAGE") {
+    return { ...presentation, title: `رسالة جديدة من ${senderName}`, body: attachmentCount > 0 ? `لديك رسالة جديدة مع ${attachmentCount} مرفق.` : "لديك رسالة جديدة." };
+  }
+  const taskTitle = typeof metadata?.taskTitle === "string" ? metadata.taskTitle : null;
+  const meetingTitle = typeof metadata?.meetingTitle === "string" ? metadata.meetingTitle : null;
+  const assigneeName = typeof metadata?.assigneeName === "string" ? metadata.assigneeName : null;
+  if (taskTitle && eventType === "TASK_ASSIGNED") {
+    return {
+      ...presentation,
+      body: assigneeName
+        ? `تم إسناد المهمة «${taskTitle}» إلى ${assigneeName}.`
+        : `تم إسناد المهمة «${taskTitle}» إليك.`,
+    };
+  }
+  const requestCount = typeof metadata?.requestCount === "number" ? metadata.requestCount : null;
+  if (requestCount !== null && eventType === "UNASSIGNED_REQUEST") {
+    return { ...presentation, body: `توجد ${requestCount} طلبات غير معينة تحتاج إلى التوزيع.` };
+  }
+  const activeTasks = typeof metadata?.activeTasks === "number" ? metadata.activeTasks : null;
+  if (activeTasks !== null && eventType === "WORKLOAD_WARNING") {
+    return { ...presentation, body: `لديك ${activeTasks} مهمة نشطة تحتاج إلى مراجعة الأولويات.` };
+  }
+  const overdueCount = typeof metadata?.overdueCount === "number" ? metadata.overdueCount : null;
+  if (overdueCount !== null && eventType === "INVOICE_ESCALATED") {
+    return { ...presentation, body: `يوجد ${overdueCount} فاتورة متأخرة تحتاج إلى المتابعة.` };
+  }
+  const contractTitle = typeof metadata?.contractTitle === "string" ? metadata.contractTitle : null;
+  const daysRemaining = typeof metadata?.daysRemaining === "number" ? metadata.daysRemaining : null;
+  if (contractTitle && ["CONTRACT_EXPIRING", "CONTRACT_EXPIRED", "RENEWAL_ESCALATED"].includes(eventType ?? "")) {
+    return { ...presentation, body: `${presentation.body} «${contractTitle}»${daysRemaining !== null ? ` — متبقٍ ${daysRemaining} أيام` : ""}` };
+  }
+  const invoiceNumber = typeof metadata?.invoiceNumber === "string" ? metadata.invoiceNumber : null;
+  const amount = typeof metadata?.amount === "number" ? metadata.amount : null;
+  if (invoiceNumber && ["INVOICE_CREATED", "INVOICE_SENT", "INVOICE_REMINDER"].includes(eventType ?? "")) {
+    return { ...presentation, body: `${presentation.body} «${invoiceNumber}»${amount !== null ? ` — ${amount} ر.س` : ""}` };
+  }
+  if (invoiceNumber && eventType === "PAYMENT_RECEIVED") {
+    return { ...presentation, body: `تم استلام دفعة للفاتورة «${invoiceNumber}»${amount !== null ? ` بقيمة ${amount} ر.س` : ""}.` };
+  }
+  const proposalTitle = typeof metadata?.proposalTitle === "string" ? metadata.proposalTitle : null;
+  const notes = typeof metadata?.notes === "string" ? metadata.notes : null;
+  if (proposalTitle && eventType === "PROPOSAL_SENT") {
+    return { ...presentation, body: `تم إرسال العرض «${proposalTitle}» للمراجعة.` };
+  }
+  if (proposalTitle && ["PROPOSAL_APPROVED", "PROPOSAL_REJECTED", "PROPOSAL_APPROVED_BY_CLIENT", "PROPOSAL_REVISION_REQUESTED"].includes(eventType ?? "")) {
+    return { ...presentation, body: `${presentation.body} «${proposalTitle}»${notes ? `: ${notes}` : ""}` };
+  }
+  if (meetingTitle && eventType === "MEETING_SCHEDULED") {
+    return { ...presentation, body: `تمت جدولة الاجتماع «${meetingTitle}».` };
+  }
+  if (meetingTitle && eventType === "MEETING_UPDATED") {
+    return { ...presentation, body: `تم تحديث الاجتماع «${meetingTitle}».` };
+  }
+  if (meetingTitle && ["MEETING_CANCELLED", "MEETING_RESCHEDULED", "MEETING_DONE"].includes(eventType ?? "")) {
+    return { ...presentation, body: `${presentation.body} الاجتماع «${meetingTitle}».` };
+  }
+  const projectName = typeof metadata?.projectName === "string" ? metadata.projectName : null;
+  const status = typeof metadata?.status === "string" ? metadata.status : null;
+  if (projectName && status && eventType === "PROJECT_STATUS_CHANGED") {
+    return { ...presentation, body: `تم تحديث حالة المشروع «${projectName}» إلى ${status}.` };
+  }
+  return presentation;
+}
+
+export function notificationErrorMessage(error: unknown): string {
+  const payload = getApiErrorPayload(error);
+  if (payload.status === 401) return "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.";
+  if (payload.status === 403) return "ليس لديك صلاحية لتنفيذ هذا الإجراء.";
+  if (payload.status === "FETCH_ERROR") {
+    return "تعذر الاتصال بالخادم. تحقق من اتصال الشبكة وحاول مرة أخرى.";
+  }
+  return "تعذر تحديث الإشعارات. يرجى المحاولة لاحقاً.";
+}
+
 export function portalErrorMessage(error: unknown): string {
   const code = (error as { data?: { error?: { code?: string } } })?.data?.error
     ?.code;
@@ -558,6 +754,39 @@ export function portalErrorMessage(error: unknown): string {
     : code === "AUTHENTICATION_REQUIRED"
       ? "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى."
       : "تعذر تحميل البيانات. يرجى المحاولة لاحقاً.";
+}
+
+const PM_ERROR_MESSAGES: Record<string, string> = {
+  PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+  AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+  PROJECT_NOT_FOUND: "المشروع غير موجود.",
+  TASK_NOT_FOUND: "المهمة غير موجودة.",
+  TASK_FILE_REQUIRED: "أرفق ملفاً قبل المتابعة.",
+  TASK_STATUS_UPDATE_FAILED: "تعذر تحديث حالة المهمة.",
+  TASK_ASSIGNMENT_FAILED: "تعذر إسناد المهمة.",
+  TASK_COMMENT_FAILED: "تعذر إضافة التعليق.",
+  TASK_COMMENTS_LOAD_FAILED: "تعذر تحميل التعليقات.",
+  TASK_FILES_LOAD_FAILED: "تعذر تحميل الملفات.",
+  TASK_FILE_DOWNLOAD_FAILED: "تعذر تحميل الملف.",
+  TASK_FILE_UPLOAD_FAILED: "تعذر رفع الملف.",
+  TASK_FILE_DELETE_FAILED: "تعذر حذف الملف.",
+  PERIOD_NOT_FOUND: "الفترة غير موجودة.",
+  PERIOD_REQUIRED_FOR_RETAINER: "يجب تحديد فترة لهذا النوع من المشاريع.",
+  MEETING_NOT_FOUND: "الاجتماع غير موجود.",
+  FILE_NOT_FOUND: "الملف غير موجود.",
+  DISPUTE_NOT_FOUND: "النزاع غير موجود.",
+  VALIDATION_ERROR: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
+};
+
+export function pmErrorMessage(error: unknown): string {
+  const payload = getApiErrorPayload(error);
+  const code = payload.data?.error?.code;
+  if (payload.status === 401) return PM_ERROR_MESSAGES.AUTHENTICATION_REQUIRED;
+  if (payload.status === 403) return PM_ERROR_MESSAGES.PERMISSION_DENIED;
+  if (payload.status === "FETCH_ERROR") {
+    return "تعذر الاتصال بالخادم. تحقق من اتصال الشبكة وحاول مرة أخرى.";
+  }
+  return (code && PM_ERROR_MESSAGES[code]) || "تعذر تحميل البيانات. يرجى المحاولة لاحقاً.";
 }
 
 export function portalSnoozeSuccessMessage(): string {

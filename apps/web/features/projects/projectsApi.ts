@@ -18,6 +18,22 @@ export interface ProjectListItem extends Project {
   completionPercentage?: number;
 }
 
+export interface PmProjectCard {
+  id: string;
+  name: string;
+  clientName: string;
+  status: ProjectStatus;
+  completionPercentage: number;
+  startDate: string;
+  endDate: string;
+  projectManager: { id: string; name: string } | null;
+  priority: ProjectListItem["priority"];
+  taskCount: number;
+  overdueTaskCount: number;
+  activeTaskCount: number;
+  updatedAt: string;
+}
+
 export interface PaginatedProjects {
   items: ProjectListItem[];
   total: number;
@@ -40,9 +56,9 @@ export interface ProjectFile {
   projectId: string;
   uploadedBy: string;
   fileName: string;
-  filePath: string;
+  filePath?: string;
   fileType: string;
-  fileSize: number;
+  fileSize?: number;
   uploadedAt: string;
   url?: string;
 }
@@ -145,6 +161,61 @@ export const projectsApi = createApi({
       ],
     }),
 
+    /** GET /v1/pm/projects/:id — PM-owned project detail */
+    getPmProjectById: builder.query<Project, string>({
+      query: (id) => `/pm/projects/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Project", id }],
+    }),
+
+    /** GET /v1/pm/projects/:id/files */
+    getPmProjectFiles: builder.query<ProjectFile[], string>({
+      query: (projectId) => `/pm/projects/${projectId}/files`,
+      transformResponse: (response: { items: ProjectFile[] }) => response.items,
+      providesTags: (_result, _error, projectId) => [
+        { type: "ProjectFile", id: projectId },
+      ],
+    }),
+
+    /** POST /v1/pm/projects/:id/files */
+    uploadPmProjectFile: builder.mutation<
+      ProjectFile,
+      { projectId: string; file: File; periodId?: string }
+    >({
+      query: ({ projectId, file, periodId }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (periodId) formData.append("periodId", periodId);
+        return {
+          url: `/pm/projects/${projectId}/files`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: "ProjectFile", id: projectId },
+      ],
+    }),
+
+    /** GET /v1/pm/projects/:id/files/:fileId/download */
+    getPmProjectFileDownload: builder.query<
+      { url: string },
+      { projectId: string; fileId: string }
+    >({
+      query: ({ projectId, fileId }) =>
+        `/pm/projects/${projectId}/files/${fileId}/download`,
+    }),
+
+    /** DELETE /v1/pm/projects/:id/files/:fileId */
+    deletePmProjectFile: builder.mutation<void, { projectId: string; fileId: string }>({
+      query: ({ projectId, fileId }) => ({
+        url: `/pm/projects/${projectId}/files/${fileId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: "ProjectFile", id: projectId },
+      ],
+    }),
+
     /** GET /v1/projects/:id/files — list project files */
     getProjectFiles: builder.query<ProjectFile[], string>({
       query: (projectId) => `/projects/${projectId}/files`,
@@ -186,9 +257,81 @@ export const projectsApi = createApi({
       ],
     }),
 
-    /** GET /v1/projects/pm/revisions — all revision requests across PM's projects */
+    /** GET /v1/pm/projects — PM-owned project cards */
+    getPmProjects: builder.query<
+      {
+        items: PmProjectCard[];
+        meta: { total: number; page: number; limit: number; totalPages: number };
+      },
+      { search?: string; status?: ProjectStatus; page?: number; limit?: number }
+    >({
+      query: (params) => ({ url: "/pm/projects", params }),
+      providesTags: [{ type: "Project", id: "PM_LIST" }],
+    }),
+
+    /** PM-owned paginated project cards adapted for the shared project table. */
+    getPmProjectsTable: builder.query<PaginatedProjects, {
+      search?: string;
+      status?: ProjectStatus;
+      page?: number;
+      limit?: number;
+    }>({
+      query: (params) => ({ url: "/pm/projects", params }),
+      transformResponse: (response: {
+        items: PmProjectCard[];
+        meta: Omit<PaginatedProjects, "items">;
+      }): PaginatedProjects => ({
+        items: response.items.map((project) => ({
+          ...project,
+          clientId: "",
+          client: { id: "", companyName: project.clientName },
+          manager: project.projectManager,
+          _count: { tasks: project.taskCount },
+          progress: project.completionPercentage,
+          createdAt: project.updatedAt,
+        }) as ProjectListItem),
+        ...response.meta,
+      }),
+      providesTags: [{ type: "Project", id: "PM_TABLE" }],
+    }),
+
+    /** PATCH /v1/pm/projects/:id — PM-owned project update */
+    updatePmProject: builder.mutation<
+      Project,
+      { id: string; body: UpdateProjectInput }
+    >({
+      query: ({ id, body }) => ({
+        url: `/pm/projects/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Project", id },
+        { type: "Project", id: "PM_LIST" },
+        { type: "Project", id: "PM_TABLE" },
+      ],
+    }),
+
+    /** PATCH /v1/pm/projects/:id/status — PM-owned status update */
+    updatePmProjectStatus: builder.mutation<
+      { id: string; status: ProjectStatus },
+      { id: string; status: ProjectStatus }
+    >({
+      query: ({ id, status }) => ({
+        url: `/pm/projects/${id}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Project", id },
+        { type: "Project", id: "PM_LIST" },
+        { type: "Project", id: "PM_TABLE" },
+      ],
+    }),
+
+    /** GET /v1/pm/requests — all revision requests across PM's projects */
     getPmRevisions: builder.query<PmDeliverableWithRevisions[], void>({
-      query: () => "/projects/pm/revisions",
+      query: () => "/pm/requests",
       providesTags: [{ type: "PmRevision", id: "LIST" }],
     }),
   }),
@@ -196,13 +339,22 @@ export const projectsApi = createApi({
 
 export const {
   useGetProjectsQuery,
+  useGetPmProjectsQuery,
+  useGetPmProjectsTableQuery,
   useGetProjectByIdQuery,
+  useGetPmProjectByIdQuery,
+  useGetPmProjectFilesQuery,
   useCreateProjectMutation,
   useUpdateProjectMutation,
+  useUpdatePmProjectMutation,
   useUpdateProjectStatusMutation,
+  useUpdatePmProjectStatusMutation,
   useDeleteProjectMutation,
   useGetProjectFilesQuery,
   useUploadProjectFileMutation,
+  useUploadPmProjectFileMutation,
   useDeleteProjectFileMutation,
+  useDeletePmProjectFileMutation,
+  useLazyGetPmProjectFileDownloadQuery,
   useGetPmRevisionsQuery,
 } = projectsApi;

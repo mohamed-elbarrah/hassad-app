@@ -39,6 +39,7 @@ import {
   useGetPmTaskStatsQuery,
 } from "@/features/tasks/tasksApi";
 import { formatShortDate } from "@/lib/format";
+import { pmErrorMessage } from "@/lib/i18n";
 import {
   TASK_PRIORITY_LABELS,
   TASK_STATUS_LABELS,
@@ -49,7 +50,12 @@ export default function PMTasksPage() {
   const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
   const [view, setView] = useState<"table" | "kanban">("table");
   const { data: stats, isLoading: statsLoading } = useGetPmTaskStatsQuery();
-  const { data: tasks = [], isLoading, isError } = useGetPmTasksQuery({});
+  const {
+    data: tasks = [],
+    isLoading,
+    isError,
+    error,
+  } = useGetPmTasksQuery({});
 
   const filteredTasks = useMemo(
     () =>
@@ -173,7 +179,7 @@ export default function PMTasksPage() {
       ) : isError ? (
         <TaskEmpty
           title="تعذر تحميل المهام"
-          description="حدث خطأ أثناء تحميل المهام."
+          description={pmErrorMessage(error)}
         />
       ) : filteredTasks.length === 0 ? (
         <TaskEmpty
@@ -274,7 +280,7 @@ function TaskEmpty({
     <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <ClipboardList />
+          <ClipboardList aria-hidden="true" />
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>

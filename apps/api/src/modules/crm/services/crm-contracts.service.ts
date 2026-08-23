@@ -417,8 +417,6 @@ export class CrmContractsService {
           entityType: "contract",
           eventType: "CONTRACT_SENT",
           userId: client.userId,
-          title: "Contract sent for review",
-          body: `The contract "${contract.title}" is ready for approval.`,
         })
         .catch(() => undefined);
     }

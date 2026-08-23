@@ -9,14 +9,18 @@ import type {
 export interface PmDisputeSummary {
   id: string;
   ticketNumber: number;
-  client: { id: string; name: string };
+  client: {
+    id: string;
+    companyName: string | null;
+    user: { name: string } | null;
+  };
   project: { id: string; name: string };
   title: string;
   category: DisputeCategory;
   status: DisputeStatus;
   priority: DisputePriority;
   openedAt: string;
-  deadlineAt?: string;
+  deadlineAt?: string | null;
   _count?: { messages: number };
 }
 

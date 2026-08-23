@@ -198,12 +198,12 @@ export class ProjectsService {
             entityType: "task",
             eventType: "TASK_ASSIGNED",
             userId: dto.userId,
-            title: "تم إسناد مهمة تسويق جديدة",
-            body: `تم إنشاء مهمة "إدارة الحملات الإعلانية" تلقائياً لك في مشروع ${project.name}.`,
             metadata: {
               taskId: task.id,
               projectId: project.id,
               assignedBy: addedBy,
+              taskTitle: task.title,
+              projectName: project.name,
             },
           })
           .catch(() => undefined);
@@ -319,11 +319,10 @@ export class ProjectsService {
     if (recipientIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: recipientIds,
-        title: "تحديث حالة المشروع",
-        message: `غيّر ${actorName ?? "النظام"} حالة المشروع "${project.name}" إلى ${status}`,
         entityId: id,
-        entityType: "PROJECT",
+        entityType: "project",
         eventType: "PROJECT_STATUS_CHANGED",
+        metadata: { projectId: id, projectName: project.name, status, actorName },
       });
     }
 
@@ -338,8 +337,7 @@ export class ProjectsService {
           entityType: "project",
           eventType: "PROJECT_STATUS_CHANGED",
           userId: clientUser.userId,
-          title: "تحديث حالة مشروعك",
-          body: `تم تغيير حالة مشروع "${project.name}" إلى ${status}`,
+          metadata: { projectId: id, projectName: project.name, status, actorName },
         })
         .catch(() => undefined);
     }

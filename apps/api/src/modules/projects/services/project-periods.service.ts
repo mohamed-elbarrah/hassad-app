@@ -168,8 +168,7 @@ export class ProjectPeriodsService {
       this.notificationsService
         .notifyUsers({
           userIds: [project.projectManagerId].filter(Boolean) as string[],
-          title: "تم توليد فترات المشروع",
-          message: `تم إنشاء ${periods.length} فترة شهرية للمشروع "${project.name}".`,
+          metadata: { projectId, projectName: project.name, periodCount: periods.length },
           entityId: projectId,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIODS_GENERATED",
@@ -447,8 +446,12 @@ export class ProjectPeriodsService {
       this.notificationsService
         .notifyUsers({
           userIds: notifyIds,
-          title: "تم إغلاق الفترة",
-          message: `تم إغلاق الفترة رقم ${period.periodNumber} للمشروع "${period.project.name}".`,
+          metadata: {
+            projectId: period.project.id,
+            projectName: period.project.name,
+            periodId: period.id,
+            periodNumber: period.periodNumber,
+          },
           entityId: period.id,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIOD_CLOSED",
@@ -523,8 +526,12 @@ export class ProjectPeriodsService {
       this.notificationsService
         .notifyUsers({
           userIds: notifyForInvoice,
-          title: "تم إصدار فاتورة الفترة",
-          message: `تم إصدار فاتورة الفترة رقم ${period.periodNumber} بقيمة ${amount} ر.س`,
+          metadata: {
+            invoiceId: invoice.id,
+            periodId: period.id,
+            periodNumber: period.periodNumber,
+            amount,
+          },
           entityId: invoice.id,
           entityType: "INVOICE",
           eventType: "INVOICE_ISSUED",
@@ -534,7 +541,7 @@ export class ProjectPeriodsService {
   }
 
   /** Push a period's end date later (PM extend). Must be after the current end. */
-  async extendPeriod(periodId: string, newEndDate: string, actorId: string) {
+  async extendPeriod(periodId: string, newEndDate: string, _actorId: string) {
     const period = await this.prisma.projectPeriod.findUnique({
       where: { id: periodId },
     });
@@ -553,7 +560,7 @@ export class ProjectPeriodsService {
   }
 
   /** Append a new UPCOMING period after the last one (PM extra period). */
-  async createExtraPeriod(projectId: string, actorId: string) {
+  async createExtraPeriod(projectId: string, _actorId: string) {
     const project = await this.assertProjectExists(projectId);
     const last = await this.prisma.projectPeriod.findFirst({
       where: { projectId },
@@ -707,8 +714,12 @@ export class ProjectPeriodsService {
       this.notificationsService
         .notifyUsers({
           userIds: [clientUserId],
-          title: "تم جدولة اجتماع جديد",
-          message: `"${dto.title}" للفترة ${period.periodNumber} من مشروع "${period.project?.name}".`,
+          metadata: {
+            meetingId: meeting.id,
+            meetingTitle: dto.title,
+            periodNumber: period.periodNumber,
+            projectName: period.project?.name,
+          },
           entityId: meeting.id,
           entityType: "PROJECT_MEETING",
           eventType: "MEETING_SCHEDULED",
@@ -782,17 +793,15 @@ export class ProjectPeriodsService {
             : dto.status === "DONE"
               ? "MEETING_DONE"
               : "MEETING_UPDATED";
-      const title =
-        dto.status === "CANCELLED"
-          ? "تم إلغاء اجتماع"
-          : wasRescheduled
-            ? "تم تأجيل اجتماع"
-            : "تحديث اجتماع";
       this.notificationsService
         .notifyUsers({
           userIds: [clientUserId],
-          title,
-          message: `"${updated.title}" للفترة ${existing.period?.periodNumber} من مشروع "${existing.period?.project?.name}".`,
+          metadata: {
+            meetingId,
+            meetingTitle: updated.title,
+            periodNumber: existing.period?.periodNumber,
+            projectName: existing.period?.project?.name,
+          },
           entityId: meetingId,
           entityType: "PROJECT_MEETING",
           eventType,

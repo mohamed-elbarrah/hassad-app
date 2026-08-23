@@ -41,7 +41,6 @@ export class AssignPmTaskDto {
 function IsMeetingUrl() {
   return IsUrl(
     { protocols: ["http", "https"], require_protocol: true },
-    { message: "meetingLink must be a valid http(s) URL" },
   );
 }
 

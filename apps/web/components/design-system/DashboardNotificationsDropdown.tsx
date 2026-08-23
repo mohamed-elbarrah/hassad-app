@@ -75,14 +75,16 @@ export function DashboardNotificationsDropdown() {
 
   const notifications = (data?.data ?? []) as Array<{
     id: string;
-    title: string;
-    body: string;
+    title?: string;
+    body?: string;
     isRead: boolean;
     createdAt: string;
     entityType?: string | null;
     entityId?: string | null;
+    eventType?: string;
+    metadata?: Record<string, unknown> | null;
   }>;
-  const hasUnread = notifications.some((n) => !n.isRead);
+  const hasUnread = (data?.unreadCount ?? 0) > 0;
 
   return (
     <NotificationDropdown

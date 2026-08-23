@@ -19,16 +19,18 @@ const REVISION_STATUS_LABELS: Record<string, string> = {
   REVISION: "يحتاج تعديل",
 };
 
+const UNKNOWN_STATUS_LABEL = "غير معروف";
+
 function resolveLabel(domain: PmDomain, status: string): string {
   switch (domain) {
     case "project":
-      return PROJECT_STATUS_LABELS[status as ProjectStatus] || status;
+      return PROJECT_STATUS_LABELS[status as ProjectStatus] || UNKNOWN_STATUS_LABEL;
     case "task":
-      return TASK_STATUS_LABELS[status as TaskStatus] || status;
+      return TASK_STATUS_LABELS[status as TaskStatus] || UNKNOWN_STATUS_LABEL;
     case "revision":
-      return REVISION_STATUS_LABELS[status] || status;
+      return REVISION_STATUS_LABELS[status] || UNKNOWN_STATUS_LABEL;
     case "dispute":
-      return DISPUTE_STATUS_AR[status as DisputeStatus] || status;
+      return DISPUTE_STATUS_AR[status as DisputeStatus] || UNKNOWN_STATUS_LABEL;
   }
 }
 

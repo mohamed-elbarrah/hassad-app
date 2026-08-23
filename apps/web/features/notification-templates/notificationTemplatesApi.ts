@@ -6,6 +6,8 @@ export interface NotificationTemplate {
   eventType: string;
   title: string;
   body: string;
+  translationKey?: string | null;
+  metadataSchema?: Record<string, unknown> | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -30,7 +32,14 @@ export const notificationTemplatesApi = createApi({
 
     updateNotificationTemplate: builder.mutation<
       NotificationTemplate,
-      { id: string; title?: string; body?: string; isActive?: boolean }
+      {
+        id: string;
+        title?: string;
+        body?: string;
+        translationKey?: string;
+        metadataSchema?: Record<string, unknown>;
+        isActive?: boolean;
+      }
     >({
       query: ({ id, ...body }) => ({
         url: `/notification-templates/${id}`,

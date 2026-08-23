@@ -48,7 +48,7 @@ export class AdminAlertService {
       const existing = await this.prisma.notificationEvent.findFirst({
         where: {
           entityId: project.id,
-          entityType: "PROJECT",
+          entityType: "project",
           eventType: "PROJECT_STALLED",
           triggeredAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
         },
@@ -57,10 +57,9 @@ export class AdminAlertService {
 
       await this.notificationsService.notifyUsers({
         userIds: recipientIds,
-        title: "مشروع متعثر",
-        message: `المشروع "${project.name}" متعثر (الحالة: ${project.status}). يرجى المراجعة.`,
+        metadata: { projectId: project.id, projectName: project.name, status: project.status },
         entityId: project.id,
-        entityType: "PROJECT",
+        entityType: "project",
         eventType: "PROJECT_STALLED",
       });
       notified++;
@@ -99,10 +98,9 @@ export class AdminAlertService {
     const managerIds = salesManagers.map((u) => u.id);
     await this.notificationsService.notifyUsers({
       userIds: managerIds,
-      title: "طلبات غير معينة",
-      message: `يوجد ${unassigned.length} طلب غير معين. يرجى توزيعهم على فريق المبيعات.`,
+      metadata: { requestCount: unassigned.length },
       entityId: "unassigned-requests",
-      entityType: "REQUEST",
+      entityType: "request",
       eventType: "UNASSIGNED_REQUEST",
     });
 
@@ -135,8 +133,10 @@ export class AdminAlertService {
     });
     const alreadyAlertedIds = new Set(
       existingEvents
-        .map((e) => (e.metadata as any)?.systemEventId)
-        .filter(Boolean),
+        .flatMap((e) => {
+          const metadata = e.metadata as { systemEventId?: string; systemEventIds?: string[] } | null;
+          return metadata?.systemEventIds ?? (metadata?.systemEventId ? [metadata.systemEventId] : []);
+        }),
     );
 
     const newFailures = openFailures.filter(
@@ -160,12 +160,14 @@ export class AdminAlertService {
 
     await this.notificationsService.notifyUsers({
       userIds: adminIds,
-      title: "أخطاء نظام",
-      message: `يوجد ${webhookCount} خطأ ويب هوك و ${gatewayCount} خطأ بوابة دفع بحاجة للمراجعة.`,
       entityId: "system-failures",
       entityType: "system",
       eventType: "SYSTEM_FAILURE",
-      metadata: { systemEventIds: newFailures.map((f) => f.id) },
+      metadata: {
+        systemEventIds: newFailures.map((f) => f.id),
+        webhookCount,
+        gatewayCount,
+      },
     });
 
     this.logger.log(`System failure alert sent to ${adminIds.length} admin(s)`);
@@ -200,7 +202,7 @@ export class AdminAlertService {
       const existing = await this.prisma.notificationEvent.findFirst({
         where: {
           entityId: client.id,
-          entityType: "CLIENT",
+          entityType: "client",
           eventType: "CLIENT_INACTIVE",
           triggeredAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
         },
@@ -214,10 +216,9 @@ export class AdminAlertService {
 
       await this.notificationsService.notifyUsers({
         userIds: recipients,
-        title: "عميل غير نشط",
-        message: `العميل "${client.companyName}" غير نشط منذ أكثر من 30 يوماً. يرجى التواصل معهم.`,
+        metadata: { clientId: client.id, companyName: client.companyName, inactiveDays: 30 },
         entityId: client.id,
-        entityType: "CLIENT",
+        entityType: "client",
         eventType: "CLIENT_INACTIVE",
       });
       notified++;
@@ -256,7 +257,7 @@ export class AdminAlertService {
       const existing = await this.prisma.notificationEvent.findFirst({
         where: {
           entityId: w.userId,
-          entityType: "USER",
+          entityType: "user",
           eventType: "WORKLOAD_WARNING",
           triggeredAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
         },
@@ -265,10 +266,9 @@ export class AdminAlertService {
 
       await this.notificationsService.createNotification({
         userId: w.userId,
-        title: "حمل عمل مرتفع",
-        body: `لديك ${w.activeTasksCount} مهمة نشطة (المعدل: ${Math.round(avgTasks)}). يرجى مراجعة أولوياتك.`,
+        metadata: { userId: w.userId, activeTasks: w.activeTasksCount, averageTasks: Math.round(avgTasks) },
         entityId: w.userId,
-        entityType: "USER",
+        entityType: "user",
         eventType: "WORKLOAD_WARNING",
       });
       notified++;
@@ -284,14 +284,12 @@ export class AdminAlertService {
         select: { id: true },
       });
       if (managers.length > 0) {
-        const names = underloaded
-          .map((w) => w.user?.name)
-          .filter(Boolean)
-          .join("، ");
         await this.notificationsService.notifyUsers({
           userIds: managers.map((m) => m.id),
-          title: "أعضاء فريق بحمل عمل منخفض",
-          message: `الأعضاء التاليون لديهم حمل عمل منخفض: ${names}. يرجى إعادة توزيع المهام.`,
+          metadata: {
+            underloadedUserNames: underloaded.map((w) => w.user?.name).filter(Boolean),
+            underloadedCount: underloaded.length,
+          },
           entityId: "workload",
           entityType: "system",
           eventType: "WORKLOAD_WARNING",
@@ -344,10 +342,9 @@ export class AdminAlertService {
       if (task.assignee?.id) {
         await this.notificationsService.createNotification({
           userId: task.assignee.id,
-          title: "مهمة متأخرة",
-          body: `المهمة "${task.title}" ${daysOverdue > 0 ? `متأخرة ${daysOverdue} يوماً` : "مستحقة اليوم"}.`,
+          metadata: { taskId: task.id, taskTitle: task.title, daysOverdue, alertLevel },
           entityId: task.id,
-          entityType: "TASK",
+          entityType: "task",
           eventType: "TASK_DELAYED",
         });
       }
@@ -386,10 +383,9 @@ export class AdminAlertService {
       if (req.assignedSalesId) {
         await this.notificationsService.createNotification({
           userId: req.assignedSalesId,
-          title: "طلب بحاجة للمتابعة",
-          body: `طلب "${req.contactName}" (${req.companyName}) لم يتم تحديثه منذ 14 يوماً.`,
+          metadata: { requestId: req.id, companyName: req.companyName, contactName: req.contactName, staleDays: 14 },
           entityId: req.id,
-          entityType: "REQUEST",
+          entityType: "request",
           eventType: "STALE_REQUEST",
         });
       }

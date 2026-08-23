@@ -18,6 +18,7 @@ export default function TaskDetailPage({
       rootHref="/dashboard/pm"
       rootLabel="لوحة مدير المشروع"
       includeMarketingExtras
+      pmOwned
     />
   );
 }

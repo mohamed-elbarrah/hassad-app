@@ -137,10 +137,9 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: adminIds,
-      title: "تذكرة نزاع جديدة",
-      message: `تذكرة جديدة رقم #${payload.ticketNumber} تحتاج مراجعة`,
+      metadata: { disputeId: payload.disputeId, ticketNumber: payload.ticketNumber },
       entityId: payload.disputeId,
-      entityType: "DISPUTE",
+      entityType: "dispute",
       eventType: "DISPUTE_OPENED",
     });
   }
@@ -155,10 +154,9 @@ export class DisputesNotificationsService {
     // Notify PM
     await this.notificationsService.notifyUsers({
       userIds: [payload.pmId],
-      title: "تمت الموافقة على تذكرة نزاع",
-      message: `تمت الموافقة على تذكرة "${dispute.title}" - لديك 3 أيام للحل`,
+      metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber, disputeTitle: dispute.title, resolutionDays: 3 },
       entityId: payload.disputeId,
-      entityType: "DISPUTE",
+      entityType: "dispute",
       eventType: "DISPUTE_APPROVED",
     });
 
@@ -189,10 +187,9 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: [client.userId],
-      title: "تم رفض تذكرتك",
-      message: `تم رفض تذكرتك. السبب: ${payload.reason}`,
+      metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber, reason: payload.reason },
       entityId: payload.disputeId,
-      entityType: "DISPUTE",
+      entityType: "dispute",
       eventType: "DISPUTE_REJECTED",
     });
   }
@@ -253,10 +250,9 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: Array.from(recipients),
-      title: "رسالة جديدة في التذكرة",
-      message: `لديك رسالة جديدة في التذكرة #${dispute.ticketNumber}`,
+      metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber, messageId: payload.messageId },
       entityId: payload.disputeId,
-      entityType: "DISPUTE",
+      entityType: "dispute",
       eventType: "DISPUTE_NEW_MESSAGE",
     });
   }
@@ -277,10 +273,9 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: [client.userId],
-      title: "تحديث على تذكرتك",
-      message: `مدير المشروع أشار إلى حل المشكلة. يرجى تأكيد الحل أو التصعيد.`,
+      metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber },
       entityId: payload.disputeId,
-      entityType: "DISPUTE",
+      entityType: "dispute",
       eventType: "DISPUTE_PM_RESOLVED",
     });
   }
@@ -295,10 +290,9 @@ export class DisputesNotificationsService {
     // Notify PM
     await this.notificationsService.notifyUsers({
       userIds: [payload.pmId],
-      title: "تم حل التذكرة",
-      message: `العميل أكد حل التذكرة #${dispute.ticketNumber}`,
+      metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber },
       entityId: payload.disputeId,
-      entityType: "DISPUTE",
+      entityType: "dispute",
       eventType: "DISPUTE_CLIENT_CONFIRM",
     });
 
@@ -307,10 +301,9 @@ export class DisputesNotificationsService {
     if (adminIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: adminIds,
-        title: "تم حل تذكرة نزاع",
-        message: `تم حل التذكرة #${dispute.ticketNumber} - العميل أكد الحل`,
+        metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber },
         entityId: payload.disputeId,
-        entityType: "DISPUTE",
+        entityType: "dispute",
         eventType: "DISPUTE_CLIENT_CONFIRM",
       });
     }
@@ -328,10 +321,9 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: adminIds,
-      title: "تم تصعيد تذكرة نزاع",
-      message: `العميل صرح بعدم حل المشكلة في التذكرة #${dispute.ticketNumber}`,
+      metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber },
       entityId: payload.disputeId,
-      entityType: "DISPUTE",
+      entityType: "dispute",
       eventType: "DISPUTE_CLIENT_ESCALATE",
     });
   }
@@ -348,10 +340,9 @@ export class DisputesNotificationsService {
 
     await this.notificationsService.notifyUsers({
       userIds: adminIds,
-      title: "تصعيد تلقائي لتذكرة",
-      message: `التذكرة #${dispute.ticketNumber} تم تصعيدها تلقائياً لانتهاء المهلة`,
+      metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber },
       entityId: payload.disputeId,
-      entityType: "DISPUTE",
+      entityType: "dispute",
       eventType: "DISPUTE_AUTO_ESCALATED",
     });
   }
@@ -368,11 +359,6 @@ export class DisputesNotificationsService {
       select: { userId: true },
     });
 
-    const newPm = await this.prisma.user.findUnique({
-      where: { id: payload.newPmId },
-      select: { name: true },
-    });
-
     const notifications: Promise<void>[] = [];
 
     // Notify client
@@ -381,10 +367,9 @@ export class DisputesNotificationsService {
         this.notificationsService
           .notifyUsers({
             userIds: [client.userId],
-            title: "تغيير مدير المشروع",
-            message: `تم تغيير مدير المشروع لحل التذكرة #${dispute.ticketNumber}`,
+            metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber, projectName: dispute.project.name, role: "client" },
             entityId: payload.disputeId,
-            entityType: "DISPUTE",
+            entityType: "dispute",
             eventType: "DISPUTE_PM_CHANGED",
           })
           .then(() => {}),
@@ -396,10 +381,9 @@ export class DisputesNotificationsService {
       this.notificationsService
         .notifyUsers({
           userIds: [payload.oldPmId],
-          title: "تم تغييرك من مشروع",
-          message: `تم تغييرك كمدير لمشروع "${dispute.project.name}" بسبب نزاع`,
+          metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber, projectName: dispute.project.name, role: "old_pm" },
           entityId: payload.disputeId,
-          entityType: "DISPUTE",
+          entityType: "dispute",
           eventType: "DISPUTE_PM_CHANGED",
         })
         .then(() => {}),
@@ -410,10 +394,9 @@ export class DisputesNotificationsService {
       this.notificationsService
         .notifyUsers({
           userIds: [payload.newPmId],
-          title: "تعيينك كمدير مشروع جديد",
-          message: `تم تعيينك كمدير لمشروع "${dispute.project.name}"`,
+          metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber, projectName: dispute.project.name, role: "new_pm" },
           entityId: payload.disputeId,
-          entityType: "DISPUTE",
+          entityType: "dispute",
           eventType: "DISPUTE_PM_CHANGED",
         })
         .then(() => {}),
@@ -442,10 +425,9 @@ export class DisputesNotificationsService {
         this.notificationsService
           .notifyUsers({
             userIds: [client.userId],
-            title: "تم إغلاق التذكرة",
-            message: `تم إغلاق تذكرتك #${dispute.ticketNumber}`,
+            metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber },
             entityId: payload.disputeId,
-            entityType: "DISPUTE",
+            entityType: "dispute",
             eventType: "DISPUTE_CLOSED",
           })
           .then(() => {}),
@@ -457,10 +439,9 @@ export class DisputesNotificationsService {
       this.notificationsService
         .notifyUsers({
           userIds: [payload.pmId],
-          title: "تم إغلاق التذكرة",
-          message: `تم إغلاق التذكرة #${dispute.ticketNumber}`,
+          metadata: { disputeId: payload.disputeId, ticketNumber: dispute.ticketNumber },
           entityId: payload.disputeId,
-          entityType: "DISPUTE",
+          entityType: "dispute",
           eventType: "DISPUTE_CLOSED",
         })
         .then(() => {}),
@@ -486,18 +467,11 @@ export class DisputesNotificationsService {
 
     if (!client?.userId) return false;
 
-    const reminderMessages: Record<number, string> = {
-      1: `تذكير: يرجى تأكيد حل المشكلة في التذكرة #${payload.ticketNumber}`,
-      2: `تذكير ثاني: لم يتم تأكيد حل المشكلة في التذكرة #${payload.ticketNumber}`,
-      3: `تذكير نهائي: سيتم تصعيد التذكرة #${payload.ticketNumber} تلقائياً في حال عدم الرد`,
-    };
-
     await this.notificationsService.notifyUsers({
       userIds: [client.userId],
-      title: `تذكير ${payload.reminderNumber}`,
-      message: reminderMessages[payload.reminderNumber],
+      metadata: { disputeId: payload.disputeId, ticketNumber: payload.ticketNumber, reminderNumber: payload.reminderNumber },
       entityId: payload.disputeId,
-      entityType: "DISPUTE",
+      entityType: "dispute",
       eventType: `DISPUTE_REMINDER_DAY${payload.reminderNumber}` as any,
     });
 

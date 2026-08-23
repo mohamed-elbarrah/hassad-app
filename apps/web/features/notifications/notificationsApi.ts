@@ -39,6 +39,7 @@ export type NotificationItem = Omit<Notification, "createdAt"> & {
   eventType: string;
   entityType?: string | null;
   entityId?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 // ── API slice ─────────────────────────────────────────────────────────────────

@@ -64,8 +64,7 @@ export class ContractCronService {
       if (recipientIds.length > 0) {
         await this.notificationsService.notifyUsers({
           userIds: recipientIds,
-          title: "عقد يقترب من الانتهاء",
-          message: `العقد "${contract.title}" مع ${contract.client.companyName} ينتهي خلال 7 أيام`,
+          metadata: { contractId: contract.id, contractTitle: contract.title, companyName: contract.client.companyName, daysRemaining: 7 },
           entityId: contract.id,
           entityType: "CONTRACT",
           eventType: "CONTRACT_EXPIRING",
@@ -104,8 +103,7 @@ export class ContractCronService {
       if (recipientIds.length > 0) {
         await this.notificationsService.notifyUsers({
           userIds: recipientIds,
-          title: "انتهى العقد",
-          message: `انتهى العقد "${contract.title}" مع ${contract.client.companyName}. يرجى التواصل مع العميل للتجديد.`,
+          metadata: { contractId: contract.id, contractTitle: contract.title, companyName: contract.client.companyName },
           entityId: contract.id,
           entityType: "CONTRACT",
           eventType: "CONTRACT_EXPIRED",
@@ -151,8 +149,7 @@ export class ContractCronService {
       if (managerIds.length > 0) {
         await this.notificationsService.notifyUsers({
           userIds: managerIds,
-          title: "تنبيه: العقد يحتاج لتجديد عاجل",
-          message: `العقد "${contract.title}" مع ${contract.client?.companyName} ينتهي خلال 7 أيام ولم يتم اتخاذ إجراء. يرجى التواصل مع العميل للتجديد.`,
+          metadata: { contractId: contract.id, contractTitle: contract.title, companyName: contract.client?.companyName, daysRemaining: 7 },
           entityId: contract.id,
           entityType: "CONTRACT",
           eventType: "RENEWAL_ESCALATED",

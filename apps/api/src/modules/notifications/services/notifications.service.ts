@@ -18,6 +18,10 @@ export class NotificationsService {
     });
   }
 
+  private normalizeEntityType(entityType: string): string {
+    return entityType.trim().toLowerCase();
+  }
+
   private async emitUnreadCount(userId: string) {
     const count = await this.prisma.notification.count({
       where: { userId, isRead: false },
@@ -28,21 +32,22 @@ export class NotificationsService {
   private mapNotificationRow(row: {
     id: string;
     userId: string;
-    title: string;
-    body: string;
     isRead: boolean;
     channel: string;
     sentAt: Date | null;
     readAt: Date | null;
-    event: { entityId: string; entityType: string; eventType: string };
+    event: {
+      entityId: string;
+      entityType: string;
+      eventType: string;
+      metadata: Prisma.JsonValue | null;
+    };
   }) {
     const createdAt = row.sentAt ?? row.readAt ?? new Date();
 
     return {
       id: row.id,
       userId: row.userId,
-      title: row.title,
-      body: row.body,
       isRead: row.isRead,
       channel: row.channel,
       sentAt: row.sentAt,
@@ -51,6 +56,7 @@ export class NotificationsService {
       entityId: row.event.entityId,
       entityType: row.event.entityType,
       eventType: row.event.eventType,
+      metadata: row.event.metadata,
     };
   }
 
@@ -59,16 +65,18 @@ export class NotificationsService {
     entityType: string;
     eventType: string;
     userId: string;
-    title: string;
-    body: string;
+    /** @deprecated Use eventType and metadata. */
+    title?: string;
+    /** @deprecated Use eventType and metadata. */
+    body?: string;
     metadata?: Prisma.InputJsonValue;
   }) {
     const notification = await this.prisma.$transaction(async (tx) => {
       const event = await tx.notificationEvent.create({
         data: {
           entityId: params.entityId,
-          entityType: params.entityType,
-          eventType: params.eventType,
+          entityType: this.normalizeEntityType(params.entityType),
+          eventType: params.eventType.trim(),
           metadata: params.metadata ?? undefined,
         },
       });
@@ -77,8 +85,6 @@ export class NotificationsService {
         data: {
           eventId: event.id,
           userId: params.userId,
-          title: params.title,
-          body: params.body,
           channel: "in-app",
           sentAt: new Date(),
         },
@@ -88,10 +94,14 @@ export class NotificationsService {
     });
 
     this.eventEmitter.emit("notification.created", {
-      ...notification,
+      id: notification.id,
+      userId: notification.userId,
+      isRead: notification.isRead,
+      createdAt: notification.sentAt,
       entityId: params.entityId,
-      entityType: params.entityType,
-      eventType: params.eventType,
+      entityType: this.normalizeEntityType(params.entityType),
+      eventType: params.eventType.trim(),
+      metadata: params.metadata ?? null,
     });
 
     await this.emitUnreadCount(params.userId);
@@ -120,6 +130,7 @@ export class NotificationsService {
               entityId: true,
               entityType: true,
               eventType: true,
+              metadata: true,
             },
           },
         },
@@ -215,6 +226,7 @@ export class NotificationsService {
           entityId: "broadcast",
           entityType: "system",
           eventType: "BROADCAST",
+          metadata: { title: params.title, body: params.message },
         },
       });
 
@@ -222,8 +234,6 @@ export class NotificationsService {
         data: users.map((u) => ({
           eventId: event.id,
           userId: u.id,
-          title: params.title,
-          body: params.message,
           channel: "in-app",
           sentAt: new Date(),
         })),
@@ -232,11 +242,20 @@ export class NotificationsService {
       return { sent: users.length };
     });
 
+    const userIds = users.map((user) => user.id);
     this.eventEmitter.emit("notification.broadcast", {
-      userIds: users.map((user) => user.id),
-      title: params.title,
-      message: params.message,
+      userIds,
+      metadata: { title: params.title, body: params.message },
     });
+
+    await Promise.all(
+      userIds.map(async (userId) => {
+        const count = await this.prisma.notification.count({
+          where: { userId, isRead: false },
+        });
+        this.eventEmitter.emit("notification.unreadCount", { userId, count });
+      }),
+    );
 
     return result;
   }
@@ -244,8 +263,10 @@ export class NotificationsService {
   async notifyUsers(params: {
     userIds: string[];
     excludeUserIds?: string[];
-    title: string;
-    message: string;
+    /** @deprecated Use eventType and metadata. */
+    title?: string;
+    /** @deprecated Use metadata for system notification content. */
+    message?: string;
     entityId?: string;
     entityType?: string;
     eventType?: string;
@@ -266,34 +287,38 @@ export class NotificationsService {
       const event = await tx.notificationEvent.create({
         data: {
           entityId: params.entityId || "system",
-          entityType: params.entityType || "system",
-          eventType: params.eventType || "DIRECT_NOTIFICATION",
+          entityType: this.normalizeEntityType(params.entityType || "system"),
+          eventType: params.eventType?.trim() || "DIRECT_NOTIFICATION",
           metadata: params.metadata ?? undefined,
         },
       });
 
-      await tx.notification.createMany({
+      const notifications = await tx.notification.createManyAndReturn({
         data: uniqueUserIds.map((userId) => ({
           eventId: event.id,
           userId,
-          title: params.title,
-          body: params.message,
           channel: "in-app",
           sentAt: new Date(),
         })),
+        select: { id: true, userId: true, isRead: true, sentAt: true },
       });
 
-      return { sent: uniqueUserIds.length };
+      return { sent: uniqueUserIds.length, notifications };
     });
 
     for (const userId of uniqueUserIds) {
+      const notification = result.notifications.find(
+        (item) => item.userId === userId,
+      );
       this.eventEmitter.emit("notification.created", {
+        id: notification?.id,
         userId,
-        title: params.title,
-        body: params.message,
+        isRead: notification?.isRead ?? false,
+        createdAt: notification?.sentAt ?? new Date(),
         entityId: params.entityId || "system",
-        entityType: params.entityType || "system",
-        eventType: params.eventType || "DIRECT_NOTIFICATION",
+        entityType: this.normalizeEntityType(params.entityType || "system"),
+        eventType: params.eventType?.trim() || "DIRECT_NOTIFICATION",
+        metadata: params.metadata ?? null,
       });
 
       const unreadCount = await this.prisma.notification.count({

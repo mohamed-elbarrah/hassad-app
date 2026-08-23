@@ -10,15 +10,9 @@ import {
   Clock,
   FolderKanban,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -37,11 +31,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
+import { PageHeader } from "@/components/common/PageHeader";
 import {
-  type PmDeliverableWithRevisions,
   useGetPmRevisionsQuery,
 } from "@/features/projects/projectsApi";
 import { formatShortDate } from "@/lib/format";
+import { pmErrorMessage } from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
 
 type Filter =
@@ -67,6 +62,8 @@ export default function PMChangeRequestsPage() {
     data: deliverables = [],
     isLoading,
     isError,
+    error,
+    refetch,
   } = useGetPmRevisionsQuery(undefined, { skip: user?.role !== "PM" });
   const revisions = useMemo(
     () =>
@@ -102,21 +99,11 @@ export default function PMChangeRequestsPage() {
   ];
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted">
-              <ClipboardList />
-            </div>
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl">طلبات التعديل</CardTitle>
-              <CardDescription>
-                طلبات التعديل الواردة من العملاء على التسليمات في مشاريعك.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        title="طلبات التعديل"
+        description="طلبات التعديل الواردة من العملاء على التسليمات في مشاريعك."
+        icon={ClipboardList}
+      />
       {!isLoading && !isError && (
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {metrics.map((metric) => (
@@ -129,59 +116,62 @@ export default function PMChangeRequestsPage() {
                   <span className="text-2xl font-semibold">{metric.value}</span>
                 </div>
                 <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-                  <metric.icon />
+                  <metric.icon aria-hidden="true" />
                 </div>
               </CardContent>
             </Card>
           ))}
         </section>
       )}
-      <Card>
-        <CardHeader className="gap-4">
-          <div>
-            <CardTitle>قائمة طلبات التعديل</CardTitle>
-            <CardDescription>
-              تابع ملاحظات العملاء على تسليمات المشاريع.
-            </CardDescription>
-          </div>
-          {!isLoading && !isError && (
-            <Tabs
-              value={filter}
-              onValueChange={(value) => setFilter(value as Filter)}
-            >
-              <TabsList className="h-auto flex-wrap">
-                {FILTERS.map((item) => (
-                  <TabsTrigger key={item.value} value={item.value}>
-                    {item.label} (
-                    {item.value === "all"
-                      ? revisions.length
-                      : counts[item.value] || 0}
-                    )
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          )}
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex flex-col gap-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <Skeleton key={index} className="h-14" />
+      {!isLoading && !isError && (
+        <div className="border-b pb-6">
+          <Tabs
+            value={filter}
+            onValueChange={(value) => setFilter(value as Filter)}
+            aria-label="تصفية طلبات التعديل حسب الحالة"
+          >
+            <TabsList className="h-auto flex-wrap">
+              {FILTERS.map((item) => (
+                <TabsTrigger key={item.value} value={item.value}>
+                  {item.label} (
+                  {item.value === "all"
+                    ? revisions.length
+                    : counts[item.value] || 0}
+                  )
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
+          </Tabs>
+        </div>
+      )}
+
+      <div>
+          {isLoading ? (
+            <RequestsTableSkeleton />
           ) : isError ? (
-            <RequestsEmpty
-              title="تعذر تحميل طلبات التعديل"
-              description="يرجى المحاولة لاحقاً."
-            />
+            <Alert variant="destructive">
+              <AlertTitle>تعذر تحميل طلبات التعديل</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3">
+                {pmErrorMessage(error)}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => refetch()}
+                >
+                  إعادة المحاولة
+                </Button>
+              </AlertDescription>
+            </Alert>
           ) : filtered.length === 0 ? (
             <RequestsEmpty
               title="لا توجد طلبات تعديل"
               description="لم يقدم العملاء أي طلبات تعديل على التسليمات بعد."
             />
           ) : (
-            <Table>
+            <div className="overflow-hidden rounded-lg border">
+              <Table>
+                <caption className="sr-only">طلبات التعديل</caption>
               <TableHeader>
                 <TableRow>
                   <TableHead>التسليم</TableHead>
@@ -220,7 +210,10 @@ export default function PMChangeRequestsPage() {
                         <Link
                           href={`/dashboard/pm/projects/${deliverable.project?.id ?? deliverable.projectId}`}
                         >
-                          <ArrowUpRight />
+                          <ArrowUpRight
+                            aria-hidden="true"
+                            data-icon="inline-start"
+                          />
                           فتح
                         </Link>
                       </Button>
@@ -228,13 +221,43 @@ export default function PMChangeRequestsPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
     </main>
   );
 }
+
+function RequestsTableSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {Array.from({ length: 7 }).map((_, index) => (
+              <TableHead key={index}>
+                <Skeleton className="h-4 w-full" />
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 6 }).map((_, row) => (
+            <TableRow key={row}>
+              {Array.from({ length: 7 }).map((_, cell) => (
+                <TableCell key={cell}>
+                  <Skeleton className="h-5 w-full" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 function RequestsEmpty({
   title,
   description,
@@ -246,7 +269,7 @@ function RequestsEmpty({
     <Empty>
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <FolderKanban />
+          <FolderKanban aria-hidden="true" />
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>

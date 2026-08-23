@@ -781,8 +781,6 @@ export class RequestsService {
       await this.notificationsService
         .notifyUsers({
           userIds: [createdRequest.assignee.id],
-          title: "REQUEST_SUBMITTED",
-          message: "REQUEST_SUBMITTED",
           entityId: createdRequest.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",
@@ -1108,8 +1106,6 @@ export class RequestsService {
       await this.notificationsService
         .notifyUsers({
           userIds: [request.assignee.id],
-          title: "REQUEST_SUBMITTED",
-          message: "REQUEST_SUBMITTED",
           entityId: request.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",

@@ -48,6 +48,7 @@ import {
   type TaskHistoryRecord,
   type TaskTabItem,
 } from "@/components/task-detail/TaskDetailPattern";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,6 +73,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadTaskFile } from "@/lib/downloadFile";
+import { pmErrorMessage } from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
 import { formatDateTime, formatShortDate } from "@/lib/format";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/utils/task-status";
@@ -81,12 +83,21 @@ import {
   useApproveTaskMutation,
   useDeleteTaskFileMutation,
   useGetTaskByIdQuery,
+  useGetPmTaskByIdQuery,
   useGetTaskCommentsQuery,
+  useGetPmTaskCommentsQuery,
   useGetTaskFilesQuery,
+  useGetPmTaskFilesQuery,
   useRejectTaskMutation,
   useStartTaskMutation,
   useSubmitTaskMutation,
   useUploadTaskFileMutation,
+  useUploadPmTaskFileMutation,
+  useDeletePmTaskFileMutation,
+  useAddPmTaskCommentMutation,
+  useChangePmTaskStatusMutation,
+  useLazyGetPmTaskFileDownloadQuery,
+  type TaskWithProject,
 } from "@/features/tasks/tasksApi";
 
 const FILE_PURPOSE_LABELS: Record<FilePurpose, string> = {
@@ -111,6 +122,7 @@ interface TaskWorkspaceDetailProps {
   rootLabel: string;
   includeMarketingExtras?: boolean;
   canManageMarketingExtras?: boolean;
+  pmOwned?: boolean;
 }
 
 function mapTaskEntity(task: any): TaskDetailEntity {
@@ -191,9 +203,11 @@ function mapFiles(files?: TaskFile[]): TaskFileRecord[] {
 function ErrorState({
   listHref,
   listLabel,
+  description,
 }: {
   listHref: string;
   listLabel: string;
+  description: string;
 }) {
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
@@ -206,7 +220,7 @@ function ErrorState({
             <EmptyHeader>
               <EmptyTitle>المهمة غير موجودة</EmptyTitle>
               <EmptyDescription>
-                تعذّر الوصول إلى هذه المهمة أو لم تعد متاحة لهذا الدور.
+                {description}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
@@ -232,6 +246,7 @@ export function TaskWorkspaceDetail({
   rootLabel,
   includeMarketingExtras = false,
   canManageMarketingExtras = false,
+  pmOwned = false,
 }: TaskWorkspaceDetailProps) {
   const { user } = useAppSelector((state) => state.auth);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -243,9 +258,23 @@ export function TaskWorkspaceDetail({
     enabled: includeMarketingExtras,
   });
 
-  const { data: task, isLoading, isError } = useGetTaskByIdQuery(taskId);
-  const { data: files, isLoading: filesLoading } = useGetTaskFilesQuery(taskId);
-  const { data: comments, isLoading: commentsLoading } = useGetTaskCommentsQuery(taskId);
+  const genericTaskQuery = useGetTaskByIdQuery(taskId, { skip: pmOwned });
+  const pmTaskQuery = useGetPmTaskByIdQuery(taskId, { skip: !pmOwned });
+  const genericFilesQuery = useGetTaskFilesQuery(taskId, { skip: pmOwned });
+  const pmFilesQuery = useGetPmTaskFilesQuery(taskId, { skip: !pmOwned });
+  const genericCommentsQuery = useGetTaskCommentsQuery(taskId, { skip: pmOwned });
+  const pmCommentsQuery = useGetPmTaskCommentsQuery(taskId, { skip: !pmOwned });
+  const task = (pmTaskQuery.data ?? genericTaskQuery.data) as
+    | TaskWithProject
+    | undefined;
+  const files = pmFilesQuery.data ?? genericFilesQuery.data;
+  const comments = pmCommentsQuery.data ?? genericCommentsQuery.data;
+  const isLoading = pmOwned ? pmTaskQuery.isLoading : genericTaskQuery.isLoading;
+  const isError = pmOwned ? pmTaskQuery.isError : genericTaskQuery.isError;
+  const filesLoading = pmOwned ? pmFilesQuery.isLoading : genericFilesQuery.isLoading;
+  const filesError = pmOwned ? pmFilesQuery.error : genericFilesQuery.error;
+  const commentsLoading = pmOwned ? pmCommentsQuery.isLoading : genericCommentsQuery.isLoading;
+  const commentsError = pmOwned ? pmCommentsQuery.error : genericCommentsQuery.error;
 
   const clientId = (task as any)?.project?.client?.id ?? (task as any)?.project?.clientId ?? "";
   const { data: teamView } = useGetClientTeamViewQuery(clientId, {
@@ -253,16 +282,33 @@ export function TaskWorkspaceDetail({
   });
 
   const [startTask] = useStartTaskMutation();
+  const [changePmTaskStatus] = useChangePmTaskStatusMutation();
   const [submitTask] = useSubmitTaskMutation();
   const [approveTask] = useApproveTaskMutation();
   const [rejectTask] = useRejectTaskMutation();
-  const [uploadFile, { isLoading: isUploading }] = useUploadTaskFileMutation();
-  const [deleteFile, { isLoading: isDeletingFile }] = useDeleteTaskFileMutation();
-  const [addComment, { isLoading: isAddingComment }] = useAddTaskCommentMutation();
+  const [uploadFile, { isLoading: isUploadingGeneric }] = useUploadTaskFileMutation();
+  const [deleteFile, { isLoading: isDeletingGenericFile }] = useDeleteTaskFileMutation();
+  const [deletePmFile, { isLoading: isDeletingPmFile }] = useDeletePmTaskFileMutation();
+  const [addComment, { isLoading: isAddingGenericComment }] = useAddTaskCommentMutation();
+  const [addPmComment, { isLoading: isAddingPmComment }] = useAddPmTaskCommentMutation();
+  const [uploadPmFile, { isLoading: isUploadingPmFile }] = useUploadPmTaskFileMutation();
+  const [getPmFileDownload] = useLazyGetPmTaskFileDownloadQuery();
+  const isUploading = isUploadingGeneric || isUploadingPmFile;
+  const isDeletingFile = isDeletingGenericFile || isDeletingPmFile;
+  const isAddingComment = isAddingGenericComment || isAddingPmComment;
+  const taskError = pmOwned ? pmTaskQuery.error : genericTaskQuery.error;
 
   if (!user) return null;
   if (isLoading) return <TaskDetailLoading />;
-  if (isError || !task) return <ErrorState listHref={listHref} listLabel={listLabel} />;
+  if (isError || !task) {
+    return (
+      <ErrorState
+        listHref={listHref}
+        listLabel={listLabel}
+        description={pmErrorMessage(taskError)}
+      />
+    );
+  }
 
   const taskEntity = mapTaskEntity(task);
   const isMarketingTask = task.department?.name === TaskDepartment.MARKETING;
@@ -286,13 +332,26 @@ export function TaskWorkspaceDetail({
 
   async function runStatusAction(action: "start" | "submit" | "approve" | "reject") {
     try {
-      if (action === "start") await startTask(taskId).unwrap();
-      if (action === "submit") await submitTask(taskId).unwrap();
-      if (action === "approve") await approveTask(taskId).unwrap();
-      if (action === "reject") await rejectTask(taskId).unwrap();
+      if (pmOwned) {
+        const statusByAction = {
+          start: TaskStatus.IN_PROGRESS,
+          submit: TaskStatus.IN_REVIEW,
+          approve: TaskStatus.DONE,
+          reject: TaskStatus.REVISION,
+        } as const;
+        await changePmTaskStatus({
+          id: taskId,
+          status: statusByAction[action],
+        }).unwrap();
+      } else {
+        if (action === "start") await startTask(taskId).unwrap();
+        if (action === "submit") await submitTask(taskId).unwrap();
+        if (action === "approve") await approveTask(taskId).unwrap();
+        if (action === "reject") await rejectTask(taskId).unwrap();
+      }
       toast.success("تم تحديث حالة المهمة");
-    } catch {
-      toast.error("فشل تحديث حالة المهمة");
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     }
   }
 
@@ -300,10 +359,14 @@ export function TaskWorkspaceDetail({
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      await uploadFile({ taskId, file, purpose: filePurpose }).unwrap();
+      if (pmOwned) {
+        await uploadPmFile({ taskId, file, purpose: filePurpose }).unwrap();
+      } else {
+        await uploadFile({ taskId, file, purpose: filePurpose }).unwrap();
+      }
       toast.success("تم رفع الملف");
-    } catch {
-      toast.error("فشل رفع الملف");
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -311,10 +374,14 @@ export function TaskWorkspaceDetail({
 
   async function handleDeleteFile(fileId: string) {
     try {
-      await deleteFile({ taskId, fileId }).unwrap();
+      if (pmOwned) {
+        await deletePmFile({ taskId, fileId }).unwrap();
+      } else {
+        await deleteFile({ taskId, fileId }).unwrap();
+      }
       toast.success("تم حذف الملف");
-    } catch {
-      toast.error("فشل حذف الملف");
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     }
   }
 
@@ -322,11 +389,15 @@ export function TaskWorkspaceDetail({
     const value = commentText.trim();
     if (!value) return;
     try {
-      await addComment({ taskId, content: value }).unwrap();
+      if (pmOwned) {
+        await addPmComment({ taskId, content: value }).unwrap();
+      } else {
+        await addComment({ taskId, content: value }).unwrap();
+      }
       setCommentText("");
       toast.success("تمت إضافة التعليق");
-    } catch {
-      toast.error("فشل إضافة التعليق");
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     }
   }
 
@@ -456,6 +527,11 @@ export function TaskWorkspaceDetail({
               <Skeleton className="h-20 rounded-lg" />
               <Skeleton className="h-20 rounded-lg" />
             </div>
+          ) : commentsError ? (
+            <Alert variant="destructive">
+              <AlertTitle>تعذر تحميل التعليقات</AlertTitle>
+              <AlertDescription>{pmErrorMessage(commentsError)}</AlertDescription>
+            </Alert>
           ) : (
             <TaskCommentsTable comments={commentsData} compact />
           )}
@@ -475,6 +551,7 @@ export function TaskWorkspaceDetail({
             <Textarea
               rows={4}
               placeholder="اكتب تعليقك هنا..."
+              aria-label="نص التعليق"
               value={commentText}
               onChange={(event) => setCommentText(event.target.value)}
               disabled={isAddingComment}
@@ -508,7 +585,10 @@ export function TaskWorkspaceDetail({
                 value={filePurpose}
                 onValueChange={(value) => setFilePurpose(value as FilePurpose)}
               >
-                <SelectTrigger className="w-full sm:w-44">
+                <SelectTrigger
+                  className="w-full sm:w-44"
+                  aria-label="نوع الملف"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -542,6 +622,11 @@ export function TaskWorkspaceDetail({
               <Skeleton className="h-20 rounded-lg" />
               <Skeleton className="h-20 rounded-lg" />
             </div>
+          ) : filesError ? (
+            <Alert variant="destructive">
+              <AlertTitle>تعذر تحميل الملفات</AlertTitle>
+              <AlertDescription>{pmErrorMessage(filesError)}</AlertDescription>
+            </Alert>
           ) : filesData.length === 0 ? (
             <Card>
               <CardContent className="p-8">
@@ -577,9 +662,17 @@ export function TaskWorkspaceDetail({
                         size="sm"
                         onClick={async () => {
                           try {
-                            await downloadTaskFile(taskId, file.id, file.fileName);
-                          } catch {
-                            toast.error("فشل تحميل الملف");
+                            if (pmOwned) {
+                              const result = await getPmFileDownload({
+                                taskId,
+                                fileId: file.id,
+                              }).unwrap();
+                              window.open(result.url, "_blank", "noopener,noreferrer");
+                            } else {
+                              await downloadTaskFile(taskId, file.id, file.fileName);
+                            }
+                          } catch (error) {
+                            toast.error(pmErrorMessage(error));
                           }
                         }}
                       >

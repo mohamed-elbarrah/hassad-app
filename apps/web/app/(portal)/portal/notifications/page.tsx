@@ -39,7 +39,10 @@ import {
   type PortalNotificationItem,
 } from "@/features/portal-notifications/portalNotificationsApi";
 import { cn } from "@/lib/utils";
-import { portalErrorMessage } from "@/lib/i18n";
+import {
+  notificationPresentation,
+  portalErrorMessage,
+} from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/format";
 
 type FilterTab = "all" | "action" | "info";
@@ -135,6 +138,10 @@ function NotificationRow({
   onToggle: () => void;
   onNavigate: () => void;
 }) {
+  const presentation = notificationPresentation(
+    notification.eventType,
+    notification.metadata,
+  );
   const isAction = notification.eventType
     ? isActionRequired(notification.entityType, notification.eventType)
     : isActionRequired(notification.entityType, null);
@@ -159,7 +166,7 @@ function NotificationRow({
                   : "font-medium",
               )}
             >
-              {notification.title}
+              {presentation.title}
             </p>
             <div className="flex shrink-0 items-center gap-2">
               {isAction && (
@@ -177,10 +184,10 @@ function NotificationRow({
           </div>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
             {isExpanded
-              ? notification.body
-              : notification.body.length > 120
-                ? notification.body.substring(0, 117) + "..."
-                : notification.body}
+              ? presentation.body
+              : presentation.body.length > 120
+                ? presentation.body.substring(0, 117) + "..."
+                : presentation.body}
           </p>
         </div>
       </button>

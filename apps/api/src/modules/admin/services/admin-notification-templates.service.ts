@@ -1,10 +1,10 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { UpdateNotificationTemplateDto } from "../dto/admin-notification-templates.dto";
+import type { Prisma } from "@prisma/client";
 
 @Injectable()
 export class AdminNotificationTemplatesService {
@@ -61,6 +61,12 @@ export class AdminNotificationTemplatesService {
         ...(dto.title !== undefined && { title: dto.title }),
         ...(dto.body !== undefined && { body: dto.body }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.translationKey !== undefined && {
+          translationKey: dto.translationKey,
+        }),
+        ...(dto.metadataSchema !== undefined && {
+          metadataSchema: dto.metadataSchema as Prisma.InputJsonValue,
+        }),
       },
     });
 
@@ -69,8 +75,16 @@ export class AdminNotificationTemplatesService {
       "NotificationTemplate",
       id,
       userId,
-      { title: template.title, isActive: template.isActive },
-      { title: updated.title, isActive: updated.isActive },
+      {
+        translationKey: template.translationKey,
+        metadataSchema: template.metadataSchema,
+        isActive: template.isActive,
+      },
+      {
+        translationKey: updated.translationKey,
+        metadataSchema: updated.metadataSchema,
+        isActive: updated.isActive,
+      },
     );
 
     return updated;
@@ -92,7 +106,9 @@ export class AdminNotificationTemplatesService {
     if (!template) throw new NotFoundException("القالب غير موجود");
 
     const skip = (page - 1) * limit;
-    const where: any = { title: template.title };
+    const where: Prisma.NotificationWhereInput = {
+      event: { eventType: template.eventType },
+    };
 
     const [items, total] = await Promise.all([
       this.prisma.notification.findMany({

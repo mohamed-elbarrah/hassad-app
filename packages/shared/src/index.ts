@@ -413,12 +413,22 @@ export interface Notification {
   id: string;
   userId: string;
   eventType: string;
-  title: string;
-  body: string;
   isRead: boolean;
   entityId?: string | null;
   entityType?: string | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: Date | string;
+}
+
+export interface NotificationEventPayload {
+  id?: string;
+  userId: string;
+  eventType: string;
+  entityId?: string | null;
+  entityType?: string | null;
+  metadata?: Record<string, unknown> | null;
+  isRead?: boolean;
+  createdAt?: Date | string;
 }
 
 export interface Invoice {

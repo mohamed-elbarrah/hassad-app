@@ -9,7 +9,6 @@ import {
   CreateTaskDto,
   UpdateTaskDto,
   AssignTaskDto,
-  UploadTaskFileDto,
   CreateTaskCommentDto,
 } from "../dto/task.dto";
 import {
@@ -24,14 +23,6 @@ import { StorageService } from "../../../common/storage/storage.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 import { ProjectPeriodsService } from "../../projects/services/project-periods.service";
 
-const DEPARTMENT_ARABIC_LABELS: Record<TaskDepartment, string> = {
-  [TaskDepartment.DESIGN]: "التصميم",
-  [TaskDepartment.CONTENT]: "المحتوى",
-  [TaskDepartment.DEVELOPMENT]: "التطوير",
-  [TaskDepartment.MARKETING]: "التسويق",
-  [TaskDepartment.PRODUCTION]: "المونتاج",
-};
-
 @Injectable()
 export class TasksService {
   private readonly logger = new Logger(TasksService.name);
@@ -43,11 +34,6 @@ export class TasksService {
     private projectGroupChatService: ProjectGroupChatService,
     private projectPeriodsService: ProjectPeriodsService,
   ) {}
-
-  private getDepartmentArabicLabel(departmentName: string | null | undefined) {
-    if (!departmentName) return null;
-    return DEPARTMENT_ARABIC_LABELS[departmentName as TaskDepartment] ?? null;
-  }
 
   private toUniqueUserIds(
     ...userIds: Array<string | null | undefined>
@@ -116,8 +102,6 @@ export class TasksService {
             entityType: "project",
             eventType: "PROJECT_AWAITING_REVIEW",
             userId: client.userId,
-            title: "مشروعك جاهز للمراجعة والموافقة",
-            body: `المشروع "${project.name}" اكتمل وتم تقديمه لمراجعتك.`,
           })
           .catch(() => undefined);
       }
@@ -130,37 +114,17 @@ export class TasksService {
   }
 
   private getTaskStatusNotificationConfig(
-    taskTitle: string,
     status: TaskStatus,
-    actorName: string,
-  ):
-    | { eventType: string; title: string; body: string }
-    | undefined {
+  ): { eventType: string } | undefined {
     switch (status) {
       case TaskStatus.IN_PROGRESS:
-        return {
-          eventType: "TASK_STARTED",
-          title: "بدأ تنفيذ المهمة",
-          body: `بدأ ${actorName} تنفيذ المهمة "${taskTitle}".`,
-        };
+        return { eventType: "TASK_STARTED" };
       case TaskStatus.IN_REVIEW:
-        return {
-          eventType: "TASK_SUBMITTED",
-          title: "مهمة بانتظار المراجعة",
-          body: `سلّم ${actorName} المهمة "${taskTitle}" للمراجعة.`,
-        };
+        return { eventType: "TASK_SUBMITTED" };
       case TaskStatus.DONE:
-        return {
-          eventType: "TASK_APPROVED",
-          title: "تم اعتماد المهمة",
-          body: `تم اعتماد المهمة "${taskTitle}".`,
-        };
+        return { eventType: "TASK_APPROVED" };
       case TaskStatus.REVISION:
-        return {
-          eventType: "TASK_REJECTED",
-          title: "تم إرجاع المهمة للتعديل",
-          body: `أعاد ${actorName} المهمة "${taskTitle}" للتعديل.`,
-        };
+        return { eventType: "TASK_REJECTED" };
       default:
         return undefined;
     }
@@ -343,17 +307,16 @@ export class TasksService {
       throw new BadRequestException(`Department ${dto.dept} not found`);
     }
 
-    let assigneeInfo: { id: string; name: string } | null = null;
-
     if (dto.assignedTo) {
-      assigneeInfo = await this.resolveAssignableUser(
+      await this.resolveAssignableUser(
         dto.assignedTo,
         department.id,
         dto.dept,
       );
     }
 
-    const { dept, periodId: dtoPeriodId, ...rest } = dto;
+    const { dept: _dept, periodId: dtoPeriodId, ...rest } = dto;
+    void _dept;
 
     // Auto-link the task to the project's ACTIVE period when not explicitly provided.
     const periodId =
@@ -378,7 +341,6 @@ export class TasksService {
     });
 
     if (createdTask.assignedTo) {
-      const departmentLabel = this.getDepartmentArabicLabel(department.name);
 
       this.notificationsService
         .createNotification({
@@ -386,15 +348,12 @@ export class TasksService {
           entityType: "task",
           eventType: "TASK_ASSIGNED",
           userId: createdTask.assignedTo,
-          title: "تم إسناد مهمة جديدة",
-          body: departmentLabel
-            ? `تم إسناد المهمة "${createdTask.title}" إليك في قسم ${departmentLabel}.`
-            : `تم إسناد المهمة "${createdTask.title}" إليك.`,
           metadata: {
             taskId: createdTask.id,
             projectId: createdTask.projectId,
             assignedBy: userId,
             assigneeDepartment: department.name,
+            taskTitle: createdTask.title,
           },
         })
         .catch((err) =>
@@ -572,11 +531,7 @@ export class TasksService {
     });
     const taskActorName = taskActor?.name ?? "النظام";
 
-    const notificationConfig = this.getTaskStatusNotificationConfig(
-      task.title,
-      toStatus,
-      taskActorName,
-    );
+    const notificationConfig = this.getTaskStatusNotificationConfig(toStatus);
     if (!notificationConfig) return updatedTask;
 
     const notificationJobs: Array<Promise<any>> = recipients.map(
@@ -586,12 +541,12 @@ export class TasksService {
           entityType: "task",
           eventType: notificationConfig.eventType,
           userId: recipientId,
-          title: notificationConfig.title,
-          body: notificationConfig.body,
           metadata: {
             taskId: task.id,
             projectId: task.projectId,
             changedBy: userId,
+            actorName: taskActorName,
+            taskTitle: task.title,
             status: toStatus,
           },
         }),
@@ -639,9 +594,6 @@ export class TasksService {
     });
 
     if (dto.userId !== existingTask.assignedTo) {
-      const departmentLabel = this.getDepartmentArabicLabel(
-        existingTask.department.name,
-      );
       const recipients = this.toUniqueUserIds(
         dto.userId,
         existingTask.createdBy,
@@ -658,18 +610,13 @@ export class TasksService {
             entityType: "task",
             eventType: "TASK_ASSIGNED",
             userId: recipientId,
-            title: "تم إسناد مهمة جديدة",
-            body:
-              recipientId === dto.userId
-                ? departmentLabel
-                  ? `تم إسناد المهمة "${existingTask.title}" إليك في قسم ${departmentLabel}.`
-                  : `تم إسناد المهمة "${existingTask.title}" إليك.`
-                : `تم إسناد المهمة "${existingTask.title}" إلى ${assigneeInfo.name}.`,
             metadata: {
               taskId: existingTask.id,
               projectId: existingTask.projectId,
               assignedBy: userId,
               assigneeDepartment: existingTask.department.name,
+              taskTitle: existingTask.title,
+              assigneeName: assigneeInfo.name,
             },
           }),
         );
@@ -835,8 +782,6 @@ export class TasksService {
           entityType: "task",
           eventType: "TASK_COMMENT_ADDED",
           userId: recipientId,
-          title: "تعليق جديد على المهمة",
-          body: `تمت إضافة تعليق جديد على المهمة "${task.title}".`,
           metadata: {
             taskId: task.id,
             commentId: comment.id,
@@ -1141,20 +1086,20 @@ export class TasksService {
 
   async toggleArchive(
     taskId: string,
-  ): Promise<{ message: string; archived: boolean }> {
+  ): Promise<{ code: string; archived: boolean }> {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
       throw new NotFoundException("المهمة غير موجودة");
     }
 
     const isArchived = task.archivedAt !== null;
-    const updated = await this.prisma.task.update({
+    await this.prisma.task.update({
       where: { id: taskId },
       data: { archivedAt: isArchived ? null : new Date() },
     });
 
     return {
-      message: isArchived ? "تم إلغاء أرشفة المهمة" : "تم أرشفة المهمة",
+      code: isArchived ? "TASK_UNARCHIVED" : "TASK_ARCHIVED",
       archived: !isArchived,
     };
   }

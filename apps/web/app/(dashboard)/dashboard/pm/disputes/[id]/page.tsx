@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DisputeDetailEmptyState, DisputeDetailPattern } from "@/components/disputes/DisputeDetailPattern";
 import { PmResolveDialog } from "@/components/disputes/PmResolveDialog";
+import { pmErrorMessage } from "@/lib/i18n";
 
 interface PmDisputeDetailPageProps {
   params: Promise<{ id: string }>;
@@ -22,7 +23,13 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
   const { id } = use(params);
   const [isResolveDialogOpen, setIsResolveDialogOpen] = useState(false);
 
-  const { data: dispute, isLoading, isError, refetch } = useGetPmDisputeDetailQuery(id, {
+  const {
+    data: dispute,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetPmDisputeDetailQuery(id, {
     pollingInterval: 30_000,
   });
 
@@ -35,9 +42,8 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
       await acknowledge(id).unwrap();
       toast.success("تم بدء المعالجة");
       refetch();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء تحديث الحالة";
-      toast.error(message);
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     }
   };
 
@@ -45,9 +51,8 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
     try {
       await addMessage({ disputeId: id, input: { content }, files }).unwrap();
       refetch();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
-      toast.error(message);
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     }
   };
 
@@ -57,9 +62,8 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
       toast.success("تم إرسال الحل للعميل");
       setIsResolveDialogOpen(false);
       refetch();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء تأكيد الحل";
-      toast.error(message);
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     }
   };
 
@@ -71,7 +75,7 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
     return (
       <DisputeDetailEmptyState
         title="حدث خطأ أثناء تحميل بيانات النزاع"
-        description="تعذر فتح النزاع المطلوب. حاول مرة أخرى من قائمة النزاعات."
+        description={pmErrorMessage(error)}
         backHref="/dashboard/pm/disputes"
         backLabel="العودة إلى النزاعات"
       />
@@ -94,22 +98,22 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
           </p>
         </div>
         <Button onClick={handleAcknowledge} disabled={isAcknowledging}>
-          <Play data-icon="inline-start" />
+          <Play aria-hidden="true" data-icon="inline-start" />
           {isAcknowledging ? "جارٍ..." : "بدء المعالجة"}
         </Button>
       </CardContent>
     </Card>
   ) : canResolve ? (
-    <Card className="border-emerald-200 bg-emerald-50">
+    <Card className="border-success-200 bg-success-100">
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-medium text-emerald-900">هل تم حل المشكلة؟</p>
-          <p className="text-sm text-emerald-800">
+          <p className="font-medium text-success-800">هل تم حل المشكلة؟</p>
+          <p className="text-sm text-success-700">
             أرسل شرح الحل ليتمكن العميل من التأكيد أو طلب التصعيد.
           </p>
         </div>
         <Button onClick={() => setIsResolveDialogOpen(true)}>
-          <CheckCircle2 data-icon="inline-start" />
+          <CheckCircle2 aria-hidden="true" data-icon="inline-start" />
           تأكيد الحل
         </Button>
       </CardContent>
@@ -138,7 +142,10 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
         isSendingMessage={isSendingMessage}
         canSendMessage={canSendMessage}
         overviewFields={[
-          { label: "العميل", value: dispute.client.name || "—" },
+          {
+            label: "العميل",
+            value: dispute.client.companyName ?? dispute.client.user?.name ?? "—",
+          },
           { label: "المشروع", value: dispute.project.name || "—" },
         ]}
         timelineFields={[

@@ -21,10 +21,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Select, SelectItem } from "@/components/design-system/Select";
-import { useCreateTaskMutation } from "@/features/tasks/tasksApi";
+import { useCreatePmProjectTaskMutation } from "@/features/tasks/tasksApi";
 import { useSearchTaskAssigneesQuery } from "@/features/users/usersApi";
 import { TaskDepartment, TaskPriority } from "@hassad/shared";
 import { cn } from "@/lib/utils";
+import { pmErrorMessage } from "@/lib/i18n";
 
 // ── Labels ────────────────────────────────────────────────────────────────────
 
@@ -104,11 +105,6 @@ function AssigneeDropdown({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Reset search when dropdown opens
-  useEffect(() => {
-    if (open) setSearch("");
-  }, [open]);
 
   const users: AssigneeOption[] = useMemo(() => {
     return (data?.items ?? []).map((u) => ({
@@ -269,7 +265,7 @@ export function TaskForm({
     if (openProp === undefined) setOpenInternal(value);
     onOpenChange?.(value);
   };
-  const [createTask, { isLoading }] = useCreateTaskMutation();
+  const [createTask, { isLoading }] = useCreatePmProjectTaskMutation();
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(TaskFormSchema),
@@ -304,8 +300,8 @@ export function TaskForm({
       toast.success("تم إنشاء المهمة بنجاح.");
       form.reset();
       setOpen(false);
-    } catch {
-      toast.error("فشل إنشاء المهمة. يرجى المحاولة مجدداً.");
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     }
   }
 

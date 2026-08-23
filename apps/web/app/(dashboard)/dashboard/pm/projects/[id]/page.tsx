@@ -21,7 +21,6 @@ import {
   Layers,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { buildPortalFileUrl } from "@/lib/portal-files";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -55,12 +54,13 @@ import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
 import { PmDetailSkeleton } from "@/components/dashboard/pm/shared/PmDetailSkeleton";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import {
-  useGetProjectByIdQuery,
-  useGetProjectFilesQuery,
-  useUploadProjectFileMutation,
-  useDeleteProjectFileMutation,
+  useGetPmProjectByIdQuery,
+  useGetPmProjectFilesQuery,
+  useUploadPmProjectFileMutation,
+  useDeletePmProjectFileMutation,
+  useLazyGetPmProjectFileDownloadQuery,
 } from "@/features/projects/projectsApi";
-import { useGetTasksByProjectQuery } from "@/features/tasks/tasksApi";
+import { useGetPmTasksQuery } from "@/features/tasks/tasksApi";
 import { useLazyGetProjectGroupChatQuery } from "@/features/chat/chatApi";
 import { useGetClientTeamViewQuery } from "@/features/clients/clientsApi";
 import { useAppSelector } from "@/lib/hooks";
@@ -232,10 +232,12 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     isLoading,
     isError,
     refetch,
-  } = useGetProjectByIdQuery(id);
-  const { data: files, isLoading: filesLoading } = useGetProjectFilesQuery(id);
-  const { data: tasks, isLoading: tasksLoading } =
-    useGetTasksByProjectQuery(id);
+  } = useGetPmProjectByIdQuery(id);
+  const { data: files, isLoading: filesLoading } = useGetPmProjectFilesQuery(id);
+  const { data: tasks, isLoading: tasksLoading } = useGetPmTasksQuery({
+    projectId: id,
+    limit: 100,
+  });
 
   const clientId = project?.clientId ?? "";
   const { data: teamView } = useGetClientTeamViewQuery(clientId, {
@@ -246,8 +248,9 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     useLazyGetProjectGroupChatQuery();
 
   const [uploadFile, { isLoading: isUploading }] =
-    useUploadProjectFileMutation();
-  const [deleteFile] = useDeleteProjectFileMutation();
+    useUploadPmProjectFileMutation();
+  const [deleteFile] = useDeletePmProjectFileMutation();
+  const [getFileDownload] = useLazyGetPmProjectFileDownloadQuery();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openGroupChat = async () => {
@@ -820,19 +823,23 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                             {file.fileName}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {(file.fileSize / 1024).toFixed(0)} KB
+                            {((file.fileSize ?? 0) / 1024).toFixed(0)} KB
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" asChild>
-                            <a
-                              href={file.url || buildPortalFileUrl(file.filePath)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Download data-icon="inline-start" />
-                              تحميل
-                            </a>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              const result = await getFileDownload({
+                                projectId: id,
+                                fileId: file.id,
+                              }).unwrap();
+                              window.open(result.url, "_blank", "noopener,noreferrer");
+                            }}
+                          >
+                            <Download data-icon="inline-start" />
+                            تحميل
                           </Button>
                           <Button
                             variant="ghost"

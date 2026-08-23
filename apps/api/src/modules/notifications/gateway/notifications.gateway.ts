@@ -42,8 +42,8 @@ export class NotificationsGateway
     this.eventEmitter.on("notification.broadcast", (payload) => {
       for (const userId of payload.userIds ?? []) {
         this.server.to(`user:${userId}`).emit("broadcast", {
-          title: payload.title,
-          message: payload.message,
+          eventType: "BROADCAST",
+          metadata: payload.metadata ?? null,
         });
       }
     });

@@ -45,6 +45,7 @@ import {
 import type { NotificationItem } from "@/features/notifications/notificationsApi";
 import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotificationSocket";
 import { formatRelativeTime } from "@/lib/format";
+import { notificationPresentation } from "@/lib/i18n";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -219,7 +220,12 @@ function DashboardNotificationsButton() {
                 ))}
               </div>
             ) : notifications.length ? (
-              notifications.map((notification) => (
+              notifications.map((notification) => {
+                const presentation = notificationPresentation(
+                  notification.eventType,
+                  notification.metadata,
+                );
+                return (
                 <Link
                   key={notification.id}
                   href="/dashboard/notifications"
@@ -237,17 +243,18 @@ function DashboardNotificationsButton() {
                         notification.isRead ? "text-foreground" : "font-semibold text-foreground"
                       }`}
                     >
-                      {notification.title}
+                      {presentation.title}
                     </span>
                     <span className="line-clamp-2 text-xs text-muted-foreground">
-                      {notification.body}
+                      {presentation.body}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {formatRelativeTime(notification.createdAt as string)}
                     </span>
                   </span>
                 </Link>
-              ))
+                );
+              })
             ) : (
               <p className="p-4 text-center text-sm text-muted-foreground">
                 لا توجد إشعارات

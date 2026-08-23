@@ -25,6 +25,7 @@ export type PortalNotificationItem = Omit<Notification, "createdAt"> & {
   eventType: string;
   entityType?: string | null;
   entityId?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 export const portalNotificationsApi = createApi({

@@ -142,8 +142,6 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",
           userId: client.userId,
-          title: "دراسة تسويقية جديدة",
-          body: `تم إرسال دراسة تسويقية جديدة للمهمة "${strategy.task.title}" بانتظار مراجعتك`,
         })
         .catch((err) =>
           this.logger.error(
@@ -161,8 +159,6 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",
           userId: strategy.task.createdBy,
-          title: "تم إرسال الدراسة التسويقية",
-          body: `تم إرسال الدراسة التسويقية للمهمة "${strategy.task.title}" إلى العميل`,
         })
         .catch((err) =>
           this.logger.error(`Failed to notify PM about strategy ${id}`, err),
@@ -214,8 +210,6 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_APPROVED",
           userId: recipientId,
-          title: "تمت الموافقة على الدراسة التسويقية",
-          body: `تمت الموافقة على الدراسة التسويقية للمهمة "${strategy.task.title}" — يمكن الآن إنشاء الحملات`,
         })
         .catch((err) =>
           this.logger.error(
@@ -269,8 +263,6 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_REVISION_REQUESTED",
           userId: recipientId,
-          title: "طلب تعديل على الدراسة التسويقية",
-          body: `طلب العميل تعديل الدراسة التسويقية للمهمة "${strategy.task.title}": ${comment}`,
         })
         .catch((err) =>
           this.logger.error(
@@ -324,8 +316,6 @@ export class MarketingStrategyService {
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_REJECTED",
           userId: recipientId,
-          title: "تم رفض الدراسة التسويقية",
-          body: `رفض العميل الدراسة التسويقية للمهمة "${strategy.task.title}"`,
         })
         .catch((err) =>
           this.logger.error(
@@ -388,8 +378,6 @@ export class MarketingStrategyService {
       await this.notifications
         .notifyUsers({
           userIds: resubmitRecipients,
-          title: "دراسة تسويقية مُعدّلة",
-          message: "تم إعادة إرسال الدراسة التسويقية المُعدّلة بانتظار مراجعتك",
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",

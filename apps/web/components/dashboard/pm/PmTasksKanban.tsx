@@ -6,10 +6,11 @@ import { KanbanBoard } from "@/components/dashboard/kanban";
 import { TASK_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/task-status";
 import { TaskKanbanCardContent } from "@/components/dashboard/kanban/cards/TaskKanbanCardContent";
 import {
-  useChangeTaskStatusMutation,
+  useChangePmTaskStatusMutation,
   type TaskWithProject,
 } from "@/features/tasks/tasksApi";
 import type { TaskWithMeta } from "@/lib/utils/task-status";
+import { pmErrorMessage } from "@/lib/i18n";
 
 interface PmTasksKanbanProps {
   tasks: TaskWithProject[];
@@ -22,7 +23,7 @@ export function PmTasksKanban({
   isLoading,
   isError,
 }: PmTasksKanbanProps) {
-  const [changeTaskStatus] = useChangeTaskStatusMutation();
+  const [changeTaskStatus] = useChangePmTaskStatusMutation();
   const kanbanTasks: TaskWithMeta[] = tasks;
 
   async function handleDragEnd(
@@ -35,8 +36,8 @@ export function PmTasksKanban({
         id: taskId,
         status: nextStatus as TaskStatus,
       }).unwrap();
-    } catch {
-      toast.error("تعذر تحديث حالة المهمة");
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     }
   }
 

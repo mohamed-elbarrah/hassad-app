@@ -1860,8 +1860,6 @@ export class PortalService {
             entityType: "deliverable",
             eventType: "DELIVERABLE_APPROVED",
             userId: clientUser.userId,
-            title: "تم اعتماد التسليمة",
-            body: `تم اعتماد التسليمة "${deliverable.title}" في مشروع ${deliverable.project.name}`,
           })
           .catch(() => undefined);
       }
@@ -1893,8 +1891,6 @@ export class PortalService {
             entityType: "deliverable",
             eventType: "DELIVERABLE_REVISION",
             userId: clientUser.userId,
-            title: "تم طلب تعديل على التسليمة",
-            body: `تم طلب تعديلات على التسليمة "${deliverable.title}" في مشروع ${deliverable.project.name}`,
           })
           .catch(() => undefined);
       }
@@ -3049,8 +3045,6 @@ export class PortalService {
           entityType: "project",
           eventType: "PROJECT_APPROVED",
           userId: project.projectManagerId,
-          title: "تمت الموافقة على المشروع",
-          body: `تمت الموافقة على المشروع "${project.name}" من قبل العميل.`,
         })
         .catch(() => undefined);
     }
@@ -3111,8 +3105,6 @@ export class PortalService {
           entityType: "project",
           eventType: "PROJECT_REVISION_REQUESTED",
           userId: project.projectManagerId,
-          title: "طلب العميل تعديلات على المشروع",
-          body: `طلب العميل تعديلات على المشروع "${project.name}": ${dto.comment}`,
         })
         .catch(() => undefined);
     }

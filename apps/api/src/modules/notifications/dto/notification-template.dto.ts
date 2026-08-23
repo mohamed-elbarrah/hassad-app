@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean } from "class-validator";
+import { IsString, IsOptional, IsBoolean, IsObject } from "class-validator";
 
 export class UpdateNotificationTemplateDto {
   @IsOptional()
@@ -12,4 +12,12 @@ export class UpdateNotificationTemplateDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  translationKey?: string;
+
+  @IsOptional()
+  @IsObject()
+  metadataSchema?: Record<string, unknown>;
 }
