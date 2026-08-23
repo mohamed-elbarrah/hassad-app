@@ -36,61 +36,55 @@ export function StepProgressBar({
         </span>
       </div>
 
-      <div className="hidden md:flex items-center justify-between">
+      <div className="hidden md:grid grid-cols-9 items-start" role="list" aria-label="خطوات إعداد الملف الشخصي">
         {STEP_LABELS.map((label, i) => {
           const isCompleted = completedSteps.includes(i);
           const isCurrent = i === currentStep;
           const isSkipped = skippedSteps.includes(i);
 
           return (
-            <div key={label} className="flex items-center gap-1 flex-1">
-              <div
-                className={cn(
-                  "flex flex-col items-center gap-1.5 flex-1",
-                  isCurrent && "text-primary",
-                )}
-                aria-current={isCurrent ? "step" : undefined}
-              >
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all border-2",
-                    isCurrent && "ring-2 ring-primary ring-offset-2 ring-offset-background scale-110",
-                    isCompleted &&
-                      "bg-accent text-accent-foreground border-accent",
-                    isCurrent &&
-                      !isCompleted &&
-                      "bg-primary text-primary-foreground border-primary",
-                    isSkipped &&
-                      "bg-warning text-warning-foreground border-warning border-dashed",
-                    !isCompleted &&
-                      !isCurrent &&
-                      !isSkipped &&
-                      "bg-muted text-muted-foreground border-border",
-                  )}
-                >
-                  {isCompleted ? "✓" : isSkipped ? "!" : i + 1}
-                </div>
+            <div
+              key={label}
+              className={cn(
+                "relative flex min-w-0 flex-col items-center gap-2",
+                isCurrent && "text-primary",
+              )}
+              role="listitem"
+              aria-current={isCurrent ? "step" : undefined}
+            >
+              {i < STEP_LABELS.length - 1 && (
                 <span
+                  aria-hidden="true"
                   className={cn(
-                    "hidden lg:block max-w-24 text-center text-[11px] leading-tight text-muted-foreground",
-                    isCurrent && "font-bold text-primary",
+                    "absolute start-1/2 top-4 z-0 h-0.5 w-full",
+                    isCompleted
+                      ? "bg-accent"
+                      : isSkipped
+                        ? "bg-warning"
+                        : "bg-border",
                   )}
-                >
-                  {label}
-                </span>
-                {i < STEP_LABELS.length - 1 && (
-                  <div
-                    className={cn(
-                      "h-0.5 w-full transition-colors",
-                      isCompleted
-                        ? "bg-accent"
-                        : isSkipped
-                          ? "bg-warning"
-                          : "bg-border",
-                    )}
-                  />
+                />
+              )}
+              <span
+                className={cn(
+                  "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all",
+                  isCurrent && "scale-110 ring-2 ring-primary ring-offset-2 ring-offset-background",
+                  isCompleted && "border-accent bg-accent text-accent-foreground",
+                  isCurrent && !isCompleted && "border-primary bg-primary text-primary-foreground",
+                  isSkipped && "border-warning border-dashed bg-warning text-warning-foreground",
+                  !isCompleted && !isCurrent && !isSkipped && "border-border bg-muted text-muted-foreground",
                 )}
-              </div>
+              >
+                {isCompleted ? "✓" : isSkipped ? "!" : i + 1}
+              </span>
+              <span
+                className={cn(
+                  "hidden min-h-8 max-w-24 text-center text-[11px] leading-tight text-muted-foreground lg:block",
+                  isCurrent && "font-bold text-primary",
+                )}
+              >
+                {label}
+              </span>
             </div>
           );
         })}
