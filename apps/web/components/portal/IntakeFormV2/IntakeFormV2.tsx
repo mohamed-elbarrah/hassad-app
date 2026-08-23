@@ -32,6 +32,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
     currentStep,
     sectionData,
     completedSteps,
+    skippedSteps,
     isDraftLoading,
     isAutoSaving,
     isSubmitting,
@@ -42,6 +43,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
     prevStep,
     updateSections,
     markStepCompleted,
+    markStepSkipped,
     getStepData,
     handleSubmit,
   } = useIntakeFormV2(onSuccess);
@@ -124,7 +126,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(2)}
             onBack={prevStep}
-            onSkip={() => goToStep(3)}
+            onSkip={() => { markStepSkipped(2); goToStep(3); }}
           />
         );
       case 3:
@@ -143,7 +145,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(3)}
             onBack={prevStep}
-            onSkip={() => goToStep(4)}
+            onSkip={() => { markStepSkipped(3); goToStep(4); }}
           />
         );
       case 4:
@@ -155,7 +157,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(4)}
             onBack={prevStep}
-            onSkip={() => goToStep(5)}
+            onSkip={() => { markStepSkipped(4); goToStep(5); }}
           />
         );
       case 5:
@@ -167,7 +169,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(5)}
             onBack={prevStep}
-            onSkip={() => goToStep(6)}
+            onSkip={() => { markStepSkipped(5); goToStep(6); }}
           />
         );
       case 6:
@@ -179,7 +181,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(6)}
             onBack={prevStep}
-            onSkip={() => goToStep(7)}
+            onSkip={() => { markStepSkipped(6); goToStep(7); }}
           />
         );
       case 7:
@@ -191,7 +193,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(7)}
             onBack={prevStep}
-            onSkip={() => goToStep(8)}
+            onSkip={() => { markStepSkipped(7); goToStep(8); }}
           />
         );
       case 8:
@@ -222,6 +224,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         <StepProgressBar
           currentStep={currentStep}
           completedSteps={completedSteps}
+          skippedSteps={skippedSteps}
         />
       </div>
 

@@ -20,6 +20,7 @@ export function useIntakeFormV2(onSuccess?: () => void) {
   const [currentStep, setCurrentStep] = useState(0);
   const [sectionData, setSectionData] = useState<Record<string, any>>({});
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [skippedSteps, setSkippedSteps] = useState<number[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -118,6 +119,14 @@ export function useIntakeFormV2(onSuccess?: () => void) {
     setCompletedSteps((prev) =>
       prev.includes(stepIdx) ? prev : [...prev, stepIdx],
     );
+    setSkippedSteps((prev) => prev.filter((step) => step !== stepIdx));
+  }, []);
+
+  const markStepSkipped = useCallback((stepIdx: number) => {
+    setSkippedSteps((prev) =>
+      prev.includes(stepIdx) ? prev : [...prev, stepIdx],
+    );
+    setCompletedSteps((prev) => prev.filter((step) => step !== stepIdx));
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -150,6 +159,7 @@ export function useIntakeFormV2(onSuccess?: () => void) {
     currentStep,
     sectionData,
     completedSteps,
+    skippedSteps,
     isDraftLoading,
     isSaving,
     isAutoSaving,
@@ -161,6 +171,7 @@ export function useIntakeFormV2(onSuccess?: () => void) {
     prevStep,
     updateSections,
     markStepCompleted,
+    markStepSkipped,
     triggerSave,
     handleSubmit,
     getStepData,
