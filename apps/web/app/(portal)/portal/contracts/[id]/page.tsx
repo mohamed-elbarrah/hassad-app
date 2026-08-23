@@ -15,7 +15,6 @@ import {
 import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
 import { buildPortalFileUrl } from "@/lib/portal-files";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 export default function PortalContractDetailPage({
@@ -34,6 +33,7 @@ export default function PortalContractDetailPage({
     useSignPortalContractMutation();
   const [signedByName, setSignedByName] = useState("");
   const [signedByEmail, setSignedByEmail] = useState("");
+  const [contractStatus, setContractStatus] = useState<string | null>(null);
 
   if (isLoading) return <ContractDetailLoading />;
 
@@ -47,6 +47,7 @@ export default function PortalContractDetailPage({
     );
   }
 
+  const effectiveStatus = contractStatus ?? contract.status;
   const invoices = contract.invoices ?? [];
   const paymentRequired = contract.initialPaymentRequired === true;
   const initialPaymentPaid = contract.initialPaymentStatus === "PAID";
@@ -54,7 +55,7 @@ export default function PortalContractDetailPage({
     invoices.length > 0 &&
     invoices.every((invoice) => invoice.status === "PAID");
   const canSign =
-    contract.status === "SENT" &&
+    effectiveStatus === "SENT" &&
     !!contract.shareLinkToken &&
     (!paymentRequired ? true : initialPaymentPaid || allInvoicesPaid);
 
@@ -71,6 +72,7 @@ export default function PortalContractDetailPage({
           signedByEmail: signedByEmail.trim() || undefined,
         },
       }).unwrap();
+      setContractStatus("SIGNED");
       toast.success("تم توقيع العقد بنجاح");
       refetch();
     } catch {
@@ -80,24 +82,23 @@ export default function PortalContractDetailPage({
 
   return (
     <ContractDetailView
-      contract={contract}
+      contract={{ ...contract, status: effectiveStatus }}
       backHref="/portal/contracts"
       backLabel="العودة إلى العقود"
-      fileUrl={contract.filePath ? buildPortalFileUrl(contract.filePath) : null}
+      fileUrl={contract.fileUrl ?? (contract.filePath ? buildPortalFileUrl(contract.filePath) : null)}
       audience="client"
       billingArea={
         <ContractClientBillingArea
           services={contract.servicesList ?? []}
           totalValue={contract.totalValue}
           invoices={invoices}
-          canPay={contract.status === "SENT"}
+          canPay={effectiveStatus === "SENT"}
           onPaymentComplete={() => window.location.reload()}
         />
       }
       responseArea={
-        contract.status === "SENT" ? (
-          <Card>
-            <CardContent className="flex flex-col gap-4 p-6">
+        effectiveStatus === "SENT" ? (
+          <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <PenLine className="size-4 text-muted-foreground" />
                 <p className="text-sm font-medium">توقيع العقد</p>
@@ -123,8 +124,7 @@ export default function PortalContractDetailPage({
                 <CheckCircle data-icon="inline-start" />
                 {signing ? "جارٍ التوقيع..." : "أوافق وأوقّع العقد"}
               </Button>
-            </CardContent>
-          </Card>
+          </div>
         ) : null
       }
     />

@@ -8,7 +8,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
 
 /** Shape of `getContractById` — derived from Prisma's generated types so it
  *  stays in sync with the actual `include` inside the method. (Audit #14) */
-export type PortalContractDetail = Prisma.ContractGetPayload<{
+type PortalContractDetailRecord = Prisma.ContractGetPayload<{
   include: {
     client: { select: { id: true; companyName: true } };
     proposal: true;
@@ -16,6 +16,11 @@ export type PortalContractDetail = Prisma.ContractGetPayload<{
     request: { select: { id: true; status: true } };
   };
 }>;
+
+export type PortalContractDetail = Omit<PortalContractDetailRecord, "filePath"> & {
+  filePath?: string | null;
+  fileUrl: string | null;
+};
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
 import {
@@ -1643,7 +1648,15 @@ export class PortalService {
       });
     }
 
-    return contract;
+    const fileUrl = contract.filePath
+      ? await this.storageService.getPresignedUrl(contract.filePath)
+      : null;
+
+    return {
+      ...contract,
+      fileUrl,
+      filePath: undefined,
+    };
   }
 
   async getContracts(

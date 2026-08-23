@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Download, FileClock, Inbox } from "lucide-react";
@@ -58,6 +59,7 @@ export interface ContractDetailEntity {
   monthlyValue: number;
   totalValue: number;
   filePath?: string | null;
+  fileUrl?: string | null;
   shareLinkToken?: string | null;
   versionNumber: number;
   eSigned: boolean;
@@ -336,6 +338,15 @@ export function ContractDetailView({
         </div>
       ) : null}
 
+      {isClientAudience ? (
+        <ClientContractWorkspace
+          fileUrl={fileUrl}
+          billingArea={billingArea}
+          responseArea={responseArea}
+        />
+      ) : null}
+
+      {!isClientAudience ? (
       <Card>
         {!isClientAudience ? (
           <CardHeader className="gap-2">
@@ -604,6 +615,69 @@ export function ContractDetailView({
           </Tabs>
         </CardContent>
       </Card>
+      ) : null}
+    </div>
+  );
+}
+
+function ClientContractWorkspace({
+  fileUrl,
+  billingArea,
+  responseArea,
+}: {
+  fileUrl?: string | null;
+  billingArea?: ReactNode;
+  responseArea?: ReactNode;
+}) {
+  const [showPdf, setShowPdf] = useState(false);
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)] lg:items-start">
+      <div className="flex min-w-0 flex-col gap-6">
+        {billingArea || (
+          <EmptyPanel
+            title="لا توجد بيانات مالية"
+            description="ستظهر تفاصيل الخدمات والفوترة عند توفرها."
+          />
+        )}
+        <Card>
+          <CardHeader className="gap-2">
+            <CardTitle>ملف العقد</CardTitle>
+            <CardDescription>راجع الشروط الكاملة قبل التوقيع.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {fileUrl ? (
+              <div className="flex flex-col gap-4 rounded-xl border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm font-medium">ملف العقد</span>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowPdf((value) => !value)}>
+                    {showPdf ? "إخفاء الملف" : "عرض الملف"}
+                  </Button>
+                  <Button asChild variant="outline">
+                    <a href={fileUrl} download target="_blank" rel="noopener noreferrer">تحميل الملف</a>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <EmptyPanel title="لا يوجد ملف مرفق" description="لم يتم العثور على ملف لهذا العقد." />
+            )}
+            {fileUrl && showPdf ? (
+              <div className="mt-4 overflow-hidden rounded-xl border bg-muted/20">
+                <iframe src={fileUrl} title="معاينة ملف العقد" className="h-[min(70vh,48rem)] w-full" />
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+      <div className="lg:sticky lg:top-6">
+        <Card className="border-primary/30 shadow-sm">
+          <CardHeader className="gap-2">
+            <CardTitle>توقيع العقد</CardTitle>
+            <CardDescription>راجع الخدمات والدفعات والملف ثم أكمل التوقيع.</CardDescription>
+          </CardHeader>
+          <CardContent>{responseArea || <EmptyPanel title="لا توجد إجراءات متاحة" description="لا يمكن توقيع هذا العقد حالياً." />}</CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

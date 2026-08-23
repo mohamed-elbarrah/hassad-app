@@ -21,6 +21,7 @@ export default function PortalProposalDetailPage({
   const [approveProposal, { isLoading: approving }] = useApprovePortalProposalMutation();
   const [requestRevision, { isLoading: requesting }] = useRequestPortalProposalRevisionMutation();
   const [notes, setNotes] = useState("");
+  const [responseStatus, setResponseStatus] = useState<string | null>(null);
 
   if (isLoading) return <ProposalDetailLoading />;
 
@@ -37,6 +38,8 @@ export default function PortalProposalDetailPage({
   async function handleApprove() {
     try {
       await approveProposal({ token, body: { notes } }).unwrap();
+      setResponseStatus("APPROVED");
+      setNotes("");
       toast.success("تم اعتماد العرض الفني");
     } catch {
       toast.error("تعذّر اعتماد العرض");
@@ -50,6 +53,7 @@ export default function PortalProposalDetailPage({
     }
     try {
       await requestRevision({ token, body: { notes } }).unwrap();
+      setResponseStatus("REVISION_REQUESTED");
       toast.success("تم إرسال طلب التعديل");
     } catch {
       toast.error("تعذّر إرسال طلب التعديل");
@@ -65,7 +69,7 @@ export default function PortalProposalDetailPage({
       audience="client"
       responseArea={
         <ProposalClientResponseArea
-          status={proposal.status}
+          status={responseStatus ?? proposal.status}
           notes={notes}
           onNotesChange={setNotes}
           onApprove={handleApprove}
