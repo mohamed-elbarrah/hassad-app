@@ -218,7 +218,7 @@ export default function ProfileSetupPage() {
           initial={false}
           animate={showWelcome ? welcomeVisible : welcomeHidden}
           transition={spring}
-          className="fixed inset-0 z-50 bg-gradient-to-br from-secondary-500 via-secondary-600 to-secondary-700 text-white p-8 flex flex-col justify-center overflow-hidden"
+          className="fixed inset-0 z-50 bg-intake-sidebar bg-[color:var(--intake-sidebar)] text-white p-8 flex flex-col justify-center overflow-hidden"
           style={{ pointerEvents: showWelcome ? "auto" : "none" }}
         >
           {welcomeContent}
@@ -226,7 +226,7 @@ export default function ProfileSetupPage() {
       </div>
 
       {/* Desktop */}
-      <div className="hidden lg:flex lg:w-[42%] lg:sticky lg:top-0 lg:h-screen lg:self-start bg-gradient-to-br from-secondary-500 via-secondary-600 to-secondary-700 text-white p-8 lg:p-12 xl:p-16 flex-col justify-center relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[42%] lg:sticky lg:top-0 lg:h-screen lg:self-start bg-intake-sidebar bg-[color:var(--intake-sidebar)] text-white p-8 lg:p-12 xl:p-16 flex-col justify-center relative overflow-hidden">
         {welcomeContent}
       </div>
 
