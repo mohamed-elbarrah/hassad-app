@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -38,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 
@@ -178,6 +179,7 @@ export function ProposalDetailView({
   audience?: "internal" | "client";
 }) {
   const services = proposal.servicesList ?? [];
+  const [showPdf, setShowPdf] = useState(false);
   const companyLabel =
     proposal.client?.companyName ||
     proposal.lead?.companyName ||
@@ -189,8 +191,21 @@ export function ProposalDetailView({
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
-      <Card>
-        <CardContent className="flex flex-col gap-5 p-6">
+      {isClientAudience ? (
+        <PageHeader
+          title={proposal.title}
+          description={`${companyLabel}${contactLabel !== "—" ? ` — ${contactLabel}` : ""}`}
+          icon={FileText}
+          actions={
+            <Button asChild variant="outline">
+              <Link href={backHref}>{backLabel}</Link>
+            </Button>
+          }
+        />
+      ) : null}
+      {!isClientAudience ? (
+        <Card>
+          <CardContent className="flex flex-col gap-5 p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="flex gap-4">
               <div className="flex size-20 items-center justify-center  rounded-xl bg-muted text-muted-foreground">
@@ -234,8 +249,9 @@ export function ProposalDetailView({
               الإنشاء: {formatDateTime(proposal.createdAt)}
             </Badge>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {!isClientAudience ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -353,31 +369,18 @@ export function ProposalDetailView({
         </div>
       ) : null}
 
-      <Card>
-        {!isClientAudience ? (
-          <CardHeader className="gap-2">
-            <CardTitle>تفاصيل العرض</CardTitle>
-            <CardDescription>
-              تنقل سريع داخل بطاقة واحدة بين الخدمات والملف والاستجابة.
-            </CardDescription>
-          </CardHeader>
-        ) : null}
-        <CardContent className={isClientAudience ? "p-4 sm:p-6" : undefined}>
-          <Tabs defaultValue="services" className="flex flex-col gap-4">
-            <TabsList className="h-auto w-full justify-start">
-              <TabsTrigger value="services">الخدمات</TabsTrigger>
-              <TabsTrigger value="document">الملف</TabsTrigger>
-              <TabsTrigger value="response">الاستجابة</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="services" className="mt-0">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)] lg:items-start">
+        <div className="flex min-w-0 flex-col gap-6">
+          <Card>
+            <CardHeader className="gap-2">
+              <CardTitle>الخدمات المشمولة</CardTitle>
+              <CardDescription>راجع تفاصيل الخدمات والأسعار قبل اتخاذ القرار.</CardDescription>
+            </CardHeader>
+            <CardContent>
               {services.length === 0 ? (
-                <EmptyPanel
-                  title="لا توجد خدمات مضافة"
-                  description="لم يتم إرفاق قائمة خدمات مفصلة لهذا العرض."
-                />
+                <EmptyPanel title="لا توجد خدمات مضافة" description="لم يتم إرفاق قائمة خدمات مفصلة لهذا العرض." />
               ) : (
-                <div className="overflow-hidden  rounded-xl border">
+                <div className="overflow-x-auto rounded-xl border">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -388,59 +391,70 @@ export function ProposalDetailView({
                     <TableBody>
                       {services.map((service, index) => (
                         <TableRow key={`${service.name}-${index}`}>
-                          <TableCell className="font-medium">
-                            {service.name}
-                          </TableCell>
+                          <TableCell className="font-medium">{service.name}</TableCell>
                           <TableCell>{formatCurrency(service.price)}</TableCell>
                         </TableRow>
                       ))}
+                      <TableRow className="bg-muted/30 font-semibold">
+                        <TableCell>الإجمالي</TableCell>
+                        <TableCell>{formatCurrency(proposal.totalPrice)}</TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
                 </div>
               )}
-            </TabsContent>
+            </CardContent>
+          </Card>
 
-            <TabsContent value="document" className="mt-0">
+          <Card>
+            <CardHeader className="gap-2">
+              <CardTitle>ملف العرض الفني</CardTitle>
+              <CardDescription>راجع الملف الكامل لمزيد من التفاصيل.</CardDescription>
+            </CardHeader>
+            <CardContent>
               {fileUrl ? (
-                <div className="flex items-center justify-between  rounded-xl border p-4">
+                <div className="flex flex-col gap-4 rounded-xl border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center  rounded-xl bg-muted text-muted-foreground">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                       <Download />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">
-                        ملف العرض الفني
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        تحميل الملف لمراجعة التفاصيل الكاملة
-                      </span>
-                    </div>
+                    <span className="text-sm font-medium">ملف العرض الفني</span>
                   </div>
-                  <Button asChild variant="outline">
-                    <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                      تحميل
-                    </a>
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" onClick={() => setShowPdf((visible) => !visible)}>
+                      {showPdf ? "إخفاء الملف" : "عرض الملف"}
+                    </Button>
+                    <Button asChild variant="outline">
+                      <a href={fileUrl} download target="_blank" rel="noopener noreferrer">تحميل الملف</a>
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <EmptyPanel
-                  title="لا يوجد ملف مرفق"
-                  description="لم يتم العثور على ملف PDF أو مرفق لهذا العرض."
-                />
+                <EmptyPanel title="لا يوجد ملف مرفق" description="لم يتم العثور على ملف لهذا العرض." />
               )}
-            </TabsContent>
+              {fileUrl && showPdf ? (
+                <div className="mt-4 overflow-hidden rounded-xl border bg-muted/20">
+                  <iframe
+                    src={fileUrl}
+                    title="معاينة ملف العرض الفني"
+                    className="h-[min(70vh,48rem)] w-full"
+                  />
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        </div>
 
-            <TabsContent value="response" className="mt-0">
-              {responseArea || (
-                <EmptyPanel
-                  title="لا توجد إجراءات متاحة هنا"
-                  description="إجراءات الموافقة أو طلب التعديل تظهر فقط في واجهات العميل."
-                />
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+        <div className="lg:sticky lg:top-6">
+          <Card className="border-primary/30 shadow-sm">
+            <CardHeader className="gap-2">
+              <CardTitle>مراجعة العرض</CardTitle>
+              <CardDescription>اختر الإجراء المناسب بعد مراجعة الخدمات والملف.</CardDescription>
+            </CardHeader>
+            <CardContent>{responseArea || <EmptyPanel title="لا توجد إجراءات متاحة" description="لا يمكن اتخاذ إجراء على هذا العرض حالياً." />}</CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -467,7 +481,7 @@ export function ProposalClientResponseArea({
   if (!canRespond) {
     const label = PROPOSAL_STATUS_AR[status as ProposalStatus] || status;
     return (
-      <div className=" rounded-xl border p-4">
+      <div className="flex flex-col gap-2">
         <p className="text-sm font-medium">حالة الاستجابة الحالية</p>
         <p className="mt-2 text-sm text-muted-foreground">
           العرض حالياً في حالة: {label}
@@ -477,7 +491,7 @@ export function ProposalClientResponseArea({
   }
 
   return (
-    <div className="flex flex-col gap-4  rounded-xl border p-4">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <MessageSquare className="size-4 text-muted-foreground" />
         <p className="text-sm font-medium">ردّ العميل على العرض</p>
