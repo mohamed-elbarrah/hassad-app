@@ -6,7 +6,7 @@ export default function ProjectDetailError() {
   return (
     <PmDetailError
       title="حدث خطأ أثناء تحميل بيانات المشروع."
-      backHref="/dashboard/pm/projects"
+      backHref="/dashboard/pm"
       backLabel="المشاريع"
     />
   );

@@ -274,7 +274,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
       <PmDetailError
         title="المشروع غير موجود"
         onRetry={refetch}
-        backHref="/dashboard/pm/projects"
+        backHref="/dashboard/pm"
         backLabel="المشاريع"
       />
     );
@@ -366,7 +366,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     <div className="page-shell" dir="rtl">
       {/* ── Breadcrumb ─────────────────────────────────────────────────────── */}
       <PmDetailBreadcrumb
-        backHref="/dashboard/pm/projects"
+        backHref="/dashboard/pm"
         backLabel="المشاريع"
         title={project.name}
       />

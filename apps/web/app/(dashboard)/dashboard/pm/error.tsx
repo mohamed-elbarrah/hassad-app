@@ -1,20 +1,7 @@
 "use client";
 
-import { ErrorFallback } from "@/components/common/ErrorFallback";
+import { PmPageError } from "@/components/dashboard/pm/shared/PmPageError";
 
-export default function PmError({
-  error,
-  reset: _reset,
-}: {
-  error: Error;
-  reset: () => void;
-}) {
-  return (
-    <ErrorFallback
-      error={error}
-      reset={_reset}
-      backHref="/dashboard/pm"
-      backLabel="العودة للوحة المشاريع"
-    />
-  );
+export default function PmError() {
+  return <PmPageError title="حدث خطأ أثناء تحميل المشاريع" />;
 }

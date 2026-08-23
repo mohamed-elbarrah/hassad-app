@@ -228,15 +228,9 @@ export const roleNavSections: NavSection[] = [
     label: "المشاريع",
     items: [
       {
-        title: "لوحة مدير المشروع",
+        title: "المشاريع",
         url: "/dashboard/pm",
         exact: true,
-        icon: Briefcase,
-        roles: ["PM"],
-      },
-      {
-        title: "المشاريع",
-        url: "/dashboard/pm/projects",
         icon: Briefcase,
         roles: ["PM"],
       },
