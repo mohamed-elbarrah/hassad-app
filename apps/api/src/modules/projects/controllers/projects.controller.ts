@@ -20,6 +20,7 @@ import {
   CreateProjectDto,
   UpdateProjectDto,
   AddMemberDto,
+  UpdateProjectStatusDto,
 } from "../dto/project.dto";
 import {
   SavePeriodSummaryDto,
@@ -103,7 +104,7 @@ export class ProjectsController {
   updateStatus(
     @CurrentUser() user: any,
     @Param("id") id: string,
-    @Body() body: { status: string },
+    @Body() body: UpdateProjectStatusDto,
   ) {
     return this.projectsService.updateStatus(id, body.status, user?.id);
   }

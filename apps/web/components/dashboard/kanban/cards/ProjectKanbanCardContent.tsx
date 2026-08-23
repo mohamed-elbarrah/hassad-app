@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Building2, Calendar, GripVertical } from "lucide-react";
 import { formatDate } from "@/lib/format";
@@ -20,23 +19,19 @@ interface ProjectKanbanCardContentProps {
 export function ProjectKanbanCardContent({
   project,
 }: ProjectKanbanCardContentProps) {
-  const router = useRouter();
-
   const progressValue = Math.round(
     project.progress ?? project.completionPercentage ?? 0,
   );
   const statusTone = PROJECT_STATUS_TONES[project.status];
 
-  function handleClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    router.push(`/dashboard/pm/projects/${project.id}`);
-  }
-
   const startDate = formatDate(project.startDate);
   const endDate = formatDate(project.endDate);
 
   return (
-    <div onClick={handleClick}>
+    <Link
+      href={`/dashboard/pm/projects/${project.id}`}
+      className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
       {/* ── Header: Name + Drag Handle ─────────────────────────────── */}
       <div className="flex items-start justify-between gap-2">
         <p className="flex-1 min-w-0 text-sm font-semibold leading-tight line-clamp-2 text-foreground">
@@ -47,16 +42,12 @@ export function ProjectKanbanCardContent({
 
       {/* ── Client ────────────────────────────────────────────────── */}
       {project.client?.companyName && (
-        <Link
-          href={`/dashboard/sales/clients/${project.client.id}`}
-          className="mt-2 flex items-center gap-1"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <span className="mt-2 flex items-center gap-1">
           <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="truncate text-xs text-muted-foreground">
             {project.client.companyName}
           </span>
-        </Link>
+        </span>
       )}
 
       {/* ── Progress Bar ─────────────────────────────────────────── */}
@@ -80,6 +71,6 @@ export function ProjectKanbanCardContent({
           {startDate} - {endDate}
         </span>
       </div>
-    </div>
+    </Link>
   );
 }

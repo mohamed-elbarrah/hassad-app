@@ -10,6 +10,7 @@ import {
 import { KanbanBoard } from "@/components/dashboard/kanban";
 import { PROJECT_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/project-status";
 import { ProjectKanbanCardContent } from "@/components/dashboard/kanban/cards/ProjectKanbanCardContent";
+import { projectErrorMessage } from "@/lib/i18n";
 import type { ProjectWithMeta } from "@/lib/utils/project-status";
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ export function ProjectKanbanBoard({
     { pollingInterval: 30_000 },
   );
 
-  const projects = (data?.items ?? []) as ProjectWithMeta[];
+  const projects: ProjectWithMeta[] = data?.items ?? [];
 
   // ── Drag end handler ─────────────────────────────────────────────────
   const handleDragEnd = useCallback(
@@ -50,10 +51,7 @@ export function ProjectKanbanBoard({
           body: { status: toStage as ProjectStatus },
         }).unwrap();
       } catch (err: unknown) {
-        const message =
-          (err as { data?: { message?: string } })?.data?.message ??
-          "فشل تحديث حالة المشروع";
-        toast.error(message);
+        toast.error(projectErrorMessage(err));
       }
     },
     [updateProjectStatus],

@@ -158,6 +158,23 @@ export function authErrorMessage(error: unknown): string {
   );
 }
 
+const PROJECT_ERROR_MESSAGES: Record<string, string> = {
+  PROJECT_NOT_FOUND: "المشروع غير موجود.",
+  PROJECT_STATUS_UPDATE_FAILED: "تعذر تحديث حالة المشروع.",
+  PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+  VALIDATION_ERROR: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
+  REQUEST_FAILED: "تعذر تنفيذ العملية. حاول مرة أخرى.",
+  UNKNOWN_ERROR: "حدث خطأ. يرجى المحاولة مرة أخرى.",
+};
+
+export function projectErrorMessage(error: unknown): string {
+  const code = (error as { data?: { error?: { code?: string } } })?.data?.error
+    ?.code;
+  return (
+    (code && PROJECT_ERROR_MESSAGES[code]) || PROJECT_ERROR_MESSAGES.UNKNOWN_ERROR
+  );
+}
+
 const PORTAL_REQUEST_STATUS_LABELS: Record<string, string> = {
   SUBMITTED: "مستلم",
   QUALIFYING: "قيد التأهيل",

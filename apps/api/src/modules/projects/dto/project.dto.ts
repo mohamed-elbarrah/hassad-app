@@ -61,6 +61,11 @@ export class UpdateProjectDto {
   endDate?: string;
 }
 
+export class UpdateProjectStatusDto {
+  @IsEnum(ProjectStatus)
+  status: ProjectStatus;
+}
+
 export class AddMemberDto {
   @IsUUID()
   userId: string;

@@ -11,8 +11,15 @@ import type { ProjectStatus } from "@hassad/shared";
 
 // ── Response types ────────────────────────────────────────────────────────────
 
+export interface ProjectListItem extends Project {
+  client?: { id: string; companyName: string };
+  manager?: { id: string; name: string } | null;
+  _count?: { tasks: number };
+  completionPercentage?: number;
+}
+
 export interface PaginatedProjects {
-  items: Project[];
+  items: ProjectListItem[];
   total: number;
   page: number;
   limit: number;

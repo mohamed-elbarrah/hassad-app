@@ -14,7 +14,7 @@ import { KANBAN_TONES, type KanbanToneClasses } from "@/components/dashboard/kan
 
 export interface ProjectWithMeta extends Project {
   client?: { id: string; companyName: string };
-  manager?: { id: string; name: string };
+  manager?: { id: string; name: string } | null;
   _count?: { tasks: number };
   completionPercentage?: number;
   contract?: {
