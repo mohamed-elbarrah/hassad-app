@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { logout } from "@/features/auth/authSlice";
 import { notificationsApi } from "./notificationsApi";
 
 interface NotificationsUiState {
@@ -23,6 +24,7 @@ const notificationsSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    builder.addCase(logout, () => initialState);
     builder.addMatcher(
       notificationsApi.endpoints.getUnreadCount.matchFulfilled,
       (state, action) => {

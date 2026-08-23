@@ -1,6 +1,9 @@
-import { configureStore } from "@reduxjs/toolkit";
+import {
+  configureStore,
+  createListenerMiddleware,
+} from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
-import authReducer from "@/features/auth/authSlice";
+import authReducer, { logout } from "@/features/auth/authSlice";
 import { authApi } from "@/features/auth/authApi";
 import { clientsApi } from "@/features/clients/clientsApi";
 import { leadsApi } from "@/features/leads/leadsApi";
@@ -43,6 +46,8 @@ import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
 import { aiAssistantApi } from "@/features/aiAssistantApi";
 import { notificationTemplatesApi } from "@/features/notification-templates/notificationTemplatesApi";
 import { intakeFormApi } from "@/features/intakeForm/intakeFormApi";
+
+const authLifecycleMiddleware = createListenerMiddleware();
 
 export const store = configureStore({
   reducer: {
@@ -92,6 +97,7 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) => {
     const middleware = [
+      authLifecycleMiddleware.middleware,
       authApi.middleware,
       clientsApi.middleware,
       leadsApi.middleware,
@@ -138,6 +144,58 @@ export const store = configureStore({
       serializableCheck: false,
       immutableCheck: false,
     }).concat(middleware);
+  },
+});
+
+authLifecycleMiddleware.startListening({
+  actionCreator: logout,
+  effect: (_action, listenerApi) => {
+    // A client-side route change does not recreate the Redux store. Clear every
+    // RTK Query cache so the next account cannot see data fetched by this one.
+    for (const api of [
+      authApi,
+      clientsApi,
+      leadsApi,
+      projectsApi,
+      tasksApi,
+      usersApi,
+      notificationsApi,
+      proposalsApi,
+      contractsApi,
+      requestsApi,
+      salesApi,
+      financeApi,
+      deliverablesApi,
+      marketingApi,
+      portalApi,
+      portalNotificationsApi,
+      servicesApi,
+      chatApi,
+      settingsApi,
+      departmentsApi,
+      rolesApi,
+      permissionsApi,
+      healthApi,
+      adminApi,
+      adminUsersApi,
+      adminProjectsApi,
+      adminTasksApi,
+      adminContractsApi,
+      adminRequestsApi,
+      adminLeadsApi,
+      adminDisputesApi,
+      adminClientsApi,
+      adminProposalsApi,
+      adminFinanceApi,
+      adminReportsApi,
+      periodsApi,
+      pmDisputesApi,
+      aiAssistantApi,
+      notificationTemplatesApi,
+      intakeFormApi,
+    ]) {
+      listenerApi.dispatch(api.util.resetApiState());
+    }
   },
 });
 
