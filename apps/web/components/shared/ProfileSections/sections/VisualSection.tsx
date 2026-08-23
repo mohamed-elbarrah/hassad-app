@@ -382,7 +382,7 @@ export function VisualSection({
                 className={cn(
                   "px-6 py-3 rounded-xl text-sm font-medium border transition-colors",
                   hasIdentity
-                    ? "bg-primary text-white border-secondary-500"
+                    ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
                     : "bg-background text-muted-foreground border-border hover:border-secondary-300",
                 )}
               >
@@ -394,7 +394,7 @@ export function VisualSection({
                 className={cn(
                   "px-6 py-3 rounded-xl text-sm font-medium border transition-colors",
                   !hasIdentity
-                    ? "bg-primary text-white border-secondary-500"
+                    ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
                     : "bg-background text-muted-foreground border-border hover:border-secondary-300",
                 )}
               >

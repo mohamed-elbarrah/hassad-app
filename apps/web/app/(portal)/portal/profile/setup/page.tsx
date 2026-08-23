@@ -153,7 +153,7 @@ export default function ProfileSetupPage() {
           onClick={handleStart}
           whileTap={{ scale: 0.95 }}
           whileHover={{ scale: 1.02 }}
-          className="w-auto mt-8 lg:hidden items-center gap-2 bg-white text-secondary-700 font-semibold rounded-xl px-8 py-4 text-lg shadow-lg hover:shadow-xl hover:bg-white/90 transition-all duration-200 active:scale-95"
+          className="inline-flex w-auto mt-8 lg:hidden items-center justify-center gap-2 bg-primary text-primary-foreground border border-primary font-semibold rounded-xl px-8 py-4 text-lg shadow-lg hover:shadow-xl hover:bg-primary/90 transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           بسم الله، نبدأ!!
           {/* <ArrowLeft className="w-5 h-5" /> */}

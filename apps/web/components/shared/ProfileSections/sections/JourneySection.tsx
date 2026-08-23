@@ -181,7 +181,7 @@ export function JourneySection({
                     className={cn(
                       "px-4 py-2 rounded-xl text-sm border transition-colors",
                       selected
-                        ? "bg-primary text-white border-secondary-500"
+                        ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
                         : "bg-background text-muted-foreground border-border hover:border-secondary-300",
                     )}
                   >
