@@ -80,14 +80,8 @@ export function JourneySection({
     onValid?.(true);
   }, [onValid]);
 
-  useEffect(() => {
-    if (mode === "view") return;
-
-    const sub = form.watch((values) => {
-      onDataChange?.(values as JourneyForm);
-    });
-    return () => sub.unsubscribe();
-  }, [form, onDataChange, mode]);
+  // Persist values at the explicit submit boundary so parent rerenders cannot
+  // reset fields while the user is typing.
 
   const selectedMethods = form.watch("orderMethods") ?? [];
 

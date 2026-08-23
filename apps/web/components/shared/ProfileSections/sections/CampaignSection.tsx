@@ -83,14 +83,8 @@ export function CampaignSection({
     onValid?.(true);
   }, [onValid]);
 
-  useEffect(() => {
-    if (mode === "view") return;
-
-    const sub = form.watch((values) => {
-      onDataChange?.(values as CampaignForm);
-    });
-    return () => sub.unsubscribe();
-  }, [form, onDataChange, mode]);
+  // Persist values at the explicit submit boundary so parent rerenders cannot
+  // reset fields while the user is typing.
 
   const onSubmit = useCallback(
     (data: CampaignForm) => {

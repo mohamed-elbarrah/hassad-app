@@ -130,7 +130,12 @@ export function PerformanceSection({
   useEffect(() => {
     if (mode === "view") return;
 
+    let isInitialNotification = true;
     const sub = form.watch((values) => {
+      if (isInitialNotification) {
+        isInitialNotification = false;
+        return;
+      }
       onDataChange?.(buildPerformanceData(values as PerformanceForm));
     });
     return () => sub.unsubscribe();

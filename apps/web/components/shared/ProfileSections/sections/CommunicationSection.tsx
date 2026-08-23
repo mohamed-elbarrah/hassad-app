@@ -14,7 +14,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -100,13 +100,9 @@ export function CommunicationSection({
     onValid?.(form.formState.isValid);
   }, [form.formState.isValid, onValid]);
 
-  const watchedValues = useWatch({ control: form.control });
-
-  useEffect(() => {
-    if (mode !== "view") {
-      onDataChange?.(watchedValues as CommunicationForm);
-    }
-  }, [mode, onDataChange, watchedValues]);
+  // Keep form state local while the user edits. Persist only at the explicit
+  // submit boundary; updating the parent on every keystroke causes the parent
+  // to recreate initialData and reset the active form.
 
   const onSubmit = useCallback(
     (data: CommunicationForm) => {

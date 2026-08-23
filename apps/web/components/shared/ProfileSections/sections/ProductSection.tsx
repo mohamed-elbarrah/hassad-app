@@ -84,14 +84,8 @@ export function ProductSection({
     onValid?.(true);
   }, [onValid]);
 
-  useEffect(() => {
-    if (mode === "view") return;
-
-    const sub = form.watch((values) => {
-      onDataChange?.({ ...values, benefits } as ProductForm);
-    });
-    return () => sub.unsubscribe();
-  }, [form, onDataChange, mode, benefits]);
+  // Persist values at the explicit submit boundary to keep editing local and
+  // prevent parent updates from resetting the active form.
 
   const toggleBenefit = useCallback((benefit: string) => {
     setBenefits((prev) =>

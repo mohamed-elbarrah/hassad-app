@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
 import { portalErrorMessage } from "@/lib/i18n";
+import { useAppSelector } from "@/lib/hooks";
 import { Button } from "@/components/ui/button";
 import {
   useGetClientProfileV2Query,
@@ -39,8 +40,15 @@ export function ProfileEditV2({
   onCancel,
   onSuccess,
 }: ProfileEditV2Props) {
+  const { user } = useAppSelector((state) => state.auth);
+
   // Use the V2 profile endpoint (canonical source for V2 fields)
-  const { data: profile, isLoading } = useGetClientProfileV2Query(clientId);
+  const {
+    data: profile,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetClientProfileV2Query(clientId);
   const [upsertProfile, { isLoading: isSaving }] =
     useUpsertClientProfileV2Mutation();
   const [updateUser] = useUpdateUserMutation();
@@ -81,7 +89,7 @@ export function ProfileEditV2({
     try {
       if (personalInfo) {
         await updateUser({
-          id: clientId,
+          id: user?.id ?? "",
           body: {
             name: personalInfo.name,
             email: personalInfo.email || undefined,
@@ -99,12 +107,23 @@ export function ProfileEditV2({
     } catch (error) {
       toast.error(portalErrorMessage(error));
     }
-  }, [clientId, personalInfo, formData, upsertProfile, updateUser, onSuccess]);
+  }, [clientId, personalInfo, formData, upsertProfile, updateUser, onSuccess, user]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-12 text-center">
+        <p className="text-destructive">تعذر تحميل بيانات الملف الشخصي</p>
+        <Button type="button" variant="outline" onClick={() => refetch()}>
+          إعادة المحاولة
+        </Button>
       </div>
     );
   }

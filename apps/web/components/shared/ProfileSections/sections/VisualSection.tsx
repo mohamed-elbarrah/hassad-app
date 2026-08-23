@@ -111,7 +111,12 @@ export function VisualSection({
   useEffect(() => {
     if (mode === "view") return;
 
+    let isInitialNotification = true;
     const sub = form.watch((values) => {
+      if (isInitialNotification) {
+        isInitialNotification = false;
+        return;
+      }
       const fonts = fontInput
         .split("،")
         .map((f) => f.trim())

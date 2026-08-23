@@ -136,7 +136,12 @@ export function AudienceSection({
   useEffect(() => {
     if (mode === "view") return;
 
+    let isInitialNotification = true;
     const sub = form.watch((values) => {
+      if (isInitialNotification) {
+        isInitialNotification = false;
+        return;
+      }
       const v = values as AudienceForm;
       onDataChange?.({
         audienceInfo: {
