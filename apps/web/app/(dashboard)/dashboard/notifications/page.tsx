@@ -2,10 +2,45 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck, ExternalLink } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import {
+  Bell,
+  CheckCheck,
+  ExternalLink,
+} from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog } from "@/components/design-system/Dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   useGetMyNotificationsQuery,
   useMarkAsReadMutation,
@@ -13,26 +48,27 @@ import {
 } from "@/features/notifications/notificationsApi";
 import type { NotificationItem } from "@/features/notifications/notificationsApi";
 import { useAppSelector } from "@/lib/hooks";
-
 import { formatRelativeTime } from "@/lib/format";
 import { resolveEntityUrl } from "@/components/common/NotificationsDropdown";
 
 const PAGE_SIZE = 20;
 
+type NotificationFilter = "all" | "unread";
+
 export default function NotificationsPage() {
   const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [filter, setFilter] = useState<NotificationFilter>("all");
   const [selectedNotification, setSelectedNotification] =
     useState<NotificationItem | null>(null);
 
-  const { data, isLoading, isFetching } = useGetMyNotificationsQuery({
-    page,
-    limit: PAGE_SIZE,
-    isRead: filter === "unread" ? false : undefined,
-  });
-
+  const { data, isLoading, isFetching, isError, refetch } =
+    useGetMyNotificationsQuery({
+      page,
+      limit: PAGE_SIZE,
+      isRead: filter === "unread" ? false : undefined,
+    });
   const [markAsRead] = useMarkAsReadMutation();
   const [markAllAsRead] = useMarkAllAsReadMutation();
 
@@ -41,9 +77,7 @@ export default function NotificationsPage() {
   const hasUnread = (data?.unreadCount ?? 0) > 0;
 
   async function handleClickNotification(notification: NotificationItem) {
-    if (!notification.isRead) {
-      await markAsRead(notification.id);
-    }
+    if (!notification.isRead) await markAsRead(notification.id);
     setSelectedNotification(notification);
   }
 
@@ -69,171 +103,201 @@ export default function NotificationsPage() {
     : null;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6" dir="rtl">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Bell className="h-5 w-5" />
-          <h1 className="text-2xl font-semibold">الإشعارات</h1>
-          {data?.unreadCount ? (
-            <span className="text-sm text-neutral-300">
-              ({data.unreadCount} غير مقروء)
-            </span>
-          ) : null}
-        </div>
-
-        {hasUnread && (
-          <ActionButton
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6" dir="rtl">
+      <Card className="overflow-hidden">
+        <CardHeader className="gap-5 border-b">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Bell aria-hidden="true" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <CardTitle className="text-2xl">الإشعارات</CardTitle>
+                <CardDescription>
+                  {data?.unreadCount
+                    ? `${data.unreadCount} إشعار غير مقروء`
+                    : "أنت على اطلاع بكل جديد"}
+                </CardDescription>
+              </div>
+            </div>
+            {hasUnread && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 self-start"
+                onClick={() => markAllAsRead()}
+              >
+                <CheckCheck aria-hidden="true" data-icon="inline-start" />
+                تعليم الكل كمقروء
+              </Button>
+            )}
+          </div>
+          <ToggleGroup
+            type="single"
+            value={filter}
             variant="outline"
             size="sm"
-            className="gap-1"
-            onClick={() => markAllAsRead()}
-          >
-            <CheckCheck className="h-4 w-4" />
-            تعليم الكل كمقروء
-          </ActionButton>
-        )}
-      </div>
-
-      {/* Filter tabs */}
-      <div className="flex gap-2">
-        {(["all", "unread"] as const).map((f) => (
-          <button
-            key={f}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === f
-                ? "bg-secondary-500 text-white"
-                : "bg-neutral-50 text-neutral-300 hover:bg-neutral-50/80"
-            }`}
-            onClick={() => {
-              setFilter(f);
+            aria-label="تصفية الإشعارات"
+            onValueChange={(value) => {
+              if (!value) return;
+              setFilter(value as NotificationFilter);
               setPage(1);
             }}
           >
-            {f === "all" ? "الكل" : "غير المقروءة"}
-          </button>
-        ))}
-      </div>
+            <ToggleGroupItem value="all">الكل</ToggleGroupItem>
+            <ToggleGroupItem value="unread">غير المقروءة</ToggleGroupItem>
+          </ToggleGroup>
+        </CardHeader>
 
-      {/* Notification list */}
-      <div className="rounded-lg border overflow-hidden">
-        {isLoading || isFetching ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="px-4 py-4 border-b last:border-0">
-              <Skeleton className="h-4 w-1/2 mb-2" />
-              <Skeleton className="h-3 w-full mb-1" />
-              <Skeleton className="h-3 w-1/4" />
-            </div>
-          ))
-        ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-neutral-300">
-            <Bell className="h-10 w-10 mb-3" />
-            <p className="text-base">
-              {filter === "unread"
-                ? "لا توجد إشعارات غير مقروءة"
-                : "لا توجد إشعارات"}
-            </p>
-          </div>
-        ) : (
-          notifications.map((notification) => (
-            <button
-              key={notification.id}
-              className={`w-full text-right px-4 py-4 hover:bg-neutral-50/50 transition-colors border-b last:border-0 ${
-                !notification.isRead ? "bg-secondary-100/50" : ""
-              }`}
-              onClick={() => handleClickNotification(notification)}
-            >
-              <div className="flex items-start gap-3">
-                {!notification.isRead && (
-                  <span className="mt-1.5 h-2.5 w-2.5 rounded-full bg-secondary-500 flex-shrink-0" />
-                )}
-                <div
-                  className={`flex-1 min-w-0 ${notification.isRead ? "pr-5" : ""}`}
+        <CardContent className="p-0">
+          {isError ? (
+            <Alert variant="destructive" className="m-5 w-auto">
+              <AlertTitle>تعذر تحميل الإشعارات</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3">
+                حدث خطأ أثناء تحميل الإشعارات. حاول مرة أخرى.
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => refetch()}
                 >
-                  <p
-                    className={`text-sm ${
-                      !notification.isRead ? "font-medium" : "text-natural-100"
-                    }`}
-                  >
-                    {notification.title}
-                  </p>
-                  <p className="text-sm text-neutral-300 mt-0.5 line-clamp-2">
-                    {notification.body}
-                  </p>
-                  <p className="text-xs text-neutral-300 mt-1">
-                    {formatRelativeTime(notification.createdAt as string)}
-                  </p>
+                  إعادة المحاولة
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : isLoading || isFetching ? (
+            <div className="flex flex-col divide-y">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="flex flex-col gap-2 p-5">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-1/4" />
                 </div>
-              </div>
-            </button>
-          ))
-        )}
-      </div>
+              ))}
+            </div>
+          ) : notifications.length === 0 ? (
+            <Empty className="min-h-72 border-0">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Bell aria-hidden="true" />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {filter === "unread"
+                    ? "لا توجد إشعارات غير مقروءة"
+                    : "لا توجد إشعارات"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  ستظهر الإشعارات الجديدة هنا عند وصولها.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="flex flex-col divide-y">
+              {notifications.map((notification) => (
+                <button
+                  key={notification.id}
+                  type="button"
+                  className="group flex w-full items-start gap-3 p-5 text-right transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  data-unread={!notification.isRead || undefined}
+                  onClick={() => handleClickNotification(notification)}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`mt-2 size-2 shrink-0 rounded-full ${
+                      notification.isRead ? "bg-transparent" : "bg-primary"
+                    }`}
+                  />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span
+                      className={`truncate text-sm ${
+                        notification.isRead
+                          ? "font-normal text-foreground"
+                          : "font-semibold text-foreground"
+                      }`}
+                    >
+                      {notification.title}
+                    </span>
+                    <span className="line-clamp-2 text-sm text-muted-foreground">
+                      {notification.body}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatRelativeTime(notification.createdAt as string)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <ActionButton
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            السابق
-          </ActionButton>
-          <span className="text-sm text-neutral-300">
-            صفحة {page} من {totalPages}
-          </span>
-          <ActionButton
-            variant="outline"
-            size="sm"
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            التالي
-          </ActionButton>
-        </div>
+        <Pagination dir="rtl">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                direction="rtl"
+                text="السابق"
+                disabled={page === 1}
+                onClick={() => setPage((currentPage) => currentPage - 1)}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <span className="px-3 text-sm text-muted-foreground">
+                صفحة {page} من {totalPages}
+              </span>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                direction="rtl"
+                text="التالي"
+                disabled={page === totalPages}
+                onClick={() => setPage((currentPage) => currentPage + 1)}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
 
-      {/* Notification detail modal */}
       <Dialog
         open={!!selectedNotification}
         onOpenChange={(open) => !open && setSelectedNotification(null)}
-        title={selectedNotification?.title}
-        description={
-          selectedNotification?.createdAt
-            ? formatRelativeTime(selectedNotification.createdAt as string)
-            : ""
-        }
-        footer={
-          <div className="flex flex-row-reverse gap-2 sm:justify-start">
+      >
+        <DialogContent
+          className="max-w-md"
+          dir="rtl"
+          closeLabel="إغلاق نافذة الإشعار"
+        >
+          <DialogHeader className="text-right sm:text-right">
+            <DialogTitle>{selectedNotification?.title}</DialogTitle>
+            <DialogDescription>
+              {selectedNotification?.createdAt
+                ? formatRelativeTime(selectedNotification.createdAt as string)
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-80 overflow-y-auto rounded-md bg-muted/50 p-4">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+              {selectedNotification?.body}
+            </p>
+          </div>
+          <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">
             {entityUrl && (
-              <ActionButton
-                size="sm"
-                className="gap-1"
-                onClick={handleNavigateToEntity}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
+              <Button size="sm" onClick={handleNavigateToEntity}>
+                <ExternalLink aria-hidden="true" data-icon="inline-start" />
                 {selectedNotification?.entityType === "task"
                   ? "فتح المهمة"
                   : "فتح المشروع"}
-              </ActionButton>
+              </Button>
             )}
-            <ActionButton
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedNotification(null)}
-            >
-              إغلاق
-            </ActionButton>
-          </div>
-        }
-        contentClassName="max-w-md"
-      >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-          {selectedNotification?.body}
-        </p>
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">
+                إغلاق
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 }

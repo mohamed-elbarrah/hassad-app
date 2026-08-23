@@ -38,9 +38,16 @@ import { useAppSelector } from "@/lib/hooks";
 import { useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
-import { useGetUnreadCountQuery } from "@/features/notifications/notificationsApi";
+import {
+  useGetMyNotificationsQuery,
+  useGetUnreadCountQuery,
+} from "@/features/notifications/notificationsApi";
+import type { NotificationItem } from "@/features/notifications/notificationsApi";
 import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotificationSocket";
+import { formatRelativeTime } from "@/lib/format";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +55,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -118,30 +130,138 @@ function DashboardNotificationsButton() {
   const { data } = useGetUnreadCountQuery(undefined, {
     skip: !isAuthenticated,
   });
+  const {
+    data: notificationsData,
+    isLoading: notificationsLoading,
+    isError: notificationsError,
+    refetch: refetchNotifications,
+  } = useGetMyNotificationsQuery(
+    { page: 1, limit: 5 },
+    { skip: !isAuthenticated },
+  );
 
   const unreadCount = data?.count ?? 0;
+  const notifications =
+    (notificationsData?.data ?? []) as unknown as NotificationItem[];
   const displayCount =
     unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
 
   return (
-    <Button
-      asChild
-      variant="ghost"
-      size="icon"
-      className="relative h-10 w-10 rounded-full border border-border bg-background hover:bg-accent"
-    >
-      <Link href="/dashboard/notifications" aria-label="الإشعارات">
-        <Bell className="h-5 w-5" />
-        {displayCount ? (
-          <Badge
-            variant="destructive"
-            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px]"
-          >
-            {displayCount}
-          </Badge>
-        ) : null}
-      </Link>
-    </Button>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative size-10 rounded-full border border-border bg-background hover:bg-accent"
+          aria-label={
+            displayCount
+              ? `فتح الإشعارات، ${displayCount} غير مقروء`
+              : "فتح الإشعارات"
+          }
+        >
+          <Bell aria-hidden="true" data-icon="inline-start" />
+          {displayCount ? (
+            <Badge
+              variant="destructive"
+              className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1"
+            >
+              {displayCount}
+            </Badge>
+          ) : null}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="max-w-xs"
+        dir="rtl"
+        aria-label="قائمة الإشعارات"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <p className="font-semibold text-foreground">الإشعارات</p>
+            <p className="text-sm text-muted-foreground">
+              {unreadCount
+                ? `لديك ${unreadCount} إشعار غير مقروء`
+                : "آخر الإشعارات والتحديثات"}
+            </p>
+          </div>
+
+          {notificationsError ? (
+            <Alert variant="destructive">
+              <AlertTitle>تعذر تحميل الإشعارات</AlertTitle>
+              <AlertDescription className="flex flex-col gap-3">
+                حاول مرة أخرى لعرض آخر الإشعارات.
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => refetchNotifications()}
+                >
+                  إعادة المحاولة
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {!notificationsError && (
+            <div
+              className="flex max-h-80 flex-col overflow-y-auto rounded-md border"
+              aria-busy={notificationsLoading}
+              aria-live="polite"
+            >
+              {notificationsLoading ? (
+              <div className="flex flex-col gap-3 p-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="flex flex-col gap-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                ))}
+              </div>
+            ) : notifications.length ? (
+              notifications.map((notification) => (
+                <Link
+                  key={notification.id}
+                  href="/dashboard/notifications"
+                  className="flex items-start gap-2 border-b p-3 text-right last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`mt-2 size-2 shrink-0 rounded-full ${
+                      notification.isRead ? "bg-transparent" : "bg-primary"
+                    }`}
+                  />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span
+                      className={`truncate text-sm ${
+                        notification.isRead ? "text-foreground" : "font-semibold text-foreground"
+                      }`}
+                    >
+                      {notification.title}
+                    </span>
+                    <span className="line-clamp-2 text-xs text-muted-foreground">
+                      {notification.body}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatRelativeTime(notification.createdAt as string)}
+                    </span>
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <p className="p-4 text-center text-sm text-muted-foreground">
+                لا توجد إشعارات
+              </p>
+            )}
+            </div>
+          )}
+
+          <Button asChild size="sm" className="w-full">
+            <Link href="/dashboard/notifications">عرض جميع الإشعارات</Link>
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
