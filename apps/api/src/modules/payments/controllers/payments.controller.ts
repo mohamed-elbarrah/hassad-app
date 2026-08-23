@@ -114,6 +114,13 @@ export class PaymentsController {
     return this.paymentsService.getBankAccounts(all === "true");
   }
 
+  @Get("bank-accounts-public")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions("invoices.pay_public")
+  async getPublicBankAccounts() {
+    return this.paymentsService.getBankAccounts(false);
+  }
+
   @Get("public-config")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("invoices.pay_public")

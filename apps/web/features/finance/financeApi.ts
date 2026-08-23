@@ -456,6 +456,9 @@ export const financeApi = createApi({
       query: () => "/payments/bank-accounts",
       providesTags: ["BankAccount"],
     }),
+    getPublicBankAccounts: builder.query<any[], void>({
+      query: () => "/payments/bank-accounts-public",
+    }),
     createBankAccount: builder.mutation<any, any>({
       query: (body) => ({
         url: "/payments/bank-accounts",
@@ -586,6 +589,7 @@ export const {
   useUpdatePaymentGatewayMutation,
   useGetPublicGatewaysQuery,
   useGetBankAccountsQuery,
+  useGetPublicBankAccountsQuery,
   useCreateBankAccountMutation,
   useUpdateBankAccountMutation,
   useDeleteBankAccountMutation,

@@ -28,12 +28,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { portalErrorMessage } from "@/lib/i18n";
 import {
   useCreateElementPaymentIntentMutation,
   useUploadPaymentReceiptMutation,
   useGetPublicGatewaysQuery,
   useGetStripePublishableKeyQuery,
-  useGetBankAccountsQuery,
+  useGetPublicBankAccountsQuery,
   usePayInvoicePublicMutation,
 } from "@/features/finance/financeApi";
 import { PaymentMethod } from "@hassad/shared";
@@ -89,18 +90,26 @@ export function InlinePaymentCard({
   onPaymentComplete,
   compact: _compact = false,
 }: InlinePaymentProps) {
-  const { data: activeGateways = [] } = useGetPublicGatewaysQuery(undefined);
-  const { data: stripeConfig } = useGetStripePublishableKeyQuery(undefined, {
-    skip: !!stripeKeyProp,
-  });
-  const { data: bankData } = useGetBankAccountsQuery(undefined, {
-    skip: !!(bankAccountsProp && bankAccountsProp.length > 0),
-  });
+  const { data: activeGateways = [], isLoading: loadingGateways } =
+    useGetPublicGatewaysQuery(undefined);
+  const { data: stripeConfig, isLoading: loadingStripeConfig } =
+    useGetStripePublishableKeyQuery(undefined, {
+      skip: !!stripeKeyProp,
+    });
+  const { data: bankData, isLoading: loadingBankAccounts } =
+    useGetPublicBankAccountsQuery(undefined, {
+      skip:
+        !!(bankAccountsProp && bankAccountsProp.length > 0) ||
+        !activeGateways.includes("bank_transfer"),
+    });
 
   const resolvedStripeKey = stripeKeyProp ?? stripeConfig?.publishableKey ?? "";
   const resolvedMethods = useMemo(
-    () => buildAvailableMethods(activeGateways),
-    [activeGateways],
+    () =>
+      buildAvailableMethods(activeGateways).filter(
+        (method) => method.key !== PaymentMethod.CARD || Boolean(resolvedStripeKey),
+      ),
+    [activeGateways, resolvedStripeKey],
   );
   const resolvedBankAccounts = bankAccountsProp ?? bankData ?? [];
 
@@ -115,7 +124,10 @@ export function InlinePaymentCard({
   }, [resolvedMethods, selectedMethod]);
 
   const showTabs = resolvedMethods.length > 1;
-  const loadingGateways = !(stripeKeyProp ?? stripeConfig?.publishableKey);
+  const loadingPaymentConfiguration =
+    loadingGateways ||
+    loadingBankAccounts ||
+    (activeGateways.includes("stripe") && loadingStripeConfig);
 
   return (
     <div className="space-y-4" dir="rtl">
@@ -150,7 +162,7 @@ export function InlinePaymentCard({
         </div>
       )}
 
-      {loadingGateways ? (
+      {loadingPaymentConfiguration ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
           <p className="text-sm text-muted-foreground">جاري تحميل طرق الدفع...</p>
@@ -200,10 +212,7 @@ export function CardPaymentForm({
       }).unwrap();
       if (result?.clientSecret) setClientSecret(result.clientSecret);
     } catch (err: unknown) {
-      const msg =
-        (err as { data?: { message?: string } })?.data?.message ??
-        "فشل تحضير الدفع";
-      toast.error(msg);
+      toast.error(portalErrorMessage(err));
     }
   }, [invoice.id, invoice.amount, createElementIntent]);
 
@@ -443,10 +452,7 @@ export function BankTransferForm({
       toast.success("تم رفع الإيصال. سنقوم بتأكيد الدفع بعد المراجعة.");
       onPaymentComplete?.();
     } catch (err: unknown) {
-      const msg =
-        (err as { data?: { message?: string } })?.data?.message ??
-        "فشل تأكيد الدفع";
-      toast.error(msg);
+      toast.error(portalErrorMessage(err));
     } finally {
       setConfirming(false);
     }
@@ -563,20 +569,33 @@ export function PaymentSheet({
   onOpenChange,
   onPaymentComplete,
 }: PaymentSheetProps) {
-  const { data: activeGateways = [] } = useGetPublicGatewaysQuery(undefined, {
-    skip: !invoice,
-  });
-  const { data: stripeConfig } = useGetStripePublishableKeyQuery(undefined, {
-    skip: !invoice,
-  });
-  const { data: bankAccounts } = useGetBankAccountsQuery(undefined, {
-    skip: !invoice,
-  });
+  const { data: activeGateways = [], isLoading: loadingGateways } =
+    useGetPublicGatewaysQuery(undefined, {
+      skip: !invoice,
+    });
+  const { data: stripeConfig, isLoading: loadingStripeConfig } =
+    useGetStripePublishableKeyQuery(undefined, {
+      skip: !invoice,
+    });
+  const { data: bankAccounts, isLoading: loadingBankAccounts } =
+    useGetPublicBankAccountsQuery(undefined, {
+      skip: !invoice || !activeGateways.includes("bank_transfer"),
+    });
 
   const availableMethods = useMemo(
-    () => buildAvailableMethods(activeGateways),
-    [activeGateways],
+    () =>
+      buildAvailableMethods(activeGateways).filter(
+        (method) =>
+          method.key !== PaymentMethod.CARD ||
+          Boolean(stripeConfig?.publishableKey),
+      ),
+    [activeGateways, stripeConfig?.publishableKey],
   );
+
+  const loadingPaymentConfiguration =
+    loadingGateways ||
+    loadingBankAccounts ||
+    (activeGateways.includes("stripe") && loadingStripeConfig);
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
     null,
@@ -676,27 +695,38 @@ export function PaymentSheet({
               )}
 
               {/* Payment form */}
-              {selectedMethod === PaymentMethod.CARD &&
-                stripeConfig?.publishableKey && (
-                  <CardPaymentForm
-                    invoice={invoice}
-                    stripeKey={stripeConfig.publishableKey}
-                    onPaymentComplete={() => {
-                      onPaymentComplete?.();
-                      onOpenChange(false);
-                    }}
-                  />
-                )}
+              {loadingPaymentConfiguration ? (
+                <div className="flex flex-col items-center gap-3 py-8 text-center">
+                  <Loader2 className="size-8 animate-spin text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    جاري تحميل طرق الدفع...
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {selectedMethod === PaymentMethod.CARD &&
+                    stripeConfig?.publishableKey && (
+                      <CardPaymentForm
+                        invoice={invoice}
+                        stripeKey={stripeConfig.publishableKey}
+                        onPaymentComplete={() => {
+                          onPaymentComplete?.();
+                          onOpenChange(false);
+                        }}
+                      />
+                    )}
 
-              {selectedMethod === PaymentMethod.BANK_TRANSFER && (
-                <BankTransferForm
-                  invoice={invoice}
-                  bankAccounts={bankAccounts ?? []}
-                  onPaymentComplete={() => {
-                    onPaymentComplete?.();
-                    onOpenChange(false);
-                  }}
-                />
+                  {selectedMethod === PaymentMethod.BANK_TRANSFER && (
+                    <BankTransferForm
+                      invoice={invoice}
+                      bankAccounts={bankAccounts ?? []}
+                      onPaymentComplete={() => {
+                        onPaymentComplete?.();
+                        onOpenChange(false);
+                      }}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
