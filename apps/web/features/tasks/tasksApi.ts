@@ -62,15 +62,22 @@ export interface PmTaskStats {
   projects: number;
 }
 
+export interface PmTasksResponse {
+  items: TaskWithProject[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}
+
 export interface PmTasksFilters {
   status?: TaskStatus;
   priority?: TaskPriority;
   projectId?: string;
   department?: TaskDepartment;
   search?: string;
+  page?: number;
   limit?: number;
   dueBefore?: string;
   dueAfter?: string;
+  overdue?: boolean;
 }
 
 // ── API slice ─────────────────────────────────────────────────────────────────
@@ -231,7 +238,11 @@ export const tasksApi = createApi({
         const formData = new FormData();
         formData.append("file", file);
         if (purpose) formData.append("purpose", purpose);
-        return { url: `/pm/tasks/${taskId}/files`, method: "POST", body: formData };
+        return {
+          url: `/pm/tasks/${taskId}/files`,
+          method: "POST",
+          body: formData,
+        };
       },
       invalidatesTags: (_result, _error, { taskId }) => [
         { type: "Task", id: `FILES_${taskId}` },
@@ -239,7 +250,10 @@ export const tasksApi = createApi({
     }),
 
     /** DELETE /v1/pm/tasks/:taskId/files/:fileId */
-    deletePmTaskFile: builder.mutation<void, { taskId: string; fileId: string }>({
+    deletePmTaskFile: builder.mutation<
+      void,
+      { taskId: string; fileId: string }
+    >({
       query: ({ taskId, fileId }) => ({
         url: `/pm/tasks/${taskId}/files/${fileId}`,
         method: "DELETE",
@@ -393,7 +407,7 @@ export const tasksApi = createApi({
     }),
 
     /** GET /v1/pm/tasks — all tasks across PM's projects */
-    getPmTasks: builder.query<TaskWithProject[], PmTasksFilters>({
+    getPmTasks: builder.query<PmTasksResponse, PmTasksFilters>({
       query: (filters = {}) => ({
         url: "/pm/tasks",
         params: filters,

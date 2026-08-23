@@ -1,15 +1,24 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { ProjectStatus, TaskPriority, TaskStatus } from "@hassad/shared";
 
 import { PrismaService } from "../../../prisma/prisma.service";
 import { ProjectsService } from "../../projects/services/projects.service";
-import type { PmProjectsQueryDto, PmProjectUpdateDto } from "../dto/pm-projects.dto";
+import type {
+  PmProjectsQueryDto,
+  PmProjectUpdateDto,
+} from "../dto/pm-projects.dto";
 
 const pmProjectDetailInclude = Prisma.validator<Prisma.ProjectInclude>()({
   client: { select: { id: true, companyName: true } },
   manager: { select: { id: true, name: true, email: true } },
-  contract: { select: { id: true, type: true, totalValue: true, monthlyValue: true } },
+  contract: {
+    select: { id: true, type: true, totalValue: true, monthlyValue: true },
+  },
   members: {
     include: { user: { select: { id: true, name: true, email: true } } },
   },
@@ -156,7 +165,8 @@ export class PmProjectsService {
     userId: string,
     query: PmProjectsQueryDto,
   ): Promise<{
-    items: PmProjectCard[];
+    __standardResponse: true;
+    data: { items: PmProjectCard[] };
     meta: { total: number; page: number; limit: number; totalPages: number };
   }> {
     const page = query.page ?? 1;
@@ -171,7 +181,10 @@ export class PmProjectsService {
               { name: { contains: search, mode: "insensitive" as const } },
               {
                 client: {
-                  companyName: { contains: search, mode: "insensitive" as const },
+                  companyName: {
+                    contains: search,
+                    mode: "insensitive" as const,
+                  },
                 },
               },
             ],
@@ -180,72 +193,75 @@ export class PmProjectsService {
     };
     const [projects, total] = await Promise.all([
       this.prisma.project.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        status: true,
-        priority: true,
-        completionPercentage: true,
-        startDate: true,
-        endDate: true,
-        updatedAt: true,
-        manager: {
-          select: {
-            id: true,
-            name: true,
+        where,
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          priority: true,
+          completionPercentage: true,
+          startDate: true,
+          endDate: true,
+          updatedAt: true,
+          manager: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          client: {
+            select: {
+              companyName: true,
+            },
+          },
+          tasks: {
+            select: pmProjectListTasksSelect,
           },
         },
-        client: {
-          select: {
-            companyName: true,
-          },
-        },
-        tasks: {
-          select: pmProjectListTasksSelect,
-        },
-      },
-      orderBy: [{ updatedAt: "desc" }],
-      skip: (page - 1) * limit,
-      take: limit,
+        orderBy: [{ updatedAt: "desc" }],
+        skip: (page - 1) * limit,
+        take: limit,
       }),
       this.prisma.project.count({ where }),
     ]);
 
     return {
-      items: projects.map((project) => {
-        const taskCount = project.tasks.length;
-        const overdueTaskCount = project.tasks.filter(
-          (task) =>
-            task.dueDate &&
-            task.dueDate < new Date() &&
-            task.status !== TaskStatus.DONE,
-        ).length;
-        const activeTaskCount = project.tasks.filter((task) =>
-          [
-            TaskStatus.TODO,
-            TaskStatus.IN_PROGRESS,
-            TaskStatus.IN_REVIEW,
-            TaskStatus.REVISION,
-          ].includes(task.status as TaskStatus),
-        ).length;
+      __standardResponse: true as const,
+      data: {
+        items: projects.map((project) => {
+          const taskCount = project.tasks.length;
+          const overdueTaskCount = project.tasks.filter(
+            (task) =>
+              task.dueDate &&
+              task.dueDate < new Date() &&
+              task.status !== TaskStatus.DONE,
+          ).length;
+          const activeTaskCount = project.tasks.filter((task) =>
+            [
+              TaskStatus.TODO,
+              TaskStatus.IN_PROGRESS,
+              TaskStatus.IN_REVIEW,
+              TaskStatus.REVISION,
+            ].includes(task.status as TaskStatus),
+          ).length;
 
-        return {
-          id: project.id,
-          name: project.name,
-          clientName: project.client.companyName,
-          status: project.status as ProjectStatus,
-          completionPercentage: project.completionPercentage,
-          startDate: project.startDate.toISOString(),
-          endDate: project.endDate.toISOString(),
-          projectManager: project.manager,
-          priority: project.priority as TaskPriority,
-          taskCount,
-          overdueTaskCount,
-          activeTaskCount,
-          updatedAt: project.updatedAt.toISOString(),
-        };
-      }),
+          return {
+            id: project.id,
+            name: project.name,
+            clientName: project.client.companyName,
+            status: project.status as ProjectStatus,
+            completionPercentage: project.completionPercentage,
+            startDate: project.startDate.toISOString(),
+            endDate: project.endDate.toISOString(),
+            projectManager: project.manager,
+            priority: project.priority as TaskPriority,
+            taskCount,
+            overdueTaskCount,
+            activeTaskCount,
+            updatedAt: project.updatedAt.toISOString(),
+          };
+        }),
+      },
       meta: {
         total,
         page,
@@ -309,8 +325,14 @@ export class PmProjectsService {
       });
     }
 
-    const invoices = new Map<string, NonNullable<PmProjectDetailRecord["invoiceItems"]>[number]["invoice"]>();
-    const payments: NonNullable<NonNullable<PmProjectDetailRecord["invoiceItems"]>[number]["invoice"]["payments"]> = [] as any;
+    const invoices = new Map<
+      string,
+      NonNullable<PmProjectDetailRecord["invoiceItems"]>[number]["invoice"]
+    >();
+    type ProjectPayment = NonNullable<
+      NonNullable<PmProjectDetailRecord["invoiceItems"]>[number]["invoice"]
+    >["payments"][number];
+    const payments: ProjectPayment[] = [];
 
     for (const item of project.invoiceItems ?? []) {
       if (item.invoice && !invoices.has(item.invoice.id)) {
@@ -324,6 +346,41 @@ export class PmProjectsService {
       }
     }
 
+    const [taskCounts, overdueTaskCount, upcomingTasks] = await Promise.all([
+      this.prisma.task.groupBy({
+        by: ["status"],
+        where: { projectId: id },
+        _count: { status: true },
+      }),
+      this.prisma.task.count({
+        where: {
+          projectId: id,
+          dueDate: { lt: new Date() },
+          status: { not: TaskStatus.DONE },
+        },
+      }),
+      this.prisma.task.findMany({
+        where: {
+          projectId: id,
+          status: { not: TaskStatus.DONE },
+          dueDate: { not: null },
+        },
+        select: { id: true, title: true, dueDate: true, status: true },
+        orderBy: { dueDate: "asc" },
+        take: 5,
+      }),
+    ]);
+    const taskStats = {
+      total: taskCounts.reduce((sum, item) => sum + item._count.status, 0),
+      completed:
+        taskCounts.find((item) => item.status === TaskStatus.DONE)?._count
+          .status ?? 0,
+      inProgress:
+        taskCounts.find((item) => item.status === TaskStatus.IN_PROGRESS)
+          ?._count.status ?? 0,
+      overdue: overdueTaskCount,
+    };
+
     const history = await this.prisma.ledger.findMany({
       where: { entity: "project", entityId: id },
       orderBy: { createdAt: "desc" },
@@ -336,11 +393,20 @@ export class PmProjectsService {
 
     return {
       ...rest,
-      workspaceType: project.contract?.type ?? (project.periods?.length ? "MONTHLY_RETAINER" : "ONE_OFF"),
+      workspaceType:
+        project.contract?.type ??
+        (project.periods?.length ? "MONTHLY_RETAINER" : "ONE_OFF"),
       hasPeriods: (project.periods?.length ?? 0) > 0,
-      currentPeriodId: project.periods?.find((period) => period.status === "ACTIVE")?.id ?? null,
+      currentPeriodId:
+        project.periods?.find((period) => period.status === "ACTIVE")?.id ??
+        null,
       totalValue: project.contract?.totalValue ?? 0,
       monthlyValue: project.contract?.monthlyValue ?? 0,
+      taskStats,
+      upcomingTasks: upcomingTasks.map((task) => ({
+        ...task,
+        dueDate: task.dueDate?.toISOString() ?? "",
+      })),
       capabilities: {
         canAssignTasks: true,
         canScheduleMeetings: true,

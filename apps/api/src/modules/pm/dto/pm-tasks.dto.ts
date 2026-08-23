@@ -1,6 +1,20 @@
-import { Type } from "class-transformer";
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min } from "class-validator";
-import { FilePurpose, TaskDepartment, TaskPriority, TaskStatus } from "@hassad/shared";
+import { Transform, Type } from "class-transformer";
+import {
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from "class-validator";
+import {
+  FilePurpose,
+  TaskDepartment,
+  TaskPriority,
+  TaskStatus,
+} from "@hassad/shared";
 
 export class PmTasksQueryDto {
   @IsOptional()
@@ -30,6 +44,17 @@ export class PmTasksQueryDto {
   @IsOptional()
   @IsDateString()
   dueAfter?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === "true")
+  @IsBoolean()
+  overdue?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
 
   @IsOptional()
   @Type(() => Number)

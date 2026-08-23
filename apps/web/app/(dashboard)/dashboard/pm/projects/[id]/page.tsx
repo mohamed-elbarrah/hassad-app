@@ -31,15 +31,16 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
@@ -60,9 +61,12 @@ import {
   useDeletePmProjectFileMutation,
   useLazyGetPmProjectFileDownloadQuery,
 } from "@/features/projects/projectsApi";
-import { useGetPmTasksQuery } from "@/features/tasks/tasksApi";
+import {
+  useGetPmTasksQuery,
+  type TaskWithProject,
+} from "@/features/tasks/tasksApi";
 import { useLazyGetProjectGroupChatQuery } from "@/features/chat/chatApi";
-import { useGetClientTeamViewQuery } from "@/features/clients/clientsApi";
+import { useGetPmClientTeamViewQuery } from "@/features/clients/clientsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus, TaskStatus } from "@hassad/shared";
 import { formatShortDate, daysUntil } from "@/lib/format";
@@ -83,7 +87,12 @@ interface ProjectDetailPageProps {
 // ── Upcoming Deadlines Component ─────────────────────────────────────────────
 
 interface UpcomingDeadlinesProps {
-  tasks?: { id: string; title: string; dueDate: string; status: string }[];
+  tasks?: {
+    id: string;
+    title: string;
+    dueDate: string | Date;
+    status: string;
+  }[];
   projectEndDate?: string;
 }
 
@@ -183,19 +192,17 @@ function UpcomingDeadlines({
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-              {item.type === "milestone" ? (
-                <Clock className="w-5 h-5" />
-              ) : (
-                <CheckCircle2 className="w-5 h-5" />
-              )}
+                {item.type === "milestone" ? (
+                  <Clock className="w-5 h-5" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5" />
+                )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">
-                {item.title}
-                </p>
+                <p className="truncate text-sm font-medium">{item.title}</p>
                 <div className="mt-0.5 flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">
-                  {formatShortDate(item.date)}
+                    {formatShortDate(item.date)}
                   </span>
                   <Badge
                     variant={
@@ -233,14 +240,16 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     isError,
     refetch,
   } = useGetPmProjectByIdQuery(id);
-  const { data: files, isLoading: filesLoading } = useGetPmProjectFilesQuery(id);
-  const { data: tasks, isLoading: tasksLoading } = useGetPmTasksQuery({
+  const { data: files, isLoading: filesLoading } =
+    useGetPmProjectFilesQuery(id);
+  const { data: taskResponse, isLoading: tasksLoading } = useGetPmTasksQuery({
     projectId: id,
     limit: 100,
   });
+  const tasks = taskResponse?.items ?? [];
 
   const clientId = project?.clientId ?? "";
-  const { data: teamView } = useGetClientTeamViewQuery(clientId, {
+  const { data: teamView } = useGetPmClientTeamViewQuery(clientId, {
     skip: !clientId,
   });
 
@@ -287,16 +296,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const progressValue = Math.round(p.progress ?? p.completionPercentage ?? 0);
 
   // Calculate stats
-  const totalTasks = tasks?.length ?? 0;
-  const completedTasks =
-    tasks?.filter((t) => t.status === TaskStatus.DONE).length ?? 0;
-  const inProgressTasks =
-    tasks?.filter((t) => t.status === TaskStatus.IN_PROGRESS).length ?? 0;
-  const overdueTasks =
-    tasks?.filter((t) => {
-      if (t.status === TaskStatus.DONE) return false;
-      return new Date(t.dueDate) < new Date();
-    }).length ?? 0;
+  const totalTasks = p.taskStats?.total ?? tasks?.length ?? 0;
+  const completedTasks = p.taskStats?.completed ?? 0;
+  const inProgressTasks = p.taskStats?.inProgress ?? 0;
+  const overdueTasks = p.taskStats?.overdue ?? 0;
 
   // Determine project health
   const getHealthStatus = () => {
@@ -454,7 +457,9 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             if (!file) return;
             try {
               await uploadFile({ projectId: id, file }).unwrap();
-            } catch { /* best-effort operation; the UI remains usable without this refresh */ }
+            } catch {
+              /* best-effort operation; the UI remains usable without this refresh */
+            }
             if (fileInputRef.current) fileInputRef.current.value = "";
           }}
         />
@@ -551,8 +556,12 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
 
                     <div className="grid grid-cols-3 gap-3 border-t pt-6">
                       <div className="flex flex-col items-center gap-1 text-center">
-                        <p className="text-2xl font-semibold">{inProgressTasks}</p>
-                        <p className="text-xs text-muted-foreground">قيد التنفيذ</p>
+                        <p className="text-2xl font-semibold">
+                          {inProgressTasks}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          قيد التنفيذ
+                        </p>
                       </div>
                       <div className="flex flex-col items-center gap-1 border-s text-center">
                         <p
@@ -584,12 +593,12 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                  <ProjectActivityFeed
-                    projectStatus={project.status}
-                    files={files}
-                    tasks={tasks}
-                    projectManagerName={p.manager?.name}
-                  />
+                    <ProjectActivityFeed
+                      projectStatus={project.status}
+                      files={files}
+                      tasks={tasks}
+                      projectManagerName={p.manager?.name}
+                    />
                   </CardContent>
                 </Card>
               </div>
@@ -604,7 +613,9 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                         <AlertCircle className="size-4 text-muted-foreground" />
                         المواعيد القادمة
                       </CardTitle>
-                      <CardDescription>أقرب العناصر التي تحتاج متابعة.</CardDescription>
+                      <CardDescription>
+                        أقرب العناصر التي تحتاج متابعة.
+                      </CardDescription>
                     </div>
                     <Button
                       variant="ghost"
@@ -615,10 +626,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                     </Button>
                   </CardHeader>
                   <CardContent>
-                  <UpcomingDeadlines
-                    tasks={tasks as any}
-                    projectEndDate={String(project.endDate)}
-                  />
+                    <UpcomingDeadlines
+                      tasks={p.upcomingTasks ?? []}
+                      projectEndDate={String(project.endDate)}
+                    />
                   </CardContent>
                 </Card>
 
@@ -630,7 +641,9 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                         <User className="size-4 text-muted-foreground" />
                         فريق المشروع
                       </CardTitle>
-                      <CardDescription>الأعضاء المشاركون في تنفيذ المشروع.</CardDescription>
+                      <CardDescription>
+                        الأعضاء المشاركون في تنفيذ المشروع.
+                      </CardDescription>
                     </div>
                     <Button variant="ghost" size="sm" disabled>
                       إدارة
@@ -644,8 +657,12 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                           {p.manager.name.charAt(0)}
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium">{p.manager.name}</p>
-                          <p className="text-xs text-muted-foreground">مدير المشروع</p>
+                          <p className="text-sm font-medium">
+                            {p.manager.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            مدير المشروع
+                          </p>
                         </div>
                       </div>
                     ) : null}
@@ -663,7 +680,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                         }
                       >();
 
-                      (tasks ?? []).forEach((task: any) => {
+                      (tasks ?? []).forEach((task: TaskWithProject) => {
                         if (task.assignee?.id) {
                           const existing = assigneeMap.get(task.assignee.id);
                           if (existing) {
@@ -748,25 +765,25 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 />
               </CardHeader>
               <CardContent>
-              {tasksLoading ? (
-                <div className="flex h-96 items-center justify-center">
-                  <Skeleton className="h-full w-full rounded-xl" />
-                </div>
-              ) : totalTasks === 0 ? (
-                <PageEmptyState
-                  icon={FolderKanban}
-                  title="لا توجد مهام"
-                  description="ابدأ بإنشاء أول مهمة لهذا المشروع"
-                  action={
-                    <Button onClick={() => setTaskFormOpen(true)}>
-                      <Plus data-icon="inline-start" />
-                      مهمة جديدة
-                    </Button>
-                  }
-                />
-              ) : (
-                <TaskKanban projectId={id} />
-              )}
+                {tasksLoading ? (
+                  <div className="flex h-96 items-center justify-center">
+                    <Skeleton className="h-full w-full rounded-xl" />
+                  </div>
+                ) : totalTasks === 0 ? (
+                  <PageEmptyState
+                    icon={FolderKanban}
+                    title="لا توجد مهام"
+                    description="ابدأ بإنشاء أول مهمة لهذا المشروع"
+                    action={
+                      <Button onClick={() => setTaskFormOpen(true)}>
+                        <Plus data-icon="inline-start" />
+                        مهمة جديدة
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <TaskKanban projectId={id} />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -795,73 +812,79 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 </Button>
               </CardHeader>
               <CardContent>
-              {filesLoading ? (
-                <div className="flex flex-col gap-2">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-14 rounded-lg" />
-                  ))}
-                </div>
-              ) : !files || files.length === 0 ? (
-                <PageEmptyState
-                  icon={FileText}
-                  title="لا توجد ملفات"
-                  description="ارفع ملفات المشروع لتتمكن من مشاركتها مع الفريق والعميل"
-                  action={
-                    <Button onClick={() => fileInputRef.current?.click()}>
-                      <Upload data-icon="inline-start" />
-                      رفع ملف
-                    </Button>
-                  }
-                />
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {files.map((file) => (
-                    <Card key={file.id}>
-                      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">
-                            {file.fileName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {((file.fileSize ?? 0) / 1024).toFixed(0)} KB
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={async () => {
-                              const result = await getFileDownload({
-                                projectId: id,
-                                fileId: file.id,
-                              }).unwrap();
-                              window.open(result.url, "_blank", "noopener,noreferrer");
-                            }}
-                          >
-                            <Download data-icon="inline-start" />
-                            تحميل
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={async () => {
-                              try {
-                                await deleteFile({
+                {filesLoading ? (
+                  <div className="flex flex-col gap-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-14 rounded-lg" />
+                    ))}
+                  </div>
+                ) : !files || files.length === 0 ? (
+                  <PageEmptyState
+                    icon={FileText}
+                    title="لا توجد ملفات"
+                    description="ارفع ملفات المشروع لتتمكن من مشاركتها مع الفريق والعميل"
+                    action={
+                      <Button onClick={() => fileInputRef.current?.click()}>
+                        <Upload data-icon="inline-start" />
+                        رفع ملف
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {files.map((file) => (
+                      <Card key={file.id}>
+                        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                              {file.fileName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {((file.fileSize ?? 0) / 1024).toFixed(0)} KB
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                const result = await getFileDownload({
                                   projectId: id,
                                   fileId: file.id,
                                 }).unwrap();
-                              } catch { /* best-effort operation; the UI remains usable without this refresh */ }
-                            }}
-                          >
-                            <Trash2 data-icon="inline-start" />
-                            حذف
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                                window.open(
+                                  result.url,
+                                  "_blank",
+                                  "noopener,noreferrer",
+                                );
+                              }}
+                            >
+                              <Download data-icon="inline-start" />
+                              تحميل
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  await deleteFile({
+                                    projectId: id,
+                                    fileId: file.id,
+                                  }).unwrap();
+                                } catch {
+                                  /* best-effort operation; the UI remains usable without this refresh */
+                                }
+                              }}
+                            >
+                              <Trash2 data-icon="inline-start" />
+                              حذف
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -893,10 +916,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-              <PMPeriodsManagement
-                projectId={id}
-                contractType={p.contract?.type}
-              />
+                <PMPeriodsManagement
+                  projectId={id}
+                  contractType={p.contract?.type}
+                />
               </CardContent>
             </Card>
           </TabsContent>

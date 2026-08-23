@@ -50,8 +50,15 @@ export interface PmDisputeDetail extends PmDisputeSummary {
 
 export interface PmDisputeFilterInput {
   status?: DisputeStatus;
+  search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface PmDisputeStats {
+  active: number;
+  escalated: number;
+  resolved: number;
 }
 
 export interface PmDisputeListResponse {
@@ -95,6 +102,11 @@ export const pmDisputesApi = createApi({
               "PmDisputes",
             ]
           : ["PmDisputes"],
+    }),
+
+    getPmDisputeStats: builder.query<PmDisputeStats, void>({
+      query: () => "/pm/disputes/stats",
+      providesTags: ["PmDisputes"],
     }),
 
     getPmDisputeDetail: builder.query<PmDisputeDetail, string>({
@@ -151,6 +163,7 @@ export const pmDisputesApi = createApi({
 
 export const {
   useGetPmDisputesQuery,
+  useGetPmDisputeStatsQuery,
   useGetPmDisputeDetailQuery,
   useAcknowledgeDisputeMutation,
   useAddPmDisputeMessageMutation,

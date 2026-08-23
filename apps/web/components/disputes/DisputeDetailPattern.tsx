@@ -12,10 +12,21 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import { DISPUTE_CATEGORY_AR, DISPUTE_PRIORITY_AR, DISPUTE_STATUS_AR } from "@hassad/shared";
+import {
+  DISPUTE_CATEGORY_AR,
+  DISPUTE_PRIORITY_AR,
+  DISPUTE_STATUS_AR,
+} from "@hassad/shared";
+import { disputeHistoryMessage } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -193,15 +204,17 @@ export function DisputeDetailPattern({
         {
           label: "الحالة",
           value:
-            DISPUTE_STATUS_AR[dispute.status as keyof typeof DISPUTE_STATUS_AR] ||
-            dispute.status,
+            DISPUTE_STATUS_AR[
+              dispute.status as keyof typeof DISPUTE_STATUS_AR
+            ] || dispute.status,
           icon: <ShieldAlert className="text-muted-foreground" />,
         },
         {
           label: "الأولوية",
           value:
-            DISPUTE_PRIORITY_AR[dispute.priority as keyof typeof DISPUTE_PRIORITY_AR] ||
-            dispute.priority,
+            DISPUTE_PRIORITY_AR[
+              dispute.priority as keyof typeof DISPUTE_PRIORITY_AR
+            ] || dispute.priority,
           icon: <MessageSquare className="text-muted-foreground" />,
         },
         {
@@ -220,7 +233,11 @@ export function DisputeDetailPattern({
     ...(overviewFields || []),
     {
       label: "وصف المشكلة",
-      value: <p className="whitespace-pre-wrap leading-7 text-foreground">{dispute.description || "—"}</p>,
+      value: (
+        <p className="whitespace-pre-wrap leading-7 text-foreground">
+          {dispute.description || "—"}
+        </p>
+      ),
     },
   ];
 
@@ -233,7 +250,10 @@ export function DisputeDetailPattern({
               <Breadcrumb>
                 <BreadcrumbList>
                   {breadcrumbs.map((item, index) => (
-                    <div key={`${item.label}-${index}`} className="flex items-center gap-2">
+                    <div
+                      key={`${item.label}-${index}`}
+                      className="flex items-center gap-2"
+                    >
                       <BreadcrumbItem>
                         {item.href ? (
                           <BreadcrumbLink asChild>
@@ -243,7 +263,9 @@ export function DisputeDetailPattern({
                           <BreadcrumbPage>{item.label}</BreadcrumbPage>
                         )}
                       </BreadcrumbItem>
-                      {index < breadcrumbs.length - 1 ? <BreadcrumbSeparator /> : null}
+                      {index < breadcrumbs.length - 1 ? (
+                        <BreadcrumbSeparator />
+                      ) : null}
                     </div>
                   ))}
                 </BreadcrumbList>
@@ -286,17 +308,24 @@ export function DisputeDetailPattern({
         <Card>
           <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-start">
             <div className="flex size-20 items-center justify-center rounded-xl bg-muted">
-              <DisputeCategoryIcon category={dispute.category as never} size="lg" />
+              <DisputeCategoryIcon
+                category={dispute.category as never}
+                size="lg"
+              />
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-2xl font-semibold tracking-tight">{dispute.title}</h2>
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  {dispute.title}
+                </h2>
                 <DisputeStatusBadge status={dispute.status as never} />
               </div>
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span>#{dispute.ticketNumber}</span>
                 <span>•</span>
-                <span>{dispute.project.name || dispute.project.companyName || "—"}</span>
+                <span>
+                  {dispute.project.name || dispute.project.companyName || "—"}
+                </span>
                 {dispute.deadlineAt ? (
                   <>
                     <span>•</span>
@@ -309,12 +338,14 @@ export function DisputeDetailPattern({
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
-                  {DISPUTE_CATEGORY_AR[dispute.category as keyof typeof DISPUTE_CATEGORY_AR] ||
-                    dispute.category}
+                  {DISPUTE_CATEGORY_AR[
+                    dispute.category as keyof typeof DISPUTE_CATEGORY_AR
+                  ] || dispute.category}
                 </Badge>
                 <Badge variant="outline">
-                  {DISPUTE_PRIORITY_AR[dispute.priority as keyof typeof DISPUTE_PRIORITY_AR] ||
-                    dispute.priority}
+                  {DISPUTE_PRIORITY_AR[
+                    dispute.priority as keyof typeof DISPUTE_PRIORITY_AR
+                  ] || dispute.priority}
                 </Badge>
                 {audience !== "client" && dispute.pm?.name ? (
                   <Badge variant="secondary">{dispute.pm.name}</Badge>
@@ -329,14 +360,20 @@ export function DisputeDetailPattern({
             <Card key={metric.label}>
               <CardContent className="flex items-start justify-between gap-4 p-5">
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm text-muted-foreground">{metric.label}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {metric.label}
+                  </span>
                   <span className="text-lg font-semibold">{metric.value}</span>
                   {metric.hint ? (
-                    <span className="text-xs text-muted-foreground">{metric.hint}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {metric.hint}
+                    </span>
                   ) : null}
                 </div>
                 <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-                  {metric.icon || <ShieldAlert className="text-muted-foreground" />}
+                  {metric.icon || (
+                    <ShieldAlert className="text-muted-foreground" />
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -350,7 +387,8 @@ export function DisputeDetailPattern({
         <CardHeader className="gap-2">
           <CardTitle>مساحة النزاع</CardTitle>
           <CardDescription>
-            تنقل سريع بين المعلومات، المحادثة، المرفقات، والسجل دون مغادرة الصفحة.
+            تنقل سريع بين المعلومات، المحادثة، المرفقات، والسجل دون مغادرة
+            الصفحة.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -360,7 +398,9 @@ export function DisputeDetailPattern({
               <TabsTrigger value="messages">المحادثة</TabsTrigger>
               <TabsTrigger value="attachments">المرفقات</TabsTrigger>
               <TabsTrigger value="history">السجل</TabsTrigger>
-              {actionTab ? <TabsTrigger value="actions">الإجراءات</TabsTrigger> : null}
+              {actionTab ? (
+                <TabsTrigger value="actions">الإجراءات</TabsTrigger>
+              ) : null}
             </TabsList>
 
             <TabsContent value="overview" className="mt-0">
@@ -368,17 +408,23 @@ export function DisputeDetailPattern({
                 <Card>
                   <CardHeader className="gap-2">
                     <CardTitle>البيانات الأساسية</CardTitle>
-                    <CardDescription>المعلومات المهمة لفهم النزاع بسرعة.</CardDescription>
+                    <CardDescription>
+                      المعلومات المهمة لفهم النزاع بسرعة.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-4 md:grid-cols-2">
-                    {descriptionFields.map((item, index) => fieldCard(item, `overview-${index}`))}
+                    {descriptionFields.map((item, index) =>
+                      fieldCard(item, `overview-${index}`),
+                    )}
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="gap-2">
                     <CardTitle>الأطراف والحالة</CardTitle>
-                    <CardDescription>من يشارك في المعالجة وما آخر المحطات.</CardDescription>
+                    <CardDescription>
+                      من يشارك في المعالجة وما آخر المحطات.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-4 md:grid-cols-2">
                     {[
@@ -387,11 +433,19 @@ export function DisputeDetailPattern({
                         value:
                           audience === "client"
                             ? dispute.project.name || "—"
-                            : dispute.client?.companyName || dispute.client?.name || "—",
+                            : dispute.client?.companyName ||
+                              dispute.client?.name ||
+                              "—",
                       },
                       { label: "مدير المشروع", value: dispute.pm?.name || "—" },
-                      { label: "تاريخ الفتح", value: formatDateTime(dispute.openedAt) },
-                      { label: "الموعد النهائي", value: formatDateTime(dispute.deadlineAt) },
+                      {
+                        label: "تاريخ الفتح",
+                        value: formatDateTime(dispute.openedAt),
+                      },
+                      {
+                        label: "الموعد النهائي",
+                        value: formatDateTime(dispute.deadlineAt),
+                      },
                       ...(timelineFields || []),
                     ].map((item, index) => fieldCard(item, `party-${index}`))}
                   </CardContent>
@@ -437,7 +491,10 @@ export function DisputeDetailPattern({
                     <TableBody>
                       {attachments.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="h-28 text-center text-muted-foreground">
+                          <TableCell
+                            colSpan={4}
+                            className="h-28 text-center text-muted-foreground"
+                          >
                             لا توجد مرفقات
                           </TableCell>
                         </TableRow>
@@ -445,9 +502,13 @@ export function DisputeDetailPattern({
                         attachments.map((attachment) => (
                           <TableRow key={attachment.id}>
                             <TableCell>{attachment.fileName}</TableCell>
-                            <TableCell>{formatNumber(attachment.fileSize)}</TableCell>
+                            <TableCell>
+                              {formatNumber(attachment.fileSize)}
+                            </TableCell>
                             <TableCell>{attachment.uploader.name}</TableCell>
-                            <TableCell>{formatDateTime(attachment.uploadedAt)}</TableCell>
+                            <TableCell>
+                              {formatDateTime(attachment.uploadedAt)}
+                            </TableCell>
                           </TableRow>
                         ))
                       )}
@@ -461,7 +522,9 @@ export function DisputeDetailPattern({
               <Card>
                 <CardHeader className="gap-2">
                   <CardTitle>السجل</CardTitle>
-                  <CardDescription>كل تغييرات الحالة والقرارات المسجلة على النزاع.</CardDescription>
+                  <CardDescription>
+                    كل تغييرات الحالة والقرارات المسجلة على النزاع.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {history.length === 0 ? (
@@ -471,7 +534,9 @@ export function DisputeDetailPattern({
                       </EmptyMedia>
                       <EmptyHeader>
                         <EmptyTitle>لا يوجد سجل بعد</EmptyTitle>
-                        <EmptyDescription>سيظهر هنا أي تحديث أو قرار يتم تسجيله.</EmptyDescription>
+                        <EmptyDescription>
+                          سيظهر هنا أي تحديث أو قرار يتم تسجيله.
+                        </EmptyDescription>
                       </EmptyHeader>
                     </Empty>
                   ) : (
@@ -485,10 +550,13 @@ export function DisputeDetailPattern({
                               </div>
                               <div className="flex flex-1 flex-col gap-2">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className="font-medium">{entry.changer.name}</span>
+                                  <span className="font-medium">
+                                    {entry.changer.name}
+                                  </span>
                                   <Badge variant="outline">
-                                    {DISPUTE_STATUS_AR[entry.toStatus as keyof typeof DISPUTE_STATUS_AR] ||
-                                      entry.toStatus}
+                                    {DISPUTE_STATUS_AR[
+                                      entry.toStatus as keyof typeof DISPUTE_STATUS_AR
+                                    ] || entry.toStatus}
                                   </Badge>
                                   <span className="text-sm text-muted-foreground">
                                     {formatDateTime(entry.changedAt)}
@@ -502,11 +570,14 @@ export function DisputeDetailPattern({
                                       ] || entry.fromStatus
                                     : "—"}{" "}
                                   إلى{" "}
-                                  {DISPUTE_STATUS_AR[entry.toStatus as keyof typeof DISPUTE_STATUS_AR] ||
-                                    entry.toStatus}
+                                  {DISPUTE_STATUS_AR[
+                                    entry.toStatus as keyof typeof DISPUTE_STATUS_AR
+                                  ] || entry.toStatus}
                                 </div>
                                 {entry.note ? (
-                                  <p className="text-sm leading-6 text-foreground">{entry.note}</p>
+                                  <p className="text-sm leading-6 text-foreground">
+                                    {disputeHistoryMessage(entry.note)}
+                                  </p>
                                 ) : null}
                               </div>
                             </div>

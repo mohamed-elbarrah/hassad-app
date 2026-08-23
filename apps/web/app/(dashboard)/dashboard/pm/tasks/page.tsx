@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ClipboardList, Columns3, List, Table2 } from "lucide-react";
 import { TaskPriority, TaskStatus } from "@hassad/shared";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
@@ -49,14 +50,22 @@ export default function PMTasksPage() {
   const [status, setStatus] = useState<"ALL" | TaskStatus | "OVERDUE">("ALL");
   const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
   const [view, setView] = useState<"table" | "kanban">("table");
+  const [page, setPage] = useState(1);
   const { data: stats, isLoading: statsLoading } = useGetPmTaskStatsQuery();
   const {
-    data: tasks = [],
+    data: taskResponse,
     isLoading,
     isError,
     error,
-  } = useGetPmTasksQuery({});
+  } = useGetPmTasksQuery({
+    status: status !== "ALL" && status !== "OVERDUE" ? status : undefined,
+    priority: priority !== "ALL" ? priority : undefined,
+    overdue: status === "OVERDUE" ? true : undefined,
+    page,
+    limit: 100,
+  });
 
+  const tasks = taskResponse?.items ?? [];
   const filteredTasks = useMemo(
     () =>
       tasks.filter((task) => {
@@ -106,9 +115,10 @@ export default function PMTasksPage() {
       <div className="flex flex-col gap-3 border-b pb-6 lg:flex-row lg:items-center">
         <Select
           value={status}
-          onValueChange={(value) =>
-            setStatus(value as "ALL" | TaskStatus | "OVERDUE")
-          }
+          onValueChange={(value) => {
+            setStatus(value as "ALL" | TaskStatus | "OVERDUE");
+            setPage(1);
+          }}
         >
           <SelectTrigger className="lg:w-56" aria-label="تصفية حسب الحالة">
             <SelectValue placeholder="كل الحالات" />
@@ -128,9 +138,10 @@ export default function PMTasksPage() {
 
         <Select
           value={priority}
-          onValueChange={(value) =>
-            setPriority(value as "ALL" | TaskPriority)
-          }
+          onValueChange={(value) => {
+            setPriority(value as "ALL" | TaskPriority);
+            setPage(1);
+          }}
         >
           <SelectTrigger className="lg:w-56" aria-label="تصفية حسب الأولوية">
             <SelectValue placeholder="كل الأولويات" />
@@ -236,6 +247,28 @@ export default function PMTasksPage() {
           </Table>
         </div>
       )}
+
+      {(taskResponse?.meta.totalPages ?? 1) > 1 ? (
+        <div className="flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            disabled={page <= 1}
+            onClick={() => setPage((current) => current - 1)}
+          >
+            السابق
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            صفحة {page} من {taskResponse?.meta.totalPages}
+          </span>
+          <Button
+            variant="outline"
+            disabled={page >= (taskResponse?.meta.totalPages ?? 1)}
+            onClick={() => setPage((current) => current + 1)}
+          >
+            التالي
+          </Button>
+        </div>
+      ) : null}
     </main>
   );
 }

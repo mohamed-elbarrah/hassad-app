@@ -296,7 +296,19 @@ export const clientsApi = createApi({
       providesTags: (_result, _err, id) => [{ type: "ClientProfile", id }],
     }),
 
-    /** GET /v1/clients/:id/team-view — filtered client + profile for team roles */
+    /** GET /v1/pm/clients/:id/team-view — PM-owned client view */
+    getPmClientTeamView: builder.query<
+      { client: Client; profile: ClientProfile | null },
+      string
+    >({
+      query: (id) => `/pm/clients/${id}/team-view`,
+      providesTags: (_result, _err, id) => [
+        { type: "Client", id },
+        { type: "ClientProfile", id },
+      ],
+    }),
+
+    /** GET /v1/clients/:id/team-view — legacy shared team view */
     getClientTeamView: builder.query<
       { client: Client; profile: ClientProfile | null },
       string
@@ -383,6 +395,7 @@ export const {
   useGetSalesClientProfileQuery,
   useGetSalesClientProjectsQuery,
   useGetSalesClientInvoicesQuery,
+  useGetPmClientTeamViewQuery,
   useGetClientTeamViewQuery,
   useUpsertClientProfileMutation,
   useGetClientProfileV2Query,

@@ -14,7 +14,10 @@ import {
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 
-import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import {
+  CurrentUser,
+  type JwtPayload,
+} from "../../../common/decorators/current-user.decorator";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { StorageCategory } from "../../../common/storage/storage.constants";
@@ -47,7 +50,7 @@ export class PmChatController {
   @Get("conversations")
   @RequirePermissions("chat.read")
   findMyConversations(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Query() query: GetConversationsQueryDto,
   ) {
     return this.chatService.findMyConversations(user.id, query);
@@ -55,20 +58,23 @@ export class PmChatController {
 
   @Post("conversations")
   @RequirePermissions("chat.create")
-  createConversation(@CurrentUser() user: any, @Body() dto: CreateConversationDto) {
+  createConversation(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateConversationDto,
+  ) {
     return this.chatService.createConversation(user.id, dto);
   }
 
   @Get("conversations/:id")
   @RequirePermissions("chat.read")
-  findConversation(@CurrentUser() user: any, @Param("id") id: string) {
+  findConversation(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.chatService.findConversation(id, user.id);
   }
 
   @Get("conversations/direct/:userId")
   @RequirePermissions("chat.read")
   async getDirectConversation(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
   ) {
     const conversation = await this.directConversationService.getOrCreate(
@@ -76,7 +82,10 @@ export class PmChatController {
       otherUserId,
     );
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw new NotFoundException({
+        code: "DIRECT_CONVERSATION_NOT_FOUND",
+        details: { otherUserId },
+      });
     }
     return conversation;
   }
@@ -84,7 +93,7 @@ export class PmChatController {
   @Post("conversations/:id/messages")
   @RequirePermissions("chat.message")
   createMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") conversationId: string,
     @Body() dto: CreateMessageDto,
   ) {
@@ -97,7 +106,7 @@ export class PmChatController {
   @Post("conversations/direct/:userId/messages")
   @RequirePermissions("chat.message")
   createDirectMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
     @Body() dto: CreateMessageDto,
   ) {
@@ -108,7 +117,7 @@ export class PmChatController {
   @RequirePermissions("chat.message")
   @UseInterceptors(FilesInterceptor("files", 10))
   async createMessageWithFiles(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") conversationId: string,
     @Body() dto: CreateMessageDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -152,7 +161,7 @@ export class PmChatController {
   @RequirePermissions("chat.message")
   @UseInterceptors(FilesInterceptor("files", 10))
   async createDirectMessageWithFiles(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
     @Body() dto: CreateMessageDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -163,7 +172,10 @@ export class PmChatController {
     );
 
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw new NotFoundException({
+        code: "DIRECT_CONVERSATION_NOT_FOUND",
+        details: { otherUserId },
+      });
     }
 
     const attachments =
@@ -204,7 +216,7 @@ export class PmChatController {
   @Get("conversations/:id/messages")
   @RequirePermissions("chat.read")
   getMessages(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
     @Query() query: GetMessagesQueryDto,
   ) {
@@ -214,18 +226,23 @@ export class PmChatController {
   @Patch("conversations/:conversationId/messages/:messageId")
   @RequirePermissions("chat.message")
   updateMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("conversationId") conversationId: string,
     @Param("messageId") messageId: string,
     @Body() dto: UpdateMessageDto,
   ) {
-    return this.chatService.updateMessage(conversationId, messageId, user.id, dto);
+    return this.chatService.updateMessage(
+      conversationId,
+      messageId,
+      user.id,
+      dto,
+    );
   }
 
   @Delete("conversations/:conversationId/messages/:messageId")
   @RequirePermissions("chat.message")
   deleteMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("conversationId") conversationId: string,
     @Param("messageId") messageId: string,
   ) {
@@ -235,12 +252,18 @@ export class PmChatController {
   @Get("targets/employees")
   @RequirePermissions("chat.read")
   searchEmployees(@Query() query: PmChatTargetsQueryDto) {
-    return this.crmChatService.searchEmployees(query.search ?? "", query.limit ?? 6);
+    return this.crmChatService.searchEmployees(
+      query.search ?? "",
+      query.limit ?? 6,
+    );
   }
 
   @Get("targets/clients")
   @RequirePermissions("chat.read")
   searchClients(@Query() query: PmChatTargetsQueryDto) {
-    return this.crmChatService.searchClients(query.search ?? "", query.limit ?? 6);
+    return this.crmChatService.searchClients(
+      query.search ?? "",
+      query.limit ?? 6,
+    );
   }
 }

@@ -6,7 +6,10 @@
  * its own map.
  */
 import { ProjectStatus, PROJECT_STATUS_AR, type Project } from "@hassad/shared";
-import { KANBAN_TONES, type KanbanToneClasses } from "@/components/dashboard/kanban/theme";
+import {
+  KANBAN_TONES,
+  type KanbanToneClasses,
+} from "@/components/dashboard/kanban/theme";
 
 // ── Extended project type (includes API relations) ──────────────────────────
 // The backend /projects endpoint returns client, manager, _count fields
@@ -17,6 +20,18 @@ export interface ProjectWithMeta extends Project {
   manager?: { id: string; name: string } | null;
   _count?: { tasks: number };
   completionPercentage?: number;
+  taskStats?: {
+    total: number;
+    completed: number;
+    inProgress: number;
+    overdue: number;
+  };
+  upcomingTasks?: {
+    id: string;
+    title: string;
+    dueDate: string;
+    status: string;
+  }[];
   contract?: {
     id: string;
     type: string;
@@ -44,10 +59,7 @@ export const PROJECT_STATUS_BADGE_KEY: Record<ProjectStatus, string> = {
 // ── Kanban tone classes (distinct per status) ─────────────────────────────
 // Each status has a consistent tokenized tone for dashboard surfaces.
 
-export const PROJECT_STATUS_TONES: Record<
-  ProjectStatus,
-  KanbanToneClasses
-> = {
+export const PROJECT_STATUS_TONES: Record<ProjectStatus, KanbanToneClasses> = {
   [ProjectStatus.PLANNING]: KANBAN_TONES.neutral,
   [ProjectStatus.PENDING_ACTIVATION]: KANBAN_TONES.neutral,
   [ProjectStatus.ACTIVE]: KANBAN_TONES.blue,

@@ -80,11 +80,14 @@ export class DisputesService {
     });
 
     if (!project) {
-      throw new NotFoundException("المشروع غير موجود");
+      throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
     }
 
     if (!project.projectManagerId) {
-      throw new BadRequestException("المشروع ليس لديه مدير مخصص");
+      throw new BadRequestException({
+        code: "PROJECT_MANAGER_REQUIRED",
+        details: {},
+      });
     }
 
     // Check for existing active dispute for this project
@@ -105,7 +108,10 @@ export class DisputesService {
     });
 
     if (existingDispute) {
-      throw new BadRequestException("يوجد تذكرة مفتوحة لهذا المشروع بالفعل");
+      throw new BadRequestException({
+        code: "OPEN_DISPUTE_EXISTS",
+        details: {},
+      });
     }
 
     // Get next ticket number
@@ -131,7 +137,7 @@ export class DisputesService {
             create: {
               toStatus: DisputeStatus.PENDING_APPROVAL,
               changedBy: userId,
-              note: "تم إنشاء التذكرة",
+              note: "DISPUTE_CREATED",
             },
           },
         },
@@ -249,7 +255,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     return dispute;
@@ -384,7 +390,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     // Check if dispute allows messages
@@ -396,7 +402,10 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("لا يمكن إضافة رسائل لهذه التذكرة");
+      throw new BadRequestException({
+        code: "DISPUTE_MESSAGES_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     this.assertThreadAccess(audience, threadType, "write");
@@ -456,11 +465,14 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     if (dispute.status !== DisputeStatus.PENDING_CLIENT) {
-      throw new BadRequestException("التذكرة ليست في حالة انتظار تأكيد العميل");
+      throw new BadRequestException({
+        code: "DISPUTE_INVALID_STATUS",
+        details: {},
+      });
     }
 
     const now = new Date();
@@ -539,17 +551,51 @@ export class DisputesService {
    * Get PM's disputes
    */
   async getPmDisputes(pmId: string, filter: DisputeFilterDto) {
-    const { page = 1, limit = 20, ...where } = filter;
+    const { page = 1, limit = 20, search, ...where } = filter;
+    const normalizedSearch = search?.trim();
 
     const whereClause: Prisma.DisputeTicketWhereInput = {
       pmId,
       status: { notIn: [DisputeStatus.REJECTED] },
+      ...(normalizedSearch
+        ? {
+            OR: [
+              { title: { contains: normalizedSearch, mode: "insensitive" } },
+              {
+                project: {
+                  name: { contains: normalizedSearch, mode: "insensitive" },
+                },
+              },
+              {
+                client: {
+                  companyName: {
+                    contains: normalizedSearch,
+                    mode: "insensitive",
+                  },
+                },
+              },
+              {
+                client: {
+                  user: {
+                    name: { contains: normalizedSearch, mode: "insensitive" },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
       ...(where.status && { status: where.status as DisputeStatus }),
       ...(where.category && { category: where.category as DisputeCategory }),
       ...(where.priority && { priority: where.priority as DisputePriority }),
       ...(where.projectId && { projectId: where.projectId }),
-      ...(where.fromDate && { openedAt: { gte: new Date(where.fromDate) } }),
-      ...(where.toDate && { openedAt: { lte: new Date(where.toDate) } }),
+      ...(where.fromDate || where.toDate
+        ? {
+            openedAt: {
+              ...(where.fromDate ? { gte: new Date(where.fromDate) } : {}),
+              ...(where.toDate ? { lte: new Date(where.toDate) } : {}),
+            },
+          }
+        : {}),
     };
 
     const [disputes, total] = await Promise.all([
@@ -591,7 +637,8 @@ export class DisputesService {
     ]);
 
     return {
-      data: disputes,
+      __standardResponse: true as const,
+      data: { data: disputes },
       meta: {
         total,
         page,
@@ -644,9 +691,10 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException(
-        "التذكرة غير موجودة أو ليس لديك صلاحية للوصول إليها",
-      );
+      throw new NotFoundException({
+        code: "DISPUTE_NOT_FOUND",
+        details: { disputeId },
+      });
     }
 
     return dispute;
@@ -675,11 +723,17 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({
+        code: "DISPUTE_NOT_FOUND",
+        details: { disputeId },
+      });
     }
 
     if (dispute.status !== DisputeStatus.APPROVED) {
-      throw new BadRequestException("لا يمكن تعديل هذه التذكرة");
+      throw new BadRequestException({
+        code: "DISPUTE_INVALID_STATUS",
+        details: { disputeId, status: dispute.status },
+      });
     }
 
     return this.prisma.disputeTicket.update({
@@ -691,7 +745,7 @@ export class DisputesService {
             fromStatus: DisputeStatus.APPROVED,
             toStatus: DisputeStatus.IN_PROGRESS,
             changedBy: pmId,
-            note: "بدأ مدير المشروع في معالجة التذكرة",
+            note: "DISPUTE_ACKNOWLEDGED",
           },
         },
       },
@@ -707,7 +761,10 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({
+        code: "DISPUTE_NOT_FOUND",
+        details: { disputeId },
+      });
     }
 
     const allowedStatuses: DisputeStatus[] = [
@@ -717,7 +774,10 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("لا يمكن حل هذه التذكرة");
+      throw new BadRequestException({
+        code: "DISPUTE_INVALID_STATUS",
+        details: { disputeId, status: dispute.status },
+      });
     }
 
     const now = new Date();
@@ -734,7 +794,7 @@ export class DisputesService {
               fromStatus: dispute.status,
               toStatus: DisputeStatus.PENDING_CLIENT,
               changedBy: pmId,
-              note: "مدير المشروع أشار إلى حل المشكلة",
+              note: "DISPUTE_RESOLVED_BY_PM",
             },
           },
         },
@@ -847,7 +907,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     // Get PM stats
@@ -870,11 +930,14 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     if (dispute.status !== DisputeStatus.PENDING_APPROVAL) {
-      throw new BadRequestException("التذكرة ليست في حالة انتظار الموافقة");
+      throw new BadRequestException({
+        code: "DISPUTE_INVALID_STATUS",
+        details: {},
+      });
     }
 
     const now = new Date();
@@ -927,11 +990,14 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     if (dispute.status !== DisputeStatus.PENDING_APPROVAL) {
-      throw new BadRequestException("التذكرة ليست في حالة انتظار الموافقة");
+      throw new BadRequestException({
+        code: "DISPUTE_INVALID_STATUS",
+        details: {},
+      });
     }
 
     const now = new Date();
@@ -981,7 +1047,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     const allowedStatuses: DisputeStatus[] = [
@@ -991,7 +1057,10 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("لا يمكن تغيير مدير المشروع لهذه التذكرة");
+      throw new BadRequestException({
+        code: "DISPUTE_PM_CHANGE_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     const now = new Date();
@@ -1059,7 +1128,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     const allowedStatuses: DisputeStatus[] = [
@@ -1070,7 +1139,10 @@ export class DisputesService {
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
-      throw new BadRequestException("لا يمكن إغلاق هذه التذكرة");
+      throw new BadRequestException({
+        code: "DISPUTE_INVALID_STATUS",
+        details: {},
+      });
     }
 
     const now = new Date();
@@ -1108,6 +1180,24 @@ export class DisputesService {
    * Get PM dispute statistics
    */
   async getPmStats(pmId: string) {
+    const [active, escalated, resolved] = await Promise.all([
+      this.prisma.disputeTicket.count({
+        where: {
+          pmId,
+          status: { in: [DisputeStatus.APPROVED, DisputeStatus.IN_PROGRESS] },
+        },
+      }),
+      this.prisma.disputeTicket.count({
+        where: { pmId, status: DisputeStatus.ESCALATED },
+      }),
+      this.prisma.disputeTicket.count({
+        where: {
+          pmId,
+          status: { in: [DisputeStatus.RESOLVED, DisputeStatus.CLOSED] },
+        },
+      }),
+    ]);
+
     const stats = await this.prisma.pmDisputeStats.findUnique({
       where: { userId: pmId },
     });
@@ -1115,15 +1205,23 @@ export class DisputesService {
     if (!stats) {
       return {
         userId: pmId,
-        totalDisputes: 0,
-        resolvedDisputes: 0,
-        escalatedDisputes: 0,
+        totalDisputes: active + escalated + resolved,
+        resolvedDisputes: resolved,
+        escalatedDisputes: escalated,
+        active,
+        escalated,
+        resolved,
         pmChangedCount: 0,
         avgResolutionDays: 0,
       };
     }
 
-    return stats;
+    return {
+      ...stats,
+      active,
+      escalated,
+      resolved,
+    };
   }
 
   /**
@@ -1184,7 +1282,10 @@ export class DisputesService {
         : writableDisputeThreads[audience];
 
     if (!allowed.includes(threadType)) {
-      throw new ForbiddenException("لا تملك صلاحية للوصول إلى هذه المحادثة");
+      throw new ForbiddenException({
+        code: "DISPUTE_THREAD_ACCESS_DENIED",
+        details: {},
+      });
     }
   }
 
@@ -1211,7 +1312,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     return dispute;
@@ -1271,7 +1372,7 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة");
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
     return dispute;
@@ -1282,16 +1383,15 @@ export class DisputesService {
     threadType: DisputeThreadType,
   ) {
     const clientName =
-      dispute.client?.companyName ??
-      dispute.client?.user?.name ??
-      "Client";
+      dispute.client?.companyName ?? dispute.client?.user?.name ?? "Client";
     const pmName = dispute.pm?.name ?? "PM";
 
     if (threadType === DisputeThreadType.CLIENT_PM) {
       return {
         threadType,
         title: "Client ↔ PM",
-        description: "Private resolution thread between the client and the assigned PM.",
+        description:
+          "Private resolution thread between the client and the assigned PM.",
         participantsLabel: `${clientName} and ${pmName}`,
       };
     }
@@ -1591,7 +1691,7 @@ export class DisputesService {
               fromStatus: dispute.status as DisputeStatus,
               toStatus: DisputeStatus.ESCALATED,
               changedBy: systemUser.id,
-              note: "تم التصعيد تلقائياً لانتهاء المهلة",
+              note: "DISPUTE_ESCALATED_TIMEOUT",
             },
           },
         },

@@ -50,6 +50,10 @@ export class DisputeFilterDto {
   priority?: DisputePriority;
 
   @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
   @IsUUID()
   projectId?: string;
 

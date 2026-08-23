@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
-import { FilePurpose } from "@prisma/client";
+import { FilePurpose, Prisma } from "@prisma/client";
 import { TaskDepartment, TaskPriority, TaskStatus } from "@hassad/shared";
 
 import { StorageCategory } from "../../../common/storage/storage.constants";
@@ -34,10 +34,7 @@ export class PmTasksService {
         ) {
           throw error;
         }
-        throw new HttpException(
-          { code, details: {} },
-          error.getStatus(),
-        );
+        throw new HttpException({ code, details: {} }, error.getStatus());
       }
       throw new InternalServerErrorException({ code, details: {} });
     }
@@ -69,35 +66,86 @@ export class PmTasksService {
       department?: TaskDepartment;
       dueBefore?: string;
       dueAfter?: string;
+      overdue?: boolean;
+      page?: number;
       limit?: number;
     },
   ) {
-    const tasks = await this.tasksService.findPmTasks(userId, {
-      status: filters.status,
-      priority: filters.priority,
-      projectId: filters.projectId,
-      deptName: filters.department,
-      dueBefore: filters.dueBefore,
-      dueAfter: filters.dueAfter,
-    });
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 100;
+    const search = filters.search?.trim();
+    const where: Prisma.TaskWhereInput = {
+      project: { projectManagerId: userId },
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.priority ? { priority: filters.priority } : {}),
+      ...(filters.projectId ? { projectId: filters.projectId } : {}),
+      ...(filters.department
+        ? { department: { name: filters.department } }
+        : {}),
+      ...(filters.overdue
+        ? { dueDate: { lt: new Date() }, status: { not: TaskStatus.DONE } }
+        : filters.dueBefore || filters.dueAfter
+          ? {
+              dueDate: {
+                ...(filters.dueBefore
+                  ? { lte: new Date(filters.dueBefore) }
+                  : {}),
+                ...(filters.dueAfter
+                  ? { gte: new Date(filters.dueAfter) }
+                  : {}),
+              },
+            }
+          : {}),
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: "insensitive" } },
+              { project: { name: { contains: search, mode: "insensitive" } } },
+              {
+                project: {
+                  client: {
+                    companyName: { contains: search, mode: "insensitive" },
+                  },
+                },
+              },
+              { assignee: { name: { contains: search, mode: "insensitive" } } },
+              {
+                department: { name: { contains: search, mode: "insensitive" } },
+              },
+            ],
+          }
+        : {}),
+    };
 
-    const query = (filters.search ?? "").trim().toLowerCase();
-    return tasks
-      .filter((task) => {
-        if (!query) return true;
-        return [
-          task.title,
-          task.project?.name,
-          task.project?.client?.companyName,
-          task.assignee?.name,
-          task.department?.name,
-          task.period?.periodNumber ? `P${task.period.periodNumber}` : "",
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-      })
-      .slice(0, filters.limit ?? 100);
+    const [items, total] = await Promise.all([
+      this.prisma.task.findMany({
+        where,
+        include: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+              clientId: true,
+              status: true,
+              client: { select: { companyName: true, businessType: true } },
+            },
+          },
+          assignee: { select: { id: true, name: true } },
+          department: { select: { id: true, name: true } },
+          period: { select: { periodNumber: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.task.count({ where }),
+    ]);
+
+    return {
+      __standardResponse: true as const,
+      data: { items },
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async stats(userId: string) {
@@ -128,10 +176,16 @@ export class PmTasksService {
     );
   }
 
-  async addComment(userId: string, taskId: string, content: string, isInternal = true) {
+  async addComment(
+    userId: string,
+    taskId: string,
+    content: string,
+    isInternal = true,
+  ) {
     await this.ownedTask(taskId, userId);
     return this.execute(
-      () => this.tasksService.addComment(taskId, userId, { content, isInternal }),
+      () =>
+        this.tasksService.addComment(taskId, userId, { content, isInternal }),
       "TASK_COMMENT_FAILED",
     );
   }
@@ -174,7 +228,12 @@ export class PmTasksService {
     );
   }
 
-  async uploadFile(userId: string, taskId: string, file: Express.Multer.File, purpose?: FilePurpose) {
+  async uploadFile(
+    userId: string,
+    taskId: string,
+    file: Express.Multer.File,
+    purpose?: FilePurpose,
+  ) {
     await this.ownedTask(taskId, userId);
     if (!file) {
       throw new BadRequestException({
@@ -195,13 +254,14 @@ export class PmTasksService {
     });
 
     return this.execute(
-      () => this.tasksService.addFile(taskId, userId, {
-      key: uploadResult.key,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-        purpose: purpose ?? FilePurpose.REFERENCE,
-      }),
+      () =>
+        this.tasksService.addFile(taskId, userId, {
+          key: uploadResult.key,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          purpose: purpose ?? FilePurpose.REFERENCE,
+        }),
       "TASK_FILE_UPLOAD_FAILED",
     );
   }

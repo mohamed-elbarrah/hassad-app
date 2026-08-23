@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -36,7 +36,10 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DisputeEmptyState } from "@/components/disputes/DisputeEmptyState";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
-import { useGetPmDisputesQuery } from "@/features/disputes/pmDisputesApi";
+import {
+  useGetPmDisputesQuery,
+  useGetPmDisputeStatsQuery,
+} from "@/features/disputes/pmDisputesApi";
 import { PageHeader } from "@/components/common/PageHeader";
 import { formatShortDate } from "@/lib/format";
 import { pmErrorMessage } from "@/lib/i18n";
@@ -54,47 +57,28 @@ export default function PmDisputesPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("");
   const [page, setPage] = useState(1);
+  const { data, isLoading, isError, error, refetch, isFetching } =
+    useGetPmDisputesQuery(
+      {
+        status: (activeTab || undefined) as DisputeStatus | undefined,
+        search: search.trim() || undefined,
+        page,
+        limit: PAGE_SIZE,
+      },
+      { pollingInterval: 60_000 },
+    );
   const {
-    data,
-    isLoading,
-    isError,
-    error,
-    refetch,
-    isFetching,
-  } = useGetPmDisputesQuery(
-    {
-      status: (activeTab || undefined) as DisputeStatus | undefined,
-      page,
-      limit: PAGE_SIZE,
-    },
-    { pollingInterval: 60_000 },
-  );
-  const disputes = useMemo(
-    () =>
-      (data?.data ?? []).filter((item) => {
-        const query = search.trim().toLowerCase();
-        return (
-          !query ||
-          [
-            item.title,
-            item.client.companyName,
-            item.client.user?.name,
-            item.project.name,
-          ]
-            .filter((value): value is string => Boolean(value))
-            .some((value) => value.toLowerCase().includes(query))
-        );
-      }),
-    [data?.data, search],
-  );
+    data: stats,
+    isError: isStatsError,
+    refetch: refetchStats,
+  } = useGetPmDisputeStatsQuery(undefined, {
+    pollingInterval: 60_000,
+  });
+  const disputes = data?.data ?? [];
   const metrics = {
-    active: disputes.filter((item) =>
-      ["APPROVED", "IN_PROGRESS"].includes(item.status),
-    ).length,
-    escalated: disputes.filter((item) => item.status === "ESCALATED").length,
-    resolved: disputes.filter((item) =>
-      ["RESOLVED", "CLOSED"].includes(item.status),
-    ).length,
+    active: stats?.active ?? 0,
+    escalated: stats?.escalated ?? 0,
+    resolved: stats?.resolved ?? 0,
   };
   const totalPages = data?.meta.totalPages ?? 1;
   return (
@@ -120,7 +104,9 @@ export default function PmDisputesPage() {
                 <span className="text-sm text-muted-foreground">
                   {item.label}
                 </span>
-                <span className="text-2xl font-semibold">{item.value}</span>
+                <span className="text-2xl font-semibold">
+                  {isStatsError ? "—" : item.value}
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
                 <item.icon aria-hidden="true" />
@@ -129,6 +115,16 @@ export default function PmDisputesPage() {
           </Card>
         ))}
       </section>
+      {isStatsError ? (
+        <Alert>
+          <AlertTitle>تعذر تحميل مؤشرات النزاعات</AlertTitle>
+          <AlertDescription>
+            <Button variant="outline" size="sm" onClick={() => refetchStats()}>
+              إعادة المحاولة
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <div className="flex flex-col gap-3 border-b pb-6 lg:flex-row lg:items-center">
         <Input
           value={search}
@@ -164,32 +160,32 @@ export default function PmDisputesPage() {
       </div>
 
       <div className="flex flex-col gap-4">
-          {isLoading ? (
-            <DisputesTableSkeleton />
-          ) : isError ? (
-            <Alert variant="destructive">
-              <AlertTitle>تعذر تحميل النزاعات</AlertTitle>
-              <AlertDescription className="flex flex-col gap-3">
-                {pmErrorMessage(error)}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="self-start"
-                  onClick={() => refetch()}
-                >
-                  إعادة المحاولة
-                </Button>
-              </AlertDescription>
-            </Alert>
-          ) : disputes.length === 0 ? (
-            <DisputeEmptyState
-              hasFilter={!!search || !!activeTab}
-              canCreate={false}
-            />
-          ) : (
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <caption className="sr-only">قائمة النزاعات</caption>
+        {isLoading ? (
+          <DisputesTableSkeleton />
+        ) : isError ? (
+          <Alert variant="destructive">
+            <AlertTitle>تعذر تحميل النزاعات</AlertTitle>
+            <AlertDescription className="flex flex-col gap-3">
+              {pmErrorMessage(error)}
+              <Button
+                variant="outline"
+                size="sm"
+                className="self-start"
+                onClick={() => refetch()}
+              >
+                إعادة المحاولة
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : disputes.length === 0 ? (
+          <DisputeEmptyState
+            hasFilter={!!search || !!activeTab}
+            canCreate={false}
+          />
+        ) : (
+          <div className="overflow-hidden rounded-lg border">
+            <Table>
+              <caption className="sr-only">قائمة النزاعات</caption>
               <TableHeader>
                 <TableRow>
                   <TableHead>النزاع</TableHead>
@@ -215,7 +211,9 @@ export default function PmDisputesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {dispute.client.companyName ?? dispute.client.user?.name ?? "-"}
+                      {dispute.client.companyName ??
+                        dispute.client.user?.name ??
+                        "-"}
                     </TableCell>
                     <TableCell>{dispute.project.name}</TableCell>
                     <TableCell>
@@ -249,16 +247,16 @@ export default function PmDisputesPage() {
                   </TableRow>
                 ))}
               </TableBody>
-              </Table>
-            </div>
-          )}
-          {!isError && disputes.length > 0 && (
-            <DisputePagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
-          )}
+            </Table>
+          </div>
+        )}
+        {!isError && disputes.length > 0 && (
+          <DisputePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </main>
   );
