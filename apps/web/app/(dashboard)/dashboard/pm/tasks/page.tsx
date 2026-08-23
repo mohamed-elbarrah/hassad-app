@@ -2,16 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Columns3, List, Table2 } from "lucide-react";
 import { TaskPriority, TaskStatus } from "@hassad/shared";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -28,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -36,25 +31,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageHeader } from "@/components/common/PageHeader";
+import { PmTasksKanban } from "@/components/dashboard/pm/PmTasksKanban";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import {
   useGetPmTasksQuery,
   useGetPmTaskStatsQuery,
 } from "@/features/tasks/tasksApi";
 import { formatShortDate } from "@/lib/format";
-
-const PRIORITY_LABELS: Record<string, string> = {
-  [TaskPriority.LOW]: "منخفضة",
-  [TaskPriority.NORMAL]: "عادية",
-  [TaskPriority.HIGH]: "عالية",
-  [TaskPriority.URGENT]: "عاجلة",
-};
+import {
+  TASK_PRIORITY_LABELS,
+  TASK_STATUS_LABELS,
+} from "@/lib/utils/task-status";
 
 export default function PMTasksPage() {
   const [status, setStatus] = useState<"ALL" | TaskStatus | "OVERDUE">("ALL");
   const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
+  const [view, setView] = useState<"table" | "kanban">("table");
   const { data: stats, isLoading: statsLoading } = useGetPmTaskStatsQuery();
   const { data: tasks = [], isLoading, isError } = useGetPmTasksQuery({});
+
   const filteredTasks = useMemo(
     () =>
       tasks.filter((task) => {
@@ -70,29 +66,22 @@ export default function PMTasksPage() {
       }),
     [tasks, status, priority],
   );
+
   const metrics = [
     { label: "إجمالي المهام", value: stats?.total ?? 0 },
     { label: "جارية", value: stats?.inProgress ?? 0 },
     { label: "بانتظار المراجعة", value: stats?.inReview ?? 0 },
     { label: "متأخرة", value: stats?.overdue ?? 0 },
   ];
+
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted">
-              <ClipboardList />
-            </div>
-            <div className="flex flex-col gap-1">
-              <CardTitle className="text-2xl">مهام المشاريع</CardTitle>
-              <CardDescription>
-                جميع المهام في مشاريعك، تابع تقدم الفريق ووافق على المراجعات.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        title="مهام المشاريع"
+        description="جميع المهام في مشاريعك، تابع تقدم الفريق ووافق على المراجعات."
+        icon={List}
+      />
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <Card key={metric.label}>
@@ -107,132 +96,173 @@ export default function PMTasksPage() {
           </Card>
         ))}
       </section>
-      <Card>
-        <CardHeader className="gap-4">
-          <div>
-            <CardTitle>قائمة المهام</CardTitle>
-            <CardDescription>
-              استخدم الفلاتر لتحديد المهام التي تحتاج المتابعة.
-            </CardDescription>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Select
-              value={status}
-              onValueChange={(value) =>
-                setStatus(value as "ALL" | TaskStatus | "OVERDUE")
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="ALL">كل الحالات</SelectItem>
-                  <SelectItem value="OVERDUE">متأخرة</SelectItem>
-                  {Object.values(TaskStatus).map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <Select
-              value={priority}
-              onValueChange={(value) =>
-                setPriority(value as "ALL" | TaskPriority)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="ALL">كل الأولويات</SelectItem>
-                  {Object.values(TaskPriority).map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {PRIORITY_LABELS[value]}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <TaskSkeleton />
-          ) : isError ? (
-            <TaskEmpty
-              title="تعذر تحميل المهام"
-              description="حدث خطأ أثناء تحميل المهام."
-            />
-          ) : filteredTasks.length === 0 ? (
-            <TaskEmpty
-              title="لا توجد مهام"
-              description="لا توجد مهام مطابقة للفلتر المحدد."
-            />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>المهمة</TableHead>
-                  <TableHead>المشروع</TableHead>
-                  <TableHead>المسؤول</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>الأولوية</TableHead>
-                  <TableHead>الاستحقاق</TableHead>
+
+      <div className="flex flex-col gap-3 border-b pb-6 lg:flex-row lg:items-center">
+        <Select
+          value={status}
+          onValueChange={(value) =>
+            setStatus(value as "ALL" | TaskStatus | "OVERDUE")
+          }
+        >
+          <SelectTrigger className="lg:w-56" aria-label="تصفية حسب الحالة">
+            <SelectValue placeholder="كل الحالات" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="ALL">كل الحالات</SelectItem>
+              <SelectItem value="OVERDUE">متأخرة</SelectItem>
+              {Object.values(TaskStatus).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {TASK_STATUS_LABELS[value]}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={priority}
+          onValueChange={(value) =>
+            setPriority(value as "ALL" | TaskPriority)
+          }
+        >
+          <SelectTrigger className="lg:w-56" aria-label="تصفية حسب الأولوية">
+            <SelectValue placeholder="كل الأولويات" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="ALL">كل الأولويات</SelectItem>
+              {Object.values(TaskPriority).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {TASK_PRIORITY_LABELS[value]}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+
+        <Tabs
+          value={view}
+          onValueChange={(value) => {
+            if (value === "table" || value === "kanban") setView(value);
+          }}
+          aria-label="طريقة عرض المهام"
+          className="lg:mr-auto"
+        >
+          <TabsList>
+            <TabsTrigger value="kanban">
+              <Columns3 data-icon="inline-start" />
+              كانبان
+            </TabsTrigger>
+            <TabsTrigger value="table">
+              <Table2 data-icon="inline-start" />
+              جدول
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {view === "kanban" ? (
+        <PmTasksKanban
+          tasks={filteredTasks}
+          isLoading={isLoading}
+          isError={isError}
+        />
+      ) : isLoading ? (
+        <TaskSkeleton />
+      ) : isError ? (
+        <TaskEmpty
+          title="تعذر تحميل المهام"
+          description="حدث خطأ أثناء تحميل المهام."
+        />
+      ) : filteredTasks.length === 0 ? (
+        <TaskEmpty
+          title="لا توجد مهام"
+          description="لا توجد مهام مطابقة للفلتر المحدد."
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border">
+          <Table>
+            <caption className="sr-only">قائمة مهام المشاريع</caption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>المهمة</TableHead>
+                <TableHead>المشروع</TableHead>
+                <TableHead>المسؤول</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead>الأولوية</TableHead>
+                <TableHead>الاستحقاق</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTasks.map((task) => (
+                <TableRow key={task.id}>
+                  <TableCell>
+                    <Link
+                      href={`/dashboard/pm/tasks/${task.id}`}
+                      className="font-medium transition-colors hover:text-primary"
+                    >
+                      {task.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{task.project?.name ?? "-"}</TableCell>
+                  <TableCell>{task.assignee?.name ?? "-"}</TableCell>
+                  <TableCell>
+                    <PmStatusBadge domain="task" status={task.status} />
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        task.priority === TaskPriority.URGENT
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {TASK_PRIORITY_LABELS[task.priority]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell dir="ltr">
+                    {formatShortDate(task.dueDate)}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTasks.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell>
-                      <Link
-                        href={`/dashboard/pm/tasks/${task.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {task.title}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{task.project?.name ?? "-"}</TableCell>
-                    <TableCell>{task.assignee?.name ?? "-"}</TableCell>
-                    <TableCell>
-                      <PmStatusBadge domain="task" status={task.status} />
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          task.priority === TaskPriority.URGENT
-                            ? "destructive"
-                            : "secondary"
-                        }
-                      >
-                        {PRIORITY_LABELS[task.priority]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell dir="ltr">
-                      {formatShortDate(task.dueDate)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </main>
   );
 }
+
 function TaskSkeleton() {
   return (
-    <div className="flex flex-col gap-3">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <Skeleton key={index} className="h-14" />
-      ))}
+    <div className="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <TableHead key={index}>
+                <Skeleton className="h-4 w-full" />
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 6 }).map((_, row) => (
+            <TableRow key={row}>
+              {Array.from({ length: 6 }).map((_, cell) => (
+                <TableCell key={cell}>
+                  <Skeleton className="h-5 w-full" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
+
 function TaskEmpty({
   title,
   description,
