@@ -50,6 +50,7 @@ export interface ProposalDetailEntity {
   totalPrice: number;
   createdAt: string | Date;
   filePath?: string | null;
+  fileUrl?: string | null;
   request?: {
     id: string;
     companyName: string;
@@ -126,7 +127,7 @@ function InfoField({ label, value }: { label: string; value?: string | null }) {
 
 export function ProposalDetailLoading() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6 " dir="rtl">
       <Card>
         <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-start md:justify-between">
           <div className="flex gap-4">
@@ -190,7 +191,7 @@ export function ProposalDetailView({
   const isClientAudience = audience === "client";
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6 " dir="rtl">
       {isClientAudience ? (
         <PageHeader
           title={proposal.title}

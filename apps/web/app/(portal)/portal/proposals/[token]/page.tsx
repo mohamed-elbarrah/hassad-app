@@ -61,7 +61,7 @@ export default function PortalProposalDetailPage({
       proposal={proposal}
       backHref="/portal/proposals"
       backLabel="العودة إلى العروض"
-      fileUrl={proposal.filePath ? buildPortalFileUrl(proposal.filePath) : null}
+      fileUrl={proposal.fileUrl ?? (proposal.filePath ? buildPortalFileUrl(proposal.filePath) : null)}
       audience="client"
       responseArea={
         <ProposalClientResponseArea

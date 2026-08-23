@@ -6,11 +6,13 @@ import { SalesProposalsController } from "./controllers/sales-proposals.controll
 import { ProposalsService } from "./services/proposals.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { RequestsModule } from "../requests/requests.module";
+import { StorageModule } from "../../common/storage/storage.module";
 
 @Module({
   imports: [
     NotificationsModule,
     RequestsModule,
+    StorageModule,
     MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [ProposalsController, SalesProposalsController],

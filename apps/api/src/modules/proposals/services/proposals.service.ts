@@ -11,6 +11,7 @@ import { ProposalStatus, RequestStatus } from "@hassad/shared";
 import { randomBytes } from "crypto";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { RequestsService } from "../../requests/requests.service";
+import { StorageService } from "../../../common/storage/storage.service";
 import {
   buildRequestAccessWhere,
   type RequestAccessScope,
@@ -22,6 +23,7 @@ export class ProposalsService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private requestsService: RequestsService,
+    private storageService: StorageService,
   ) {}
 
   /** Create a proposal and publish it through the legacy workflow. */
@@ -457,7 +459,16 @@ export class ProposalsService {
       });
     }
 
-    return proposal;
+    const fileUrl = proposal.filePath
+      ? await this.storageService.getPresignedUrl(proposal.filePath)
+      : null;
+
+    return {
+      ...proposal,
+      fileUrl,
+      // Keep the storage key out of the client-facing URL contract.
+      filePath: undefined,
+    };
   }
 
   async approveByToken(token: string, notes?: string) {
