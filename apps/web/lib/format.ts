@@ -63,7 +63,9 @@ export function formatShortDate(
   date: string | Date | undefined | null,
 ): string {
   if (!date) return "—";
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? new Date(`${date}T00:00:00`)
+    : typeof date === "string" ? new Date(date) : date;
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");

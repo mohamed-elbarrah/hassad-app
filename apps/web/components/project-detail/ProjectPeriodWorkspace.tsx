@@ -46,26 +46,24 @@ export function ProjectPeriodWorkspace({
   children,
   className,
 }: ProjectPeriodWorkspaceProps) {
+  const overviewTitleId = useId();
   const periodsTitleId = useId();
-  const selectedIndex = Math.max(
-    0,
-    periods.findIndex((period) => period.id === selectedPeriodId),
-  );
-  const selectedPeriod = periods[selectedIndex];
-  const previous = periods[selectedIndex - 1];
-  const next = periods[selectedIndex + 1];
+  const selectedIndex = periods.findIndex((period) => period.id === selectedPeriodId);
+  const selectedPeriod = selectedIndex >= 0 ? periods[selectedIndex] : undefined;
+  const previous = selectedIndex > 0 ? periods[selectedIndex - 1] : undefined;
+  const next = selectedIndex >= 0 ? periods[selectedIndex + 1] : undefined;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} data-project-role={role} dir="rtl">
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
-        <section aria-labelledby="project-overview-title" className="flex min-w-0 flex-col gap-4">
-          <h2 id="project-overview-title" className="text-base font-semibold">نظرة عامة على المشروع</h2>
-          {overview}
-        </section>
+      <Card>
+        <CardContent className="grid items-start gap-6 p-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
+          <section aria-labelledby={overviewTitleId} className="flex min-w-0 flex-col gap-4">
+            <h2 id={overviewTitleId} className="text-base font-semibold">نظرة عامة على المشروع</h2>
+            {overview}
+          </section>
 
-        <section aria-labelledby={periodsTitleId} className="min-w-0">
-          <Card>
-            <CardContent className="flex flex-col gap-6 p-6">
+          <section aria-labelledby={periodsTitleId} className="min-w-0 lg:border-s lg:ps-6">
+            <div className="flex flex-col gap-6">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <CalendarDays className="text-muted-foreground" />
@@ -79,16 +77,16 @@ export function ProjectPeriodWorkspace({
               {selectedPeriod ? (
                 <>
                   <div className="flex items-center justify-between gap-3 text-sm">
-                    <Button variant="ghost" size="sm" disabled={!next} onClick={() => next && onSelectPeriod(next.id)} aria-label="الفترة التالية">
-                      التالية
-                      <ChevronLeft data-icon="inline-start" />
+                    <Button variant="ghost" size="sm" disabled={!previous} onClick={() => previous && onSelectPeriod(previous.id)} aria-label="الفترة السابقة">
+                      <ChevronRight data-icon="inline-start" />
+                      السابقة
                     </Button>
                     <span className="font-medium">
                       {formatShortDate(selectedPeriod.startDate)} - {formatShortDate(selectedPeriod.endDate)}
                     </span>
-                    <Button variant="ghost" size="sm" disabled={!previous} onClick={() => previous && onSelectPeriod(previous.id)} aria-label="الفترة السابقة">
-                      <ChevronRight data-icon="inline-end" />
-                      السابقة
+                    <Button variant="ghost" size="sm" disabled={!next} onClick={() => next && onSelectPeriod(next.id)} aria-label="الفترة التالية">
+                      التالية
+                      <ChevronLeft data-icon="inline-end" />
                     </Button>
                   </div>
 
@@ -97,11 +95,17 @@ export function ProjectPeriodWorkspace({
                       const isSelected = period.id === selectedPeriod.id;
                       const isComplete = period.status === "CLOSED";
                       return (
-                        <li key={period.id} className="flex min-w-0 flex-1 items-center gap-2">
+                        <li key={period.id} className="relative min-w-0 flex-1">
+                          {period.id !== periods.at(-1)?.id ? (
+                            <span
+                              className="absolute start-1/2 top-4 h-px w-full bg-border"
+                              aria-hidden="true"
+                            />
+                          ) : null}
                           <Button
                             type="button"
                             variant="ghost"
-                            className="flex h-auto min-w-0 flex-1 flex-col gap-2 px-1 py-0"
+                            className="relative z-10 flex h-auto min-w-0 w-full flex-col gap-2 px-1 py-0"
                             aria-current={isSelected ? "step" : undefined}
                             onClick={() => onSelectPeriod(period.id)}
                           >
@@ -111,7 +115,6 @@ export function ProjectPeriodWorkspace({
                             <span className="truncate text-xs">الفترة {period.periodNumber}</span>
                             <span className="text-xs text-muted-foreground">{periodStatusLabel(period.status)}</span>
                           </Button>
-                          {period.id !== periods.at(-1)?.id ? <span className="mt-4 h-px flex-1 bg-border" aria-hidden="true" /> : null}
                         </li>
                       );
                     })}
@@ -128,10 +131,10 @@ export function ProjectPeriodWorkspace({
               ) : (
                 <p className="text-sm text-muted-foreground">لا توجد فترات لهذا المشروع.</p>
               )}
-            </CardContent>
-          </Card>
-        </section>
-      </div>
+            </div>
+          </section>
+        </CardContent>
+      </Card>
 
       {selectedPeriod ? <section aria-label="محتوى الفترة المحددة">{children}</section> : null}
     </div>

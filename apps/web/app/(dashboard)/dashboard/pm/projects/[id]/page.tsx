@@ -35,7 +35,7 @@ import { useAppSelector } from "@/lib/hooks";
 import { type ProjectWithMeta } from "@/lib/utils/project-status";
 import { cn } from "@/lib/utils";
 import { ProjectStatus } from "@hassad/shared";
-import { daysUntil } from "@/lib/format";
+import { daysUntil, formatShortDate } from "@/lib/format";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -220,15 +220,38 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             selectedPeriodId={selectedPeriod?.id ?? ""}
             onSelectPeriod={setSelectedPeriodId}
             overview={
-              <div className="grid grid-cols-2 gap-3">
-                {overviewItems.map((item) => (
-                  <div key={item.label} className="flex min-h-24 flex-col justify-center gap-1 rounded-lg border p-4">
-                    <span className="text-xs text-muted-foreground">{item.label}</span>
-                    <span className={cn("text-xl font-semibold tabular-nums", item.label === "المهام المتأخرة" && overdueTasks > 0 && "text-destructive")}>
-                      {item.value}
-                    </span>
+              <div className="flex flex-col gap-5">
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
+                    <dt className="text-xs text-muted-foreground">العميل</dt>
+                    <dd className="truncate font-medium">{p.client?.companyName || "غير محدد"}</dd>
                   </div>
-                ))}
+                  <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
+                    <dt className="text-xs text-muted-foreground">مدير المشروع</dt>
+                    <dd className="truncate font-medium">{p.manager?.name || "غير محدد"}</dd>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
+                    <dt className="text-xs text-muted-foreground">حالة المشروع</dt>
+                    <dd><PmStatusBadge domain="project" status={project.status} /></dd>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
+                    <dt className="text-xs text-muted-foreground">مدة المشروع</dt>
+                    <dd className="font-medium">
+                      {formatShortDate(project.startDate)} - {formatShortDate(project.endDate)}
+                    </dd>
+                  </div>
+                </dl>
+
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  {overviewItems.map((item) => (
+                    <div key={item.label} className="flex min-w-0 items-center justify-between gap-2 border-b pb-3">
+                      <dt className="text-xs text-muted-foreground">{item.label}</dt>
+                      <dd className={cn("font-semibold tabular-nums", item.label === "المهام المتأخرة" && overdueTasks > 0 && "text-destructive")}>
+                        {item.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             }
           >
