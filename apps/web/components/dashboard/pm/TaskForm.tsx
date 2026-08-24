@@ -9,9 +9,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, X, Search, ChevronDown, User } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { Dialog } from "@/components/design-system/Dialog";
+import { X, Search, ChevronDown, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -20,7 +26,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Select, SelectItem } from "@/components/design-system/Select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreatePmProjectTaskMutation } from "@/features/tasks/tasksApi";
 import { useSearchTaskAssigneesQuery } from "@/features/users/usersApi";
 import { TaskDepartment, TaskPriority } from "@hassad/shared";
@@ -134,64 +147,47 @@ function AssigneeDropdown({
     <div ref={wrapperRef} className="relative">
       {/* Trigger */}
       {selected ? (
-        <div
-          className="flex items-center gap-2 rounded-xl border border-portal-card-border bg-badge-gray-bg px-3 py-2 cursor-pointer"
-          onClick={() => setOpen(true)}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-100 text-secondary-600 text-sm font-semibold shrink-0">
-            {selected.name.charAt(0)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-natural-100 truncate">
-              {selected.name}
-            </div>
-            <div className="text-[11px] text-portal-note-text">
-              {selected.role}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onChange("");
-            }}
-            className="rounded-full p-1 text-portal-note-text hover:bg-badge-gray-bg hover:text-natural-100 transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => setOpen(true)} className="min-w-0 flex-1 justify-start">
+            <span className="size-8 shrink-0 rounded-full bg-muted text-center text-sm font-semibold leading-8">
+              {selected.name.charAt(0)}
+            </span>
+            <span className="min-w-0 truncate text-start">
+              <span className="block truncate font-medium">{selected.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{selected.role}</span>
+            </span>
+          </Button>
+          <Button type="button" variant="ghost" size="icon" onClick={() => onChange("")} aria-label="إزالة المسند إليه">
+            <X />
+          </Button>
         </div>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => dept && setOpen(true)}
           disabled={!dept}
-          className={cn(
-            "flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm transition-colors",
-            !dept
-              ? "border-portal-card-border bg-badge-gray-bg text-portal-note-text cursor-not-allowed"
-              : "border-portal-card-border bg-white text-natural-100 hover:border-secondary-300 cursor-pointer",
-          )}
+          className="w-full justify-between"
         >
-          <span className={cn(!dept && "text-portal-note-text")}>
-            {!dept ? "اختر القسم أولاً" : "اختر المسند إليه"}
-          </span>
-          <ChevronDown className="h-4 w-4 text-portal-note-text" />
-        </button>
+          <span>{!dept ? "اختر القسم أولاً" : "اختر المسند إليه"}</span>
+          <ChevronDown data-icon="inline-end" />
+        </Button>
       )}
 
       {/* Dropdown */}
       {open && dept && (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-portal-card-border bg-white shadow-lg overflow-hidden">
+        <div className="relative mt-1 w-full overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-md">
           {/* Search box inside dropdown */}
-          <div className="border-b border-portal-divider p-2">
+          <div className="border-b p-2">
             <div className="relative">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-portal-note-text" />
-              <input
+              <Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="ابحث بالاسم أو الدور..."
-                className="w-full rounded-lg border border-portal-card-border bg-badge-gray-bg py-2 pr-9 pl-3 text-sm text-natural-100 placeholder:text-portal-note-text focus:border-secondary-500 focus:outline-none focus:ring-1 focus:ring-secondary-500/20"
+                aria-label="البحث عن المسند إليه"
+                className="pe-9"
                 autoFocus
               />
             </div>
@@ -200,11 +196,11 @@ function AssigneeDropdown({
           {/* List */}
           <div className="max-h-60 overflow-y-auto">
             {isFetching ? (
-              <div className="px-3 py-4 text-sm text-portal-note-text text-center">
+              <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                 جارٍ التحميل...
               </div>
             ) : filtered.length === 0 ? (
-              <div className="px-3 py-4 text-sm text-portal-note-text text-center">
+              <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                 {users.length === 0
                   ? "لا يوجد مستخدمون في هذا القسم"
                   : "لا توجد نتائج مطابقة"}
@@ -220,18 +216,18 @@ function AssigneeDropdown({
                       setOpen(false);
                     }}
                     className={cn(
-                      "flex w-full items-center gap-3 px-3 py-2.5 text-right transition-colors hover:bg-badge-gray-bg",
-                      user.id === value && "bg-secondary-50",
+                      "flex w-full items-center gap-3 px-3 py-2.5 text-right transition-colors hover:bg-muted",
+                      user.id === value && "bg-secondary",
                     )}
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-badge-gray-bg text-natural-100 text-sm font-semibold shrink-0">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                       {user.name.charAt(0)}
                     </div>
-                    <div className="flex-1 min-w-0 text-right">
-                      <div className="text-sm font-medium text-natural-100">
+                    <div className="min-w-0 flex-1 text-right">
+                      <div className="text-sm font-medium text-foreground">
                         {user.name}
                       </div>
-                      <div className="text-[11px] text-portal-note-text flex items-center gap-1">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <User className="h-3 w-3" />
                         {user.role}
                         {user.department && (
@@ -309,23 +305,13 @@ export function TaskForm({
   }
 
   return (
-    <>
-      <ActionButton
-        size="sm"
-        onClick={() => setOpen(true)}
-        icon={<Plus className="size-4" />}
-      >
-        مهمة جديدة
-      </ActionButton>
-
-      <Dialog
-        open={open}
-        onOpenChange={setOpen}
-        title="إنشاء مهمة جديدة"
-        contentClassName="sm:max-w-md"
-      >
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent dir="rtl" className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>إنشاء مهمة جديدة</DialogTitle>
+        </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
             <FormField
               control={form.control}
               name="title"
@@ -347,16 +333,21 @@ export function TaskForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>القسم</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      placeholder="اختر القسم"
-                    >
-                      {Object.values(TaskDepartment).map((d) => (
-                        <SelectItem key={d} value={d}>
-                          {DEPT_LABELS[d]}
-                        </SelectItem>
-                      ))}
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر القسم" />
+                        </SelectTrigger>
+                      </FormControl>
+                        <SelectContent>
+                          <SelectGroup>
+                            {Object.values(TaskDepartment).map((d) => (
+                              <SelectItem key={d} value={d}>
+                                {DEPT_LABELS[d]}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
@@ -369,16 +360,21 @@ export function TaskForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>الأولوية</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      placeholder="عادي"
-                    >
-                      {Object.values(TaskPriority).map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {PRIORITY_LABELS[p]}
-                        </SelectItem>
-                      ))}
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="عادي" />
+                        </SelectTrigger>
+                      </FormControl>
+                        <SelectContent>
+                          <SelectGroup>
+                            {Object.values(TaskPriority).map((p) => (
+                              <SelectItem key={p} value={p}>
+                                {PRIORITY_LABELS[p]}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
@@ -392,13 +388,11 @@ export function TaskForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>المسند إليه</FormLabel>
-                  <FormControl>
-                    <AssigneeDropdown
-                      value={field.value}
-                      onChange={field.onChange}
-                      dept={watchedDept}
-                    />
-                  </FormControl>
+                  <AssigneeDropdown
+                    value={field.value}
+                    onChange={field.onChange}
+                    dept={watchedDept}
+                  />
                   <FormMessage />
                 </FormItem>
               )}
@@ -437,21 +431,17 @@ export function TaskForm({
               )}
             />
 
-            <div className="flex justify-end gap-3 pt-2">
-              <ActionButton
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 إلغاء
-              </ActionButton>
-              <ActionButton type="submit" disabled={isLoading}>
+              </Button>
+              <Button type="submit" disabled={isLoading}>
                 {isLoading ? "جارٍ الإنشاء..." : "إنشاء المهمة"}
-              </ActionButton>
-            </div>
+              </Button>
+            </DialogFooter>
           </form>
         </Form>
-      </Dialog>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
