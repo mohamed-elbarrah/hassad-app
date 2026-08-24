@@ -17,19 +17,20 @@ import { pmErrorMessage } from "@/lib/i18n";
 
 interface TaskKanbanProps {
   projectId: string;
+  periodId?: string;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function TaskKanban({ projectId }: TaskKanbanProps) {
+export function TaskKanban({ projectId, periodId }: TaskKanbanProps) {
   const {
     data: tasks,
     isLoading,
     isError,
-  } = useGetPmTasksQuery({ projectId, limit: 100 });
+  } = useGetPmTasksQuery({ projectId, periodId, limit: 100 });
   const [changeTaskStatus] = useChangePmTaskStatusMutation();
 
-  const typedTasks = (tasks ?? []) as TaskWithMeta[];
+  const typedTasks = (tasks?.items ?? []) as TaskWithMeta[];
 
   // ── Drag end handler (state machine) ─────────────────────────────────
   const handleDragEnd = useCallback(

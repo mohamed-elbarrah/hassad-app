@@ -67,6 +67,7 @@ export type UpdateProjectStatusInput = z.infer<
  */
 export const CreateTaskSchema = z.object({
   projectId: z.string().uuid("Invalid project ID format"),
+  periodId: z.string().uuid("Invalid period ID format").optional(),
   dept: z.nativeEnum(TaskDepartment),
   title: z.string().min(2, "Task title must be at least 2 characters"),
   assignedTo: z.string().uuid("Invalid user ID format").optional(),

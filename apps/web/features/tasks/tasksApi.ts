@@ -71,6 +71,7 @@ export interface PmTasksFilters {
   status?: TaskStatus;
   priority?: TaskPriority;
   projectId?: string;
+  periodId?: string;
   department?: TaskDepartment;
   search?: string;
   page?: number;

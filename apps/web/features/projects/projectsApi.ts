@@ -8,6 +8,7 @@ import type {
   UpdateProjectStatusInput,
 } from "@hassad/shared";
 import type { ProjectStatus } from "@hassad/shared";
+import type { ProjectPeriod } from "@/features/projects/periodsApi";
 
 // ── Response types ────────────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ export interface PmDeliverableWithRevisions {
 export const projectsApi = createApi({
   reducerPath: "projectsApi",
   baseQuery,
-  tagTypes: ["Project", "ProjectFile", "PmRevision"],
+  tagTypes: ["Project", "ProjectFile", "ProjectPeriod", "PmRevision"],
   endpoints: (builder) => ({
     /** GET /v1/projects — paginated + filtered list */
     getProjects: builder.query<PaginatedProjects, ProjectFilters>({
@@ -167,6 +168,26 @@ export const projectsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Project", id }],
     }),
 
+    /** GET /v1/pm/projects/:id/periods */
+    getPmProjectPeriods: builder.query<ProjectPeriod[], string>({
+      query: (projectId) => `/pm/projects/${projectId}/periods`,
+      providesTags: (_result, _error, projectId) => [
+        { type: "ProjectPeriod", id: `list-${projectId}` },
+      ],
+    }),
+
+    /** GET /v1/pm/projects/:id/periods/:periodId */
+    getPmProjectPeriod: builder.query<
+      ProjectPeriod,
+      { projectId: string; periodId: string }
+    >({
+      query: ({ projectId, periodId }) =>
+        `/pm/projects/${projectId}/periods/${periodId}`,
+      providesTags: (_result, _error, { projectId, periodId }) => [
+        { type: "ProjectPeriod", id: `${projectId}-${periodId}` },
+      ],
+    }),
+
     /** GET /v1/pm/projects/:id/files */
     getPmProjectFiles: builder.query<ProjectFile[], string>({
       query: (projectId) => `/pm/projects/${projectId}/files`,
@@ -191,8 +212,11 @@ export const projectsApi = createApi({
           body: formData,
         };
       },
-      invalidatesTags: (_result, _error, { projectId }) => [
+      invalidatesTags: (_result, _error, { projectId, periodId }) => [
         { type: "ProjectFile", id: projectId },
+        ...(periodId
+          ? [{ type: "ProjectPeriod" as const, id: `${projectId}-${periodId}` }]
+          : []),
       ],
     }),
 
@@ -343,6 +367,8 @@ export const {
   useGetPmProjectsTableQuery,
   useGetProjectByIdQuery,
   useGetPmProjectByIdQuery,
+  useGetPmProjectPeriodsQuery,
+  useGetPmProjectPeriodQuery,
   useGetPmProjectFilesQuery,
   useCreateProjectMutation,
   useUpdateProjectMutation,

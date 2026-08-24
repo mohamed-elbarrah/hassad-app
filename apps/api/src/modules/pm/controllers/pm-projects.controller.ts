@@ -51,6 +51,22 @@ export class PmProjectsController {
     return this.service.detail(userId, id);
   }
 
+  @Get(":id/periods")
+  @RequirePermissions("projects.read")
+  periods(@CurrentUser("id") userId: string, @Param("id") projectId: string) {
+    return this.service.periods(userId, projectId);
+  }
+
+  @Get(":id/periods/:periodId")
+  @RequirePermissions("projects.read")
+  periodDetail(
+    @CurrentUser("id") userId: string,
+    @Param("id") projectId: string,
+    @Param("periodId") periodId: string,
+  ) {
+    return this.service.periodDetail(userId, projectId, periodId);
+  }
+
   @Get(":id/workspace")
   @RequirePermissions("projects.read")
   workspace(@CurrentUser("id") userId: string, @Param("id") id: string) {

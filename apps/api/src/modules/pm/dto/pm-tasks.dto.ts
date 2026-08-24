@@ -34,6 +34,10 @@ export class PmTasksQueryDto {
   projectId?: string;
 
   @IsOptional()
+  @IsUUID()
+  periodId?: string;
+
+  @IsOptional()
   @IsEnum(TaskDepartment)
   department?: TaskDepartment;
 

@@ -63,6 +63,7 @@ export class PmTasksService {
       status?: TaskStatus;
       priority?: TaskPriority;
       projectId?: string;
+      periodId?: string;
       department?: TaskDepartment;
       dueBefore?: string;
       dueAfter?: string;
@@ -79,6 +80,7 @@ export class PmTasksService {
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.priority ? { priority: filters.priority } : {}),
       ...(filters.projectId ? { projectId: filters.projectId } : {}),
+      ...(filters.periodId ? { periodId: filters.periodId } : {}),
       ...(filters.department
         ? { department: { name: filters.department } }
         : {}),

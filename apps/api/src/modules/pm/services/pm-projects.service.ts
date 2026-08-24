@@ -8,6 +8,7 @@ import { ProjectStatus, TaskPriority, TaskStatus } from "@hassad/shared";
 
 import { PrismaService } from "../../../prisma/prisma.service";
 import { ProjectsService } from "../../projects/services/projects.service";
+import { ProjectPeriodsService } from "../../projects/services/project-periods.service";
 import type {
   PmProjectsQueryDto,
   PmProjectUpdateDto,
@@ -152,6 +153,7 @@ export class PmProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly projectsService: ProjectsService,
+    private readonly periodsService: ProjectPeriodsService,
   ) {}
 
   private ownedWhere(userId: string) {
@@ -312,6 +314,49 @@ export class PmProjectsService {
     return this.workspace(userId, id);
   }
 
+  async periods(userId: string, projectId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, ...this.ownedWhere(userId) },
+      select: { id: true },
+    });
+
+    if (!project) {
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId },
+      });
+    }
+
+    return this.periodsService.listPeriods(projectId);
+  }
+
+  async periodDetail(userId: string, projectId: string, periodId: string) {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, ...this.ownedWhere(userId) },
+      select: { id: true },
+    });
+
+    if (!project) {
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId },
+      });
+    }
+
+    const periodReference = await this.prisma.projectPeriod.findFirst({
+      where: { id: periodId, projectId },
+      select: { id: true },
+    });
+    if (!periodReference) {
+      throw new NotFoundException({
+        code: "PROJECT_PERIOD_NOT_FOUND",
+        details: { projectId, periodId },
+      });
+    }
+
+    return this.periodsService.getPeriodDetail(periodId);
+  }
+
   async workspace(userId: string, id: string) {
     const project = (await this.prisma.project.findFirst({
       where: { id, ...this.ownedWhere(userId) },
@@ -363,7 +408,6 @@ export class PmProjectsService {
         where: {
           projectId: id,
           status: { not: TaskStatus.DONE },
-          dueDate: { not: null },
         },
         select: { id: true, title: true, dueDate: true, status: true },
         orderBy: { dueDate: "asc" },

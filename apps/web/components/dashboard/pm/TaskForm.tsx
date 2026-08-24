@@ -61,6 +61,7 @@ type TaskFormValues = z.infer<typeof TaskFormSchema>;
 
 interface TaskFormProps {
   projectId: string;
+  periodId?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -256,6 +257,7 @@ function AssigneeDropdown({
 
 export function TaskForm({
   projectId,
+  periodId,
   open: openProp,
   onOpenChange,
 }: TaskFormProps) {
@@ -290,6 +292,7 @@ export function TaskForm({
     try {
       await createTask({
         projectId,
+        periodId,
         title: values.title,
         assignedTo: values.assignedTo || undefined,
         dept: values.dept,
