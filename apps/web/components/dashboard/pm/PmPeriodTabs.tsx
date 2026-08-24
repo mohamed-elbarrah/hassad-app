@@ -12,6 +12,16 @@ import { useSavePeriodGoalsMutation, useUploadPeriodReportMutation } from "@/fea
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { pmErrorMessage } from "@/lib/i18n";
+import { Badge } from "@/components/ui/badge";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function PmPeriodTabs({ period, projectId, onChanged }: { period: ProjectPeriod; projectId: string; onChanged?: () => void }) {
   const [editingGoals, setEditingGoals] = useState(false);
@@ -22,26 +32,36 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
   const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [taskView, setTaskView] = useState<"kanban" | "table">("kanban");
 
+  const startGoalsEdit = () => {
+    setGoals(period.goals ?? []);
+    setEditingGoals(true);
+  };
+
+  const cancelGoalsEdit = () => {
+    setGoals(period.goals ?? []);
+    setEditingGoals(false);
+  };
+
   const handleSaveGoals = async () => {
     try {
       await saveGoals({ periodId: period.id, goals }).unwrap();
       onChanged?.();
       setEditingGoals(false);
-    } catch {
-      toast.error("تعذر حفظ أهداف الفترة");
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
     }
   };
 
   return (
     <Tabs key={period.id} defaultValue="goals" dir="rtl" aria-label="محتوى الفترة المحددة">
-      <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-7">
-        <TabsTrigger value="tasks" className="gap-2"><FolderKanban className="size-[18px]" /> المهام</TabsTrigger>
-        <TabsTrigger value="goals" className="gap-2"><Target className="size-[18px]" /> الأهداف</TabsTrigger>
-        <TabsTrigger value="files" className="gap-2"><FileText className="size-[18px]" /> الملفات</TabsTrigger>
-        <TabsTrigger value="reports" className="gap-2"><FileText className="size-[18px]" /> التقارير</TabsTrigger>
-        <TabsTrigger value="campaigns" className="gap-2"><Megaphone className="size-[18px]" /> الحملات</TabsTrigger>
-        <TabsTrigger value="meetings" className="gap-2"><Users className="size-[18px]" /> الاجتماعات</TabsTrigger>
-        <TabsTrigger value="invoices" className="gap-2"><Receipt className="size-[18px]" /> الفواتير</TabsTrigger>
+      <TabsList aria-label="أقسام الفترة" className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border bg-muted/60 p-1 shadow-sm sm:grid-cols-7">
+        <TabsTrigger value="tasks" className="min-h-11 gap-2"><FolderKanban className="size-[18px]" /> المهام</TabsTrigger>
+        <TabsTrigger value="goals" className="min-h-11 gap-2"><Target className="size-[18px]" /> الأهداف</TabsTrigger>
+        <TabsTrigger value="files" className="min-h-11 gap-2"><FileText className="size-[18px]" /> الملفات</TabsTrigger>
+        <TabsTrigger value="reports" className="min-h-11 gap-2"><FileText className="size-[18px]" /> التقارير</TabsTrigger>
+        <TabsTrigger value="campaigns" className="min-h-11 gap-2"><Megaphone className="size-[18px]" /> الحملات</TabsTrigger>
+        <TabsTrigger value="meetings" className="min-h-11 gap-2"><Users className="size-[18px]" /> الاجتماعات</TabsTrigger>
+        <TabsTrigger value="invoices" className="min-h-11 gap-2"><Receipt className="size-[18px]" /> الفواتير</TabsTrigger>
       </TabsList>
 
       <TabsContent value="tasks" className="mt-6 flex flex-col gap-4">
@@ -69,32 +89,85 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
       <TabsContent value="goals" className="mt-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">أهداف الفترة {period.periodNumber}</h3>
-          <Button variant="outline" size="sm" onClick={() => setEditingGoals((value) => !value)}>{editingGoals ? "إلغاء" : "تعديل الأهداف"}</Button>
+          <Button variant="outline" size="sm" onClick={editingGoals ? cancelGoalsEdit : startGoalsEdit}>
+            {editingGoals ? "إلغاء" : <><Plus data-icon="inline-start" /> إضافة هدف</>}
+          </Button>
         </div>
-        {editingGoals ? <PMGoalEditor goals={goals} onChange={setGoals} onSave={handleSaveGoals} isSaving={isSavingGoals} /> : <GoalList goals={period.goals ?? []} />}
-      </TabsContent>
-
-      <TabsContent value="files" className="mt-6 flex flex-col gap-4">
-        <h3 className="text-lg font-semibold">ملفات الفترة</h3>
-        {(period.files ?? []).length === 0 ? <p className="border-t pt-5 text-sm text-muted-foreground">لا توجد ملفات لهذه الفترة.</p> : (
-          <div className="flex flex-col divide-y">
-            {period.files?.map((file) => <div key={file.id} className="flex items-center justify-between gap-4 py-4"><span className="font-medium">{file.fileName}</span><span className="text-sm text-muted-foreground">{file.fileType}</span></div>)}
-          </div>
+        {editingGoals ? (
+          <PMGoalEditor goals={goals} onChange={setGoals} onSave={handleSaveGoals} isSaving={isSavingGoals} />
+        ) : (
+          <GoalList
+            goals={period.goals ?? []}
+            onEdit={startGoalsEdit}
+            onDelete={(index) => {
+              setGoals((current) => current.filter((_, goalIndex) => goalIndex !== index));
+              setEditingGoals(true);
+            }}
+          />
         )}
       </TabsContent>
 
-      <TabsContent value="reports" className="mt-6 flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">تقرير الفترة</h3>
-          <Button variant="outline" size="sm" onClick={() => reportInputRef.current?.click()} disabled={isUploadingReport}><Upload data-icon="inline-start" /> {period.reportFilePath ? "استبدال التقرير" : "رفع التقرير"}</Button>
-          <input ref={reportInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" aria-label="رفع تقرير الفترة" onChange={async (event) => { const file = event.target.files?.[0]; if (file) { try { await uploadReport({ periodId: period.id, file }).unwrap(); onChanged?.(); } catch { toast.error("تعذر رفع التقرير"); } } event.target.value = ""; }} />
-        </div>
-        <p className="border-t pt-5 text-sm text-muted-foreground">{period.reportFilePath ? "يوجد تقرير مرفوع لهذه الفترة." : "لم يتم رفع تقرير لهذه الفترة بعد."}</p>
+      <TabsContent value="files" className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>ملفات الفترة</CardTitle>
+            <CardDescription>الملفات المرتبطة بالفترة الحالية.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {(period.files ?? []).length === 0 ? (
+              <Empty className="border">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon"><FileText /></EmptyMedia>
+                  <EmptyTitle>لا توجد ملفات</EmptyTitle>
+                  <EmptyDescription>لم تتم إضافة ملفات لهذه الفترة بعد.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {period.files?.map((file) => (
+                  <div key={file.id} className="flex items-center justify-between gap-4 rounded-lg border bg-muted/20 p-4">
+                    <span className="font-medium">{file.fileName}</span>
+                    <Badge variant="outline">{file.fileType}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </TabsContent>
 
-      <TabsContent value="campaigns" className="mt-6 flex flex-col gap-4">
-        <h3 className="text-lg font-semibold">حملات الفترة</h3>
-        <p className="border-t pt-5 text-sm text-muted-foreground">{period.campaignCount ?? 0} حملات مرتبطة بهذه الفترة.</p>
+      <TabsContent value="reports" className="mt-6">
+        <Card>
+          <CardHeader className="flex-col items-start justify-between gap-4 sm:flex-row">
+            <div className="flex flex-col gap-1.5">
+              <CardTitle>تقرير الفترة</CardTitle>
+              <CardDescription>أضف تقرير الفترة أو استبدل التقرير الحالي.</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => reportInputRef.current?.click()} disabled={isUploadingReport}><Upload data-icon="inline-start" /> {period.reportFilePath ? "استبدال التقرير" : "رفع التقرير"}</Button>
+            <input ref={reportInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" aria-label="رفع تقرير الفترة" onChange={async (event) => { const file = event.target.files?.[0]; if (file) { try { await uploadReport({ periodId: period.id, file }).unwrap(); onChanged?.(); } catch (error) { toast.error(pmErrorMessage(error)); } } event.target.value = ""; }} />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-4">
+              <Badge variant={period.reportFilePath ? "secondary" : "outline"}>{period.reportFilePath ? "مرفوع" : "غير مرفوع"}</Badge>
+              <p className="text-sm text-muted-foreground">{period.reportFilePath ? "يوجد تقرير مرفوع لهذه الفترة." : "لم يتم رفع تقرير لهذه الفترة بعد."}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="campaigns" className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>حملات الفترة</CardTitle>
+            <CardDescription>الحملات المرتبطة بالفترة الحالية.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/20 p-4">
+              <span className="text-sm text-muted-foreground">الحملات المرتبطة بهذه الفترة</span>
+              <Badge variant="secondary">{period.campaignCount ?? 0}</Badge>
+            </div>
+          </CardContent>
+        </Card>
       </TabsContent>
 
       <TabsContent value="meetings" className="mt-6 flex flex-col gap-4">
@@ -102,9 +175,29 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
         <PMPeriodMeetings periodId={period.id} meetings={period.meetings ?? []} canEdit />
       </TabsContent>
 
-      <TabsContent value="invoices" className="mt-6 flex flex-col gap-4">
-        <h3 className="text-lg font-semibold">فاتورة الفترة</h3>
-        <p className="border-t pt-5 text-sm text-muted-foreground">{period.invoice ? `رقم الفاتورة: ${period.invoice.invoiceNumber}` : "لا توجد فاتورة مرتبطة بهذه الفترة."}</p>
+      <TabsContent value="invoices" className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>فاتورة الفترة</CardTitle>
+            <CardDescription>بيانات الفاتورة المرتبطة بالفترة الحالية.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {period.invoice ? (
+              <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/20 p-4">
+                <span className="text-sm text-muted-foreground">رقم الفاتورة</span>
+                <Badge variant="outline">{period.invoice.invoiceNumber}</Badge>
+              </div>
+            ) : (
+              <Empty className="border">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon"><Receipt /></EmptyMedia>
+                  <EmptyTitle>لا توجد فاتورة</EmptyTitle>
+                  <EmptyDescription>لا توجد فاتورة مرتبطة بهذه الفترة.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
+          </CardContent>
+        </Card>
       </TabsContent>
     </Tabs>
   );

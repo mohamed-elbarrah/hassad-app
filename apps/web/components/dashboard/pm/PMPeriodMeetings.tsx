@@ -1,8 +1,19 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-
 import { useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Calendar,
   CheckCircle2,
@@ -20,14 +31,16 @@ import {
   useCreateMeetingMutation,
   useUpdateMeetingMutation,
   type ProjectMeeting,
-  type CreateMeetingInput,
 } from "@/features/projects/periodsApi";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { pmErrorMessage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-const inputClass =
-  "flex h-10 w-full rounded-xl border border-portal-card-border bg-white px-3 py-2 text-sm text-secondary-500 placeholder:text-portal-note-text focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors text-right";
+const statusLabels: Record<MeetingStatus, string> = {
+  SCHEDULED: "مجدول",
+  DONE: "مكتمل",
+  CANCELLED: "ملغي",
+  RESCHEDULED: "مؤجل",
+};
 
 function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleString("ar-SA-u-nu-latn", {
@@ -39,11 +52,13 @@ function formatDateTime(dateStr: string): string {
   });
 }
 
-/** Convert an ISO string to a `datetime-local` input value (local time). */
-function toDateTimeLocal(iso: string): string {
+function toDateTimeParts(iso: string) {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
 }
 
 const isTerminal = (status: MeetingStatus) =>
@@ -59,25 +74,26 @@ function CreateMeetingForm({
   onDone: () => void;
 }) {
   const [createMeeting, { isLoading }] = useCreateMeetingMutation();
-  const [form, setForm] = useState<CreateMeetingInput>({
+  const [form, setForm] = useState({
     title: "",
-    scheduledAt: "",
+    scheduledDate: "",
+    scheduledTime: "",
     durationMin: 30,
     location: "",
     meetingLink: "",
   });
 
-  const set = (patch: Partial<CreateMeetingInput>) =>
+  const set = (patch: Partial<typeof form>) =>
     setForm((f) => ({ ...f, ...patch }));
 
   const submit = async () => {
-    if (!form.title.trim() || !form.scheduledAt) return;
+    if (!form.title.trim() || !form.scheduledDate || !form.scheduledTime) return;
     try {
       await createMeeting({
         periodId,
         body: {
           title: form.title.trim(),
-          scheduledAt: new Date(form.scheduledAt).toISOString(),
+          scheduledAt: new Date(`${form.scheduledDate}T${form.scheduledTime}`).toISOString(),
           durationMin: form.durationMin || undefined,
           location: form.location || undefined,
           meetingLink: form.meetingLink || undefined,
@@ -85,70 +101,96 @@ function CreateMeetingForm({
       }).unwrap();
       onDone();
     } catch (e) {
-      globalThis.console.error("Failed to create meeting:", e);
+      toast.error(pmErrorMessage(e));
     }
   };
 
   return (
-    <div
-      className="space-y-3 rounded-xl border border-portal-card-border bg-white p-4"
-      dir="rtl"
-    >
+    <Dialog open onOpenChange={(open) => !open && onDone()}>
+      <DialogContent dir="rtl" className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>جدولة اجتماع</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <Label htmlFor="meeting-title">عنوان الاجتماع</Label>
       <Input
+        id="meeting-title"
         placeholder="عنوان الاجتماع"
         value={form.title}
         onChange={(e) => set({ title: e.target.value })}
       />
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-xs text-portal-note-text">
-          الموعد
-          <input
-            type="datetime-local"
-            value={form.scheduledAt}
-            onChange={(e) => set({ scheduledAt: e.target.value })}
-            className={inputClass}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-portal-note-text">
-          المدة (دقيقة)
+        <div className="flex flex-col gap-1">
+          <Label
+            htmlFor="meeting-date"
+            className="text-xs text-muted-foreground"
+          >
+            التاريخ
+          </Label>
           <Input
+            id="meeting-date"
+            type="date"
+            value={form.scheduledDate}
+            onChange={(e) => set({ scheduledDate: e.target.value })}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label
+            htmlFor="meeting-time"
+            className="text-xs text-muted-foreground"
+          >
+            الوقت
+          </Label>
+          <Input
+            id="meeting-time"
+            type="time"
+            value={form.scheduledTime}
+            onChange={(e) => set({ scheduledTime: e.target.value })}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label
+            htmlFor="meeting-duration"
+            className="text-xs text-muted-foreground"
+          >
+            المدة (دقيقة)
+          </Label>
+          <Input
+            id="meeting-duration"
             type="number"
             min={1}
             value={form.durationMin}
             onChange={(e) => set({ durationMin: Number(e.target.value) })}
           />
-        </label>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Input
+          aria-label="المكان"
           placeholder="المكان"
           value={form.location}
           onChange={(e) => set({ location: e.target.value })}
         />
         <Input
+          aria-label="رابط الاجتماع (اختياري)"
           placeholder="رابط الاجتماع (اختياري)"
           value={form.meetingLink}
           onChange={(e) => set({ meetingLink: e.target.value })}
         />
       </div>
-      <div className="flex justify-end gap-2">
-        <ActionButton variant="outline" size="sm" onClick={onDone}>
-          إلغاء
-        </ActionButton>
-        <ActionButton
-          size="sm"
-          onClick={submit}
-          disabled={isLoading || !form.title.trim() || !form.scheduledAt}
-        >
-          {isLoading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Save className="size-4" />
-          )}
-          جدولة
-        </ActionButton>
-      </div>
-    </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={onDone}>إلغاء</Button>
+            <Button
+              onClick={submit}
+              disabled={isLoading || !form.title.trim() || !form.scheduledDate || !form.scheduledTime}
+            >
+              {isLoading ? <Loader2 className="animate-spin" /> : <Save />}
+              جدولة
+            </Button>
+          </DialogFooter>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -157,9 +199,11 @@ function CreateMeetingForm({
 function MeetingRow({
   meeting,
   periodId,
+  canEdit,
 }: {
   meeting: ProjectMeeting;
   periodId: string;
+  canEdit: boolean;
 }) {
   const [updateMeeting, { isLoading }] = useUpdateMeetingMutation();
   const [editing, setEditing] = useState(false);
@@ -168,7 +212,7 @@ function MeetingRow({
 
   const [editForm, setEditForm] = useState({
     title: meeting.title,
-    scheduledAt: toDateTimeLocal(meeting.scheduledAt),
+    ...toDateTimeParts(meeting.scheduledAt),
     durationMin: meeting.durationMin ?? 30,
     location: meeting.location ?? "",
     meetingLink: meeting.meetingLink ?? "",
@@ -184,7 +228,7 @@ function MeetingRow({
         periodId,
         body: {
           title: editForm.title.trim(),
-          scheduledAt: new Date(editForm.scheduledAt).toISOString(),
+          scheduledAt: new Date(`${editForm.date}T${editForm.time}`).toISOString(),
           durationMin: editForm.durationMin || undefined,
           location: editForm.location || undefined,
           meetingLink: editForm.meetingLink || undefined,
@@ -192,7 +236,7 @@ function MeetingRow({
       }).unwrap();
       setEditing(false);
     } catch (e) {
-      globalThis.console.error("Failed to update meeting:", e);
+      toast.error(pmErrorMessage(e));
     }
   };
 
@@ -204,7 +248,7 @@ function MeetingRow({
         body: { status },
       }).unwrap();
     } catch (e) {
-      globalThis.console.error("Failed to update meeting status:", e);
+      toast.error(pmErrorMessage(e));
     }
   };
 
@@ -217,7 +261,7 @@ function MeetingRow({
       }).unwrap();
       setShowNotes(false);
     } catch (e) {
-      globalThis.console.error("Failed to save notes:", e);
+      toast.error(pmErrorMessage(e));
     }
   };
 
@@ -226,64 +270,90 @@ function MeetingRow({
 
   if (editing) {
     return (
-      <div
-        className="space-y-3 rounded-xl border border-secondary-200 bg-secondary-50/30 p-4"
-        dir="rtl"
-      >
+      <Dialog open onOpenChange={(open) => !open && setEditing(false)}>
+        <DialogContent dir="rtl" className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>تعديل الاجتماع</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <Label htmlFor={`meeting-title-${meeting.id}`}>عنوان الاجتماع</Label>
         <Input
+          id={`meeting-title-${meeting.id}`}
           value={editForm.title}
           onChange={(e) => setEdit({ title: e.target.value })}
         />
         <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1 text-xs text-portal-note-text">
-            الموعد
-            <input
-              type="datetime-local"
-              value={editForm.scheduledAt}
-              onChange={(e) => setEdit({ scheduledAt: e.target.value })}
-              className={inputClass}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-portal-note-text">
-            المدة (دقيقة)
+          <div className="flex flex-col gap-1">
+            <Label
+              htmlFor={`meeting-date-${meeting.id}`}
+              className="text-xs text-muted-foreground"
+            >
+              التاريخ
+            </Label>
             <Input
+              id={`meeting-date-${meeting.id}`}
+              type="date"
+              value={editForm.date}
+              onChange={(e) => setEdit({ date: e.target.value })}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label
+              htmlFor={`meeting-edit-time-${meeting.id}`}
+              className="text-xs text-muted-foreground"
+            >
+              الوقت
+            </Label>
+            <Input
+              id={`meeting-edit-time-${meeting.id}`}
+              type="time"
+              value={editForm.time}
+              onChange={(e) => setEdit({ time: e.target.value })}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label
+              htmlFor={`meeting-duration-${meeting.id}`}
+              className="text-xs text-muted-foreground"
+            >
+              المدة (دقيقة)
+            </Label>
+            <Input
+              id={`meeting-duration-${meeting.id}`}
               type="number"
               min={1}
               value={editForm.durationMin}
               onChange={(e) => setEdit({ durationMin: Number(e.target.value) })}
             />
-          </label>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Input
+            aria-label="المكان"
             placeholder="المكان"
             value={editForm.location}
             onChange={(e) => setEdit({ location: e.target.value })}
           />
           <Input
+            aria-label="رابط الاجتماع"
             placeholder="رابط الاجتماع"
             value={editForm.meetingLink}
             onChange={(e) => setEdit({ meetingLink: e.target.value })}
           />
         </div>
-        <div className="flex justify-end gap-2">
-          <ActionButton
-            variant="outline"
-            size="sm"
-            onClick={() => setEditing(false)}
-          >
-            إلغاء
-          </ActionButton>
-          <ActionButton size="sm" onClick={saveEdit} disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
-            حفظ
-          </ActionButton>
-        </div>
-      </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditing(false)}>إلغاء</Button>
+              <Button
+                onClick={saveEdit}
+                disabled={isLoading || !editForm.title.trim() || !editForm.date || !editForm.time}
+              >
+                {isLoading ? <Loader2 className="animate-spin" /> : <Save />}
+                حفظ
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
@@ -292,8 +362,8 @@ function MeetingRow({
       className={cn(
         "rounded-xl border p-4 transition-colors",
         cancelled
-          ? "border-portal-card-border bg-badge-gray-bg/50"
-          : "border-portal-card-border bg-white hover:border-secondary-200",
+          ? "border-border bg-muted/50"
+          : "border-border bg-background hover:border-primary/50",
       )}
       dir="rtl"
     >
@@ -301,12 +371,12 @@ function MeetingRow({
         <div className="flex items-start gap-3">
           <div
             className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+              "flex size-9 shrink-0 items-center justify-center rounded-lg",
               cancelled
-                ? "bg-badge-gray-bg text-portal-note-text"
+                ? "bg-muted text-muted-foreground"
                 : done
-                  ? "bg-emerald-100 text-emerald-600"
-                  : "bg-blue-50 text-blue-600",
+                  ? "bg-success/10 text-success"
+                  : "bg-primary/10 text-primary",
             )}
           >
             {done ? (
@@ -321,20 +391,30 @@ function MeetingRow({
             <div className="flex items-center gap-2">
               <p
                 className={cn(
-                  "text-sm font-medium text-natural-100",
-                  cancelled && "text-portal-note-text line-through",
+                  "text-sm font-medium text-foreground",
+                  cancelled && "text-muted-foreground line-through",
                 )}
               >
                 {meeting.title}
               </p>
-              <StatusBadge status={meeting.status} />
+              <Badge
+                variant={
+                  meeting.status === MeetingStatus.CANCELLED
+                    ? "destructive"
+                    : meeting.status === MeetingStatus.DONE
+                      ? "default"
+                      : "secondary"
+                }
+              >
+                {statusLabels[meeting.status]}
+              </Badge>
             </div>
-            <p className="mt-1 flex items-center gap-1 text-xs text-portal-note-text">
+            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="size-3" />
               {formatDateTime(meeting.scheduledAt)}
               {meeting.durationMin ? ` · ${meeting.durationMin} دقيقة` : ""}
             </p>
-            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-portal-note-text">
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
               {meeting.location && (
                 <span className="flex items-center gap-1">
                   <MapPin className="size-3" />
@@ -346,7 +426,7 @@ function MeetingRow({
                   href={meeting.meetingLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-action-blue hover:underline"
+                  className="flex items-center gap-1 text-primary hover:underline"
                 >
                   <Video className="size-3" />
                   رابط الاجتماع
@@ -354,7 +434,7 @@ function MeetingRow({
               )}
             </div>
             {meeting.notes && (
-              <p className="mt-2 whitespace-pre-line rounded-lg bg-badge-gray-bg p-2 text-xs leading-5 text-portal-note-text">
+              <p className="mt-2 whitespace-pre-line rounded-lg bg-muted p-2 text-xs leading-5 text-muted-foreground">
                 {meeting.notes}
               </p>
             )}
@@ -363,17 +443,13 @@ function MeetingRow({
       </div>
 
       {/* Actions */}
-      {!isTerminal(meeting.status) && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-portal-divider pt-3">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            onClick={() => setEditing(true)}
-            icon={<Edit3 className="size-4" />}
-          >
+      {canEdit && !isTerminal(meeting.status) && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+            <Edit3 data-icon="inline-start" />
             تعديل
-          </ActionButton>
-          <ActionButton
+          </Button>
+          <Button
             variant="ghost"
             size="sm"
             onClick={() => {
@@ -382,50 +458,53 @@ function MeetingRow({
             }}
           >
             تقرير/ملاحظات
-          </ActionButton>
-          <ActionButton
+          </Button>
+          <Button
             variant="ghost"
             size="sm"
-            className="text-emerald-600 hover:text-emerald-700"
+            className="text-success hover:text-success/80"
             onClick={() => setStatus(MeetingStatus.DONE)}
             disabled={isLoading}
-            icon={<CheckCircle2 className="size-4" />}
           >
+            <CheckCircle2 data-icon="inline-start" />
             تم
-          </ActionButton>
-          <ActionButton
+          </Button>
+          <Button
             variant="ghost"
             size="sm"
-            className="text-danger-500 hover:text-danger-600"
+            className="text-destructive hover:text-destructive/80"
             onClick={() => setStatus(MeetingStatus.CANCELLED)}
             disabled={isLoading}
-            icon={<XCircle className="size-4" />}
           >
+            <XCircle data-icon="inline-start" />
             إلغاء
-          </ActionButton>
+          </Button>
         </div>
       )}
 
       {showNotes && (
-        <div className="mt-3 space-y-2 rounded-lg bg-badge-gray-bg p-3">
-          <textarea
+        <div className="mt-3 flex flex-col gap-2 rounded-lg bg-muted p-3">
+          <Label htmlFor={`meeting-notes-${meeting.id}`}>
+            تقرير/ملاحظات الاجتماع
+          </Label>
+          <Textarea
+            id={`meeting-notes-${meeting.id}`}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="اكتب تقرير أو ملاحظات الاجتماع..."
             rows={3}
-            className="w-full resize-none rounded-lg border border-portal-card-border bg-white p-2 text-sm focus:outline-none focus:border-secondary-500"
           />
           <div className="flex justify-end gap-2">
-            <ActionButton
+            <Button
               variant="outline"
               size="sm"
               onClick={() => setShowNotes(false)}
             >
               إغلاق
-            </ActionButton>
-            <ActionButton size="sm" onClick={saveNotes} disabled={isLoading}>
+            </Button>
+            <Button size="sm" onClick={saveNotes} disabled={isLoading}>
               حفظ
-            </ActionButton>
+            </Button>
           </div>
         </div>
       )}
@@ -455,24 +534,20 @@ export function PMPeriodMeetings({
   );
 
   return (
-    <div className="space-y-3" dir="rtl">
+    <div className="flex flex-col gap-3" dir="rtl">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-medium text-natural-100">
-          <Calendar className="size-4 text-portal-note-text" />
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <Calendar className="size-4 text-muted-foreground" />
           اجتماعات الفترة
-          <span className="rounded-full bg-badge-gray-bg px-2 py-0.5 text-xs text-portal-note-text">
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
             {sorted.length}
           </span>
         </div>
         {canEdit && !showForm && (
-          <ActionButton
-            variant="outline"
-            size="sm"
-            onClick={() => setShowForm(true)}
-            icon={<Plus className="size-4" />}
-          >
+          <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
+            <Plus data-icon="inline-start" />
             جدولة اجتماع
-          </ActionButton>
+          </Button>
         )}
       </div>
 
@@ -484,16 +559,17 @@ export function PMPeriodMeetings({
       )}
 
       {sorted.length === 0 && !showForm ? (
-        <div className="rounded-xl bg-badge-gray-bg py-6 text-center text-sm text-portal-note-text">
+        <div className="rounded-xl bg-muted py-6 text-center text-sm text-muted-foreground">
           لا توجد اجتماعات لهذه الفترة
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {sorted.map((meeting) => (
             <MeetingRow
               key={meeting.id}
               meeting={meeting}
               periodId={periodId}
+              canEdit={canEdit}
             />
           ))}
         </div>

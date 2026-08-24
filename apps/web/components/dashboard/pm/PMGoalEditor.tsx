@@ -1,11 +1,21 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
-import { useState } from "react";
-import { Plus, Save, X, Check, Loader2 } from "lucide-react";
+import { useId, useState } from "react";
+import { Plus, Save, X, Check, Loader2, Pencil, Trash2 } from "lucide-react";
 import type { PeriodGoal, PeriodGoalStatus } from "@hassad/shared";
-import { ActionButton } from "@/components/design-system/ActionButton";
 import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: PeriodGoalStatus; label: string }[] = [
@@ -15,13 +25,10 @@ const STATUS_OPTIONS: { value: PeriodGoalStatus; label: string }[] = [
 ];
 
 const STATUS_DOT: Record<PeriodGoalStatus, string> = {
-  pending: "bg-portal-note-text",
-  in_progress: "bg-secondary-500",
-  done: "bg-emerald-500",
+  pending: "bg-muted-foreground",
+  in_progress: "bg-primary",
+  done: "bg-secondary-foreground",
 };
-
-const selectClass =
-  "flex h-10 w-full rounded-xl border border-portal-card-border bg-white px-3 py-2 text-sm text-secondary-500 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors text-right";
 
 function defaultProgressFor(
   status: PeriodGoalStatus,
@@ -39,6 +46,7 @@ interface GoalRowEditorProps {
 }
 
 function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
+  const id = useId();
   const handleStatusChange = (status: PeriodGoalStatus) =>
     onChange({
       ...goal,
@@ -47,55 +55,67 @@ function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
     });
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-badge-gray-bg p-3">
+    <div className="flex flex-col gap-4 rounded-lg border bg-card p-4 shadow-sm">
       <div className="flex items-start gap-2">
-        <Input
-          placeholder="عنوان الهدف"
-          value={goal.title}
-          onChange={(e) => onChange({ ...goal, title: e.target.value })}
-          className="flex-1"
-        />
-        <button
+        <div className="flex-1">
+          <Label htmlFor={`${id}-title`}>عنوان الهدف</Label>
+          <Input
+            id={`${id}-title`}
+            placeholder="عنوان الهدف"
+            value={goal.title}
+            onChange={(e) => onChange({ ...goal, title: e.target.value })}
+          />
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={onRemove}
-          className="mt-1.5 text-portal-note-text transition-colors hover:text-danger-500"
           aria-label="حذف الهدف"
         >
-          <X className="size-4" />
-        </button>
+          <X data-icon="inline-start" />
+        </Button>
       </div>
 
-      <Input
-        placeholder="وصف (اختياري)"
-        value={goal.description ?? ""}
-        onChange={(e) =>
-          onChange({ ...goal, description: e.target.value || undefined })
-        }
-      />
-
-      <div className="flex items-center gap-2">
-        <select
-          value={goal.status}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`${id}-description`}>وصف الهدف (اختياري)</Label>
+        <Input
+          id={`${id}-description`}
+          placeholder="وصف (اختياري)"
+          value={goal.description ?? ""}
           onChange={(e) =>
-            handleStatusChange(e.target.value as PeriodGoalStatus)
+            onChange({ ...goal, description: e.target.value || undefined })
           }
-          className={cn(selectClass, "w-40")}
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        />
+      </div>
 
-        <div className="flex flex-1 items-center gap-2">
-          <input
-            type="range"
+      <div className="flex flex-wrap items-center gap-3">
+        <Label htmlFor={`${id}-status`}>حالة الهدف</Label>
+        <Select value={goal.status} onValueChange={handleStatusChange}>
+          <SelectTrigger id={`${id}-status`} className="w-40">
+            <SelectValue placeholder="حالة الهدف" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+
+        <div className="flex min-w-48 flex-1 items-center gap-3">
+          <Label htmlFor={`${id}-progress`}>نسبة الإنجاز</Label>
+          <Slider
+            id={`${id}-progress`}
             min={0}
             max={100}
             step={5}
-            value={goal.progress}
-            onChange={(e) => {
-              const progress = Number(e.target.value);
+            value={[goal.progress]}
+            onValueChange={([progress]) => {
               const status: PeriodGoalStatus =
                 progress >= 100
                   ? "done"
@@ -104,15 +124,15 @@ function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
                     : "pending";
               onChange({ ...goal, progress, status });
             }}
-            className="flex-1 accent-secondary-500"
+            aria-label="نسبة إنجاز الهدف"
           />
-          <span className="w-10 text-xs font-medium text-portal-note-text">
+          <span className="w-10 text-xs font-medium text-muted-foreground">
             {goal.progress}%
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 text-xs text-portal-note-text">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span className={cn("size-2 rounded-full", STATUS_DOT[goal.status])} />
         الحالة: {STATUS_OPTIONS.find((o) => o.value === goal.status)?.label}
       </div>
@@ -146,8 +166,8 @@ export function PMGoalEditor({
   };
 
   return (
-    <div className="space-y-3" dir="rtl">
-      <div className="space-y-2">
+    <div className="flex flex-col gap-3" dir="rtl">
+      <div className="flex flex-col gap-2">
         {goals.map((goal, index) => (
           <GoalRowEditor
             key={index}
@@ -161,7 +181,11 @@ export function PMGoalEditor({
       </div>
 
       <div className="flex gap-2">
+        <Label htmlFor="new-goal-title" className="sr-only">
+          عنوان الهدف الجديد
+        </Label>
         <Input
+          id="new-goal-title"
           placeholder="إضافة هدف جديد..."
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
@@ -173,43 +197,53 @@ export function PMGoalEditor({
           }}
           className="flex-1"
         />
-        <ActionButton
+        <Button
+          type="button"
           variant="outline"
-          size="sm"
+          size="icon"
           onClick={addGoal}
           disabled={!newTitle.trim()}
+          aria-label="إضافة هدف"
         >
-          <Plus className="size-4" />
-        </ActionButton>
+          <Plus data-icon="inline-start" />
+        </Button>
       </div>
 
       <div className="flex justify-end">
-        <ActionButton size="sm" onClick={onSave} disabled={isSaving}>
+        <Button size="sm" onClick={onSave} disabled={isSaving}>
           {isSaving ? (
-            <Loader2 className="size-4 animate-spin" />
+            <Loader2 data-icon="inline-start" className="animate-spin" />
           ) : (
-            <Save className="size-4" />
+            <Save data-icon="inline-start" />
           )}
           حفظ الأهداف
-        </ActionButton>
+        </Button>
       </div>
     </div>
   );
 }
 
 /** Read-only goal list (used when not editing). */
-export function GoalList({ goals }: { goals: PeriodGoal[] }) {
+export function GoalList({
+  goals,
+  onEdit,
+  onDelete,
+}: {
+  goals: PeriodGoal[];
+  onEdit?: () => void;
+  onDelete?: (index: number) => void;
+}) {
   if (!goals || goals.length === 0) {
     return (
-      <div className="rounded-xl bg-badge-gray-bg py-3 text-center text-sm text-portal-note-text">
+      <div className="rounded-xl bg-muted py-3 text-center text-sm text-muted-foreground">
         لم يتم تحديد أهداف لهذه الفترة
       </div>
     );
   }
   const completed = goals.filter((g) => g.status === "done").length;
   return (
-    <div className="space-y-1 rounded-xl bg-badge-gray-bg p-3">
-      <div className="mb-2 text-xs text-portal-note-text">
+    <div className="flex flex-col gap-1 rounded-xl bg-muted p-3">
+      <div className="mb-2 text-xs text-muted-foreground">
         {completed}/{goals.length} مكتمل
       </div>
       {goals.map((goal, idx) => (
@@ -225,21 +259,31 @@ export function GoalList({ goals }: { goals: PeriodGoal[] }) {
               className={cn(
                 "text-sm",
                 goal.status === "done"
-                  ? "text-portal-note-text line-through"
-                  : "text-natural-100",
+                  ? "text-muted-foreground line-through"
+                  : "text-foreground",
               )}
             >
               {goal.title}
             </p>
             {goal.description && (
-              <p className="mt-0.5 text-xs text-portal-note-text">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {goal.description}
               </p>
             )}
           </div>
-          {goal.status === "done" && (
-            <Check className="mt-1 size-3.5 text-emerald-500" />
-          )}
+          <div className="flex items-center gap-1">
+            {goal.status === "done" && <Check className="text-primary" />}
+            {onEdit && (
+              <Button type="button" variant="ghost" size="icon" onClick={onEdit} aria-label={`تعديل الهدف ${goal.title}`}>
+                <Pencil />
+              </Button>
+            )}
+            {onDelete && (
+              <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => onDelete(idx)} aria-label={`حذف الهدف ${goal.title}`}>
+                <Trash2 />
+              </Button>
+            )}
+          </div>
         </div>
       ))}
     </div>
