@@ -352,6 +352,7 @@ function getVisibleBusinessSections(mode: ClientDetailMode) {
         "audience",
         "journey",
         "campaign",
+        "performance",
         "visual",
       ];
     default:
@@ -1027,6 +1028,7 @@ export function ClientProfileCard({
   title = "ملف العميل",
   description = "قسمان واضحان لبيانات الشخص المرتبط وبيانات النشاط التجاري.",
   actions,
+  businessOnly = false,
 }: {
   client: ClientDetailEntity;
   profile?: ClientProfile | null;
@@ -1034,6 +1036,7 @@ export function ClientProfileCard({
   title?: string;
   description?: string;
   actions?: ReactNode;
+  businessOnly?: boolean;
 }) {
   const personalFields = buildClientPersonalFields(client, profile, mode);
   const businessSections = buildClientBusinessSections(client, profile, mode);
@@ -1050,7 +1053,29 @@ export function ClientProfileCard({
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Tabs defaultValue="personal" dir="rtl">
+        {businessOnly ? (
+          <Tabs defaultValue={businessSections[0]?.key} dir="rtl">
+            <div className="overflow-x-auto pb-1">
+              <TabsList className="min-w-max">
+                {businessSections.map((section) => (
+                  <TabsTrigger key={section.key} value={section.key}>{section.title}</TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+            {businessSections.map((section) => (
+              <TabsContent key={section.key} value={section.key} className="mt-4">
+                <section className="flex flex-col gap-3" aria-labelledby={`business-${section.key}`}>
+                  <div>
+                    <h3 id={`business-${section.key}`} className="font-semibold">{section.title}</h3>
+                    <p className="text-sm text-muted-foreground">{section.description}</p>
+                  </div>
+                  {section.content}
+                </section>
+              </TabsContent>
+            ))}
+          </Tabs>
+        ) : null}
+        {!businessOnly ? <Tabs defaultValue="personal" dir="rtl">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="personal">بيانات شخصية</TabsTrigger>
             <TabsTrigger value="business">بيانات النشاط</TabsTrigger>
@@ -1086,7 +1111,7 @@ export function ClientProfileCard({
               ))}
             </div>
           </TabsContent>
-        </Tabs>
+        </Tabs> : null}
       </CardContent>
     </Card>
   );

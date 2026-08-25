@@ -26,7 +26,7 @@ import {
   type TaskComment,
   type TaskFile,
 } from "@hassad/shared";
-import { buildDefaultClientStats, ClientContextPanel } from "@/components/client-detail/ClientDetailPattern";
+import { ClientProfileCard } from "@/components/client-detail/ClientDetailPattern";
 import { TaskWorkflowStepper } from "@/components/dashboard/pm/TaskWorkflowStepper";
 import { useMarketingTaskExtraTabs } from "@/components/task-detail/MarketingTaskExtras";
 import {
@@ -712,11 +712,13 @@ export function TaskWorkspaceDetail({
       label: "العميل",
       icon: User,
       content: (
-        <ClientContextPanel
+        <ClientProfileCard
           client={teamView.client}
           profile={teamView.profile}
           mode="internal"
-          stats={buildDefaultClientStats(teamView.client, "internal")}
+          title="بيانات النشاط"
+          description="المعلومات التعريفية والتسويقية المسجلة للعميل."
+          businessOnly
         />
       ),
     });
