@@ -83,6 +83,7 @@ export class CampaignsService {
         budgetTotal,
         clientId: task.project.clientId,
         managedBy: task.assignedTo,
+        createdBy: creatorId,
       },
     });
 
@@ -225,9 +226,7 @@ export class CampaignsService {
         createdBy: userId,
       };
     } else {
-      where.task = {
-        assignedTo: userId,
-      };
+      where.OR = [{ managedBy: userId }, { createdBy: userId }];
     }
 
     const campaigns = await this.prisma.campaign.findMany({

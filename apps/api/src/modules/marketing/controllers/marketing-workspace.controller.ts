@@ -140,4 +140,16 @@ export class MarketingWorkspaceController {
   @Patch("campaigns/:id/optimization")
   @RequirePermissions("marketing.flag_optimization")
   optimization(@CurrentUser("id") userId: string, @Param("id") id: string, @Body("needsOptimization") value: boolean) { return this.workspace.optimization(userId, id, value); }
+
+  @Post("campaigns/:id/duplicate")
+  @RequirePermissions("marketing.create")
+  duplicate(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.duplicateCampaign(userId, id); }
+
+  @Patch("campaigns/:id/archive")
+  @RequirePermissions("marketing.update")
+  archive(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.archiveCampaign(userId, id); }
+
+  @Patch("campaigns/:id/unarchive")
+  @RequirePermissions("marketing.update")
+  unarchive(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.unarchiveCampaign(userId, id); }
 }

@@ -30,6 +30,7 @@ import {
   DollarSign,
   CreditCard,
   Bot,
+  Megaphone,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -309,6 +310,12 @@ export const roleNavSections: NavSection[] = [
         url: "/dashboard/marketing",
         exact: true,
         icon: BarChart3,
+        roles: ["MARKETING"],
+      },
+      {
+        title: "الحملات",
+        url: "/dashboard/marketing/campaigns",
+        icon: Megaphone,
         roles: ["MARKETING"],
       },
     ],

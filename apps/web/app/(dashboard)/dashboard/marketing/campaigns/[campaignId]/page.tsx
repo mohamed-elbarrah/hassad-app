@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 // Design-system
-import { Card } from "@/components/ui/card";
+import { SurfaceCard as Card } from "@/components/design-system/SurfaceCard";
 import { MetricCard } from "@/components/design-system/MetricCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -93,7 +93,7 @@ export default function CampaignDetailPage() {
 
   const resetForm = useCallback(() => {
     if (!campaign) return;
-    const analytics = campaign.analytics ?? {};
+    const analytics = campaign.analytics;
     setForm({
       budgetSpent: Number(campaign.budgetSpent ?? 0),
       revenue: Number(analytics.revenue ?? 0),

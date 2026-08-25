@@ -45,6 +45,7 @@ model User {
   kpiAuditLogs          CampaignKpiAuditLog[]     @relation("KpiAuditChanger")
   campaignStatusChanges CampaignStatusHistory[]   @relation("CampaignStatusChanger")
   managedCampaigns      Campaign[]                @relation("CampaignManager")
+  createdCampaigns      Campaign[]                @relation("CampaignCreator")
   clientHistory         ClientHistoryLog[]
   managedClients        Client[]                  @relation("AccountManager")
   clientProfile         Client?                   @relation("ClientUser")
@@ -919,6 +920,7 @@ model Campaign {
   taskId              String                  @map("task_id")
   projectId           String?                 @map("project_id")
   managedBy           String                  @map("managed_by")
+  createdBy           String?                 @map("created_by")
   name                String
   platform            CampaignPlatform
   status              CampaignStatus          @default(PLANNING)
@@ -938,6 +940,7 @@ model Campaign {
   statusHistory       CampaignStatusHistory[]
   client              Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   manager             User                    @relation("CampaignManager", fields: [managedBy], references: [id])
+  creator             User?                   @relation("CampaignCreator", fields: [createdBy], references: [id])
   period              ProjectPeriod?          @relation(fields: [periodId], references: [id])
   project             Project?                @relation(fields: [projectId], references: [id])
   task                Task                    @relation(fields: [taskId], references: [id], onDelete: Cascade)

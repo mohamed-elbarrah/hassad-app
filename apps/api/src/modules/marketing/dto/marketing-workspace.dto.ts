@@ -1,5 +1,6 @@
-import { IsDateString, IsEnum, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
+import { IsDateString, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
 import { CampaignPlatform, CampaignStatus, MarketingStrategyStatus, TaskPriority, TaskStatus } from "@hassad/shared";
+import { Type } from "class-transformer";
 
 export class MarketingTaskQueryDto {
   @IsOptional() @IsString() search?: string;
@@ -26,8 +27,10 @@ export class MarketingCampaignQueryDto {
   @IsOptional() @IsEnum(CampaignPlatform) platform?: CampaignPlatform;
   @IsOptional() @IsUUID() taskId?: string;
   @IsOptional() @IsUUID() projectId?: string;
-  @IsOptional() @IsInt() @Min(1) page?: number = 1;
-  @IsOptional() @IsInt() @Min(1) @Max(100) limit?: number = 20;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number = 20;
+  @IsOptional() @IsIn(["name", "createdAt", "startDate", "budgetTotal", "budgetSpent"]) sortBy?: "name" | "createdAt" | "startDate" | "budgetTotal" | "budgetSpent";
+  @IsOptional() @IsIn(["asc", "desc"]) sortOrder?: "asc" | "desc";
 }
 
 export class MarketingCampaignKpiDto {

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { CampaignPlatform, CampaignStatus, MarketingStrategyStatus, TaskDepartment, TaskStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { Prisma } from "@prisma/client";
 import { TasksService } from "../../tasks/services/tasks.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
@@ -147,18 +148,30 @@ export class MarketingWorkspaceService {
   async strategyDownload(userId: string, id: string) { await this.ownedStrategy(userId, id); return { url: await this.strategies.getDownloadUrl(id) }; }
 
   async campaignsList(userId: string, query: MarketingCampaignQueryDto) {
-    const where: any = { managedBy: userId, isArchived: false };
+    const where: Prisma.CampaignWhereInput = {
+      isArchived: false,
+      OR: [{ managedBy: userId }, { createdBy: userId }],
+    };
     if (query.status) where.status = query.status; if (query.platform) where.platform = query.platform; if (query.taskId) where.taskId = query.taskId; if (query.projectId) where.projectId = query.projectId;
+    if (query.search?.trim()) { const search = query.search.trim(); where.OR = [{ name: { contains: search, mode: "insensitive" } }, { client: { companyName: { contains: search, mode: "insensitive" } } }]; }
     const page = query.page ?? 1; const limit = query.limit ?? 20;
+    const sortBy = query.sortBy ?? "createdAt";
+    const orderBy: Prisma.CampaignOrderByWithRelationInput = { [sortBy]: query.sortOrder ?? "desc" };
     const [data, total] = await Promise.all([
-      this.prisma.campaign.findMany({ where, include: { client: { select: { id: true, companyName: true } }, task: { select: { id: true, title: true } }, project: { select: { id: true, name: true } }, kpiSnapshots: { orderBy: { recordedAt: "desc" }, take: 1 } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+      this.prisma.campaign.findMany({ where, include: { client: { select: { id: true, companyName: true } }, task: { select: { id: true, title: true } }, project: { select: { id: true, name: true } }, kpiSnapshots: { orderBy: { recordedAt: "desc" }, take: 1 } }, orderBy, skip: (page - 1) * limit, take: limit }),
       this.prisma.campaign.count({ where }),
     ]);
-    return { data, total, page, limit };
+    return { items: data.map(({ kpiSnapshots, ...campaign }) => ({ ...campaign, analytics: kpiSnapshots[0] ?? { impressions: 0, clicks: 0, conversions: 0, revenue: 0, cpc: 0, cpa: 0, ctr: 0, conversionRate: 0, roas: 0 } })), total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   private async ownedCampaign(userId: string, id: string) {
-    const campaign = await this.prisma.campaign.findFirst({ where: { id, managedBy: userId, isArchived: false } });
+    const campaign = await this.prisma.campaign.findFirst({
+      where: {
+        id,
+        isArchived: false,
+        OR: [{ managedBy: userId }, { createdBy: userId }],
+      },
+    });
     if (!campaign) throw new NotFoundException("Marketing campaign not found");
     return campaign;
   }
@@ -170,4 +183,7 @@ export class MarketingWorkspaceService {
   async campaignKpi(userId: string, id: string, dto: any) { await this.ownedCampaign(userId, id); return this.campaigns.createKpiSnapshot(id, dto, userId); }
   async campaignKpis(userId: string, id: string, query: any) { await this.ownedCampaign(userId, id); return this.campaigns.getKpiSnapshots(id, query); }
   async optimization(userId: string, id: string, value: boolean) { await this.ownedCampaign(userId, id); return this.campaigns.flagOptimization(id, value, userId); }
+  async duplicateCampaign(userId: string, id: string) { await this.ownedCampaign(userId, id); return this.campaigns.duplicate(id, userId); }
+  async archiveCampaign(userId: string, id: string) { await this.ownedCampaign(userId, id); return this.campaigns.archive(id, userId); }
+  async unarchiveCampaign(userId: string, id: string) { await this.ownedCampaign(userId, id); return this.campaigns.unarchive(id, userId); }
 }

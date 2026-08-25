@@ -1,6 +1,13 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "../../lib/baseQuery";
-import { Campaign, CreateCampaignInput, UpdateCampaignMetricsInput } from "@hassad/shared";
+import { Campaign, CampaignAnalytics, CampaignPlatform, CreateCampaignInput, UpdateCampaignMetricsInput } from "@hassad/shared";
+
+export interface MarketingCampaign extends Campaign {
+  client?: { id: string; companyName: string | null } | null;
+  analytics: CampaignAnalytics;
+}
+export interface CampaignListResponse { items: MarketingCampaign[]; total: number; page: number; limit: number; totalPages: number; }
+export interface CampaignListQuery { page: number; limit: number; status?: Campaign["status"]; platform?: CampaignPlatform; search?: string; sortBy?: "name" | "createdAt" | "startDate" | "budgetTotal" | "budgetSpent"; sortOrder?: "asc" | "desc"; }
 
 export interface MarketingStrategy {
   id: string;
@@ -22,20 +29,8 @@ export interface MarketingStrategy {
 }
 
 /** Flatten analytics fields from API response into campaign object */
-function flattenCampaignAnalytics(c: any) {
-  const { analytics, ...rest } = c;
-  return {
-    ...rest,
-    impressions: analytics?.impressions ?? 0,
-    clicks: analytics?.clicks ?? 0,
-    conversions: analytics?.conversions ?? 0,
-    revenue: analytics?.revenue ?? 0,
-    roas: analytics?.roas ?? 0,
-    ctr: analytics?.ctr ?? 0,
-    cpc: analytics?.cpc ?? 0,
-    cpa: analytics?.cpa ?? 0,
-    conversionRate: analytics?.conversionRate ?? 0,
-  };
+function flattenCampaignAnalytics(campaign: MarketingCampaign): MarketingCampaign & CampaignAnalytics {
+  return { ...campaign, impressions: campaign.analytics?.impressions ?? 0, clicks: campaign.analytics?.clicks ?? 0, conversions: campaign.analytics?.conversions ?? 0, revenue: campaign.analytics?.revenue ?? 0, roas: campaign.analytics?.roas ?? 0, ctr: campaign.analytics?.ctr ?? 0, cpc: campaign.analytics?.cpc ?? 0, cpa: campaign.analytics?.cpa ?? 0, conversionRate: campaign.analytics?.conversionRate ?? 0 };
 }
 
 export const marketingApi = createApi({
@@ -50,20 +45,16 @@ export const marketingApi = createApi({
       providesTags: (result, error, taskId) => [
         { type: "TaskCampaigns", id: taskId },
       ],
-      transformResponse: (baseQueryReturnValue: any) => {
-        return (baseQueryReturnValue || []).map(flattenCampaignAnalytics);
-      },
+      transformResponse: (baseQueryReturnValue: MarketingCampaign[]) => (baseQueryReturnValue || []).map(flattenCampaignAnalytics),
     }),
-    getCampaign: builder.query<Campaign & { analytics: any }, string>({
-      query: (id) => `campaigns/${id}`,
+    getCampaign: builder.query<MarketingCampaign, string>({
+      query: (id) => `marketing/campaigns/${id}`,
       providesTags: (result, error, id) => [{ type: "Campaign", id }],
-      transformResponse: (baseQueryReturnValue: any) => {
-        const flattened = flattenCampaignAnalytics(baseQueryReturnValue);
-        return {
-          ...flattened,
-          analytics: baseQueryReturnValue.analytics,
-        };
-      },
+      transformResponse: (baseQueryReturnValue: MarketingCampaign) => flattenCampaignAnalytics(baseQueryReturnValue),
+    }),
+    getCampaigns: builder.query<CampaignListResponse, CampaignListQuery>({
+      query: ({ page, limit, status, platform, search, sortBy, sortOrder }) => ({ url: "marketing/campaigns", params: { page, limit, status, platform, search, sortBy, sortOrder } }),
+      providesTags: (result) => ["Campaign", ...(result?.items ?? []).map(({ id }) => ({ type: "Campaign" as const, id }))],
     }),
     getMyCampaignStats: builder.query<
       { activeCampaigns: number; totalBudgetUsed: number; avgRoas: number },
@@ -74,7 +65,7 @@ export const marketingApi = createApi({
     }),
     createCampaign: builder.mutation<Campaign, CreateCampaignInput>({
       query: (body) => ({
-        url: "campaigns",
+        url: "marketing/campaigns",
         method: "POST",
         body,
       }),
@@ -88,7 +79,7 @@ export const marketingApi = createApi({
       { id: string; body: UpdateCampaignMetricsInput }
     >({
       query: ({ id, body }) => ({
-        url: `campaigns/${id}/kpis`,
+        url: `marketing/campaigns/${id}/kpis`,
         method: "POST",
         body,
       }),
@@ -103,7 +94,7 @@ export const marketingApi = createApi({
       { id: string; action: "start" | "pause" | "stop" | "end" }
     >({
       query: ({ id, action }) => ({
-        url: `campaigns/${id}/${action}`,
+        url: `marketing/campaigns/${id}/${action}`,
         method: "POST",
       }),
       invalidatesTags: (result, error, { id }) => [
@@ -117,8 +108,8 @@ export const marketingApi = createApi({
       { id: string; needsOptimization: boolean }
     >({
       query: ({ id, needsOptimization }) => ({
-        url: `campaigns/${id}/flag-optimization`,
-        method: "POST",
+        url: `marketing/campaigns/${id}/optimization`,
+        method: "PATCH",
         body: { needsOptimization },
       }),
       invalidatesTags: (result, error, { id }) => [
@@ -128,7 +119,7 @@ export const marketingApi = createApi({
     }),
     duplicateCampaign: builder.mutation<Campaign, string>({
       query: (id) => ({
-        url: `campaigns/${id}/duplicate`,
+        url: `marketing/campaigns/${id}/duplicate`,
         method: "POST",
       }),
       invalidatesTags: (result, error, id) => [
@@ -139,7 +130,7 @@ export const marketingApi = createApi({
     }),
     archiveCampaign: builder.mutation<Campaign, string>({
       query: (id) => ({
-        url: `campaigns/${id}/archive`,
+        url: `marketing/campaigns/${id}/archive`,
         method: "PATCH",
       }),
       invalidatesTags: (result, error, id) => [
@@ -150,7 +141,7 @@ export const marketingApi = createApi({
     }),
     unarchiveCampaign: builder.mutation<Campaign, string>({
       query: (id) => ({
-        url: `campaigns/${id}/unarchive`,
+        url: `marketing/campaigns/${id}/unarchive`,
         method: "PATCH",
       }),
       invalidatesTags: (result, error, id) => [
@@ -223,6 +214,7 @@ export const marketingApi = createApi({
 export const {
   useGetCampaignsByTaskQuery,
   useGetCampaignQuery,
+  useGetCampaignsQuery,
   useGetMyCampaignStatsQuery,
   useCreateCampaignMutation,
   useUpdateCampaignMetricsMutation,
