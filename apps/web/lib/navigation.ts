@@ -311,12 +311,6 @@ export const roleNavSections: NavSection[] = [
         icon: BarChart3,
         roles: ["MARKETING"],
       },
-      {
-        title: "المهام المسندة",
-        url: "/dashboard/marketing/tasks",
-        icon: ListChecks,
-        roles: ["MARKETING"],
-      },
     ],
   },
   {
