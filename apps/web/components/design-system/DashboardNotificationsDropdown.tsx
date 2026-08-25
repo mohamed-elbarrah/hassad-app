@@ -9,6 +9,7 @@ import {
 } from "@/features/notifications/notificationsApi";
 import { UserRole } from "@hassad/shared";
 import { NotificationDropdown } from "./NotificationDropdown";
+import type { NotificationItem } from "@/features/notifications/notificationsApi";
 
 export function resolveDashboardUrl(
   entityType: string | null | undefined,
@@ -73,17 +74,7 @@ export function DashboardNotificationsDropdown() {
   const [markAsRead] = useMarkAsReadMutation();
   const [markAllAsRead] = useMarkAllAsReadMutation();
 
-  const notifications = (data?.data ?? []) as Array<{
-    id: string;
-    title?: string;
-    body?: string;
-    isRead: boolean;
-    createdAt: string;
-    entityType?: string | null;
-    entityId?: string | null;
-    eventType?: string;
-    metadata?: Record<string, unknown> | null;
-  }>;
+  const notifications = (data?.data ?? []) as NotificationItem[];
   const hasUnread = (data?.unreadCount ?? 0) > 0;
 
   return (

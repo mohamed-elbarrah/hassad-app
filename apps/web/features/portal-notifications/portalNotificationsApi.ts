@@ -1,14 +1,8 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { Notification } from "@hassad/shared";
+import type { Notification, NotificationPage } from "@hassad/shared";
 
-export interface PaginatedNotifications {
-  data: Notification[];
-  total: number;
-  page: number;
-  limit: number;
-  unreadCount: number;
-}
+export type PaginatedNotifications = NotificationPage;
 
 export interface GetNotificationsParams {
   page?: number;
@@ -20,13 +14,7 @@ export interface UnreadCountResult {
   count: number;
 }
 
-export type PortalNotificationItem = Omit<Notification, "createdAt"> & {
-  createdAt: string;
-  eventType: string;
-  entityType?: string | null;
-  entityId?: string | null;
-  metadata?: Record<string, unknown> | null;
-};
+export type PortalNotificationItem = Notification;
 
 export const portalNotificationsApi = createApi({
   reducerPath: "portalNotificationsApi",

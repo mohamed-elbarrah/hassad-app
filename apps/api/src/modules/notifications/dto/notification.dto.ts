@@ -1,5 +1,6 @@
-import { IsArray, IsUUID, IsString, IsOptional, IsBoolean, IsInt, Min, Max } from "class-validator";
+import { IsArray, IsUUID, IsString, IsOptional, IsBoolean, IsInt, IsObject, Min, Max } from "class-validator";
 import { Type } from "class-transformer";
+import { Prisma } from "@prisma/client";
 
 export class NotificationsQueryDto {
   @IsOptional()
@@ -28,11 +29,24 @@ export class MarkReadDto {
 }
 
 export class BroadcastNotificationDto {
+  /** New notifications should use an event code and structured metadata. */
+  @IsOptional()
   @IsString()
-  title: string;
+  eventType?: string;
 
+  @IsOptional()
+  @IsObject()
+  metadata?: Prisma.InputJsonValue;
+
+  @IsOptional()
   @IsString()
-  message: string;
+  /** @deprecated Retained so existing admin clients continue to work. */
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  /** @deprecated Retained so existing admin clients continue to work. */
+  message?: string;
 
   @IsOptional()
   @IsArray()

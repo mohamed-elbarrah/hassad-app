@@ -7,20 +7,11 @@ import { CheckCheck, BellOff, ExternalLink } from "lucide-react";
 import { formatRelativeTime } from "@/lib/format";
 import { notificationPresentation } from "@/lib/i18n";
 import Link from "next/link";
+import type { Notification } from "@hassad/shared";
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
 
-export interface NotificationItemBase {
-  id: string;
-  title?: string;
-  body?: string;
-  isRead: boolean;
-  createdAt: string;
-  entityType?: string | null;
-  entityId?: string | null;
-  eventType?: string;
-  metadata?: Record<string, unknown> | null;
-}
+export type NotificationItemBase = Notification;
 
 export interface NotificationDropdownProps {
   notifications: NotificationItemBase[];
@@ -328,7 +319,7 @@ function NotificationListItem({
             className="text-xs text-right mt-1"
             style={{ color: "var(--color-portal-nav-inactive)", lineHeight: "18px" }}
           >
-            {formatRelativeTime(notification.createdAt)}
+            {formatRelativeTime(String(notification.createdAt))}
           </p>
         </div>
       </div>
@@ -519,7 +510,7 @@ export function NotificationDropdown({
                   color: "var(--color-portal-nav-inactive)",
                 }}
               >
-                {formatRelativeTime(selectedNotification.createdAt)}
+                {formatRelativeTime(String(selectedNotification.createdAt))}
               </p>
             </div>
             <div className="p-5">

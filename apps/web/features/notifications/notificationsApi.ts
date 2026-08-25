@@ -1,16 +1,14 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { Notification, UserRole, TaskDepartment } from "@hassad/shared";
+import type {
+  Notification,
+  NotificationBroadcastInput,
+  NotificationPage,
+} from "@hassad/shared";
 
 // ── Local types ──────────────────────────────────────────────────────────────
 
-export interface PaginatedNotifications {
-  data: NotificationItem[];
-  total: number;
-  page: number;
-  limit: number;
-  unreadCount: number;
-}
+export type PaginatedNotifications = NotificationPage;
 
 export interface GetNotificationsParams {
   page?: number;
@@ -18,12 +16,7 @@ export interface GetNotificationsParams {
   isRead?: boolean;
 }
 
-export interface BroadcastNotificationInput {
-  title: string;
-  message: string;
-  roles?: UserRole[];
-  departments?: TaskDepartment[];
-}
+export type BroadcastNotificationInput = NotificationBroadcastInput;
 
 export interface BroadcastResult {
   sent: number;
@@ -33,14 +26,7 @@ export interface UnreadCountResult {
   count: number;
 }
 
-// Extend shared Notification to ensure string createdAt for API responses
-export type NotificationItem = Omit<Notification, "createdAt"> & {
-  createdAt: string;
-  eventType: string;
-  entityType?: string | null;
-  entityId?: string | null;
-  metadata?: Record<string, unknown> | null;
-};
+export type NotificationItem = Notification;
 
 // ── API slice ─────────────────────────────────────────────────────────────────
 

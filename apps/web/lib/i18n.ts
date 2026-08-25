@@ -12,6 +12,11 @@ import {
   PROPOSAL_STATUS_AR,
   REQUEST_STATUS_AR,
 } from "@hassad/shared";
+import type {
+  NotificationEventCode,
+  NotificationMetadata,
+  NotificationPresentation,
+} from "@hassad/shared";
 import { formatNumber } from "@/lib/format";
 
 // Domain display labels and lookup helpers.
@@ -556,10 +561,7 @@ export function salesWorkflowValidationMessages(
   );
 }
 
-const NOTIFICATION_PRESENTATIONS: Record<
-  string,
-  { title: string; body: string }
-> = {
+const NOTIFICATION_PRESENTATIONS: Record<string, NotificationPresentation> = {
   TASK_ASSIGNED: { title: "تم إسناد مهمة", body: "تم إسناد مهمة جديدة إليك." },
   PROJECT_STATUS_CHANGED: {
     title: "تغيرت حالة مشروع",
@@ -834,9 +836,9 @@ const NOTIFICATION_PRESENTATIONS: Record<
 };
 
 export function notificationPresentation(
-  eventType: string | undefined,
-  metadata?: Record<string, unknown> | null,
-): { title: string; body: string } {
+  eventType: NotificationEventCode | undefined,
+  metadata?: NotificationMetadata | null,
+): NotificationPresentation {
   const presentation = (eventType && NOTIFICATION_PRESENTATIONS[eventType]) ?? {
     title: "إشعار جديد",
     body: "لديك إشعار جديد.",

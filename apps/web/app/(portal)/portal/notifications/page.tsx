@@ -193,7 +193,7 @@ function NotificationRow({
       </button>
       <div className="mt-2 flex items-center justify-between ps-14">
         <p className="text-xs text-muted-foreground">
-          {formatRelativeTime(notification.createdAt)}
+          {formatRelativeTime(String(notification.createdAt))}
         </p>
         {isAction && (
           <Button variant="ghost" size="sm" onClick={onNavigate}>

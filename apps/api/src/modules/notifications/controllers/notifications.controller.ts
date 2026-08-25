@@ -64,6 +64,9 @@ export class NotificationsController {
   @RequirePermissions("notifications.broadcast")
   broadcast(@Body() dto: BroadcastNotificationDto) {
     return this.notificationsService.broadcast({
+      eventType: dto.eventType,
+      metadata: dto.metadata,
+      // Legacy fields remain accepted while existing clients migrate.
       title: dto.title,
       message: dto.message,
       roles: dto.roles,

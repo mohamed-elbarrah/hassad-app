@@ -13,6 +13,7 @@ import {
   KpiSource,
   TaskDepartment,
   MarketingStrategyStatus,
+  NotificationEventType,
 } from "@hassad/shared";
 import {
   CreateCampaignDto,
@@ -112,12 +113,12 @@ export class CampaignsService {
       excludeUserIds: [creatorId],
       entityId: campaign.id,
       entityType: "CAMPAIGN",
-      eventType: "MARKETING_CAMPAIGN_CREATED",
+      eventType: NotificationEventType.MARKETING_CAMPAIGN_CREATED,
     });
 
     this.notifyClientAboutCampaign(
       campaign.id,
-      "MARKETING_CAMPAIGN_CREATED",
+      NotificationEventType.MARKETING_CAMPAIGN_CREATED,
       { campaignName: campaign.name },
     ).catch((error) => {
       this.logger.error(
@@ -397,13 +398,13 @@ export class CampaignsService {
         excludeUserIds: [userId],
         entityId: campaign.id,
         entityType: "CAMPAIGN",
-        eventType: "MARKETING_METRICS_UPDATED",
+        eventType: NotificationEventType.MARKETING_METRICS_UPDATED,
       });
     }
 
     this.notifyClientAboutCampaign(
       campaign.id,
-      "MARKETING_METRICS_UPDATED",
+      NotificationEventType.MARKETING_METRICS_UPDATED,
       { campaignName: campaign.name },
     ).catch((error) => {
       this.logger.error(
@@ -493,13 +494,13 @@ export class CampaignsService {
         excludeUserIds: [userId],
         entityId: campaign.id,
         entityType: "CAMPAIGN",
-        eventType: "MARKETING_CAMPAIGN_STATUS_CHANGED",
+        eventType: NotificationEventType.MARKETING_CAMPAIGN_STATUS_CHANGED,
       });
     }
 
     this.notifyClientAboutCampaign(
       id,
-      "MARKETING_CAMPAIGN_STATUS_CHANGED",
+      NotificationEventType.MARKETING_CAMPAIGN_STATUS_CHANGED,
       { campaignName: campaign.name, status },
     ).catch((error) => {
       this.logger.error(
@@ -541,12 +542,12 @@ export class CampaignsService {
         excludeUserIds: [userId],
         entityId: campaign.id,
         entityType: "CAMPAIGN",
-        eventType: "MARKETING_OPTIMIZATION_REQUIRED",
+        eventType: NotificationEventType.MARKETING_OPTIMIZATION_REQUIRED,
       });
 
       this.notifyClientAboutCampaign(
         id,
-        "MARKETING_OPTIMIZATION_REQUIRED",
+        NotificationEventType.MARKETING_OPTIMIZATION_REQUIRED,
         { campaignName: campaign.name },
       ).catch((error) => {
         this.logger.error(
@@ -703,7 +704,7 @@ export class CampaignsService {
 
   private async notifyClientAboutCampaign(
     campaignId: string,
-    eventType: string,
+    eventType: NotificationEventType,
     metadata: Record<string, string | CampaignStatus>,
   ) {
     const campaign = await this.prisma.campaign.findUnique({

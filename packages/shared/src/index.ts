@@ -44,6 +44,7 @@ import {
   RequestStatus,
   AutomationStatus,
   DurationUnit,
+  NotificationEventType,
 } from "./enums/client";
 
 import {
@@ -419,26 +420,60 @@ export interface TaskNote {
   updatedAt: Date | string;
 }
 
+/** Metadata persisted with a notification event. Values must be JSON-safe. */
+export type NotificationMetadata = Record<string, unknown>;
+
+/** Known event codes plus forward-compatible codes from other portals. */
+export type NotificationEventCode = NotificationEventType | (string & {});
+
 export interface Notification {
   id: string;
   userId: string;
-  eventType: string;
+  eventType: NotificationEventCode;
   isRead: boolean;
+  channel?: string;
+  sentAt?: Date | string | null;
+  readAt?: Date | string | null;
   entityId?: string | null;
   entityType?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: NotificationMetadata | null;
+  /** API compatibility alias; presentation must use eventType and metadata. */
   createdAt: Date | string;
+}
+
+export interface NotificationPage {
+  data: Notification[];
+  total: number;
+  page: number;
+  limit: number;
+  unreadCount: number;
+}
+
+export interface NotificationPresentation {
+  title: string;
+  body: string;
 }
 
 export interface NotificationEventPayload {
   id?: string;
   userId: string;
-  eventType: string;
+  eventType: NotificationEventCode;
   entityId?: string | null;
   entityType?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: NotificationMetadata | null;
   isRead?: boolean;
   createdAt?: Date | string;
+}
+
+export interface NotificationBroadcastInput {
+  eventType?: NotificationEventCode;
+  metadata?: NotificationMetadata;
+  roles?: string[];
+  departments?: string[];
+  /** @deprecated Legacy broadcast content; retained during migration. */
+  title?: string;
+  /** @deprecated Legacy broadcast content; retained during migration. */
+  message?: string;
 }
 
 export interface Invoice {

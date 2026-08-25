@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import type { NotificationEventCode } from "@hassad/shared";
 
 @Injectable()
 export class NotificationsService {
@@ -63,7 +64,7 @@ export class NotificationsService {
   async createNotification(params: {
     entityId: string;
     entityType: string;
-    eventType: string;
+    eventType: NotificationEventCode;
     userId: string;
     /** @deprecated Use eventType and metadata. */
     title?: string;
@@ -71,13 +72,17 @@ export class NotificationsService {
     body?: string;
     metadata?: Prisma.InputJsonValue;
   }) {
+    const eventMetadata = params.metadata ??
+      (params.title || params.body
+        ? { legacyTitle: params.title, legacyBody: params.body }
+        : undefined);
     const notification = await this.prisma.$transaction(async (tx) => {
       const event = await tx.notificationEvent.create({
         data: {
           entityId: params.entityId,
           entityType: this.normalizeEntityType(params.entityType),
           eventType: params.eventType.trim(),
-          metadata: params.metadata ?? undefined,
+          metadata: eventMetadata,
         },
       });
 
@@ -101,7 +106,7 @@ export class NotificationsService {
       entityId: params.entityId,
       entityType: this.normalizeEntityType(params.entityType),
       eventType: params.eventType.trim(),
-      metadata: params.metadata ?? null,
+      metadata: eventMetadata ?? null,
     });
 
     await this.emitUnreadCount(params.userId);
@@ -189,8 +194,12 @@ export class NotificationsService {
   }
 
   async broadcast(params: {
-    title: string;
-    message: string;
+    eventType?: string;
+    metadata?: Prisma.InputJsonValue;
+    /** @deprecated Legacy broadcast content retained for existing clients. */
+    title?: string;
+    /** @deprecated Legacy broadcast content retained for existing clients. */
+    message?: string;
     roles?: string[];
     departments?: string[];
   }) {
@@ -218,14 +227,21 @@ export class NotificationsService {
       return { sent: 0 };
     }
 
+    // Legacy title/message are copied into metadata only when supplied by an
+    // older client. New callers send an event code and structured metadata.
+    const eventMetadata = params.metadata ??
+      (params.title || params.message
+        ? { title: params.title, body: params.message }
+        : undefined);
+
     // Create event + notifications in a single transaction
     const result = await this.prisma.$transaction(async (tx) => {
       const event = await tx.notificationEvent.create({
         data: {
           entityId: "broadcast",
           entityType: "system",
-          eventType: "BROADCAST",
-          metadata: { title: params.title, body: params.message },
+          eventType: params.eventType?.trim() || "BROADCAST",
+          metadata: eventMetadata,
         },
       });
 
@@ -244,7 +260,8 @@ export class NotificationsService {
     const userIds = users.map((user) => user.id);
     this.eventEmitter.emit("notification.broadcast", {
       userIds,
-      metadata: { title: params.title, body: params.message },
+      eventType: params.eventType?.trim() || "BROADCAST",
+      metadata: eventMetadata ?? null,
     });
 
     await Promise.all(
@@ -268,7 +285,7 @@ export class NotificationsService {
     message?: string;
     entityId?: string;
     entityType?: string;
-    eventType?: string;
+    eventType?: NotificationEventCode;
     metadata?: Prisma.InputJsonValue;
   }) {
     const finalUserIds = params.excludeUserIds
@@ -281,6 +298,11 @@ export class NotificationsService {
       return { sent: 0 };
     }
 
+    const eventMetadata = params.metadata ??
+      (params.title || params.message
+        ? { legacyTitle: params.title, legacyBody: params.message }
+        : undefined);
+
     // Create event + notifications in a single transaction
     const result = await this.prisma.$transaction(async (tx) => {
       const event = await tx.notificationEvent.create({
@@ -288,7 +310,7 @@ export class NotificationsService {
           entityId: params.entityId || "system",
           entityType: this.normalizeEntityType(params.entityType || "system"),
           eventType: params.eventType?.trim() || "DIRECT_NOTIFICATION",
-          metadata: params.metadata ?? undefined,
+          metadata: eventMetadata,
         },
       });
 
@@ -317,7 +339,7 @@ export class NotificationsService {
         entityId: params.entityId || "system",
         entityType: this.normalizeEntityType(params.entityType || "system"),
         eventType: params.eventType?.trim() || "DIRECT_NOTIFICATION",
-        metadata: params.metadata ?? null,
+        metadata: eventMetadata ?? null,
       });
 
       const unreadCount = await this.prisma.notification.count({
