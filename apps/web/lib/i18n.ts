@@ -845,8 +845,16 @@ export function notificationPresentation(
     typeof metadata?.title === "string" ? metadata.title : null;
   const broadcastBody =
     typeof metadata?.body === "string" ? metadata.body : null;
+  // Keep older records renderable while new producers persist only event codes
+  // and structured metadata. Legacy title/body values are presentation-only
+  // fallbacks and are never read by the API layer as business logic.
   if (eventType === "BROADCAST" && broadcastTitle && broadcastBody) {
     return { title: broadcastTitle, body: broadcastBody };
+  }
+  const legacyTitle = typeof metadata?.legacyTitle === "string" ? metadata.legacyTitle : null;
+  const legacyBody = typeof metadata?.legacyBody === "string" ? metadata.legacyBody : null;
+  if (legacyTitle && legacyBody) {
+    return { title: legacyTitle, body: legacyBody };
   }
   const ticketNumber =
     typeof metadata?.ticketNumber === "string" ||
@@ -1018,6 +1026,17 @@ export function notificationPresentation(
       ...presentation,
       body: `تم تحديث حالة المشروع «${projectName}» إلى ${status}.`,
     };
+  }
+  const campaignName =
+    typeof metadata?.campaignName === "string" ? metadata.campaignName : null;
+  if (campaignName && eventType?.startsWith("MARKETING_CAMPAIGN")) {
+    return { ...presentation, body: `${presentation.body} «${campaignName}».` };
+  }
+  if (campaignName && eventType === "MARKETING_METRICS_UPDATED") {
+    return { ...presentation, body: `تم تحديث نتائج الحملة «${campaignName}».` };
+  }
+  if (campaignName && eventType === "MARKETING_OPTIMIZATION_REQUIRED") {
+    return { ...presentation, body: `تحتاج الحملة «${campaignName}» إلى التحسين.` };
   }
   return presentation;
 }

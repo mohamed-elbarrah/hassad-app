@@ -22,6 +22,18 @@ import {
   KpiSnapshotQueryDto,
 } from "../dto/campaign.dto";
 
+type CampaignAnalytics = {
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  revenue: number;
+  cpc: number;
+  cpa: number;
+  ctr: number;
+  conversionRate: number;
+  roas: number;
+};
+
 @Injectable()
 export class CampaignsService {
   constructor(
@@ -67,9 +79,10 @@ export class CampaignsService {
     });
 
     if (!approvedStrategy) {
-      throw new BadRequestException(
-        "يجب الموافقة على الدراسة التسويقية أولاً قبل إنشاء الحملات",
-      );
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_NOT_APPROVED",
+        details: {},
+      });
     }
 
     const { taskId, name, platform, startDate, endDate, budgetTotal } = data;
@@ -105,8 +118,7 @@ export class CampaignsService {
     this.notifyClientAboutCampaign(
       campaign.id,
       "MARKETING_CAMPAIGN_CREATED",
-      "تم إطلاق حملة جديدة",
-      `تم إطلاق حملة "${campaign.name}" لمشروعك`,
+      { campaignName: campaign.name },
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about campaign creation: campaignId=${campaign.id}, eventType=MARKETING_CAMPAIGN_CREATED`,
@@ -392,8 +404,7 @@ export class CampaignsService {
     this.notifyClientAboutCampaign(
       campaign.id,
       "MARKETING_METRICS_UPDATED",
-      "تحديث أداء الحملة",
-      `تم تحديث نتائج الحملة "${campaign.name}"`,
+      { campaignName: campaign.name },
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about metrics update: campaignId=${campaign.id}, eventType=MARKETING_METRICS_UPDATED`,
@@ -475,14 +486,6 @@ export class CampaignsService {
       },
     });
 
-    const STATUS_AR: Record<string, string> = {
-      PLANNING: "تخطيط",
-      ACTIVE: "نشطة",
-      PAUSED: "متوقفة",
-      STOPPED: "منتهية",
-      COMPLETED: "مكتملة",
-    };
-
     const pmId = campaign.task?.createdBy;
     if (pmId) {
       await this.notifications.notifyUsers({
@@ -497,8 +500,7 @@ export class CampaignsService {
     this.notifyClientAboutCampaign(
       id,
       "MARKETING_CAMPAIGN_STATUS_CHANGED",
-      "تحديث حالة الحملة",
-      `تم تغيير حالة حملة "${campaign.name}" إلى ${STATUS_AR[status] ?? status}`,
+      { campaignName: campaign.name, status },
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about status change: campaignId=${id}, eventType=MARKETING_CAMPAIGN_STATUS_CHANGED`,
@@ -545,8 +547,7 @@ export class CampaignsService {
       this.notifyClientAboutCampaign(
         id,
         "MARKETING_OPTIMIZATION_REQUIRED",
-        "حملة تحتاج تحسين",
-        `تم وضع علامة "تحتاج تحسين" على الحملة "${campaign.name}"`,
+        { campaignName: campaign.name },
       ).catch((error) => {
         this.logger.error(
           `Failed to notify client about optimization flag: campaignId=${id}, eventType=MARKETING_OPTIMIZATION_REQUIRED`,
@@ -628,7 +629,7 @@ export class CampaignsService {
 
   private async getLatestSnapshots(
     campaignIds: string[],
-  ): Promise<Record<string, any>> {
+  ): Promise<Record<string, CampaignAnalytics>> {
     if (campaignIds.length === 0) return {};
 
     const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
@@ -637,7 +638,7 @@ export class CampaignsService {
       distinct: ["campaignId"],
     });
 
-    const map: Record<string, any> = {};
+    const map: Record<string, CampaignAnalytics> = {};
     for (const s of snapshots) {
       map[s.campaignId] = {
         impressions: s.impressions,
@@ -654,7 +655,7 @@ export class CampaignsService {
     return map;
   }
 
-  private async getLatestAnalytics(campaignId: string): Promise<any> {
+  private async getLatestAnalytics(campaignId: string): Promise<CampaignAnalytics> {
     const snapshots = await this.getLatestSnapshots([campaignId]);
     return snapshots[campaignId] ?? this.emptyAnalytics();
   }
@@ -703,8 +704,7 @@ export class CampaignsService {
   private async notifyClientAboutCampaign(
     campaignId: string,
     eventType: string,
-    title: string,
-    body: string,
+    metadata: Record<string, string | CampaignStatus>,
   ) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
@@ -723,8 +723,7 @@ export class CampaignsService {
       entityType: "campaign",
       eventType,
       userId: clientUser.userId,
-      title,
-      body,
+      metadata,
     });
   }
 }

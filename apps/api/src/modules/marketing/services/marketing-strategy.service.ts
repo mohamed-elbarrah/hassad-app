@@ -43,9 +43,10 @@ export class MarketingStrategyService {
     }
 
     if (task.assignedTo !== userId) {
-      throw new BadRequestException(
-        "يجب أن تكون المسوق المسند إليه المهمة لإنشاء دراسة تسويقية",
-      );
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_OWNER_REQUIRED",
+        details: {},
+      });
     }
 
     // Check if task already has an active (non-rejected) strategy
@@ -63,9 +64,10 @@ export class MarketingStrategyService {
     });
 
     if (existingActive) {
-      throw new BadRequestException(
-        "يوجد دراسة تسويقية نشطة لهذه المهمة بالفعل",
-      );
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_ALREADY_EXISTS",
+        details: {},
+      });
     }
 
     if (!task.project?.clientId) {

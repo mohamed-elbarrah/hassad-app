@@ -9,11 +9,12 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { NotificationsService } from "../services/notifications.service";
-import { BroadcastNotificationDto, MarkReadDto } from "../dto/notification.dto";
+import { BroadcastNotificationDto, MarkReadDto, NotificationsQueryDto } from "../dto/notification.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import type { JwtPayload } from "../../../common/decorators/current-user.decorator";
 
 @Controller("notifications")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -24,8 +25,8 @@ export class NotificationsController {
   @Get("my")
   @RequirePermissions("notifications.read")
   findMine(
-    @CurrentUser() user: any,
-    @Query() filters: { page?: number; limit?: number; isRead?: boolean },
+    @CurrentUser() user: JwtPayload,
+    @Query() filters: NotificationsQueryDto,
   ) {
     return this.notificationsService.findAll(user.id, filters);
   }
@@ -33,28 +34,28 @@ export class NotificationsController {
   /** GET /notifications/my/unread-count */
   @Get("my/unread-count")
   @RequirePermissions("notifications.read")
-  getUnreadCount(@CurrentUser() user: any) {
+  getUnreadCount(@CurrentUser() user: JwtPayload) {
     return this.notificationsService.getUnreadCount(user.id);
   }
 
   /** PATCH /notifications/read-all — mark all as read (MUST be before :id route) */
   @Patch("read-all")
   @RequirePermissions("notifications.update")
-  markAllRead(@CurrentUser() user: any) {
+  markAllRead(@CurrentUser() user: JwtPayload) {
     return this.notificationsService.markAllRead(user.id);
   }
 
   /** POST /notifications/mark-read — mark specific notifications as read by IDs */
   @Post("mark-read")
   @RequirePermissions("notifications.update")
-  markRead(@CurrentUser() user: any, @Body() dto: MarkReadDto) {
+  markRead(@CurrentUser() user: JwtPayload, @Body() dto: MarkReadDto) {
     return this.notificationsService.markRead(user.id, dto.notificationIds);
   }
 
   /** PATCH /notifications/:id/read — mark single notification as read */
   @Patch(":id/read")
   @RequirePermissions("notifications.update")
-  markOneRead(@CurrentUser() user: any, @Param("id") id: string) {
+  markOneRead(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.notificationsService.markOneRead(user.id, id);
   }
 

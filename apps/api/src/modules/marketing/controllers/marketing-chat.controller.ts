@@ -20,6 +20,7 @@ import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { StorageService } from "../../../common/storage/storage.service";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import type { JwtPayload } from "../../../common/decorators/current-user.decorator";
 
 import {
   CreateConversationDto,
@@ -47,7 +48,7 @@ export class MarketingChatController {
   @Get("conversations")
   @RequirePermissions("chat.read")
   findMyConversations(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Query() query: GetConversationsQueryDto,
   ) {
     return this.chatService.findMyConversations(user.id, query);
@@ -55,20 +56,20 @@ export class MarketingChatController {
 
   @Post("conversations")
   @RequirePermissions("chat.create")
-  createConversation(@CurrentUser() user: any, @Body() dto: CreateConversationDto) {
+  createConversation(@CurrentUser() user: JwtPayload, @Body() dto: CreateConversationDto) {
     return this.chatService.createConversation(user.id, dto);
   }
 
   @Get("conversations/:id")
   @RequirePermissions("chat.read")
-  findConversation(@CurrentUser() user: any, @Param("id") id: string) {
+  findConversation(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.chatService.findConversation(id, user.id);
   }
 
   @Get("conversations/direct/:userId")
   @RequirePermissions("chat.read")
   async getDirectConversation(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
   ) {
     const conversation = await this.directConversationService.getOrCreate(
@@ -76,7 +77,7 @@ export class MarketingChatController {
       otherUserId,
     );
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw new NotFoundException({ code: "DIRECT_CONVERSATION_CREATE_FAILED", details: {} });
     }
     return conversation;
   }
@@ -84,7 +85,7 @@ export class MarketingChatController {
   @Post("conversations/:id/messages")
   @RequirePermissions("chat.message")
   createMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") conversationId: string,
     @Body() dto: CreateMessageDto,
   ) {
@@ -97,7 +98,7 @@ export class MarketingChatController {
   @Post("conversations/direct/:userId/messages")
   @RequirePermissions("chat.message")
   createDirectMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
     @Body() dto: CreateMessageDto,
   ) {
@@ -108,7 +109,7 @@ export class MarketingChatController {
   @RequirePermissions("chat.message")
   @UseInterceptors(FilesInterceptor("files", 10))
   async createMessageWithFiles(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") conversationId: string,
     @Body() dto: CreateMessageDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -152,7 +153,7 @@ export class MarketingChatController {
   @RequirePermissions("chat.message")
   @UseInterceptors(FilesInterceptor("files", 10))
   async createDirectMessageWithFiles(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
     @Body() dto: CreateMessageDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -163,7 +164,7 @@ export class MarketingChatController {
     );
 
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw new NotFoundException({ code: "DIRECT_CONVERSATION_CREATE_FAILED", details: {} });
     }
 
     const attachments =
@@ -204,7 +205,7 @@ export class MarketingChatController {
   @Get("conversations/:id/messages")
   @RequirePermissions("chat.read")
   getMessages(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
     @Query() query: GetMessagesQueryDto,
   ) {
@@ -214,7 +215,7 @@ export class MarketingChatController {
   @Patch("conversations/:conversationId/messages/:messageId")
   @RequirePermissions("chat.message")
   updateMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("conversationId") conversationId: string,
     @Param("messageId") messageId: string,
     @Body() dto: UpdateMessageDto,
@@ -225,7 +226,7 @@ export class MarketingChatController {
   @Delete("conversations/:conversationId/messages/:messageId")
   @RequirePermissions("chat.message")
   deleteMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("conversationId") conversationId: string,
     @Param("messageId") messageId: string,
   ) {

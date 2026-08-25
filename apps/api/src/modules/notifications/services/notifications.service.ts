@@ -115,10 +115,9 @@ export class NotificationsService {
   ) {
     const page = Math.max(1, Number(filters.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(filters.limit) || 20));
-    const where: any = { userId };
+    const where: Prisma.NotificationWhereInput = { userId };
     if (filters.isRead !== undefined) {
-      where.isRead =
-        filters.isRead === true || (filters.isRead as any) === "true";
+      where.isRead = filters.isRead;
     }
 
     const [data, total, unreadCount] = await Promise.all([

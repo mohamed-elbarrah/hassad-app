@@ -5,7 +5,7 @@ import type { Notification, UserRole, TaskDepartment } from "@hassad/shared";
 // ── Local types ──────────────────────────────────────────────────────────────
 
 export interface PaginatedNotifications {
-  data: Notification[];
+  data: NotificationItem[];
   total: number;
   page: number;
   limit: number;
