@@ -17,15 +17,53 @@ import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
-import { BUSINESS_TYPE_AR, CLIENT_STATUS_AR, ClientKind, ClientStatus } from "@hassad/shared";
+import {
+  BUSINESS_TYPE_AR,
+  CLIENT_STATUS_AR,
+  ClientKind,
+  ClientStatus,
+} from "@hassad/shared";
 import type { Client } from "@hassad/shared";
 
 import { CreateClientDialog } from "./create-client-dialog";
@@ -53,7 +91,7 @@ function statusVariant(status: ClientStatus) {
 
 function ClientsPageLoading() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
@@ -156,10 +194,19 @@ export default function ClientsPage() {
 
   const metrics = useMemo(() => {
     const total = clients.length;
-    const active = clients.filter((client) => client.status === ClientStatus.ACTIVE).length;
-    const leads = clients.filter((client) => client.kind === ClientKind.LEAD).length;
-    const linkedUsers = clients.filter((client) => Boolean(client.userId)).length;
-    const totalRevenue = clients.reduce((sum, client) => sum + (client.totalPaid || 0), 0);
+    const active = clients.filter(
+      (client) => client.status === ClientStatus.ACTIVE,
+    ).length;
+    const leads = clients.filter(
+      (client) => client.kind === ClientKind.LEAD,
+    ).length;
+    const linkedUsers = clients.filter((client) =>
+      Boolean(client.userId),
+    ).length;
+    const totalRevenue = clients.reduce(
+      (sum, client) => sum + (client.totalPaid || 0),
+      0,
+    );
 
     return { total, active, leads, linkedUsers, totalRevenue };
   }, [clients]);
@@ -170,7 +217,7 @@ export default function ClientsPage() {
 
   if (isError) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -194,7 +241,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -270,9 +317,15 @@ export default function ClientsPage() {
           <Card key={item.label}>
             <CardContent className="flex items-start justify-between gap-4 p-6">
               <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground">{item.label}</span>
-                <span className="text-2xl font-semibold tracking-tight">{item.value}</span>
-                <span className="text-sm text-muted-foreground">{item.hint}</span>
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+                <span className="text-2xl font-semibold tracking-tight">
+                  {item.value}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {item.hint}
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <item.icon />
@@ -300,17 +353,24 @@ export default function ClientsPage() {
                 className="pr-10"
               />
             </div>
-            <Select value={status} onValueChange={(value) => setStatus(value as "ALL" | ClientStatus)}>
+            <Select
+              value={status}
+              onValueChange={(value) =>
+                setStatus(value as "ALL" | ClientStatus)
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="كل الحالات" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">كل الحالات</SelectItem>
-                {(Object.values(ClientStatus) as ClientStatus[]).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {CLIENT_STATUS_AR[value]}
-                  </SelectItem>
-                ))}
+                {(Object.values(ClientStatus) as ClientStatus[]).map(
+                  (value) => (
+                    <SelectItem key={value} value={value}>
+                      {CLIENT_STATUS_AR[value]}
+                    </SelectItem>
+                  ),
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -361,7 +421,9 @@ export default function ClientsPage() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="size-9">
-                            <AvatarFallback>{getInitials(client.companyName)}</AvatarFallback>
+                            <AvatarFallback>
+                              {getInitials(client.companyName)}
+                            </AvatarFallback>
                           </Avatar>
                           <div className="flex min-w-0 flex-col gap-1">
                             <Link
@@ -376,13 +438,17 @@ export default function ClientsPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{BUSINESS_TYPE_AR[client.businessType]}</TableCell>
+                      <TableCell>
+                        {BUSINESS_TYPE_AR[client.businessType]}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(client.status)}>
                           {CLIENT_STATUS_AR[client.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell>{client.manager?.name || "غير محدد"}</TableCell>
+                      <TableCell>
+                        {client.manager?.name || "غير محدد"}
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
                           <span>{formatNumber(client.totalProjects || 0)}</span>
@@ -391,7 +457,9 @@ export default function ClientsPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>{formatCurrency(client.totalPaid || 0)}</TableCell>
+                      <TableCell>
+                        {formatCurrency(client.totalPaid || 0)}
+                      </TableCell>
                       <TableCell>
                         {client.user ? (
                           <div className="flex flex-col gap-1">
@@ -401,7 +469,9 @@ export default function ClientsPage() {
                             </span>
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">غير مرتبط</span>
+                          <span className="text-sm text-muted-foreground">
+                            غير مرتبط
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-left">

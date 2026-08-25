@@ -15,14 +15,52 @@ import { useGetAdminTasksQuery } from "@/features/admin/adminTasksApi";
 import type { AdminTaskItem } from "@/features/admin/adminTasksApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TASK_PRIORITY_AR, TASK_STATUS_AR, TaskPriority, TaskStatus } from "@hassad/shared";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  TASK_PRIORITY_AR,
+  TASK_STATUS_AR,
+  TaskPriority,
+  TaskStatus,
+} from "@hassad/shared";
 import { formatDateTime, formatNumber } from "@/lib/format";
 
 function statusVariant(status: string) {
@@ -49,7 +87,7 @@ function priorityVariant(priority: string) {
 
 function LoadingState() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
@@ -127,9 +165,10 @@ export default function TasksPage() {
   const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
   const [overdueOnly, setOverdueOnly] = useState(false);
 
-  const { data, isLoading, isError, isFetching, refetch } = useGetAdminTasksQuery({
-    limit: 100,
-  });
+  const { data, isLoading, isError, isFetching, refetch } =
+    useGetAdminTasksQuery({
+      limit: 100,
+    });
 
   const tasks = data?.items ?? [];
 
@@ -137,15 +176,26 @@ export default function TasksPage() {
     const query = search.trim().toLowerCase();
     return tasks.filter((task) => {
       const matchesStatus = status === "ALL" ? true : task.status === status;
-      const matchesPriority = priority === "ALL" ? true : task.priority === priority;
+      const matchesPriority =
+        priority === "ALL" ? true : task.priority === priority;
       const matchesOverdue = overdueOnly ? task.isOverdue : true;
       const matchesSearch = !query
         ? true
-        : [task.title, task.projectName, task.assigneeName, task.department, task.status, task.priority, task.id]
+        : [
+            task.title,
+            task.projectName,
+            task.assigneeName,
+            task.department,
+            task.status,
+            task.priority,
+            task.id,
+          ]
             .filter(Boolean)
             .some((value) => String(value).toLowerCase().includes(query));
 
-      return matchesStatus && matchesPriority && matchesOverdue && matchesSearch;
+      return (
+        matchesStatus && matchesPriority && matchesOverdue && matchesSearch
+      );
     });
   }, [tasks, search, status, priority, overdueOnly]);
 
@@ -153,8 +203,10 @@ export default function TasksPage() {
     () => ({
       total: tasks.length,
       overdue: tasks.filter((task) => task.isOverdue).length,
-      inProgress: tasks.filter((task) => task.status === TaskStatus.IN_PROGRESS).length,
-      inReview: tasks.filter((task) => task.status === TaskStatus.IN_REVIEW).length,
+      inProgress: tasks.filter((task) => task.status === TaskStatus.IN_PROGRESS)
+        .length,
+      inReview: tasks.filter((task) => task.status === TaskStatus.IN_REVIEW)
+        .length,
       done: tasks.filter((task) => task.status === TaskStatus.DONE).length,
     }),
     [tasks],
@@ -164,7 +216,7 @@ export default function TasksPage() {
 
   if (isError) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -188,7 +240,7 @@ export default function TasksPage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -230,17 +282,43 @@ export default function TasksPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "إجمالي المهام", value: formatNumber(metrics.total), hint: "كل المهام", icon: SquareCheckBig },
-          { label: "المتأخرة", value: formatNumber(metrics.overdue), hint: "تحتاج تدخل", icon: CircleAlert },
-          { label: "قيد التنفيذ", value: formatNumber(metrics.inProgress), hint: "عمل جاري", icon: Clock3 },
-          { label: "منجزة", value: formatNumber(metrics.done), hint: "مهام مكتملة", icon: TimerReset },
+          {
+            label: "إجمالي المهام",
+            value: formatNumber(metrics.total),
+            hint: "كل المهام",
+            icon: SquareCheckBig,
+          },
+          {
+            label: "المتأخرة",
+            value: formatNumber(metrics.overdue),
+            hint: "تحتاج تدخل",
+            icon: CircleAlert,
+          },
+          {
+            label: "قيد التنفيذ",
+            value: formatNumber(metrics.inProgress),
+            hint: "عمل جاري",
+            icon: Clock3,
+          },
+          {
+            label: "منجزة",
+            value: formatNumber(metrics.done),
+            hint: "مهام مكتملة",
+            icon: TimerReset,
+          },
         ].map((item) => (
           <Card key={item.label}>
             <CardContent className="flex items-start justify-between gap-4 p-6">
               <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground">{item.label}</span>
-                <span className="text-2xl font-semibold tracking-tight">{item.value}</span>
-                <span className="text-sm text-muted-foreground">{item.hint}</span>
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+                <span className="text-2xl font-semibold tracking-tight">
+                  {item.value}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {item.hint}
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <item.icon />
@@ -266,7 +344,10 @@ export default function TasksPage() {
                 className="pr-10"
               />
             </div>
-            <Select value={status} onValueChange={(v) => setStatus(v as "ALL" | TaskStatus)}>
+            <Select
+              value={status}
+              onValueChange={(v) => setStatus(v as "ALL" | TaskStatus)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="كل الحالات" />
               </SelectTrigger>
@@ -279,17 +360,22 @@ export default function TasksPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={priority} onValueChange={(v) => setPriority(v as "ALL" | TaskPriority)}>
+            <Select
+              value={priority}
+              onValueChange={(v) => setPriority(v as "ALL" | TaskPriority)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="كل الأولويات" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">كل الأولويات</SelectItem>
-                {(Object.values(TaskPriority) as TaskPriority[]).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {TASK_PRIORITY_AR[value]}
-                  </SelectItem>
-                ))}
+                {(Object.values(TaskPriority) as TaskPriority[]).map(
+                  (value) => (
+                    <SelectItem key={value} value={value}>
+                      {TASK_PRIORITY_AR[value]}
+                    </SelectItem>
+                  ),
+                )}
               </SelectContent>
             </Select>
             <Button
@@ -318,7 +404,10 @@ export default function TasksPage() {
               <TableBody>
                 {filteredTasks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={8}
+                      className="text-center text-muted-foreground"
+                    >
                       لا توجد نتائج
                     </TableCell>
                   </TableRow>
@@ -332,22 +421,28 @@ export default function TasksPage() {
                         >
                           {task.title}
                         </Link>
-                        <div className="text-xs text-muted-foreground">{task.id}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {task.id}
+                        </div>
                       </TableCell>
                       <TableCell>{task.projectName}</TableCell>
                       <TableCell>{task.assigneeName}</TableCell>
                       <TableCell>{task.department || "—"}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(task.status)}>
-                          {TASK_STATUS_AR[task.status as TaskStatus] || task.status}
+                          {TASK_STATUS_AR[task.status as TaskStatus] ||
+                            task.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={priorityVariant(task.priority)}>
-                          {TASK_PRIORITY_AR[task.priority as TaskPriority] || task.priority}
+                          {TASK_PRIORITY_AR[task.priority as TaskPriority] ||
+                            task.priority}
                         </Badge>
                       </TableCell>
-                      <TableCell>{task.dueDate ? formatDateTime(task.dueDate) : "—"}</TableCell>
+                      <TableCell>
+                        {task.dueDate ? formatDateTime(task.dueDate) : "—"}
+                      </TableCell>
                       <TableCell className="text-left">
                         <Button variant="ghost" size="sm" asChild>
                           <Link href={`/dashboard/admin/tasks/${task.id}`}>

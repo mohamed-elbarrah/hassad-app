@@ -2,7 +2,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, AlertTriangle, RefreshCw, Search, ShieldAlert } from "lucide-react";
+import {
+  ArrowUpRight,
+  AlertTriangle,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+} from "lucide-react";
 import {
   useGetAdminDisputesQuery,
   useGetAdminDisputeStatsQuery,
@@ -10,7 +16,13 @@ import {
 import type { AdminDisputeItem } from "@/features/admin/adminDisputesApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -28,7 +40,13 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -63,7 +81,7 @@ function statusVariant(status: string) {
 
 function LoadingState() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
@@ -142,12 +160,13 @@ export default function DisputesPage() {
   const [priority, setPriority] = useState<"ALL" | DisputePriority>("ALL");
 
   const { data: stats } = useGetAdminDisputeStatsQuery();
-  const { data, isLoading, isError, isFetching, refetch } = useGetAdminDisputesQuery({
-    limit: 100,
-    status: status === "ALL" ? undefined : status,
-    category: category === "ALL" ? undefined : category,
-    priority: priority === "ALL" ? undefined : priority,
-  });
+  const { data, isLoading, isError, isFetching, refetch } =
+    useGetAdminDisputesQuery({
+      limit: 100,
+      status: status === "ALL" ? undefined : status,
+      category: category === "ALL" ? undefined : category,
+      priority: priority === "ALL" ? undefined : priority,
+    });
 
   const disputes = data?.data ?? [];
 
@@ -155,7 +174,12 @@ export default function DisputesPage() {
     const query = search.trim().toLowerCase();
     if (!query) return disputes;
     return disputes.filter((dispute) =>
-      [dispute.title, dispute.project.name, dispute.client.companyName, dispute.ticketNumber]
+      [
+        dispute.title,
+        dispute.project.name,
+        dispute.client.companyName,
+        dispute.ticketNumber,
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query)),
     );
@@ -166,13 +190,19 @@ export default function DisputesPage() {
       total: filteredDisputes.length,
       pendingApproval:
         stats?.pendingApproval ??
-        filteredDisputes.filter((item) => item.status === DisputeStatus.PENDING_APPROVAL).length,
+        filteredDisputes.filter(
+          (item) => item.status === DisputeStatus.PENDING_APPROVAL,
+        ).length,
       escalated:
         stats?.escalated ??
-        filteredDisputes.filter((item) => item.status === DisputeStatus.ESCALATED).length,
+        filteredDisputes.filter(
+          (item) => item.status === DisputeStatus.ESCALATED,
+        ).length,
       resolved:
         stats?.resolved ??
-        filteredDisputes.filter((item) => item.status === DisputeStatus.RESOLVED).length,
+        filteredDisputes.filter(
+          (item) => item.status === DisputeStatus.RESOLVED,
+        ).length,
       open:
         stats?.active ??
         filteredDisputes.filter(
@@ -189,7 +219,7 @@ export default function DisputesPage() {
 
   if (isError) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -213,7 +243,7 @@ export default function DisputesPage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -281,9 +311,15 @@ export default function DisputesPage() {
           <Card key={item.label}>
             <CardContent className="flex items-start justify-between gap-4 p-6">
               <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground">{item.label}</span>
-                <span className="text-2xl font-semibold tracking-tight">{item.value}</span>
-                <span className="text-sm text-muted-foreground">{item.hint}</span>
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+                <span className="text-2xl font-semibold tracking-tight">
+                  {item.value}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {item.hint}
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <item.icon />
@@ -309,43 +345,58 @@ export default function DisputesPage() {
                 className="pr-10"
               />
             </div>
-            <Select value={status} onValueChange={(v) => setStatus(v as "ALL" | DisputeStatus)}>
+            <Select
+              value={status}
+              onValueChange={(v) => setStatus(v as "ALL" | DisputeStatus)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="كل الحالات" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">كل الحالات</SelectItem>
-                {(Object.values(DisputeStatus) as DisputeStatus[]).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {DISPUTE_STATUS_AR[value]}
-                  </SelectItem>
-                ))}
+                {(Object.values(DisputeStatus) as DisputeStatus[]).map(
+                  (value) => (
+                    <SelectItem key={value} value={value}>
+                      {DISPUTE_STATUS_AR[value]}
+                    </SelectItem>
+                  ),
+                )}
               </SelectContent>
             </Select>
-            <Select value={category} onValueChange={(v) => setCategory(v as "ALL" | DisputeCategory)}>
+            <Select
+              value={category}
+              onValueChange={(v) => setCategory(v as "ALL" | DisputeCategory)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="كل التصنيفات" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">كل التصنيفات</SelectItem>
-                {(Object.values(DisputeCategory) as DisputeCategory[]).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {DISPUTE_CATEGORY_AR[value]}
-                  </SelectItem>
-                ))}
+                {(Object.values(DisputeCategory) as DisputeCategory[]).map(
+                  (value) => (
+                    <SelectItem key={value} value={value}>
+                      {DISPUTE_CATEGORY_AR[value]}
+                    </SelectItem>
+                  ),
+                )}
               </SelectContent>
             </Select>
-            <Select value={priority} onValueChange={(v) => setPriority(v as "ALL" | DisputePriority)}>
+            <Select
+              value={priority}
+              onValueChange={(v) => setPriority(v as "ALL" | DisputePriority)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="كل الأولويات" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">كل الأولويات</SelectItem>
-                {(Object.values(DisputePriority) as DisputePriority[]).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {DISPUTE_PRIORITY_AR[value]}
-                  </SelectItem>
-                ))}
+                {(Object.values(DisputePriority) as DisputePriority[]).map(
+                  (value) => (
+                    <SelectItem key={value} value={value}>
+                      {DISPUTE_PRIORITY_AR[value]}
+                    </SelectItem>
+                  ),
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -367,7 +418,10 @@ export default function DisputesPage() {
               <TableBody>
                 {filteredDisputes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={8}
+                      className="text-center text-muted-foreground"
+                    >
                       لا توجد نتائج
                     </TableCell>
                   </TableRow>
@@ -381,25 +435,36 @@ export default function DisputesPage() {
                         >
                           {dispute.title}
                         </Link>
-                        <div className="text-xs text-muted-foreground">#{dispute.ticketNumber}</div>
+                        <div className="text-xs text-muted-foreground">
+                          #{dispute.ticketNumber}
+                        </div>
                       </TableCell>
                       <TableCell>{dispute.project.name}</TableCell>
                       <TableCell>{dispute.client.companyName}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(dispute.status)}>
-                          {DISPUTE_STATUS_AR[dispute.status as DisputeStatus] || dispute.status}
+                          {DISPUTE_STATUS_AR[dispute.status as DisputeStatus] ||
+                            dispute.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {DISPUTE_CATEGORY_AR[dispute.category as DisputeCategory] || dispute.category}
+                        {DISPUTE_CATEGORY_AR[
+                          dispute.category as DisputeCategory
+                        ] || dispute.category}
                       </TableCell>
                       <TableCell>
-                        {DISPUTE_PRIORITY_AR[dispute.priority as DisputePriority] || dispute.priority}
+                        {DISPUTE_PRIORITY_AR[
+                          dispute.priority as DisputePriority
+                        ] || dispute.priority}
                       </TableCell>
-                      <TableCell>{formatNumber(dispute._count.messages)}</TableCell>
+                      <TableCell>
+                        {formatNumber(dispute._count.messages)}
+                      </TableCell>
                       <TableCell className="text-left">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/admin/disputes/${dispute.id}`}>
+                          <Link
+                            href={`/dashboard/admin/disputes/${dispute.id}`}
+                          >
                             <ArrowUpRight />
                             فتح
                           </Link>

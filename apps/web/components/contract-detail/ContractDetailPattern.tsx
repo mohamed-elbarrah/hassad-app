@@ -184,7 +184,7 @@ function getProposalTitle(proposal: unknown) {
 
 export function ContractDetailLoading() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <Card>
         <CardContent className="flex gap-4 p-6">
           <Skeleton className="size-20 rounded-lg" />
@@ -223,7 +223,7 @@ export function ContractDetailView({
   const isClientAudience = audience === "client";
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <PageHeader
         title={contract.title}
         description={contract.client?.companyName || "—"}
@@ -347,274 +347,284 @@ export function ContractDetailView({
       ) : null}
 
       {!isClientAudience ? (
-      <Card>
-        {!isClientAudience ? (
-          <CardHeader className="gap-2">
-            <CardTitle>تفاصيل العقد</CardTitle>
-            <CardDescription>
-              تنقل سريع داخل بطاقة واحدة بين الفواتير والملف والسجل المالي
-              والحالة.
-            </CardDescription>
-          </CardHeader>
-        ) : null}
-        <CardContent className={isClientAudience ? "p-4 sm:p-6" : undefined}>
-          <Tabs defaultValue="billing" className="flex flex-col gap-4">
-            <TabsList className="h-auto w-full flex-wrap justify-start">
-              <TabsTrigger value="billing">الفوترة والدفع</TabsTrigger>
-              <TabsTrigger value="payment-plan">خطة الدفع</TabsTrigger>
-              <TabsTrigger value="invoices">الفواتير</TabsTrigger>
+        <Card>
+          {!isClientAudience ? (
+            <CardHeader className="gap-2">
+              <CardTitle>تفاصيل العقد</CardTitle>
+              <CardDescription>
+                تنقل سريع داخل بطاقة واحدة بين الفواتير والملف والسجل المالي
+                والحالة.
+              </CardDescription>
+            </CardHeader>
+          ) : null}
+          <CardContent className={isClientAudience ? "p-4 sm:p-6" : undefined}>
+            <Tabs defaultValue="billing" className="flex flex-col gap-4">
+              <TabsList className="h-auto w-full flex-wrap justify-start">
+                <TabsTrigger value="billing">الفوترة والدفع</TabsTrigger>
+                <TabsTrigger value="payment-plan">خطة الدفع</TabsTrigger>
+                <TabsTrigger value="invoices">الفواتير</TabsTrigger>
+                {!isClientAudience ? (
+                  <TabsTrigger value="history">سجل الحالة</TabsTrigger>
+                ) : null}
+                {!isClientAudience ? (
+                  <TabsTrigger value="versions">الإصدارات</TabsTrigger>
+                ) : null}
+                <TabsTrigger value="document">الملف</TabsTrigger>
+                {responseArea ? (
+                  <TabsTrigger value="action">
+                    {isClientAudience ? "الإجراء" : "إجراء العميل"}
+                  </TabsTrigger>
+                ) : null}
+              </TabsList>
+
+              <TabsContent value="billing" className="mt-0">
+                {billingArea || (
+                  <EmptyPanel
+                    title="لا توجد بيانات فوترة إضافية"
+                    description="سيظهر هنا ملخص الفوترة والدفع عندما يكون متاحًا لهذا الدور."
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="payment-plan" className="mt-0">
+                {(contract.paymentPlans ?? []).length === 0 ? (
+                  <EmptyPanel
+                    title="لا توجد خطة دفع"
+                    description="لم يتم تعريف دفعات أو مراحل تحصيل لهذا العقد."
+                  />
+                ) : (
+                  <div className="overflow-x-auto rounded-lg border">
+                    <Table className="min-w-[42rem]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>الدفعة</TableHead>
+                          <TableHead>المحفز</TableHead>
+                          <TableHead>القيمة</TableHead>
+                          <TableHead>الاستحقاق</TableHead>
+                          <TableHead>الحالة</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(contract.paymentPlans ?? []).map((plan) => (
+                          <TableRow key={plan.id}>
+                            <TableCell className="font-medium">
+                              {plan.label}
+                            </TableCell>
+                            <TableCell>
+                              {paymentPlanTriggerLabel(plan.triggerType)}
+                            </TableCell>
+                            <TableCell>
+                              {formatCurrency(plan.amountValue)}
+                            </TableCell>
+                            <TableCell>
+                              {plan.dueOffsetDays != null
+                                ? `${formatNumber(plan.dueOffsetDays)} يوم`
+                                : "عند الحدث"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  plan.isActive ? "secondary" : "outline"
+                                }
+                              >
+                                {plan.isActive ? "نشطة" : "متوقفة"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="invoices" className="mt-0">
+                {invoices.length === 0 ? (
+                  <EmptyPanel
+                    title="لا توجد فواتير مرتبطة"
+                    description="ستظهر هنا الفواتير عند إنشائها لهذا العقد."
+                  />
+                ) : (
+                  <div className="overflow-hidden rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>الفاتورة</TableHead>
+                          <TableHead>القيمة</TableHead>
+                          <TableHead>الحالة</TableHead>
+                          <TableHead>الاستحقاق</TableHead>
+                          <TableHead>المدفوع</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invoices.map((invoice) => (
+                          <TableRow key={invoice.id}>
+                            <TableCell>{invoice.invoiceNumber}</TableCell>
+                            <TableCell>
+                              {formatCurrency(invoice.amount)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  invoice.status === "PAID"
+                                    ? "secondary"
+                                    : invoice.status === "CANCELLED"
+                                      ? "destructive"
+                                      : "outline"
+                                }
+                              >
+                                {invoiceStatusLabel(invoice.status)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {formatPortalDate(invoice.dueDate) || "—"}
+                            </TableCell>
+                            <TableCell>
+                              {formatPortalDate(invoice.paidAt) || "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
+
               {!isClientAudience ? (
-                <TabsTrigger value="history">سجل الحالة</TabsTrigger>
+                <TabsContent value="history" className="mt-0">
+                  {statusHistory.length === 0 ? (
+                    <EmptyPanel
+                      title="لا يوجد سجل حالة"
+                      description="سجل انتقالات حالة العقد سيظهر هنا."
+                    />
+                  ) : (
+                    <div className="overflow-hidden rounded-lg border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>من</TableHead>
+                            <TableHead>إلى</TableHead>
+                            <TableHead>بواسطة</TableHead>
+                            <TableHead>التاريخ</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {statusHistory.map((entry) => (
+                            <TableRow key={entry.id}>
+                              <TableCell>
+                                {contractStatusLabel(entry.fromStatus)}
+                              </TableCell>
+                              <TableCell>
+                                {contractStatusLabel(entry.toStatus)}
+                              </TableCell>
+                              <TableCell>
+                                {entry.changer?.name || "—"}
+                              </TableCell>
+                              <TableCell>
+                                {formatDateTime(entry.changedAt)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </TabsContent>
               ) : null}
+
               {!isClientAudience ? (
-                <TabsTrigger value="versions">الإصدارات</TabsTrigger>
+                <TabsContent value="versions" className="mt-0">
+                  {versions.length === 0 ? (
+                    <EmptyPanel
+                      title="لا توجد إصدارات محفوظة"
+                      description="سيظهر هنا أرشيف الإصدارات عند وجود أكثر من نسخة للعقد."
+                    />
+                  ) : (
+                    <div className="overflow-hidden rounded-lg border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>الإصدار</TableHead>
+                            <TableHead>الملف</TableHead>
+                            <TableHead>التاريخ</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {versions.map((version) => (
+                            <TableRow key={version.id}>
+                              <TableCell>
+                                {formatNumber(version.versionNumber)}
+                              </TableCell>
+                              <TableCell>
+                                {version.filePath ? (
+                                  <Button asChild variant="ghost" size="sm">
+                                    <a
+                                      href={buildPortalFileUrl(
+                                        version.filePath,
+                                      )}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <Download data-icon="inline-start" />
+                                      فتح الملف
+                                    </a>
+                                  </Button>
+                                ) : (
+                                  "—"
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {formatDateTime(version.createdAt)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </TabsContent>
               ) : null}
-              <TabsTrigger value="document">الملف</TabsTrigger>
+
+              <TabsContent value="document" className="mt-0">
+                {fileUrl ? (
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                        <Download />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium">ملف العقد</span>
+                        <span className="text-xs text-muted-foreground">
+                          تحميل الملف لمراجعة الشروط الكاملة
+                        </span>
+                      </div>
+                    </div>
+                    <Button asChild variant="outline">
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        تحميل
+                      </a>
+                    </Button>
+                  </div>
+                ) : (
+                  <EmptyPanel
+                    title="لا يوجد ملف مرفق"
+                    description="لم يتم العثور على ملف PDF أو مرفق لهذا العقد."
+                  />
+                )}
+              </TabsContent>
+
               {responseArea ? (
-                <TabsTrigger value="action">
-                  {isClientAudience ? "الإجراء" : "إجراء العميل"}
-                </TabsTrigger>
+                <TabsContent value="action" className="mt-0">
+                  {responseArea}
+                </TabsContent>
               ) : null}
-            </TabsList>
-
-            <TabsContent value="billing" className="mt-0">
-              {billingArea || (
-                <EmptyPanel
-                  title="لا توجد بيانات فوترة إضافية"
-                  description="سيظهر هنا ملخص الفوترة والدفع عندما يكون متاحًا لهذا الدور."
-                />
-              )}
-            </TabsContent>
-
-            <TabsContent value="payment-plan" className="mt-0">
-              {(contract.paymentPlans ?? []).length === 0 ? (
-                <EmptyPanel
-                  title="لا توجد خطة دفع"
-                  description="لم يتم تعريف دفعات أو مراحل تحصيل لهذا العقد."
-                />
-              ) : (
-                <div className="overflow-x-auto rounded-lg border">
-                  <Table className="min-w-[42rem]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>الدفعة</TableHead>
-                        <TableHead>المحفز</TableHead>
-                        <TableHead>القيمة</TableHead>
-                        <TableHead>الاستحقاق</TableHead>
-                        <TableHead>الحالة</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(contract.paymentPlans ?? []).map((plan) => (
-                        <TableRow key={plan.id}>
-                          <TableCell className="font-medium">
-                            {plan.label}
-                          </TableCell>
-                          <TableCell>
-                            {paymentPlanTriggerLabel(plan.triggerType)}
-                          </TableCell>
-                          <TableCell>
-                            {formatCurrency(plan.amountValue)}
-                          </TableCell>
-                          <TableCell>
-                            {plan.dueOffsetDays != null
-                              ? `${formatNumber(plan.dueOffsetDays)} يوم`
-                              : "عند الحدث"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={plan.isActive ? "secondary" : "outline"}
-                            >
-                              {plan.isActive ? "نشطة" : "متوقفة"}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="invoices" className="mt-0">
-              {invoices.length === 0 ? (
-                <EmptyPanel
-                  title="لا توجد فواتير مرتبطة"
-                  description="ستظهر هنا الفواتير عند إنشائها لهذا العقد."
-                />
-              ) : (
-                <div className="overflow-hidden rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>الفاتورة</TableHead>
-                        <TableHead>القيمة</TableHead>
-                        <TableHead>الحالة</TableHead>
-                        <TableHead>الاستحقاق</TableHead>
-                        <TableHead>المدفوع</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invoices.map((invoice) => (
-                        <TableRow key={invoice.id}>
-                          <TableCell>{invoice.invoiceNumber}</TableCell>
-                          <TableCell>
-                            {formatCurrency(invoice.amount)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                invoice.status === "PAID"
-                                  ? "secondary"
-                                  : invoice.status === "CANCELLED"
-                                    ? "destructive"
-                                    : "outline"
-                              }
-                            >
-                              {invoiceStatusLabel(invoice.status)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {formatPortalDate(invoice.dueDate) || "—"}
-                          </TableCell>
-                          <TableCell>
-                            {formatPortalDate(invoice.paidAt) || "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </TabsContent>
-
-            {!isClientAudience ? (
-              <TabsContent value="history" className="mt-0">
-                {statusHistory.length === 0 ? (
-                  <EmptyPanel
-                    title="لا يوجد سجل حالة"
-                    description="سجل انتقالات حالة العقد سيظهر هنا."
-                  />
-                ) : (
-                  <div className="overflow-hidden rounded-lg border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>من</TableHead>
-                          <TableHead>إلى</TableHead>
-                          <TableHead>بواسطة</TableHead>
-                          <TableHead>التاريخ</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {statusHistory.map((entry) => (
-                          <TableRow key={entry.id}>
-                            <TableCell>
-                              {contractStatusLabel(entry.fromStatus)}
-                            </TableCell>
-                            <TableCell>
-                              {contractStatusLabel(entry.toStatus)}
-                            </TableCell>
-                            <TableCell>{entry.changer?.name || "—"}</TableCell>
-                            <TableCell>
-                              {formatDateTime(entry.changedAt)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </TabsContent>
-            ) : null}
-
-            {!isClientAudience ? (
-              <TabsContent value="versions" className="mt-0">
-                {versions.length === 0 ? (
-                  <EmptyPanel
-                    title="لا توجد إصدارات محفوظة"
-                    description="سيظهر هنا أرشيف الإصدارات عند وجود أكثر من نسخة للعقد."
-                  />
-                ) : (
-                  <div className="overflow-hidden rounded-lg border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>الإصدار</TableHead>
-                          <TableHead>الملف</TableHead>
-                          <TableHead>التاريخ</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {versions.map((version) => (
-                          <TableRow key={version.id}>
-                            <TableCell>
-                              {formatNumber(version.versionNumber)}
-                            </TableCell>
-                            <TableCell>
-                              {version.filePath ? (
-                                <Button asChild variant="ghost" size="sm">
-                                  <a
-                                    href={buildPortalFileUrl(version.filePath)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
-                                    <Download data-icon="inline-start" />
-                                    فتح الملف
-                                  </a>
-                                </Button>
-                              ) : (
-                                "—"
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {formatDateTime(version.createdAt)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </TabsContent>
-            ) : null}
-
-            <TabsContent value="document" className="mt-0">
-              {fileUrl ? (
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                      <Download />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">ملف العقد</span>
-                      <span className="text-xs text-muted-foreground">
-                        تحميل الملف لمراجعة الشروط الكاملة
-                      </span>
-                    </div>
-                  </div>
-                  <Button asChild variant="outline">
-                    <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                      تحميل
-                    </a>
-                  </Button>
-                </div>
-              ) : (
-                <EmptyPanel
-                  title="لا يوجد ملف مرفق"
-                  description="لم يتم العثور على ملف PDF أو مرفق لهذا العقد."
-                />
-              )}
-            </TabsContent>
-
-            {responseArea ? (
-              <TabsContent value="action" className="mt-0">
-                {responseArea}
-              </TabsContent>
-            ) : null}
-          </Tabs>
-        </CardContent>
-      </Card>
+            </Tabs>
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );
@@ -650,20 +660,38 @@ function ClientContractWorkspace({
               <div className="flex flex-col gap-4 rounded-xl border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-sm font-medium">ملف العقد</span>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" onClick={() => setShowPdf((value) => !value)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowPdf((value) => !value)}
+                  >
                     {showPdf ? "إخفاء الملف" : "عرض الملف"}
                   </Button>
                   <Button asChild variant="outline">
-                    <a href={fileUrl} download target="_blank" rel="noopener noreferrer">تحميل الملف</a>
+                    <a
+                      href={fileUrl}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      تحميل الملف
+                    </a>
                   </Button>
                 </div>
               </div>
             ) : (
-              <EmptyPanel title="لا يوجد ملف مرفق" description="لم يتم العثور على ملف لهذا العقد." />
+              <EmptyPanel
+                title="لا يوجد ملف مرفق"
+                description="لم يتم العثور على ملف لهذا العقد."
+              />
             )}
             {fileUrl && showPdf ? (
               <div className="mt-4 overflow-hidden rounded-xl border bg-muted/20">
-                <iframe src={fileUrl} title="معاينة ملف العقد" className="h-[min(70vh,48rem)] w-full" />
+                <iframe
+                  src={fileUrl}
+                  title="معاينة ملف العقد"
+                  className="h-[min(70vh,48rem)] w-full"
+                />
               </div>
             ) : null}
           </CardContent>
@@ -673,9 +701,18 @@ function ClientContractWorkspace({
         <Card className="border-primary/30 shadow-sm">
           <CardHeader className="gap-2">
             <CardTitle>توقيع العقد</CardTitle>
-            <CardDescription>راجع الخدمات والدفعات والملف ثم أكمل التوقيع.</CardDescription>
+            <CardDescription>
+              راجع الخدمات والدفعات والملف ثم أكمل التوقيع.
+            </CardDescription>
           </CardHeader>
-          <CardContent>{responseArea || <EmptyPanel title="لا توجد إجراءات متاحة" description="لا يمكن توقيع هذا العقد حالياً." />}</CardContent>
+          <CardContent>
+            {responseArea || (
+              <EmptyPanel
+                title="لا توجد إجراءات متاحة"
+                description="لا يمكن توقيع هذا العقد حالياً."
+              />
+            )}
+          </CardContent>
         </Card>
       </div>
     </div>

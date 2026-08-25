@@ -25,7 +25,13 @@ import {
 } from "@/features/finance/financeApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Drawer,
   DrawerContent,
@@ -34,9 +40,21 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -56,7 +74,10 @@ const PAYMENT_STATUS_AR: Record<string, string> = {
   PENDING: "معلقة",
 };
 
-const PAYMENT_STATUS_VARIANT: Record<string, "secondary" | "outline" | "destructive"> = {
+const PAYMENT_STATUS_VARIANT: Record<
+  string,
+  "secondary" | "outline" | "destructive"
+> = {
   SUCCESS: "secondary",
   PENDING: "outline",
   FAILED: "destructive",
@@ -72,7 +93,14 @@ const PAYMENT_TABS = [
 ];
 
 function getMethodIcon(method: string) {
-  if ([PaymentMethod.APPLE_PAY, PaymentMethod.MADA, PaymentMethod.VISA_MC, PaymentMethod.CARD].includes(method as PaymentMethod)) {
+  if (
+    [
+      PaymentMethod.APPLE_PAY,
+      PaymentMethod.MADA,
+      PaymentMethod.VISA_MC,
+      PaymentMethod.CARD,
+    ].includes(method as PaymentMethod)
+  ) {
     return CreditCard;
   }
   if (method === PaymentMethod.BANK_TRANSFER) {
@@ -110,7 +138,7 @@ function PaymentMetricCard({
 
 function PaymentsPageLoading() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader>
           <Skeleton className="h-8 w-64" />
@@ -136,14 +164,11 @@ export default function AdminFinancePaymentsPage() {
   const [statusTab, setStatusTab] = useState("ALL");
   const [methodFilter, setMethodFilter] = useState("ALL");
   const [search, setSearch] = useState("");
-  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(
+    null,
+  );
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-  } = useGetPaymentsQuery({
+  const { data, isLoading, isError, refetch } = useGetPaymentsQuery({
     limit: 100,
     status: statusTab === "ALL" ? undefined : statusTab,
   });
@@ -170,27 +195,40 @@ export default function AdminFinancePaymentsPage() {
     });
   }, [methodFilter, payments, search]);
 
-  const selectedPayment = filteredPayments.find((item) => item.id === selectedPaymentId)
-    || payments.find((item) => item.id === selectedPaymentId)
-    || null;
+  const selectedPayment =
+    filteredPayments.find((item) => item.id === selectedPaymentId) ||
+    payments.find((item) => item.id === selectedPaymentId) ||
+    null;
 
-  const {
-    data: linkedInvoice,
-    isFetching: isInvoiceLoading,
-  } = useGetInvoiceByIdQuery(selectedPayment?.invoiceId || "", {
-    skip: !selectedPayment?.invoiceId,
-  });
+  const { data: linkedInvoice, isFetching: isInvoiceLoading } =
+    useGetInvoiceByIdQuery(selectedPayment?.invoiceId || "", {
+      skip: !selectedPayment?.invoiceId,
+    });
 
   const metrics = useMemo(() => {
-    const totalAmount = filteredPayments.reduce((sum, payment) => sum + payment.amount, 0);
-    const successful = filteredPayments.filter((payment) => payment.status === PaymentStatus.SUCCESS);
-    const failed = filteredPayments.filter((payment) => payment.status === PaymentStatus.FAILED);
-    const refunded = filteredPayments.filter((payment) => payment.status === PaymentStatus.REFUNDED);
-    const pending = filteredPayments.filter((payment) => payment.status === PaymentStatus.PENDING);
+    const totalAmount = filteredPayments.reduce(
+      (sum, payment) => sum + payment.amount,
+      0,
+    );
+    const successful = filteredPayments.filter(
+      (payment) => payment.status === PaymentStatus.SUCCESS,
+    );
+    const failed = filteredPayments.filter(
+      (payment) => payment.status === PaymentStatus.FAILED,
+    );
+    const refunded = filteredPayments.filter(
+      (payment) => payment.status === PaymentStatus.REFUNDED,
+    );
+    const pending = filteredPayments.filter(
+      (payment) => payment.status === PaymentStatus.PENDING,
+    );
 
     return {
       totalAmount,
-      successfulAmount: successful.reduce((sum, payment) => sum + payment.amount, 0),
+      successfulAmount: successful.reduce(
+        (sum, payment) => sum + payment.amount,
+        0,
+      ),
       pendingAmount: pending.reduce((sum, payment) => sum + payment.amount, 0),
       failedCount: failed.length,
       refundedCount: refunded.length,
@@ -202,7 +240,9 @@ export default function AdminFinancePaymentsPage() {
   }, [filteredPayments]);
 
   const relatedPayments = linkedInvoice?.payments || [];
-  const successfulRelatedPayments = relatedPayments.filter((payment: any) => payment.status === PaymentStatus.SUCCESS);
+  const successfulRelatedPayments = relatedPayments.filter(
+    (payment: any) => payment.status === PaymentStatus.SUCCESS,
+  );
   const linkedInvoicePaid = successfulRelatedPayments.reduce(
     (sum: number, payment: any) => sum + (payment.amount || 0),
     0,
@@ -214,7 +254,7 @@ export default function AdminFinancePaymentsPage() {
   if (isLoading) return <PaymentsPageLoading />;
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-3">
@@ -224,7 +264,8 @@ export default function AdminFinancePaymentsPage() {
             <div className="space-y-1">
               <CardTitle className="text-2xl">عمليات الدفع</CardTitle>
               <CardDescription>
-                شاشة متابعة للمصالحة وربط كل عملية بالفاتورة والعميل وسياق التحصيل.
+                شاشة متابعة للمصالحة وربط كل عملية بالفاتورة والعميل وسياق
+                التحصيل.
               </CardDescription>
             </div>
           </div>
@@ -308,7 +349,9 @@ export default function AdminFinancePaymentsPage() {
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل المدفوعات</EmptyTitle>
-                <EmptyDescription>حاول إعادة التحديث أو راجع اتصال الواجهة البرمجية.</EmptyDescription>
+                <EmptyDescription>
+                  حاول إعادة التحديث أو راجع اتصال الواجهة البرمجية.
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : filteredPayments.length === 0 ? (
@@ -318,7 +361,9 @@ export default function AdminFinancePaymentsPage() {
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>لا توجد عمليات مطابقة</EmptyTitle>
-                <EmptyDescription>غيّر الفلاتر أو البحث لعرض نتائج أكثر.</EmptyDescription>
+                <EmptyDescription>
+                  غيّر الفلاتر أو البحث لعرض نتائج أكثر.
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
@@ -344,7 +389,9 @@ export default function AdminFinancePaymentsPage() {
                       <TableRow key={payment.id}>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            <span className="font-mono text-xs">{payment.id.slice(0, 8)}</span>
+                            <span className="font-mono text-xs">
+                              {payment.id.slice(0, 8)}
+                            </span>
                             <span className="text-xs text-muted-foreground">
                               {payment.providerPaymentId || "بدون مرجع مزود"}
                             </span>
@@ -355,24 +402,35 @@ export default function AdminFinancePaymentsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            <span>{payment.invoice?.client?.companyName || "—"}</span>
+                            <span>
+                              {payment.invoice?.client?.companyName || "—"}
+                            </span>
                             <span className="text-xs text-muted-foreground">
                               {payment.invoice?.client?.name || "—"}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>{formatCurrency(payment.amount, payment.currency)}</TableCell>
+                        <TableCell>
+                          {formatCurrency(payment.amount, payment.currency)}
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <MethodIcon className="text-muted-foreground" />
                             <span className="text-sm">
-                              {PAYMENT_METHOD_AR[payment.method] || payment.method}
+                              {PAYMENT_METHOD_AR[payment.method] ||
+                                payment.method}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={PAYMENT_STATUS_VARIANT[payment.status] || "outline"}>
-                            {PAYMENT_STATUS_AR[payment.status] || payment.status}
+                          <Badge
+                            variant={
+                              PAYMENT_STATUS_VARIANT[payment.status] ||
+                              "outline"
+                            }
+                          >
+                            {PAYMENT_STATUS_AR[payment.status] ||
+                              payment.status}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
@@ -397,11 +455,16 @@ export default function AdminFinancePaymentsPage() {
         </CardContent>
       </Card>
 
-      <Drawer open={!!selectedPaymentId} onOpenChange={(open) => !open && setSelectedPaymentId(null)}>
+      <Drawer
+        open={!!selectedPaymentId}
+        onOpenChange={(open) => !open && setSelectedPaymentId(null)}
+      >
         <DrawerContent>
           <DrawerHeader className="border-b pb-4 text-right">
             <DrawerTitle>
-              {selectedPayment ? `عملية ${selectedPayment.id.slice(0, 8)}` : "تفاصيل العملية"}
+              {selectedPayment
+                ? `عملية ${selectedPayment.id.slice(0, 8)}`
+                : "تفاصيل العملية"}
             </DrawerTitle>
             <DrawerDescription>
               تفاصيل المصالحة وربط العملية بالفاتورة المرتبطة بها.
@@ -416,7 +479,9 @@ export default function AdminFinancePaymentsPage() {
                 </EmptyMedia>
                 <EmptyHeader>
                   <EmptyTitle>اختر عملية للدخول في التفاصيل</EmptyTitle>
-                  <EmptyDescription>سيظهر هنا سياق الفاتورة والتحصيل بمجرد اختيار العملية.</EmptyDescription>
+                  <EmptyDescription>
+                    سيظهر هنا سياق الفاتورة والتحصيل بمجرد اختيار العملية.
+                  </EmptyDescription>
                 </EmptyHeader>
               </Empty>
             </div>
@@ -425,20 +490,35 @@ export default function AdminFinancePaymentsPage() {
               <Card>
                 <CardContent className="grid gap-4 p-5 md:grid-cols-3">
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">قيمة العملية</p>
+                    <p className="text-sm text-muted-foreground">
+                      قيمة العملية
+                    </p>
                     <p className="text-xl font-semibold">
-                      {formatCurrency(selectedPayment.amount, selectedPayment.currency)}
+                      {formatCurrency(
+                        selectedPayment.amount,
+                        selectedPayment.currency,
+                      )}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">الحالة</p>
-                    <Badge variant={PAYMENT_STATUS_VARIANT[selectedPayment.status] || "outline"}>
-                      {PAYMENT_STATUS_AR[selectedPayment.status] || selectedPayment.status}
+                    <Badge
+                      variant={
+                        PAYMENT_STATUS_VARIANT[selectedPayment.status] ||
+                        "outline"
+                      }
+                    >
+                      {PAYMENT_STATUS_AR[selectedPayment.status] ||
+                        selectedPayment.status}
                     </Badge>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">تاريخ العملية</p>
-                    <p className="text-xl font-semibold">{formatDateTime(selectedPayment.date)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      تاريخ العملية
+                    </p>
+                    <p className="text-xl font-semibold">
+                      {formatDateTime(selectedPayment.date)}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -453,19 +533,30 @@ export default function AdminFinancePaymentsPage() {
                       ["معرّف العملية", selectedPayment.id],
                       ["مرجع المزود", selectedPayment.providerPaymentId || "—"],
                       ["العملة", selectedPayment.currency],
-                      ["طريقة الدفع", PAYMENT_METHOD_AR[selectedPayment.method] || selectedPayment.method],
-                      ["تاريخ الإنشاء", formatDateTime(selectedPayment.createdAt)],
+                      [
+                        "طريقة الدفع",
+                        PAYMENT_METHOD_AR[selectedPayment.method] ||
+                          selectedPayment.method,
+                      ],
+                      [
+                        "تاريخ الإنشاء",
+                        formatDateTime(selectedPayment.createdAt),
+                      ],
                       ["آخر تحديث", formatDateTime(selectedPayment.updatedAt)],
                     ].map(([label, value]) => (
                       <div key={label} className="rounded-lg border p-4">
                         <p className="text-sm text-muted-foreground">{label}</p>
-                        <p className="mt-2 text-sm font-medium break-all">{value}</p>
+                        <p className="mt-2 text-sm font-medium break-all">
+                          {value}
+                        </p>
                       </div>
                     ))}
                     {selectedPayment.notes ? (
                       <div className="rounded-lg border p-4 md:col-span-2">
                         <p className="text-sm text-muted-foreground">ملاحظات</p>
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{selectedPayment.notes}</p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
+                          {selectedPayment.notes}
+                        </p>
                       </div>
                     ) : null}
                   </CardContent>
@@ -477,12 +568,18 @@ export default function AdminFinancePaymentsPage() {
                   </CardHeader>
                   <CardContent className="grid gap-4">
                     <div className="rounded-lg border p-4">
-                      <p className="text-sm text-muted-foreground">الفاتورة المرتبطة</p>
+                      <p className="text-sm text-muted-foreground">
+                        الفاتورة المرتبطة
+                      </p>
                       <p className="mt-2 font-medium">
-                        {selectedPayment.invoice?.invoiceNumber || linkedInvoice?.invoiceNumber || "—"}
+                        {selectedPayment.invoice?.invoiceNumber ||
+                          linkedInvoice?.invoiceNumber ||
+                          "—"}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {selectedPayment.invoice?.client?.companyName || linkedInvoice?.client?.companyName || "—"}
+                        {selectedPayment.invoice?.client?.companyName ||
+                          linkedInvoice?.client?.companyName ||
+                          "—"}
                       </p>
                     </div>
                     {isInvoiceLoading ? (
@@ -491,18 +588,30 @@ export default function AdminFinancePaymentsPage() {
                       <>
                         <div className="grid gap-4 md:grid-cols-2">
                           <div className="rounded-lg border p-4">
-                            <p className="text-sm text-muted-foreground">إجمالي الفاتورة</p>
-                            <p className="mt-2 font-medium">{formatCurrency(linkedInvoice.amount)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              إجمالي الفاتورة
+                            </p>
+                            <p className="mt-2 font-medium">
+                              {formatCurrency(linkedInvoice.amount)}
+                            </p>
                           </div>
                           <div className="rounded-lg border p-4">
-                            <p className="text-sm text-muted-foreground">المتبقي بعد هذه العملية</p>
-                            <p className="mt-2 font-medium">{formatCurrency(linkedInvoiceRemaining)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              المتبقي بعد هذه العملية
+                            </p>
+                            <p className="mt-2 font-medium">
+                              {formatCurrency(linkedInvoiceRemaining)}
+                            </p>
                           </div>
                         </div>
                         <div className="rounded-lg border p-4">
-                          <p className="text-sm text-muted-foreground">حالة الفاتورة الآن</p>
+                          <p className="text-sm text-muted-foreground">
+                            حالة الفاتورة الآن
+                          </p>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <Badge variant="outline">{linkedInvoice.status}</Badge>
+                            <Badge variant="outline">
+                              {linkedInvoice.status}
+                            </Badge>
                             <span className="text-sm text-muted-foreground">
                               الاستحقاق {formatDateTime(linkedInvoice.dueDate)}
                             </span>
@@ -521,9 +630,12 @@ export default function AdminFinancePaymentsPage() {
               {linkedInvoice?.payments?.length ? (
                 <Card>
                   <CardHeader className="gap-2">
-                    <CardTitle className="text-lg">كل عمليات الفاتورة</CardTitle>
+                    <CardTitle className="text-lg">
+                      كل عمليات الفاتورة
+                    </CardTitle>
                     <CardDescription>
-                      يساعد هذا السجل على معرفة ما إذا كانت العملية جزءاً من دفعات متعددة أم محاولة منفردة.
+                      يساعد هذا السجل على معرفة ما إذا كانت العملية جزءاً من
+                      دفعات متعددة أم محاولة منفردة.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -542,21 +654,39 @@ export default function AdminFinancePaymentsPage() {
                           {linkedInvoice.payments.map((payment: any) => (
                             <TableRow
                               key={payment.id}
-                              data-state={payment.id === selectedPayment.id ? "selected" : undefined}
+                              data-state={
+                                payment.id === selectedPayment.id
+                                  ? "selected"
+                                  : undefined
+                              }
                             >
                               <TableCell className="font-mono text-xs">
                                 {String(payment.id).slice(0, 8)}
                               </TableCell>
-                              <TableCell>{formatCurrency(payment.amount, payment.currency)}</TableCell>
                               <TableCell>
-                                {PAYMENT_METHOD_AR[payment.method] || payment.method}
+                                {formatCurrency(
+                                  payment.amount,
+                                  payment.currency,
+                                )}
                               </TableCell>
                               <TableCell>
-                                <Badge variant={PAYMENT_STATUS_VARIANT[payment.status] || "outline"}>
-                                  {PAYMENT_STATUS_AR[payment.status] || payment.status}
+                                {PAYMENT_METHOD_AR[payment.method] ||
+                                  payment.method}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    PAYMENT_STATUS_VARIANT[payment.status] ||
+                                    "outline"
+                                  }
+                                >
+                                  {PAYMENT_STATUS_AR[payment.status] ||
+                                    payment.status}
                                 </Badge>
                               </TableCell>
-                              <TableCell>{formatDateTime(payment.date)}</TableCell>
+                              <TableCell>
+                                {formatDateTime(payment.date)}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -572,7 +702,9 @@ export default function AdminFinancePaymentsPage() {
             {selectedPayment?.invoiceId ? (
               <div className="flex w-full justify-end">
                 <Button asChild>
-                  <Link href={`/dashboard/admin/finance/invoices/${selectedPayment.invoiceId}`}>
+                  <Link
+                    href={`/dashboard/admin/finance/invoices/${selectedPayment.invoiceId}`}
+                  >
                     <ArrowUpRight />
                     فتح الفاتورة الكاملة
                   </Link>

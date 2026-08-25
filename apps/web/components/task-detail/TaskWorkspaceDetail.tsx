@@ -60,7 +60,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { PageHeader } from "@/components/common/PageHeader";
 import {
   Empty,
@@ -70,7 +76,13 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,7 +90,10 @@ import { downloadTaskFile } from "@/lib/downloadFile";
 import { pmErrorMessage, pmSuccessMessage } from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
 import { formatDateTime, formatShortDate } from "@/lib/format";
-import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/utils/task-status";
+import {
+  TASK_PRIORITY_LABELS,
+  TASK_STATUS_LABELS,
+} from "@/lib/utils/task-status";
 import {
   useGetClientTeamViewQuery,
   useGetPmClientTeamViewQuery,
@@ -182,7 +197,8 @@ function mapTaskEntity(task: WorkspaceTask): TaskDetailEntity {
         }
       : null,
     departmentName: task.department?.name
-      ? DEPARTMENT_LABELS[task.department.name as TaskDepartment] || task.department.name
+      ? DEPARTMENT_LABELS[task.department.name as TaskDepartment] ||
+        task.department.name
       : null,
     assigneeName: task.assignee?.name ?? null,
     creatorName: task.creator?.name ?? null,
@@ -204,7 +220,8 @@ function mapComments(comments?: TaskComment[]): TaskCommentRecord[] {
     .slice()
     .sort(
       (a, b) =>
-        new Date(String(b.createdAt)).getTime() - new Date(String(a.createdAt)).getTime(),
+        new Date(String(b.createdAt)).getTime() -
+        new Date(String(a.createdAt)).getTime(),
     )
     .map((comment) => ({
       id: comment.id,
@@ -228,7 +245,8 @@ function mapFiles(files?: TaskFile[]): TaskFileRecord[] {
     .slice()
     .sort(
       (a, b) =>
-        new Date(String(b.createdAt)).getTime() - new Date(String(a.createdAt)).getTime(),
+        new Date(String(b.createdAt)).getTime() -
+        new Date(String(a.createdAt)).getTime(),
     )
     .map((file) => ({
       id: file.id,
@@ -252,7 +270,7 @@ function ErrorState({
   description: string;
 }) {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <Card>
         <CardContent className="p-8">
           <Empty>
@@ -261,9 +279,7 @@ function ErrorState({
             </EmptyMedia>
             <EmptyHeader>
               <EmptyTitle>المهمة غير موجودة</EmptyTitle>
-              <EmptyDescription>
-                {description}
-              </EmptyDescription>
+              <EmptyDescription>{description}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Button asChild>
@@ -295,32 +311,76 @@ export function TaskWorkspaceDetail({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [commentText, setCommentText] = useState("");
   const [noteText, setNoteText] = useState("");
-  const [filePurpose, setFilePurpose] = useState<FilePurpose>(FilePurpose.REFERENCE);
+  const [filePurpose, setFilePurpose] = useState<FilePurpose>(
+    FilePurpose.REFERENCE,
+  );
   const marketingTabs = useMarketingTaskExtraTabs({
     taskId,
     canManage: canManageMarketingExtras,
     enabled: includeMarketingExtras,
   });
 
-  const genericTaskQuery = useGetTaskByIdQuery(taskId, { skip: pmOwned || teamOwned });
+  const genericTaskQuery = useGetTaskByIdQuery(taskId, {
+    skip: pmOwned || teamOwned,
+  });
   const pmTaskQuery = useGetPmTaskByIdQuery(taskId, { skip: !pmOwned });
   const teamTaskQuery = useGetTeamTaskQuery(taskId, { skip: !teamOwned });
-  const genericFilesQuery = useGetTaskFilesQuery(taskId, { skip: pmOwned || teamOwned });
+  const genericFilesQuery = useGetTaskFilesQuery(taskId, {
+    skip: pmOwned || teamOwned,
+  });
   const pmFilesQuery = useGetPmTaskFilesQuery(taskId, { skip: !pmOwned });
-  const teamFilesQuery = useGetTeamTaskFilesQuery({ id: taskId, page: 1, limit: 25 }, { skip: !teamOwned });
-  const genericCommentsQuery = useGetTaskCommentsQuery(taskId, { skip: pmOwned || teamOwned });
+  const teamFilesQuery = useGetTeamTaskFilesQuery(
+    { id: taskId, page: 1, limit: 25 },
+    { skip: !teamOwned },
+  );
+  const genericCommentsQuery = useGetTaskCommentsQuery(taskId, {
+    skip: pmOwned || teamOwned,
+  });
   const pmCommentsQuery = useGetPmTaskCommentsQuery(taskId, { skip: !pmOwned });
   const pmNotesQuery = useGetPmTaskNotesQuery(taskId, { skip: !pmOwned });
-  const teamCommentsQuery = useGetTeamTaskCommentsQuery({ id: taskId, page: 1, limit: 25 }, { skip: !teamOwned });
-  const task = (pmTaskQuery.data ?? teamTaskQuery.data ?? genericTaskQuery.data) as WorkspaceTask | undefined;
-  const files = pmFilesQuery.data ?? teamFilesQuery.data?.items ?? genericFilesQuery.data;
-  const comments = pmCommentsQuery.data ?? teamCommentsQuery.data?.items ?? genericCommentsQuery.data;
-  const isLoading = pmOwned ? pmTaskQuery.isLoading : teamOwned ? teamTaskQuery.isLoading : genericTaskQuery.isLoading;
-  const isError = pmOwned ? pmTaskQuery.isError : teamOwned ? teamTaskQuery.isError : genericTaskQuery.isError;
-  const filesLoading = pmOwned ? pmFilesQuery.isLoading : teamOwned ? teamFilesQuery.isLoading : genericFilesQuery.isLoading;
-  const filesError = pmOwned ? pmFilesQuery.error : teamOwned ? teamFilesQuery.error : genericFilesQuery.error;
-  const commentsLoading = pmOwned ? pmCommentsQuery.isLoading : teamOwned ? teamCommentsQuery.isLoading : genericCommentsQuery.isLoading;
-  const commentsError = pmOwned ? pmCommentsQuery.error : teamOwned ? teamCommentsQuery.error : genericCommentsQuery.error;
+  const teamCommentsQuery = useGetTeamTaskCommentsQuery(
+    { id: taskId, page: 1, limit: 25 },
+    { skip: !teamOwned },
+  );
+  const task = (pmTaskQuery.data ??
+    teamTaskQuery.data ??
+    genericTaskQuery.data) as WorkspaceTask | undefined;
+  const files =
+    pmFilesQuery.data ?? teamFilesQuery.data?.items ?? genericFilesQuery.data;
+  const comments =
+    pmCommentsQuery.data ??
+    teamCommentsQuery.data?.items ??
+    genericCommentsQuery.data;
+  const isLoading = pmOwned
+    ? pmTaskQuery.isLoading
+    : teamOwned
+      ? teamTaskQuery.isLoading
+      : genericTaskQuery.isLoading;
+  const isError = pmOwned
+    ? pmTaskQuery.isError
+    : teamOwned
+      ? teamTaskQuery.isError
+      : genericTaskQuery.isError;
+  const filesLoading = pmOwned
+    ? pmFilesQuery.isLoading
+    : teamOwned
+      ? teamFilesQuery.isLoading
+      : genericFilesQuery.isLoading;
+  const filesError = pmOwned
+    ? pmFilesQuery.error
+    : teamOwned
+      ? teamFilesQuery.error
+      : genericFilesQuery.error;
+  const commentsLoading = pmOwned
+    ? pmCommentsQuery.isLoading
+    : teamOwned
+      ? teamCommentsQuery.isLoading
+      : genericCommentsQuery.isLoading;
+  const commentsError = pmOwned
+    ? pmCommentsQuery.error
+    : teamOwned
+      ? teamCommentsQuery.error
+      : genericCommentsQuery.error;
 
   const clientId = task?.project?.clientId ?? "";
   const { data: genericTeamView } = useGetClientTeamViewQuery(clientId, {
@@ -337,25 +397,39 @@ export function TaskWorkspaceDetail({
   const [submitTask] = useSubmitTaskMutation();
   const [approveTask] = useApproveTaskMutation();
   const [rejectTask] = useRejectTaskMutation();
-  const [uploadFile, { isLoading: isUploadingGeneric }] = useUploadTaskFileMutation();
-  const [deleteFile, { isLoading: isDeletingGenericFile }] = useDeleteTaskFileMutation();
-  const [deletePmFile, { isLoading: isDeletingPmFile }] = useDeletePmTaskFileMutation();
-  const [addComment, { isLoading: isAddingGenericComment }] = useAddTaskCommentMutation();
-  const [addTeamComment, { isLoading: isAddingTeamComment }] = useAddTeamTaskCommentMutation();
-  const [addPmComment, { isLoading: isAddingPmComment }] = useAddPmTaskCommentMutation();
+  const [uploadFile, { isLoading: isUploadingGeneric }] =
+    useUploadTaskFileMutation();
+  const [deleteFile, { isLoading: isDeletingGenericFile }] =
+    useDeleteTaskFileMutation();
+  const [deletePmFile, { isLoading: isDeletingPmFile }] =
+    useDeletePmTaskFileMutation();
+  const [addComment, { isLoading: isAddingGenericComment }] =
+    useAddTaskCommentMutation();
+  const [addTeamComment, { isLoading: isAddingTeamComment }] =
+    useAddTeamTaskCommentMutation();
+  const [addPmComment, { isLoading: isAddingPmComment }] =
+    useAddPmTaskCommentMutation();
   const [addPmNote, { isLoading: isAddingPmNote }] = useAddPmTaskNoteMutation();
-  const [uploadPmFile, { isLoading: isUploadingPmFile }] = useUploadPmTaskFileMutation();
-  const [uploadTeamFile, { isLoading: isUploadingTeamFile }] = useUploadTeamTaskFileMutation();
+  const [uploadPmFile, { isLoading: isUploadingPmFile }] =
+    useUploadPmTaskFileMutation();
+  const [uploadTeamFile, { isLoading: isUploadingTeamFile }] =
+    useUploadTeamTaskFileMutation();
   const [getPmFileDownload] = useLazyGetPmTaskFileDownloadQuery();
   const [getTeamFileDownload] = useLazyGetTeamTaskFileDownloadQuery();
-  const isUploading = isUploadingGeneric || isUploadingPmFile || isUploadingTeamFile;
+  const isUploading =
+    isUploadingGeneric || isUploadingPmFile || isUploadingTeamFile;
   const isDeletingFile = isDeletingGenericFile || isDeletingPmFile;
-  const isAddingComment = isAddingGenericComment || isAddingPmComment || isAddingTeamComment;
+  const isAddingComment =
+    isAddingGenericComment || isAddingPmComment || isAddingTeamComment;
   const notes = pmNotesQuery.data;
   const notesData = mapNotes(notes);
   const notesLoading = pmNotesQuery.isLoading;
   const notesError = pmNotesQuery.error;
-  const taskError = pmOwned ? pmTaskQuery.error : teamOwned ? teamTaskQuery.error : genericTaskQuery.error;
+  const taskError = pmOwned
+    ? pmTaskQuery.error
+    : teamOwned
+      ? teamTaskQuery.error
+      : genericTaskQuery.error;
 
   if (!user) return null;
   if (isLoading) return <TaskDetailLoading />;
@@ -375,9 +449,12 @@ export function TaskWorkspaceDetail({
   const filesData = mapFiles(files);
   const historyData = mapHistory(task.statusHistory);
 
-  const isPmReviewer = user.role === UserRole.PM || user.role === UserRole.ADMIN;
+  const isPmReviewer =
+    user.role === UserRole.PM || user.role === UserRole.ADMIN;
   const canReview = isPmReviewer && task.status === TaskStatus.IN_REVIEW;
-  const canStart = !isPmReviewer && [TaskStatus.TODO, TaskStatus.REVISION].includes(task.status);
+  const canStart =
+    !isPmReviewer &&
+    [TaskStatus.TODO, TaskStatus.REVISION].includes(task.status);
   const canSubmit = !isPmReviewer && task.status === TaskStatus.IN_PROGRESS;
 
   const stats = buildTaskStats({
@@ -389,7 +466,9 @@ export function TaskWorkspaceDetail({
     filesCount: filesData.length,
   });
 
-  async function runStatusAction(action: "start" | "submit" | "approve" | "reject") {
+  async function runStatusAction(
+    action: "start" | "submit" | "approve" | "reject",
+  ) {
     try {
       if (teamOwned) {
         const statusByAction = {
@@ -398,7 +477,10 @@ export function TaskWorkspaceDetail({
           approve: TaskStatus.DONE,
           reject: TaskStatus.REVISION,
         } as const;
-        await changeTeamTaskStatus({ id: taskId, status: statusByAction[action] }).unwrap();
+        await changeTeamTaskStatus({
+          id: taskId,
+          status: statusByAction[action],
+        }).unwrap();
       } else if (pmOwned) {
         const statusByAction = {
           start: TaskStatus.IN_PROGRESS,
@@ -501,7 +583,9 @@ export function TaskWorkspaceDetail({
       {canStart ? (
         <Button onClick={() => runStatusAction("start")}>
           <RotateCcw data-icon="inline-start" />
-          {task.status === TaskStatus.REVISION ? "بدء العمل مجددًا" : "بدء العمل"}
+          {task.status === TaskStatus.REVISION
+            ? "بدء العمل مجددًا"
+            : "بدء العمل"}
         </Button>
       ) : null}
       {canSubmit ? (
@@ -537,7 +621,9 @@ export function TaskWorkspaceDetail({
             <Card>
               <CardHeader className="gap-2">
                 <CardTitle>سياق المهمة</CardTitle>
-                <CardDescription>عناصر سريعة تساعد الفريق أثناء التنفيذ.</CardDescription>
+                <CardDescription>
+                  عناصر سريعة تساعد الفريق أثناء التنفيذ.
+                </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 {task.project?.name ? (
@@ -572,7 +658,10 @@ export function TaskWorkspaceDetail({
                     <Skeleton className="h-20 rounded-lg" />
                   </div>
                 ) : (
-                  <TaskCommentsTable comments={commentsData.slice(0, 3)} compact />
+                  <TaskCommentsTable
+                    comments={commentsData.slice(0, 3)}
+                    compact
+                  />
                 )}
               </CardContent>
             </Card>
@@ -580,7 +669,9 @@ export function TaskWorkspaceDetail({
             <Card>
               <CardHeader className="gap-2">
                 <CardTitle>آخر الملفات</CardTitle>
-                <CardDescription>أحدث الملفات المرتبطة بالمهمة.</CardDescription>
+                <CardDescription>
+                  أحدث الملفات المرتبطة بالمهمة.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {filesLoading ? (
@@ -597,25 +688,61 @@ export function TaskWorkspaceDetail({
         </div>
       ),
     },
-    ...(pmOwned ? [{
-      value: "notes",
-      label: "ملاحظات خاصة",
-      icon: StickyNote,
-      badge: String(notesData.length),
-      content: (
-        <div className="flex flex-col gap-6">
-          {notesLoading ? <Skeleton className="h-20 rounded-lg" /> : notesError ? (
-            <Alert variant="destructive"><AlertTitle>تعذر تحميل الملاحظات</AlertTitle><AlertDescription>{pmErrorMessage(notesError)}</AlertDescription></Alert>
-          ) : <TaskCommentsTable comments={notesData} compact />}
-          <Separator />
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-medium">إضافة ملاحظة خاصة</h3><p className="text-sm text-muted-foreground">تظهر هذه الملاحظات لمديري المشاريع فقط.</p></div><Badge variant="outline">{user.name}</Badge></div>
-            <Textarea rows={4} placeholder="اكتب ملاحظتك هنا..." aria-label="نص الملاحظة الخاصة" value={noteText} onChange={(event) => setNoteText(event.target.value)} disabled={isAddingPmNote} />
-            <div className="flex justify-end"><Button onClick={handleAddNote} disabled={isAddingPmNote || !noteText.trim()}><Send data-icon="inline-start" />{isAddingPmNote ? "جارٍ الحفظ..." : "حفظ الملاحظة"}</Button></div>
-          </div>
-        </div>
-      ),
-    }] : []),
+    ...(pmOwned
+      ? [
+          {
+            value: "notes",
+            label: "ملاحظات خاصة",
+            icon: StickyNote,
+            badge: String(notesData.length),
+            content: (
+              <div className="flex flex-col gap-6">
+                {notesLoading ? (
+                  <Skeleton className="h-20 rounded-lg" />
+                ) : notesError ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>تعذر تحميل الملاحظات</AlertTitle>
+                    <AlertDescription>
+                      {pmErrorMessage(notesError)}
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <TaskCommentsTable comments={notesData} compact />
+                )}
+                <Separator />
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-medium">إضافة ملاحظة خاصة</h3>
+                      <p className="text-sm text-muted-foreground">
+                        تظهر هذه الملاحظات لمديري المشاريع فقط.
+                      </p>
+                    </div>
+                    <Badge variant="outline">{user.name}</Badge>
+                  </div>
+                  <Textarea
+                    rows={4}
+                    placeholder="اكتب ملاحظتك هنا..."
+                    aria-label="نص الملاحظة الخاصة"
+                    value={noteText}
+                    onChange={(event) => setNoteText(event.target.value)}
+                    disabled={isAddingPmNote}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleAddNote}
+                      disabled={isAddingPmNote || !noteText.trim()}
+                    >
+                      <Send data-icon="inline-start" />
+                      {isAddingPmNote ? "جارٍ الحفظ..." : "حفظ الملاحظة"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ),
+          },
+        ]
+      : []),
     {
       value: "comments",
       label: "التعليقات",
@@ -632,7 +759,9 @@ export function TaskWorkspaceDetail({
           ) : commentsError ? (
             <Alert variant="destructive">
               <AlertTitle>تعذر تحميل التعليقات</AlertTitle>
-              <AlertDescription>{pmErrorMessage(commentsError)}</AlertDescription>
+              <AlertDescription>
+                {pmErrorMessage(commentsError)}
+              </AlertDescription>
             </Alert>
           ) : (
             <TaskCommentsTable comments={commentsData} compact />
@@ -659,7 +788,10 @@ export function TaskWorkspaceDetail({
               disabled={isAddingComment}
             />
             <div className="flex justify-end">
-              <Button onClick={handleAddComment} disabled={isAddingComment || !commentText.trim()}>
+              <Button
+                onClick={handleAddComment}
+                disabled={isAddingComment || !commentText.trim()}
+              >
                 <Send data-icon="inline-start" />
                 {isAddingComment ? "جارٍ الإرسال..." : "إرسال"}
               </Button>
@@ -738,7 +870,9 @@ export function TaskWorkspaceDetail({
                   </EmptyMedia>
                   <EmptyHeader>
                     <EmptyTitle>لا توجد ملفات</EmptyTitle>
-                    <EmptyDescription>ابدأ برفع أول ملف مرتبط بهذه المهمة.</EmptyDescription>
+                    <EmptyDescription>
+                      ابدأ برفع أول ملف مرتبط بهذه المهمة.
+                    </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
               </CardContent>
@@ -749,12 +883,21 @@ export function TaskWorkspaceDetail({
                 <Card key={file.id}>
                   <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{file.fileName}</p>
+                      <p className="truncate text-sm font-medium">
+                        {file.fileName}
+                      </p>
                       <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span>{formatShortDate(file.createdAt)}</span>
-                        <span>{(file.fileSize ?? 0) > 0 ? `${Math.round((file.fileSize ?? 0) / 1024)} KB` : "—"}</span>
+                        <span>
+                          {(file.fileSize ?? 0) > 0
+                            ? `${Math.round((file.fileSize ?? 0) / 1024)} KB`
+                            : "—"}
+                        </span>
                         {file.purpose ? (
-                          <span>{FILE_PURPOSE_LABELS[file.purpose as FilePurpose] || file.purpose}</span>
+                          <span>
+                            {FILE_PURPOSE_LABELS[file.purpose as FilePurpose] ||
+                              file.purpose}
+                          </span>
                         ) : null}
                       </div>
                     </div>
@@ -765,16 +908,31 @@ export function TaskWorkspaceDetail({
                         onClick={async () => {
                           try {
                             if (teamOwned) {
-                              const result = await getTeamFileDownload({ taskId, fileId: file.id }).unwrap();
-                              window.open(result.url, "_blank", "noopener,noreferrer");
+                              const result = await getTeamFileDownload({
+                                taskId,
+                                fileId: file.id,
+                              }).unwrap();
+                              window.open(
+                                result.url,
+                                "_blank",
+                                "noopener,noreferrer",
+                              );
                             } else if (pmOwned) {
                               const result = await getPmFileDownload({
                                 taskId,
                                 fileId: file.id,
                               }).unwrap();
-                              window.open(result.url, "_blank", "noopener,noreferrer");
+                              window.open(
+                                result.url,
+                                "_blank",
+                                "noopener,noreferrer",
+                              );
                             } else {
-                              await downloadTaskFile(taskId, file.id, file.fileName);
+                              await downloadTaskFile(
+                                taskId,
+                                file.id,
+                                file.fileName,
+                              );
                             }
                           } catch (error) {
                             toast.error(pmErrorMessage(error));
@@ -836,7 +994,7 @@ export function TaskWorkspaceDetail({
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <div className="flex flex-col gap-3">
         <Breadcrumb>
           <BreadcrumbList>
@@ -868,41 +1026,86 @@ export function TaskWorkspaceDetail({
 
         <PageHeader
           title={task.title}
-          description={task.description || "تفاصيل التنفيذ والمراجعة والتسليم لهذه المهمة."}
+          description={
+            task.description || "تفاصيل التنفيذ والمراجعة والتسليم لهذه المهمة."
+          }
           icon={FolderKanban}
           actions={actions}
         />
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{TASK_STATUS_LABELS[task.status as TaskStatus]}</Badge>
-          <Badge variant="outline">{TASK_PRIORITY_LABELS[task.priority as TaskPriority]}</Badge>
-          {task.project?.name ? <Badge variant="outline">المشروع: {task.project.name}</Badge> : null}
-          {task.project?.client?.companyName ? <Badge variant="outline">العميل: {task.project.client.companyName}</Badge> : null}
-          {taskEntity.assigneeName ? <Badge variant="outline">المكلّف: {taskEntity.assigneeName}</Badge> : null}
-          {typeof taskEntity.revisionCount === "number" ? <Badge variant="outline">التعديلات: {taskEntity.revisionCount}</Badge> : null}
-          {typeof taskEntity.isVisibleToClient === "boolean" ? <Badge variant="outline">مرئي للعميل: {taskEntity.isVisibleToClient ? "نعم" : "لا"}</Badge> : null}
+          <Badge variant="secondary">
+            {TASK_STATUS_LABELS[task.status as TaskStatus]}
+          </Badge>
+          <Badge variant="outline">
+            {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
+          </Badge>
+          {task.project?.name ? (
+            <Badge variant="outline">المشروع: {task.project.name}</Badge>
+          ) : null}
+          {task.project?.client?.companyName ? (
+            <Badge variant="outline">
+              العميل: {task.project.client.companyName}
+            </Badge>
+          ) : null}
+          {taskEntity.assigneeName ? (
+            <Badge variant="outline">المكلّف: {taskEntity.assigneeName}</Badge>
+          ) : null}
+          {typeof taskEntity.revisionCount === "number" ? (
+            <Badge variant="outline">
+              التعديلات: {taskEntity.revisionCount}
+            </Badge>
+          ) : null}
+          {typeof taskEntity.isVisibleToClient === "boolean" ? (
+            <Badge variant="outline">
+              مرئي للعميل: {taskEntity.isVisibleToClient ? "نعم" : "لا"}
+            </Badge>
+          ) : null}
         </div>
       </div>
 
       <Card>
         <CardContent className="grid items-start gap-6 p-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
-          <section aria-labelledby="task-overview-title" className="flex min-w-0 flex-col gap-4">
-            <h2 id="task-overview-title" className="text-base font-semibold">نظرة عامة على المهمة</h2>
+          <section
+            aria-labelledby="task-overview-title"
+            className="flex min-w-0 flex-col gap-4"
+          >
+            <h2 id="task-overview-title" className="text-base font-semibold">
+              نظرة عامة على المهمة
+            </h2>
             <TaskStatsGrid stats={stats} compact />
           </section>
-          <section aria-labelledby="task-workflow-title" className="min-w-0 lg:border-s lg:ps-6">
+          <section
+            aria-labelledby="task-workflow-title"
+            className="min-w-0 lg:border-s lg:ps-6"
+          >
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
-                <h2 id="task-workflow-title" className="text-base font-semibold">مسار التنفيذ</h2>
-                <p className="text-sm text-muted-foreground">يتتبع موقع المهمة ضمن سير العمل الحالي.</p>
+                <h2
+                  id="task-workflow-title"
+                  className="text-base font-semibold"
+                >
+                  مسار التنفيذ
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  يتتبع موقع المهمة ضمن سير العمل الحالي.
+                </p>
               </div>
               <TaskWorkflowStepper
                 currentStatus={task.status as TaskStatus}
                 revisionCount={task.revisionCount ?? 0}
               />
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{TASK_STATUS_LABELS[task.status as TaskStatus]}</Badge>
-                <Badge variant="outline">{TASK_PRIORITY_LABELS[task.priority as TaskPriority]}</Badge>
-                {task.dueDate ? <Badge variant="outline">الاستحقاق: {formatDateTime(task.dueDate)}</Badge> : null}
+                <Badge variant="outline">
+                  {TASK_STATUS_LABELS[task.status as TaskStatus]}
+                </Badge>
+                <Badge variant="outline">
+                  {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
+                </Badge>
+                {task.dueDate ? (
+                  <Badge variant="outline">
+                    الاستحقاق: {formatDateTime(task.dueDate)}
+                  </Badge>
+                ) : null}
               </div>
             </div>
           </section>

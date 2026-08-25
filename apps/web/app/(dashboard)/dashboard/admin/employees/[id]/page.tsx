@@ -19,10 +19,37 @@ import { useGetEmployeeByIdQuery } from "@/features/finance/financeApi";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime, formatPortalDate } from "@/lib/format";
 
@@ -53,7 +80,7 @@ function getEmployeeInitials(name: string) {
 
 function EmployeeDetailLoading() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
@@ -155,7 +182,7 @@ export default function EmployeeDetailPage({
 
   if (isError || !employee) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -186,7 +213,7 @@ export default function EmployeeDetailPage({
   const title = employee.name;
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -251,15 +278,21 @@ export default function EmployeeDetailPage({
 
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-2xl font-semibold tracking-tight">{employee.name}</h2>
-                <Badge variant={employee.isActive ? "secondary" : "destructive"}>
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  {employee.name}
+                </h2>
+                <Badge
+                  variant={employee.isActive ? "secondary" : "destructive"}
+                >
                   {employee.isActive ? "نشط" : "غير نشط"}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">{employee.role}</p>
 
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{getPayTypeLabel(employee.payType)}</Badge>
+                <Badge variant="outline">
+                  {getPayTypeLabel(employee.payType)}
+                </Badge>
                 <Badge variant="outline">
                   <Wallet data-icon="inline-start" />
                   {formatCurrency(employee.baseSalary, employee.currency)}
@@ -291,7 +324,9 @@ export default function EmployeeDetailPage({
             },
             {
               label: "المستخدم المرتبط",
-              value: employee.userId ? employee.userId.slice(0, 8) : "غير مرتبط",
+              value: employee.userId
+                ? employee.userId.slice(0, 8)
+                : "غير مرتبط",
               icon: Link2,
             },
             {
@@ -303,7 +338,9 @@ export default function EmployeeDetailPage({
             <Card key={item.label}>
               <CardContent className="flex items-start justify-between gap-4 p-5">
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {item.label}
+                  </span>
                   <span className="text-lg font-semibold">{item.value}</span>
                 </div>
                 <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
@@ -354,7 +391,9 @@ export default function EmployeeDetailPage({
                 <Building2 />
                 <span>تاريخ الإنشاء</span>
               </div>
-              <p className="mt-2 text-sm">{formatPortalDate(employee.createdAt) ?? "—"}</p>
+              <p className="mt-2 text-sm">
+                {formatPortalDate(employee.createdAt) ?? "—"}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -368,29 +407,45 @@ export default function EmployeeDetailPage({
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex items-center justify-between rounded-lg border p-4">
-              <span className="text-sm text-muted-foreground">الراتب الأساسي</span>
-              <span className="font-medium">{formatCurrency(employee.baseSalary, employee.currency)}</span>
+              <span className="text-sm text-muted-foreground">
+                الراتب الأساسي
+              </span>
+              <span className="font-medium">
+                {formatCurrency(employee.baseSalary, employee.currency)}
+              </span>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
               <span className="text-sm text-muted-foreground">نوع الدفع</span>
-              <span className="font-medium">{getPayTypeLabel(employee.payType)}</span>
+              <span className="font-medium">
+                {getPayTypeLabel(employee.payType)}
+              </span>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
               <span className="text-sm text-muted-foreground">العمولة</span>
               <span className="font-medium">
-                {employee.commissionRate ? `${Math.round(employee.commissionRate * 100)}%` : "—"}
+                {employee.commissionRate
+                  ? `${Math.round(employee.commissionRate * 100)}%`
+                  : "—"}
               </span>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
-              <span className="text-sm text-muted-foreground">الأجر بالساعة</span>
+              <span className="text-sm text-muted-foreground">
+                الأجر بالساعة
+              </span>
               <span className="font-medium">
-                {employee.hourlyRate ? formatCurrency(employee.hourlyRate, employee.currency) : "—"}
+                {employee.hourlyRate
+                  ? formatCurrency(employee.hourlyRate, employee.currency)
+                  : "—"}
               </span>
             </div>
             <div className="flex items-center justify-between rounded-lg border p-4">
-              <span className="text-sm text-muted-foreground">الهدف الشهري</span>
+              <span className="text-sm text-muted-foreground">
+                الهدف الشهري
+              </span>
               <span className="font-medium">
-                {employee.monthlyTarget ? formatCurrency(employee.monthlyTarget, employee.currency) : "—"}
+                {employee.monthlyTarget
+                  ? formatCurrency(employee.monthlyTarget, employee.currency)
+                  : "—"}
               </span>
             </div>
           </CardContent>
@@ -437,14 +492,28 @@ export default function EmployeeDetailPage({
                       <TableCell>
                         {salary.month}/{salary.year}
                       </TableCell>
-                      <TableCell>{formatCurrency(salary.amount, employee.currency)}</TableCell>
-                      <TableCell>{formatCurrency(salary.baseSalary, employee.currency)}</TableCell>
                       <TableCell>
-                        <Badge variant={salary.status === "PAID" ? "secondary" : "outline"}>
-                          {salary.status === "PAID" ? "مدفوع" : salary.status === "PENDING" ? "قيد الانتظار" : salary.status}
+                        {formatCurrency(salary.amount, employee.currency)}
+                      </TableCell>
+                      <TableCell>
+                        {formatCurrency(salary.baseSalary, employee.currency)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            salary.status === "PAID" ? "secondary" : "outline"
+                          }
+                        >
+                          {salary.status === "PAID"
+                            ? "مدفوع"
+                            : salary.status === "PENDING"
+                              ? "قيد الانتظار"
+                              : salary.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{formatPortalDate(salary.paymentDate) ?? "—"}</TableCell>
+                      <TableCell>
+                        {formatPortalDate(salary.paymentDate) ?? "—"}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

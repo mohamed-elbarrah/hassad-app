@@ -13,7 +13,13 @@ import {
 } from "lucide-react";
 import { TaskPriority, TaskStatus } from "@hassad/shared";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Empty,
   EmptyContent,
@@ -24,9 +30,24 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDateTime, formatFileSize, formatNumber, formatRelativeTime } from "@/lib/format";
-import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/utils/task-status";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  formatDateTime,
+  formatFileSize,
+  formatNumber,
+  formatRelativeTime,
+} from "@/lib/format";
+import {
+  TASK_PRIORITY_LABELS,
+  TASK_STATUS_LABELS,
+} from "@/lib/utils/task-status";
 
 export interface TaskDetailEntity {
   id: string;
@@ -154,7 +175,7 @@ function EmptyPanel({
 
 export function TaskDetailLoading() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <Card>
         <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-start md:justify-between">
           <div className="flex gap-4">
@@ -239,12 +260,15 @@ export function TaskSummaryCard({
               </div>
 
               <p className="text-sm text-muted-foreground">
-                {task.description || "تفاصيل التنفيذ والمراجعة والتسليم لهذه المهمة."}
+                {task.description ||
+                  "تفاصيل التنفيذ والمراجعة والتسليم لهذه المهمة."}
               </p>
             </div>
           </div>
 
-          {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+          {actions ? (
+            <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -282,7 +306,10 @@ export function TaskStatsGrid({
     return (
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
         {stats.map((item) => (
-          <div key={item.label} className="flex min-w-0 flex-col gap-1 border-b pb-3">
+          <div
+            key={item.label}
+            className="flex min-w-0 flex-col gap-1 border-b pb-3"
+          >
             <dt className="text-xs text-muted-foreground">{item.label}</dt>
             <dd className="font-semibold tabular-nums">{item.value}</dd>
           </div>
@@ -297,9 +324,15 @@ export function TaskStatsGrid({
         <Card key={item.label}>
           <CardContent className="flex items-start justify-between gap-4 p-5">
             <div className="flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">{item.label}</span>
+              <span className="text-sm text-muted-foreground">
+                {item.label}
+              </span>
               <span className="text-lg font-semibold">{item.value}</span>
-              {item.hint ? <span className="text-sm text-muted-foreground">{item.hint}</span> : null}
+              {item.hint ? (
+                <span className="text-sm text-muted-foreground">
+                  {item.hint}
+                </span>
+              ) : null}
             </div>
             <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <item.icon />
@@ -423,7 +456,11 @@ export function TaskTabsCard({
   );
 }
 
-export function TaskHistoryTable({ history }: { history: TaskHistoryRecord[] }) {
+export function TaskHistoryTable({
+  history,
+}: {
+  history: TaskHistoryRecord[];
+}) {
   if (history.length === 0) {
     return (
       <EmptyPanel
@@ -487,7 +524,9 @@ export function TaskCommentsTable({
         {comments.map((comment) => (
           <div key={comment.id} className="rounded-lg border p-4">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-medium">{comment.userName || "مستخدم"}</span>
+              <span className="font-medium">
+                {comment.userName || "مستخدم"}
+              </span>
               <span className="text-muted-foreground">
                 {formatRelativeTime(comment.createdAt) || "—"}
               </span>
@@ -514,7 +553,9 @@ export function TaskCommentsTable({
         <TableBody>
           {comments.map((comment) => (
             <TableRow key={comment.id}>
-              <TableCell className="whitespace-pre-wrap">{comment.content}</TableCell>
+              <TableCell className="whitespace-pre-wrap">
+                {comment.content}
+              </TableCell>
               <TableCell>{comment.userName || "—"}</TableCell>
               <TableCell>{formatDateTime(comment.createdAt) || "—"}</TableCell>
             </TableRow>
@@ -545,7 +586,10 @@ export function TaskFilesTable({
     return (
       <div className="flex flex-col gap-3">
         {files.map((file) => (
-          <div key={file.id} className="flex items-start gap-3 rounded-lg border p-4">
+          <div
+            key={file.id}
+            className="flex items-start gap-3 rounded-lg border p-4"
+          >
             <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <Paperclip className="size-4" />
             </div>
@@ -556,7 +600,9 @@ export function TaskFilesTable({
                   <span>{formatFileSize(file.fileSize)}</span>
                 ) : null}
                 {file.purposeLabel ? <span>{file.purposeLabel}</span> : null}
-                {file.uploadedAt ? <span>{formatDateTime(file.uploadedAt)}</span> : null}
+                {file.uploadedAt ? (
+                  <span>{formatDateTime(file.uploadedAt)}</span>
+                ) : null}
               </div>
             </div>
           </div>
@@ -582,7 +628,9 @@ export function TaskFilesTable({
               <TableCell>{file.fileName}</TableCell>
               <TableCell>{file.purposeLabel || file.fileType || "—"}</TableCell>
               <TableCell>
-                {typeof file.fileSize === "number" ? formatFileSize(file.fileSize) : "—"}
+                {typeof file.fileSize === "number"
+                  ? formatFileSize(file.fileSize)
+                  : "—"}
               </TableCell>
               <TableCell>{formatDateTime(file.uploadedAt) || "—"}</TableCell>
             </TableRow>

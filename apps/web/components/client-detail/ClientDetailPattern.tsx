@@ -781,7 +781,7 @@ export function buildClientBusinessSections(
 
 export function ClientDetailLoading() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -1058,16 +1058,32 @@ export function ClientProfileCard({
             <div className="overflow-x-auto pb-1">
               <TabsList className="min-w-max">
                 {businessSections.map((section) => (
-                  <TabsTrigger key={section.key} value={section.key}>{section.title}</TabsTrigger>
+                  <TabsTrigger key={section.key} value={section.key}>
+                    {section.title}
+                  </TabsTrigger>
                 ))}
               </TabsList>
             </div>
             {businessSections.map((section) => (
-              <TabsContent key={section.key} value={section.key} className="mt-4">
-                <section className="flex flex-col gap-3" aria-labelledby={`business-${section.key}`}>
+              <TabsContent
+                key={section.key}
+                value={section.key}
+                className="mt-4"
+              >
+                <section
+                  className="flex flex-col gap-3"
+                  aria-labelledby={`business-${section.key}`}
+                >
                   <div>
-                    <h3 id={`business-${section.key}`} className="font-semibold">{section.title}</h3>
-                    <p className="text-sm text-muted-foreground">{section.description}</p>
+                    <h3
+                      id={`business-${section.key}`}
+                      className="font-semibold"
+                    >
+                      {section.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {section.description}
+                    </p>
                   </div>
                   {section.content}
                 </section>
@@ -1075,43 +1091,45 @@ export function ClientProfileCard({
             ))}
           </Tabs>
         ) : null}
-        {!businessOnly ? <Tabs defaultValue="personal" dir="rtl">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="personal">بيانات شخصية</TabsTrigger>
-            <TabsTrigger value="business">بيانات النشاط</TabsTrigger>
-          </TabsList>
+        {!businessOnly ? (
+          <Tabs defaultValue="personal" dir="rtl">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="personal">بيانات شخصية</TabsTrigger>
+              <TabsTrigger value="business">بيانات النشاط</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="personal" className="mt-0">
-            <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">
-                بيانات التواصل والحساب
-              </p>
-              <div className="grid gap-4 md:grid-cols-2">
-                {personalFields.map((field) => (
-                  <InfoField key={field.label} {...field} />
+            <TabsContent value="personal" className="mt-0">
+              <div className="flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">
+                  بيانات التواصل والحساب
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {personalFields.map((field) => (
+                    <InfoField key={field.label} {...field} />
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="business" className="mt-0">
+              <div className="flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">
+                  ملف النشاط والتسويق
+                </p>
+                {businessSections.map((section) => (
+                  <SectionCard
+                    key={section.key}
+                    title={section.title}
+                    description={section.description}
+                    hasContent={section.hasContent}
+                  >
+                    {section.content}
+                  </SectionCard>
                 ))}
               </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="business" className="mt-0">
-            <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">
-                ملف النشاط والتسويق
-              </p>
-              {businessSections.map((section) => (
-                <SectionCard
-                  key={section.key}
-                  title={section.title}
-                  description={section.description}
-                  hasContent={section.hasContent}
-                >
-                  {section.content}
-                </SectionCard>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs> : null}
+            </TabsContent>
+          </Tabs>
+        ) : null}
       </CardContent>
     </Card>
   );

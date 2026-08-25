@@ -46,7 +46,7 @@ export default function ClientDetailPage({
 
   if (isError || !client) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8" dir="rtl">
+      <div className="  " dir="rtl">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -89,7 +89,7 @@ export default function ClientDetailPage({
   ].filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <ClientPageHeader
         title="تفاصيل العميل"
         description="عرض إداري موحد يجمع ملف العميل والعمليات المرتبطة به في مكان واحد."
@@ -119,7 +119,9 @@ export default function ClientDetailPage({
               content: (
                 <ClientProjectsTable
                   projects={client.projects}
-                  hrefBuilder={(projectId) => `/dashboard/admin/projects/${projectId}`}
+                  hrefBuilder={(projectId) =>
+                    `/dashboard/admin/projects/${projectId}`
+                  }
                 />
               ),
             },
@@ -130,7 +132,9 @@ export default function ClientDetailPage({
               content: (
                 <ClientContractsTable
                   contracts={client.contracts}
-                  hrefBuilder={(contractId) => `/dashboard/admin/contracts/${contractId}`}
+                  hrefBuilder={(contractId) =>
+                    `/dashboard/admin/contracts/${contractId}`
+                  }
                 />
               ),
             },
@@ -155,7 +159,9 @@ export default function ClientDetailPage({
                     createdAt: proposal.createdAt,
                   }))}
                   loading={proposalsLoading}
-                  hrefBuilder={(proposalId) => `/dashboard/admin/proposals/${proposalId}`}
+                  hrefBuilder={(proposalId) =>
+                    `/dashboard/admin/proposals/${proposalId}`
+                  }
                 />
               ),
             },

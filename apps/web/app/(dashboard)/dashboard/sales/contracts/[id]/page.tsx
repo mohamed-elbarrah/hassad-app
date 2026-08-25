@@ -46,7 +46,7 @@ export default function SalesContractDetailPage({
 
   if (isError || !contract) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>

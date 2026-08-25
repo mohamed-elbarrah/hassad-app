@@ -4,7 +4,10 @@ import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { useGetAdminProposalByIdQuery } from "@/features/admin/adminProposalsApi";
-import { ProposalDetailLoading, ProposalDetailView } from "@/components/proposal-detail/ProposalDetailPattern";
+import {
+  ProposalDetailLoading,
+  ProposalDetailView,
+} from "@/components/proposal-detail/ProposalDetailPattern";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -22,13 +25,17 @@ export default function AdminProposalDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: proposal, isLoading, isError } = useGetAdminProposalByIdQuery(id);
+  const {
+    data: proposal,
+    isLoading,
+    isError,
+  } = useGetAdminProposalByIdQuery(id);
 
   if (isLoading) return <ProposalDetailLoading />;
 
   if (isError || !proposal) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -37,7 +44,9 @@ export default function AdminProposalDetailPage({
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>العرض غير موجود</EmptyTitle>
-                <EmptyDescription>لم نتمكن من العثور على بيانات هذا العرض.</EmptyDescription>
+                <EmptyDescription>
+                  لم نتمكن من العثور على بيانات هذا العرض.
+                </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <Button asChild>
@@ -63,17 +72,23 @@ export default function AdminProposalDetailPage({
         <div className="flex flex-wrap gap-2">
           {proposal.client ? (
             <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/admin/clients/${proposal.client.id}`}>ملف العميل</Link>
+              <Link href={`/dashboard/admin/clients/${proposal.client.id}`}>
+                ملف العميل
+              </Link>
             </Button>
           ) : null}
           {proposal.request ? (
             <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/admin/requests/${proposal.request.id}`}>الطلب المرتبط</Link>
+              <Link href={`/dashboard/admin/requests/${proposal.request.id}`}>
+                الطلب المرتبط
+              </Link>
             </Button>
           ) : null}
           {proposal.contract ? (
             <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/admin/contracts/${proposal.contract.id}`}>العقد الناتج</Link>
+              <Link href={`/dashboard/admin/contracts/${proposal.contract.id}`}>
+                العقد الناتج
+              </Link>
             </Button>
           ) : null}
         </div>

@@ -1,10 +1,23 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function Loading() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
@@ -17,13 +30,26 @@ export default function Loading() {
       </Card>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index}><CardContent className="flex items-start justify-between gap-4 p-6"><div className="flex flex-col gap-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-8 w-16" /><Skeleton className="h-4 w-32" /></div><Skeleton className="size-10 rounded-lg" /></CardContent></Card>
+          <Card key={index}>
+            <CardContent className="flex items-start justify-between gap-4 p-6">
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="size-10 rounded-lg" />
+            </CardContent>
+          </Card>
         ))}
       </div>
       <Card>
         <CardHeader className="gap-2">
-          <CardTitle><Skeleton className="h-6 w-36" /></CardTitle>
-          <CardDescription><Skeleton className="h-4 w-72" /></CardDescription>
+          <CardTitle>
+            <Skeleton className="h-6 w-36" />
+          </CardTitle>
+          <CardDescription>
+            <Skeleton className="h-4 w-72" />
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_160px]">
@@ -34,8 +60,26 @@ export default function Loading() {
           </div>
           <div className="overflow-hidden rounded-lg border">
             <Table>
-              <TableHeader><TableRow>{Array.from({ length: 8 }).map((_, index) => <TableHead key={index}><Skeleton className="h-4 w-full" /></TableHead>)}</TableRow></TableHeader>
-              <TableBody>{Array.from({ length: 6 }).map((_, row) => <TableRow key={row}>{Array.from({ length: 8 }).map((_, cell) => <TableCell key={cell}><Skeleton className="h-5 w-full" /></TableCell>)}</TableRow>)}</TableBody>
+              <TableHeader>
+                <TableRow>
+                  {Array.from({ length: 8 }).map((_, index) => (
+                    <TableHead key={index}>
+                      <Skeleton className="h-4 w-full" />
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 6 }).map((_, row) => (
+                  <TableRow key={row}>
+                    {Array.from({ length: 8 }).map((_, cell) => (
+                      <TableCell key={cell}>
+                        <Skeleton className="h-5 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
             </Table>
           </div>
         </CardContent>

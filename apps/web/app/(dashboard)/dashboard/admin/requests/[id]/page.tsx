@@ -6,8 +6,16 @@ import { ArrowLeft, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import type { RequestStatus } from "@hassad/shared";
 import { salesWorkflowErrorMessage } from "@/lib/i18n";
-import { useAddRequestContactLogMutation, useGetRequestByIdQuery, useUpdateRequestStatusMutation, type CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
-import { RequestDetailLoading, RequestDetailView } from "@/components/request-detail/RequestDetailPattern";
+import {
+  useAddRequestContactLogMutation,
+  useGetRequestByIdQuery,
+  useUpdateRequestStatusMutation,
+  type CreateRequestContactLogPayload,
+} from "@/features/requests/requestsApi";
+import {
+  RequestDetailLoading,
+  RequestDetailView,
+} from "@/components/request-detail/RequestDetailPattern";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -26,8 +34,10 @@ export default function AdminRequestDetailPage({
 }) {
   const { id } = use(params);
   const { data: request, isLoading, isError } = useGetRequestByIdQuery(id);
-  const [updateStatus, { isLoading: isUpdatingStage }] = useUpdateRequestStatusMutation();
-  const [addContactLog, { isLoading: isAddingContactLog }] = useAddRequestContactLogMutation();
+  const [updateStatus, { isLoading: isUpdatingStage }] =
+    useUpdateRequestStatusMutation();
+  const [addContactLog, { isLoading: isAddingContactLog }] =
+    useAddRequestContactLogMutation();
 
   if (isLoading) {
     return <RequestDetailLoading />;
@@ -35,7 +45,7 @@ export default function AdminRequestDetailPage({
 
   if (isError || !request) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8" dir="rtl">
+      <div className="  " dir="rtl">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -45,7 +55,8 @@ export default function AdminRequestDetailPage({
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل تفاصيل السجل</EmptyTitle>
                 <EmptyDescription>
-                  لم نتمكن من العثور على بيانات هذا العميل المحتمل من مسار الطلبات.
+                  لم نتمكن من العثور على بيانات هذا العميل المحتمل من مسار
+                  الطلبات.
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>

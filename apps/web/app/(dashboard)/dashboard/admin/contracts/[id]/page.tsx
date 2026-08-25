@@ -4,7 +4,11 @@ import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft, FileClock } from "lucide-react";
 import { useGetAdminContractByIdQuery } from "@/features/admin/adminContractsApi";
-import { ContractClientBillingArea, ContractDetailLoading, ContractDetailView } from "@/components/contract-detail/ContractDetailPattern";
+import {
+  ContractClientBillingArea,
+  ContractDetailLoading,
+  ContractDetailView,
+} from "@/components/contract-detail/ContractDetailPattern";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -23,13 +27,17 @@ export default function AdminContractDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: contract, isLoading, isError } = useGetAdminContractByIdQuery(id);
+  const {
+    data: contract,
+    isLoading,
+    isError,
+  } = useGetAdminContractByIdQuery(id);
 
   if (isLoading) return <ContractDetailLoading />;
 
   if (isError || !contract) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -38,7 +46,9 @@ export default function AdminContractDetailPage({
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>العقد غير موجود</EmptyTitle>
-                <EmptyDescription>لم نتمكن من العثور على بيانات هذا العقد.</EmptyDescription>
+                <EmptyDescription>
+                  لم نتمكن من العثور على بيانات هذا العقد.
+                </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <Button asChild>
@@ -63,7 +73,10 @@ export default function AdminContractDetailPage({
       fileUrl={contract.filePath ? buildPortalFileUrl(contract.filePath) : null}
       billingArea={
         <ContractClientBillingArea
-          services={(contract.servicesList as Array<{ name: string; price: number }>) ?? []}
+          services={
+            (contract.servicesList as Array<{ name: string; price: number }>) ??
+            []
+          }
           totalValue={contract.totalValue}
           invoices={contract.invoices}
           canPay={false}
@@ -72,11 +85,15 @@ export default function AdminContractDetailPage({
       actions={
         <>
           <Button asChild variant="outline" size="sm">
-            <Link href={`/dashboard/admin/clients/${contract.clientId}`}>ملف العميل</Link>
+            <Link href={`/dashboard/admin/clients/${contract.clientId}`}>
+              ملف العميل
+            </Link>
           </Button>
           {contract.project ? (
             <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/admin/projects/${contract.project.id}`}>المشروع</Link>
+              <Link href={`/dashboard/admin/projects/${contract.project.id}`}>
+                المشروع
+              </Link>
             </Button>
           ) : null}
         </>

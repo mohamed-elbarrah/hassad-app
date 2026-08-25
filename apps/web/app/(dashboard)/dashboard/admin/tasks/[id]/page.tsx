@@ -2,7 +2,15 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock3, FileText, FolderKanban, MessageSquare, Paperclip, SquareCheckBig } from "lucide-react";
+import {
+  ArrowLeft,
+  Clock3,
+  FileText,
+  FolderKanban,
+  MessageSquare,
+  Paperclip,
+  SquareCheckBig,
+} from "lucide-react";
 import { useGetAdminTaskByIdQuery } from "@/features/admin/adminTasksApi";
 import {
   buildTaskLifecycleFields,
@@ -86,7 +94,7 @@ export default function TaskDetailPage({
 
   if (isError || !task) {
     return (
-      <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+      <div className="flex flex-col gap-6   " dir="rtl">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -206,7 +214,9 @@ export default function TaskDetailPage({
               <div className="flex flex-col gap-2">
                 <span className="text-sm text-muted-foreground">الحالة</span>
                 <span className="text-lg font-semibold">{stats[0].value}</span>
-                <span className="text-sm text-muted-foreground">{stats[0].hint}</span>
+                <span className="text-sm text-muted-foreground">
+                  {stats[0].hint}
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <SquareCheckBig />
@@ -218,7 +228,9 @@ export default function TaskDetailPage({
               <div className="flex flex-col gap-2">
                 <span className="text-sm text-muted-foreground">الأولوية</span>
                 <span className="text-lg font-semibold">{stats[1].value}</span>
-                <span className="text-sm text-muted-foreground">{stats[1].hint}</span>
+                <span className="text-sm text-muted-foreground">
+                  {stats[1].hint}
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <Clock3 />
@@ -229,8 +241,12 @@ export default function TaskDetailPage({
             <CardContent className="flex items-start justify-between gap-4 p-5">
               <div className="flex flex-col gap-2">
                 <span className="text-sm text-muted-foreground">الملفات</span>
-                <span className="text-lg font-semibold">{task.files.length}</span>
-                <span className="text-sm text-muted-foreground">ملفات مرتبطة</span>
+                <span className="text-lg font-semibold">
+                  {task.files.length}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  ملفات مرتبطة
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <Paperclip />
@@ -241,8 +257,12 @@ export default function TaskDetailPage({
             <CardContent className="flex items-start justify-between gap-4 p-5">
               <div className="flex flex-col gap-2">
                 <span className="text-sm text-muted-foreground">التعليقات</span>
-                <span className="text-lg font-semibold">{task.comments.length}</span>
-                <span className="text-sm text-muted-foreground">نقاشات موثقة</span>
+                <span className="text-lg font-semibold">
+                  {task.comments.length}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  نقاشات موثقة
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <MessageSquare />
@@ -259,7 +279,7 @@ export default function TaskDetailPage({
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

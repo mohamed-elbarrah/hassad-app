@@ -57,7 +57,7 @@ export default function SalesProposalDetailPage({
       errorStatus === 403 || errorCode === "PERMISSION_DENIED";
 
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>

@@ -18,7 +18,7 @@ function MetricSkeleton() {
 
 export function OverviewLoading() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div className="flex flex-col gap-6   ">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-col gap-3">
           <Skeleton className="h-4 w-48" />

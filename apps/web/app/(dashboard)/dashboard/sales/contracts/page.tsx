@@ -138,7 +138,7 @@ function renewalLabel(endDate: string) {
 
 function LoadingState() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <div className="flex flex-col gap-3">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-9 w-56" />
@@ -388,7 +388,7 @@ export default function SalesContractsPage() {
 
   if (isError) {
     return (
-      <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <div dir="rtl" className="flex flex-col gap-6   ">
         <PageHeader title="عقود المبيعات" icon={FileClock} />
         <Card>
           <CardContent className="p-8">
@@ -424,7 +424,7 @@ export default function SalesContractsPage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <PageHeader
         title="عقود المبيعات"
         description="متابعة العقود المرسلة والموقعة والفعالة مع الوصول السريع إلى العميل والعرض المرتبط."

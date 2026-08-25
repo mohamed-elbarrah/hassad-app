@@ -63,7 +63,7 @@ export default function SalesRequestDetailPage({
 
   if (isError || !request) {
     return (
-      <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+      <div className="flex flex-col gap-6   " dir="rtl">
         <PageHeader title="تفاصيل طلب المبيعات" icon={ClipboardList} />
         <Card>
           <CardContent className="p-8">

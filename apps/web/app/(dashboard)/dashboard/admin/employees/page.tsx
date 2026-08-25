@@ -2,17 +2,53 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Building2, Link2, RefreshCw, Search, UserCheck, Users, Wallet } from "lucide-react";
+import {
+  ArrowUpRight,
+  Building2,
+  Link2,
+  RefreshCw,
+  Search,
+  UserCheck,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { useGetEmployeesQuery } from "@/features/finance/financeApi";
 import type { Employee } from "@hassad/shared";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -44,7 +80,7 @@ function getEmployeeInitials(name: string) {
 
 function EmployeesPageLoading() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
@@ -113,7 +149,8 @@ function EmployeesPageLoading() {
 
 export default function EmployeesPage() {
   const [search, setSearch] = useState("");
-  const { data, isLoading, isError, refetch, isFetching } = useGetEmployeesQuery();
+  const { data, isLoading, isError, refetch, isFetching } =
+    useGetEmployeesQuery();
 
   const employees = data ?? [];
 
@@ -133,11 +170,15 @@ export default function EmployeesPage() {
   const metrics = useMemo(() => {
     const total = employees.length;
     const active = employees.filter((employee) => employee.isActive).length;
-    const linked = employees.filter((employee) => Boolean(employee.userId)).length;
+    const linked = employees.filter((employee) =>
+      Boolean(employee.userId),
+    ).length;
     const avgSalary =
       total > 0
-        ? employees.reduce((sum, employee) => sum + (employee.baseSalary || 0), 0) /
-          total
+        ? employees.reduce(
+            (sum, employee) => sum + (employee.baseSalary || 0),
+            0,
+          ) / total
         : 0;
 
     return { total, active, linked, avgSalary };
@@ -149,7 +190,7 @@ export default function EmployeesPage() {
 
   if (isError) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="  ">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -163,9 +204,7 @@ export default function EmployeesPage() {
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
-                <Button onClick={() => refetch()}>
-                  إعادة المحاولة
-                </Button>
+                <Button onClick={() => refetch()}>إعادة المحاولة</Button>
               </EmptyContent>
             </Empty>
           </CardContent>
@@ -175,7 +214,7 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
@@ -201,8 +240,8 @@ export default function EmployeesPage() {
                 <div className="flex flex-col gap-1">
                   <CardTitle className="text-2xl">قائمة الموظفين</CardTitle>
                   <CardDescription>
-                    عرض جميع الموظفين المرتبطين بالنظام — العملاء غير مشمولين في هذه
-                    الصفحة.
+                    عرض جميع الموظفين المرتبطين بالنظام — العملاء غير مشمولين في
+                    هذه الصفحة.
                   </CardDescription>
                 </div>
               </div>
@@ -254,9 +293,15 @@ export default function EmployeesPage() {
           <Card key={item.label}>
             <CardContent className="flex items-start justify-between gap-4 p-6">
               <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground">{item.label}</span>
-                <span className="text-2xl font-semibold tracking-tight">{item.value}</span>
-                <span className="text-sm text-muted-foreground">{item.hint}</span>
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+                <span className="text-2xl font-semibold tracking-tight">
+                  {item.value}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {item.hint}
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <item.icon />
@@ -325,7 +370,9 @@ export default function EmployeesPage() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="size-9">
-                            <AvatarFallback>{getEmployeeInitials(employee.name)}</AvatarFallback>
+                            <AvatarFallback>
+                              {getEmployeeInitials(employee.name)}
+                            </AvatarFallback>
                           </Avatar>
                           <div className="flex min-w-0 flex-col gap-1">
                             <Link
@@ -342,26 +389,38 @@ export default function EmployeesPage() {
                       </TableCell>
                       <TableCell>{employee.role}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{getPayTypeLabel(employee.payType)}</Badge>
+                        <Badge variant="outline">
+                          {getPayTypeLabel(employee.payType)}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={employee.isActive ? "secondary" : "destructive"}
+                          variant={
+                            employee.isActive ? "secondary" : "destructive"
+                          }
                         >
                           {employee.isActive ? "نشط" : "غير نشط"}
                         </Badge>
                       </TableCell>
-                      <TableCell>{formatCurrency(employee.baseSalary, employee.currency)}</TableCell>
+                      <TableCell>
+                        {formatCurrency(employee.baseSalary, employee.currency)}
+                      </TableCell>
                       <TableCell>
                         {employee.userId ? (
-                          <span className="font-mono text-xs">{employee.userId.slice(0, 8)}…</span>
+                          <span className="font-mono text-xs">
+                            {employee.userId.slice(0, 8)}…
+                          </span>
                         ) : (
-                          <span className="text-sm text-muted-foreground">غير مرتبط</span>
+                          <span className="text-sm text-muted-foreground">
+                            غير مرتبط
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-left">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/admin/employees/${employee.id}`}>
+                          <Link
+                            href={`/dashboard/admin/employees/${employee.id}`}
+                          >
                             <ArrowUpRight data-icon="inline-start" />
                             فتح
                           </Link>

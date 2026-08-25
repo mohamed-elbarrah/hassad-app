@@ -32,7 +32,13 @@ import {
 } from "@/components/project-detail/ProjectDetailPattern";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Empty,
   EmptyContent,
@@ -41,20 +47,28 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { formatCurrency, formatDateTime, formatPortalDate, formatNumber } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDateTime,
+  formatPortalDate,
+  formatNumber,
+} from "@/lib/format";
 
 function isOverdue(date?: string | null) {
   if (!date) return false;
   return new Date(date).getTime() < Date.now();
 }
 
-function sortByDateAsc<T extends { dueDate?: string | null; scheduledAt?: string | null }>(
-  items: T[],
-  key: "dueDate" | "scheduledAt",
-) {
+function sortByDateAsc<
+  T extends { dueDate?: string | null; scheduledAt?: string | null },
+>(items: T[], key: "dueDate" | "scheduledAt") {
   return [...items].sort((a, b) => {
-    const left = a[key] ? new Date(a[key] as string).getTime() : Number.MAX_SAFE_INTEGER;
-    const right = b[key] ? new Date(b[key] as string).getTime() : Number.MAX_SAFE_INTEGER;
+    const left = a[key]
+      ? new Date(a[key] as string).getTime()
+      : Number.MAX_SAFE_INTEGER;
+    const right = b[key]
+      ? new Date(b[key] as string).getTime()
+      : Number.MAX_SAFE_INTEGER;
     return left - right;
   });
 }
@@ -73,7 +87,7 @@ export default function ProjectDetailPage({
 
   if (isError || !project) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8" dir="rtl">
+      <div className="  " dir="rtl">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -105,10 +119,17 @@ export default function ProjectDetailPage({
     (task) => task.status !== "DONE" && isOverdue(task.dueDate),
   );
   const unassignedTasks = project.tasks.filter((task) => !task.assignedTo);
-  const inReviewTasks = project.tasks.filter((task) => task.status === "IN_REVIEW");
+  const inReviewTasks = project.tasks.filter(
+    (task) => task.status === "IN_REVIEW",
+  );
   const completedTasks = project.tasks.filter((task) => task.status === "DONE");
-  const pendingInvoices = project.invoices.filter((invoice) => invoice.status !== "PAID");
-  const collectedValue = project.payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const pendingInvoices = project.invoices.filter(
+    (invoice) => invoice.status !== "PAID",
+  );
+  const collectedValue = project.payments.reduce(
+    (sum, payment) => sum + payment.amount,
+    0,
+  );
   const sortedOpenTasks = sortByDateAsc(
     project.tasks.filter((task) => task.status !== "DONE"),
     "dueDate",
@@ -122,11 +143,13 @@ export default function ProjectDetailPage({
   );
   const nextMeeting = upcomingMeetings[0];
   const completedPeriods = project.periods.filter(
-    (period) => period.status === "COMPLETED" || period.completionPercentage === 100,
+    (period) =>
+      period.status === "COMPLETED" || period.completionPercentage === 100,
   ).length;
   const tasksPreview = [...project.tasks]
     .sort((a, b) => {
-      const overdueDiff = Number(isOverdue(b.dueDate)) - Number(isOverdue(a.dueDate));
+      const overdueDiff =
+        Number(isOverdue(b.dueDate)) - Number(isOverdue(a.dueDate));
       if (overdueDiff !== 0) return overdueDiff;
       return (
         new Date(a.dueDate || "2999-12-31").getTime() -
@@ -139,25 +162,28 @@ export default function ProjectDetailPage({
     .slice(0, 5);
   const historyPreview = [...project.history]
     .sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, 6);
-  const invoicesPreview = (pendingInvoices.length > 0 ? pendingInvoices : project.invoices).slice(
-    0,
-    5,
-  );
+  const invoicesPreview = (
+    pendingInvoices.length > 0 ? pendingInvoices : project.invoices
+  ).slice(0, 5);
   const paymentsPreview = [...project.payments]
     .sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, 5);
   const filesPreview = [...project.files]
     .sort(
-      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+      (a, b) =>
+        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
     )
     .slice(0, 5);
-  const meetingsPreview = (upcomingMeetings.length > 0 ? upcomingMeetings : project.meetings)
-    .slice(0, 4);
+  const meetingsPreview = (
+    upcomingMeetings.length > 0 ? upcomingMeetings : project.meetings
+  ).slice(0, 4);
 
   const stats = buildAdminProjectStats({
     tasksCount: project.tasks.length,
@@ -183,8 +209,12 @@ export default function ProjectDetailPage({
   });
 
   const commercialFields = buildProjectCommercialFields({
-    contractValue: project.contract ? formatCurrency(project.contract.totalValue) : "—",
-    monthlyValue: formatCurrency(project.contract?.monthlyValue ?? project.monthlyValue),
+    contractValue: project.contract
+      ? formatCurrency(project.contract.totalValue)
+      : "—",
+    monthlyValue: formatCurrency(
+      project.contract?.monthlyValue ?? project.monthlyValue,
+    ),
     totalValue: formatCurrency(project.totalValue),
     collectedValue: formatCurrency(collectedValue),
     pendingInvoicesCount: `${formatNumber(pendingInvoices.length)} فاتورة`,
@@ -214,7 +244,8 @@ export default function ProjectDetailPage({
         badges={[
           <Badge key="priority" variant="outline">
             الأولوية:{" "}
-            {TASK_PRIORITY_AR[project.priority as TaskPriority] || project.priority}
+            {TASK_PRIORITY_AR[project.priority as TaskPriority] ||
+              project.priority}
           </Badge>,
           <Badge key="window" variant="outline">
             {formatPortalDate(project.startDate) || "—"} إلى{" "}
@@ -322,19 +353,27 @@ export default function ProjectDetailPage({
                   ].map((item) => (
                     <Card key={item.label}>
                       <CardContent className="flex flex-col gap-2 p-4">
-                        <span className="text-sm text-muted-foreground">{item.label}</span>
-                        <span className="text-base font-semibold">{item.value}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {item.label}
+                        </span>
+                        <span className="text-base font-semibold">
+                          {item.value}
+                        </span>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
                 <div className="grid gap-6 xl:grid-cols-2">
                   <div className="flex flex-col gap-4">
-                    <p className="text-sm text-muted-foreground">الفواتير الأهم حاليًا</p>
+                    <p className="text-sm text-muted-foreground">
+                      الفواتير الأهم حاليًا
+                    </p>
                     <ProjectInvoicesTable invoices={invoicesPreview} />
                   </div>
                   <div className="flex flex-col gap-4">
-                    <p className="text-sm text-muted-foreground">آخر الدفعات المسجلة</p>
+                    <p className="text-sm text-muted-foreground">
+                      آخر الدفعات المسجلة
+                    </p>
                     <ProjectPaymentsTable payments={paymentsPreview} />
                   </div>
                 </div>
@@ -350,7 +389,9 @@ export default function ProjectDetailPage({
                 <ProjectPreviewHeader title="ملفات العمل والاجتماعات القادمة أو الأحدث." />
                 <div className="grid gap-6 xl:grid-cols-2">
                   <div className="flex flex-col gap-4">
-                    <p className="text-sm text-muted-foreground">أحدث الملفات</p>
+                    <p className="text-sm text-muted-foreground">
+                      أحدث الملفات
+                    </p>
                     <ProjectFilesTable
                       files={filesPreview.map((file) => ({
                         id: file.id,
@@ -389,7 +430,8 @@ export default function ProjectDetailPage({
         <CardHeader className="gap-2">
           <CardTitle>قراءة إدارية سريعة</CardTitle>
           <CardDescription>
-            هذا الملخص يستبعد المعرفات الداخلية ويركز على ما يساعد في القرار والمتابعة.
+            هذا الملخص يستبعد المعرفات الداخلية ويركز على ما يساعد في القرار
+            والمتابعة.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -397,9 +439,12 @@ export default function ProjectDetailPage({
             {
               label: "حالة المشروع",
               value:
-                PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] ||
-                project.status,
-              hint: project.isArchived ? "المشروع مؤرشف حاليًا" : "المشروع داخل الدورة النشطة",
+                PROJECT_STATUS_AR[
+                  project.status as keyof typeof PROJECT_STATUS_AR
+                ] || project.status,
+              hint: project.isArchived
+                ? "المشروع مؤرشف حاليًا"
+                : "المشروع داخل الدورة النشطة",
             },
             {
               label: "تغطية الفريق",
@@ -419,14 +464,18 @@ export default function ProjectDetailPage({
             },
             {
               label: "الاجتماع القادم",
-              value: nextMeeting ? formatPortalDate(nextMeeting.scheduledAt) || "—" : "لا يوجد",
+              value: nextMeeting
+                ? formatPortalDate(nextMeeting.scheduledAt) || "—"
+                : "لا يوجد",
               hint: nextMeeting?.title || "لم يتم جدولة اجتماع جديد بعد",
             },
           ].map((item) => (
             <div key={item.label} className="rounded-lg border p-4">
               <div className="flex items-center gap-2">
                 <BadgeAlert className="size-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">{item.label}</span>
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
               </div>
               <p className="mt-3 text-base font-semibold">{item.value}</p>
               <p className="mt-2 text-sm text-muted-foreground">{item.hint}</p>

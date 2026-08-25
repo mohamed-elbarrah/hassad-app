@@ -12,9 +12,6 @@ import { TaskPriority } from "@hassad/shared";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Empty,
@@ -36,6 +33,7 @@ import { TeamTaskKanban } from "@/components/dashboard/team/TeamTaskKanban";
 import { useGetTeamOverviewQuery } from "@/features/team/teamApi";
 import { useAppSelector } from "@/lib/hooks";
 import { TASK_PRIORITY_LABELS } from "@/lib/utils/task-status";
+import { PageHeader } from "@/components/common/PageHeader";
 
 export default function TeamDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -65,20 +63,11 @@ export default function TeamDashboardPage() {
   ];
   return (
     <main dir="rtl" className="flex flex-col gap-6">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted">
-              <ClipboardList />
-            </div>
-            <div>
-              <CardTitle className="text-2xl">قائمة المهام</CardTitle>
-              <CardDescription>
-                تابع مهامك المسندة وحدّث حالتها من لوحة كانبان.
-              </CardDescription>
-            </div>
-          </div>
-          <div className="w-full lg:w-60">
+      <PageHeader
+        title="قائمة المهام"
+        description="تابع مهامك المسندة وحدّث حالتها من لوحة كانبان."
+        icon={ClipboardList}
+        actions={<div className="w-full sm:w-60">
             <Select
               value={priority}
               onValueChange={(value) =>
@@ -101,9 +90,8 @@ export default function TeamDashboardPage() {
                 </SelectGroup>
               </SelectContent>
             </Select>
-          </div>
-        </CardHeader>
-      </Card>
+          </div>}
+      />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statsLoading
           ? Array.from({ length: 4 }).map((_, index) => (

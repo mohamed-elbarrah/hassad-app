@@ -14,11 +14,7 @@ import {
   Mail,
   Search,
 } from "lucide-react";
-import {
-  InvoiceStatus,
-  PAYMENT_METHOD_AR,
-  type Invoice,
-} from "@hassad/shared";
+import { InvoiceStatus, PAYMENT_METHOD_AR, type Invoice } from "@hassad/shared";
 import {
   useGetInvoiceByIdQuery,
   useGetInvoicesQuery,
@@ -27,7 +23,13 @@ import {
 } from "@/features/finance/financeApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Drawer,
   DrawerContent,
@@ -36,9 +38,21 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -49,7 +63,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { daysUntil, formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
+import {
+  daysUntil,
+  formatCurrency,
+  formatDateTime,
+  formatNumber,
+} from "@/lib/format";
 
 const INVOICE_STATUS_AR: Record<string, string> = {
   DUE: "مستحقة",
@@ -61,7 +80,10 @@ const INVOICE_STATUS_AR: Record<string, string> = {
   CANCELLED: "ملغاة",
 };
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const STATUS_VARIANT: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   PAID: "secondary",
   PARTIAL: "outline",
   SENT: "outline",
@@ -170,7 +192,7 @@ function MetricCard({
 
 function InvoicesPageLoading() {
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader>
           <Skeleton className="h-8 w-64" />
@@ -196,20 +218,19 @@ export default function AdminFinanceInvoicesPage() {
   const [search, setSearch] = useState("");
   const [statusTab, setStatusTab] = useState("ALL");
   const [paymentMethod, setPaymentMethod] = useState("ALL");
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(
+    null,
+  );
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-  } = useGetInvoicesQuery({
+  const { data, isLoading, isError, refetch } = useGetInvoicesQuery({
     limit: 100,
     status: statusTab === "ALL" ? undefined : (statusTab as InvoiceStatus),
   });
 
-  const [sendInvoice, { isLoading: isSendingInvoice }] = useSendInvoiceMutation();
-  const [sendReminder, { isLoading: isSendingReminder }] = useSendInvoiceReminderMutation();
+  const [sendInvoice, { isLoading: isSendingInvoice }] =
+    useSendInvoiceMutation();
+  const [sendReminder, { isLoading: isSendingReminder }] =
+    useSendInvoiceReminderMutation();
 
   const invoices = useMemo(() => data?.items ?? [], [data?.items]);
   const filteredInvoices = useMemo(() => {
@@ -233,21 +254,26 @@ export default function AdminFinanceInvoicesPage() {
     });
   }, [invoices, paymentMethod, search]);
 
-  const selectedInvoiceSummary = filteredInvoices.find((item) => item.id === selectedInvoiceId);
-  const selectedInvoiceFallback = invoices.find((item) => item.id === selectedInvoiceId);
+  const selectedInvoiceSummary = filteredInvoices.find(
+    (item) => item.id === selectedInvoiceId,
+  );
+  const selectedInvoiceFallback = invoices.find(
+    (item) => item.id === selectedInvoiceId,
+  );
   const selectedInvoiceBase = selectedInvoiceSummary || selectedInvoiceFallback;
 
-  const {
-    data: selectedInvoiceDetail,
-    isFetching: isInvoiceDetailLoading,
-  } = useGetInvoiceByIdQuery(selectedInvoiceId || "", {
-    skip: !selectedInvoiceId,
-  });
+  const { data: selectedInvoiceDetail, isFetching: isInvoiceDetailLoading } =
+    useGetInvoiceByIdQuery(selectedInvoiceId || "", {
+      skip: !selectedInvoiceId,
+    });
 
   const selectedInvoice = selectedInvoiceDetail || selectedInvoiceBase || null;
 
   const metrics = useMemo(() => {
-    const totalAmount = filteredInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+    const totalAmount = filteredInvoices.reduce(
+      (sum, invoice) => sum + invoice.amount,
+      0,
+    );
     const collectedAmount = filteredInvoices.reduce(
       (sum, invoice) => sum + getPaidAmount(invoice),
       0,
@@ -256,11 +282,16 @@ export default function AdminFinanceInvoicesPage() {
       (sum, invoice) => sum + getRemainingAmount(invoice),
       0,
     );
-    const overdue = filteredInvoices.filter((invoice) => getInvoiceRisk(invoice).tone === "danger");
+    const overdue = filteredInvoices.filter(
+      (invoice) => getInvoiceRisk(invoice).tone === "danger",
+    );
     const unpaid = filteredInvoices.filter((invoice) =>
-      [InvoiceStatus.DUE, InvoiceStatus.LATE, InvoiceStatus.PARTIAL, InvoiceStatus.SENT].includes(
-        invoice.status,
-      ),
+      [
+        InvoiceStatus.DUE,
+        InvoiceStatus.LATE,
+        InvoiceStatus.PARTIAL,
+        InvoiceStatus.SENT,
+      ].includes(invoice.status),
     );
 
     return {
@@ -268,7 +299,10 @@ export default function AdminFinanceInvoicesPage() {
       collectedAmount,
       remainingAmount,
       overdueCount: overdue.length,
-      overdueAmount: overdue.reduce((sum, invoice) => sum + getRemainingAmount(invoice), 0),
+      overdueAmount: overdue.reduce(
+        (sum, invoice) => sum + getRemainingAmount(invoice),
+        0,
+      ),
       unpaidCount: unpaid.length,
       collectionRate:
         totalAmount > 0 ? Math.round((collectedAmount / totalAmount) * 100) : 0,
@@ -288,7 +322,7 @@ export default function AdminFinanceInvoicesPage() {
   if (isLoading) return <InvoicesPageLoading />;
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <div dir="rtl" className="flex flex-col gap-6   ">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-3">
@@ -298,7 +332,8 @@ export default function AdminFinanceInvoicesPage() {
             <div className="space-y-1">
               <CardTitle className="text-2xl">فواتير العملاء</CardTitle>
               <CardDescription>
-                لوحة متابعة للتحصيل، المخاطر، وربط الفاتورة بالعميل والعقد من دون مغادرة الصفحة.
+                لوحة متابعة للتحصيل، المخاطر، وربط الفاتورة بالعميل والعقد من
+                دون مغادرة الصفحة.
               </CardDescription>
             </div>
           </div>
@@ -384,7 +419,9 @@ export default function AdminFinanceInvoicesPage() {
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل الفواتير</EmptyTitle>
-                <EmptyDescription>حاول تحديث الصفحة أو إعادة المحاولة.</EmptyDescription>
+                <EmptyDescription>
+                  حاول تحديث الصفحة أو إعادة المحاولة.
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : filteredInvoices.length === 0 ? (
@@ -394,7 +431,9 @@ export default function AdminFinanceInvoicesPage() {
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>لا توجد فواتير مطابقة</EmptyTitle>
-                <EmptyDescription>غيّر البحث أو الفلاتر لعرض بيانات أكثر.</EmptyDescription>
+                <EmptyDescription>
+                  غيّر البحث أو الفلاتر لعرض بيانات أكثر.
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
@@ -421,9 +460,12 @@ export default function AdminFinanceInvoicesPage() {
                       <TableRow key={invoice.id}>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            <span className="font-semibold">{invoice.invoiceNumber}</span>
+                            <span className="font-semibold">
+                              {invoice.invoiceNumber}
+                            </span>
                             <span className="text-xs text-muted-foreground">
-                              {PAYMENT_METHOD_AR[invoice.paymentMethod] || invoice.paymentMethod}
+                              {PAYMENT_METHOD_AR[invoice.paymentMethod] ||
+                                invoice.paymentMethod}
                             </span>
                           </div>
                         </TableCell>
@@ -431,7 +473,9 @@ export default function AdminFinanceInvoicesPage() {
                           <div className="flex flex-col gap-1">
                             <span>{invoice.client?.companyName || "—"}</span>
                             <span className="text-xs text-muted-foreground">
-                              {invoice.client?.name || invoice.client?.email || "بدون جهة اتصال"}
+                              {invoice.client?.name ||
+                                invoice.client?.email ||
+                                "بدون جهة اتصال"}
                             </span>
                           </div>
                         </TableCell>
@@ -440,7 +484,9 @@ export default function AdminFinanceInvoicesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            <span className="font-medium">{formatCurrency(paid)}</span>
+                            <span className="font-medium">
+                              {formatCurrency(paid)}
+                            </span>
                             <span className="text-xs text-muted-foreground">
                               متبقي {formatCurrency(remaining)}
                             </span>
@@ -474,7 +520,10 @@ export default function AdminFinanceInvoicesPage() {
         </CardContent>
       </Card>
 
-      <Drawer open={!!selectedInvoiceId} onOpenChange={(open) => !open && setSelectedInvoiceId(null)}>
+      <Drawer
+        open={!!selectedInvoiceId}
+        onOpenChange={(open) => !open && setSelectedInvoiceId(null)}
+      >
         <DrawerContent>
           <DrawerHeader className="border-b pb-4 text-right">
             <DrawerTitle>
@@ -496,8 +545,12 @@ export default function AdminFinanceInvoicesPage() {
               <Card>
                 <CardContent className="grid gap-4 p-5 md:grid-cols-3">
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">إجمالي الفاتورة</p>
-                    <p className="text-xl font-semibold">{formatCurrency(selectedInvoice.amount)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      إجمالي الفاتورة
+                    </p>
+                    <p className="text-xl font-semibold">
+                      {formatCurrency(selectedInvoice.amount)}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">تم تحصيله</p>
@@ -521,10 +574,20 @@ export default function AdminFinanceInvoicesPage() {
                   </CardHeader>
                   <CardContent className="grid gap-4 md:grid-cols-2">
                     {[
-                      ["الحالة", INVOICE_STATUS_AR[selectedInvoice.status] || selectedInvoice.status],
+                      [
+                        "الحالة",
+                        INVOICE_STATUS_AR[selectedInvoice.status] ||
+                          selectedInvoice.status,
+                      ],
                       ["مخاطرة التحصيل", getInvoiceRisk(selectedInvoice).label],
-                      ["تاريخ الإصدار", formatDateTime(selectedInvoice.issueDate)],
-                      ["تاريخ الاستحقاق", formatDateTime(selectedInvoice.dueDate)],
+                      [
+                        "تاريخ الإصدار",
+                        formatDateTime(selectedInvoice.issueDate),
+                      ],
+                      [
+                        "تاريخ الاستحقاق",
+                        formatDateTime(selectedInvoice.dueDate),
+                      ],
                       ["أُرسلت في", formatDateTime(selectedInvoice.sentAt)],
                       ["تم السداد في", formatDateTime(selectedInvoice.paidAt)],
                       ["المرجع", selectedInvoice.paymentReference || "—"],
@@ -553,11 +616,15 @@ export default function AdminFinanceInvoicesPage() {
                         {selectedInvoice.client?.companyName || "—"}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {selectedInvoice.client?.email || selectedInvoice.client?.phone || "بدون بيانات إضافية"}
+                        {selectedInvoice.client?.email ||
+                          selectedInvoice.client?.phone ||
+                          "بدون بيانات إضافية"}
                       </p>
                     </div>
                     <div className="rounded-lg border p-4">
-                      <p className="text-sm text-muted-foreground">العقد المرتبط</p>
+                      <p className="text-sm text-muted-foreground">
+                        العقد المرتبط
+                      </p>
                       <p className="mt-2 font-medium">
                         {selectedInvoice.contract?.title || "بدون عقد مرتبط"}
                       </p>
@@ -581,7 +648,8 @@ export default function AdminFinanceInvoicesPage() {
                 <CardHeader className="gap-2">
                   <CardTitle className="text-lg">سجل المدفوعات</CardTitle>
                   <CardDescription>
-                    يساعدك هذا السجل على معرفة ما إذا كانت الفاتورة تحتاج تذكير أو متابعة مباشرة.
+                    يساعدك هذا السجل على معرفة ما إذا كانت الفاتورة تحتاج تذكير
+                    أو متابعة مباشرة.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -603,16 +671,30 @@ export default function AdminFinanceInvoicesPage() {
                               <TableCell className="font-mono text-xs">
                                 {String(payment.id).slice(0, 8)}
                               </TableCell>
-                              <TableCell>{formatCurrency(payment.amount, payment.currency)}</TableCell>
                               <TableCell>
-                                {PAYMENT_METHOD_AR[payment.method] || payment.method}
+                                {formatCurrency(
+                                  payment.amount,
+                                  payment.currency,
+                                )}
                               </TableCell>
                               <TableCell>
-                                <Badge variant={payment.status === "SUCCESS" ? "secondary" : "outline"}>
+                                {PAYMENT_METHOD_AR[payment.method] ||
+                                  payment.method}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    payment.status === "SUCCESS"
+                                      ? "secondary"
+                                      : "outline"
+                                  }
+                                >
                                   {payment.status}
                                 </Badge>
                               </TableCell>
-                              <TableCell>{formatDateTime(payment.date)}</TableCell>
+                              <TableCell>
+                                {formatDateTime(payment.date)}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -625,7 +707,9 @@ export default function AdminFinanceInvoicesPage() {
                       </EmptyMedia>
                       <EmptyHeader>
                         <EmptyTitle>لا توجد مدفوعات بعد</EmptyTitle>
-                        <EmptyDescription>هذه الفاتورة ما زالت تحتاج متابعة تحصيل.</EmptyDescription>
+                        <EmptyDescription>
+                          هذه الفاتورة ما زالت تحتاج متابعة تحصيل.
+                        </EmptyDescription>
                       </EmptyHeader>
                     </Empty>
                   )}
@@ -640,23 +724,37 @@ export default function AdminFinanceInvoicesPage() {
                 <Button
                   variant="outline"
                   disabled={!selectedInvoice || isSendingInvoice}
-                  onClick={() => selectedInvoice && handleSendInvoice(selectedInvoice.id)}
+                  onClick={() =>
+                    selectedInvoice && handleSendInvoice(selectedInvoice.id)
+                  }
                 >
-                  {isSendingInvoice ? <Loader2 className="animate-spin" /> : <Mail />}
+                  {isSendingInvoice ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Mail />
+                  )}
                   إعادة الإرسال
                 </Button>
                 <Button
                   variant="outline"
                   disabled={!selectedInvoice || isSendingReminder}
-                  onClick={() => selectedInvoice && handleSendReminder(selectedInvoice.id)}
+                  onClick={() =>
+                    selectedInvoice && handleSendReminder(selectedInvoice.id)
+                  }
                 >
-                  {isSendingReminder ? <Loader2 className="animate-spin" /> : <BellRing />}
+                  {isSendingReminder ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <BellRing />
+                  )}
                   إرسال تذكير
                 </Button>
               </div>
               {selectedInvoice ? (
                 <Button asChild>
-                  <Link href={`/dashboard/admin/finance/invoices/${selectedInvoice.id}`}>
+                  <Link
+                    href={`/dashboard/admin/finance/invoices/${selectedInvoice.id}`}
+                  >
                     <ArrowUpRight />
                     فتح الصفحة الكاملة
                   </Link>

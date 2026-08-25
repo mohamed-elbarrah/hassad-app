@@ -28,7 +28,13 @@ import type {
 } from "@/features/requests/requestsApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RequestContactLogDialog } from "@/components/request-detail/RequestContactLogDialog";
 import {
@@ -38,11 +44,30 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatCurrency, formatDateTime, formatNumber, formatRelativeTime } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDateTime,
+  formatNumber,
+  formatRelativeTime,
+} from "@/lib/format";
 
 type DetailMode = "admin" | "sales";
 
@@ -147,7 +172,7 @@ function InfoField({
 
 export function RequestDetailLoading() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <Card>
         <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-start md:justify-between">
           <div className="flex gap-4">
@@ -228,12 +253,18 @@ function RelatedRecords({
               <Users />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium">{request.client.companyName}</span>
-              <span className="text-xs text-muted-foreground">تم ربط السجل بعميل</span>
+              <span className="text-sm font-medium">
+                {request.client.companyName}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                تم ربط السجل بعميل
+              </span>
             </div>
           </div>
           <Button asChild size="sm" variant="outline">
-            <Link href={`/dashboard/${mode === "admin" ? "admin" : "sales"}/clients/${request.client.id}`}>
+            <Link
+              href={`/dashboard/${mode === "admin" ? "admin" : "sales"}/clients/${request.client.id}`}
+            >
               فتح ملف العميل
             </Link>
           </Button>
@@ -241,7 +272,10 @@ function RelatedRecords({
       ) : null}
 
       {request.proposals.map((proposal) => (
-        <div key={proposal.id} className="flex items-center justify-between rounded-lg border p-4">
+        <div
+          key={proposal.id}
+          className="flex items-center justify-between rounded-lg border p-4"
+        >
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <FileText />
@@ -249,15 +283,21 @@ function RelatedRecords({
             <div className="flex flex-col gap-1">
               <span className="text-sm font-medium">{proposal.title}</span>
               <span className="text-xs text-muted-foreground">
-                {proposal.totalPrice ? formatCurrency(proposal.totalPrice) : formatDateTime(proposal.createdAt)}
+                {proposal.totalPrice
+                  ? formatCurrency(proposal.totalPrice)
+                  : formatDateTime(proposal.createdAt)}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={statusVariant(proposal.status)}>{proposal.status}</Badge>
+            <Badge variant={statusVariant(proposal.status)}>
+              {proposal.status}
+            </Badge>
             {mode === "admin" ? (
               <Button asChild size="sm" variant="outline">
-                <Link href={`/dashboard/admin/proposals/${proposal.id}`}>فتح</Link>
+                <Link href={`/dashboard/admin/proposals/${proposal.id}`}>
+                  فتح
+                </Link>
               </Button>
             ) : null}
           </div>
@@ -265,7 +305,10 @@ function RelatedRecords({
       ))}
 
       {request.contracts.map((contract) => (
-        <div key={contract.id} className="flex items-center justify-between rounded-lg border p-4">
+        <div
+          key={contract.id}
+          className="flex items-center justify-between rounded-lg border p-4"
+        >
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <FileSignature />
@@ -273,14 +316,20 @@ function RelatedRecords({
             <div className="flex flex-col gap-1">
               <span className="text-sm font-medium">{contract.title}</span>
               <span className="text-xs text-muted-foreground">
-                {contract.totalValue ? formatCurrency(contract.totalValue) : formatDateTime(contract.createdAt)}
+                {contract.totalValue
+                  ? formatCurrency(contract.totalValue)
+                  : formatDateTime(contract.createdAt)}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={statusVariant(contract.status)}>{contract.status}</Badge>
+            <Badge variant={statusVariant(contract.status)}>
+              {contract.status}
+            </Badge>
             <Button asChild size="sm" variant="outline">
-              <Link href={`/dashboard/${mode === "admin" ? "admin" : "sales"}/contracts/${contract.id}`}>
+              <Link
+                href={`/dashboard/${mode === "admin" ? "admin" : "sales"}/contracts/${contract.id}`}
+              >
                 فتح
               </Link>
             </Button>
@@ -295,15 +344,23 @@ function RelatedRecords({
               <FolderKanban />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium">{request.project.name}</span>
-              <span className="text-xs text-muted-foreground">{formatDateTime(request.project.createdAt)}</span>
+              <span className="text-sm font-medium">
+                {request.project.name}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {formatDateTime(request.project.createdAt)}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={statusVariant(request.project.status)}>{request.project.status}</Badge>
+            <Badge variant={statusVariant(request.project.status)}>
+              {request.project.status}
+            </Badge>
             {mode === "admin" ? (
               <Button asChild size="sm" variant="outline">
-                <Link href={`/dashboard/admin/projects/${request.project.id}`}>فتح</Link>
+                <Link href={`/dashboard/admin/projects/${request.project.id}`}>
+                  فتح
+                </Link>
               </Button>
             ) : null}
           </div>
@@ -313,11 +370,7 @@ function RelatedRecords({
   );
 }
 
-function ContactLogsTable({
-  logs,
-}: {
-  logs: RequestContactLogItem[];
-}) {
+function ContactLogsTable({ logs }: { logs: RequestContactLogItem[] }) {
   if (logs.length === 0) {
     return (
       <EmptyPanel
@@ -342,7 +395,9 @@ function ContactLogsTable({
         <TableBody>
           {logs.map((log) => (
             <TableRow key={log.id}>
-              <TableCell>{CONTACT_LOG_TYPE_LABELS[log.type] || log.type}</TableCell>
+              <TableCell>
+                {CONTACT_LOG_TYPE_LABELS[log.type] || log.type}
+              </TableCell>
               <TableCell>
                 <Badge variant={logResultVariant(log.result)}>
                   {CONTACT_LOG_RESULT_LABELS[log.result] || log.result}
@@ -391,14 +446,17 @@ function StatusHistoryTable({
           {[...entries]
             .sort(
               (left, right) =>
-                new Date(right.changedAt).getTime() - new Date(left.changedAt).getTime(),
+                new Date(right.changedAt).getTime() -
+                new Date(left.changedAt).getTime(),
             )
             .map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell>
                   {entry.fromStatus ? REQUEST_STATUS_AR[entry.fromStatus] : "—"}
                 </TableCell>
-                <TableCell>{REQUEST_STATUS_AR[entry.toStatus] || entry.toStatus}</TableCell>
+                <TableCell>
+                  {REQUEST_STATUS_AR[entry.toStatus] || entry.toStatus}
+                </TableCell>
                 <TableCell>{formatDateTime(entry.changedAt)}</TableCell>
                 <TableCell>{entry.changer?.name || "—"}</TableCell>
                 <TableCell className="max-w-[320px] truncate">
@@ -441,7 +499,9 @@ export function RequestDetailView({
   const proposals = request.proposals ?? [];
   const contracts = request.contracts ?? [];
   const calls = contactLogs.filter((log) => log.type === ContactLogType.CALL);
-  const meetings = contactLogs.filter((log) => log.type === ContactLogType.MEETING);
+  const meetings = contactLogs.filter(
+    (log) => log.type === ContactLogType.MEETING,
+  );
   const sourceLabel = CLIENT_SOURCE_AR[request.source] || request.source;
   const businessTypeLabel =
     BUSINESS_TYPE_AR[request.businessType] || request.businessType;
@@ -449,13 +509,23 @@ export function RequestDetailView({
 
   const primaryFields = [
     { label: "اسم جهة الاتصال", value: request.contactName || "—" },
-    { label: "الهاتف / واتساب", value: request.phoneWhatsapp || "—", dir: "ltr" as const },
-    { label: "البريد الإلكتروني", value: request.email || "—", dir: "ltr" as const },
+    {
+      label: "الهاتف / واتساب",
+      value: request.phoneWhatsapp || "—",
+      dir: "ltr" as const,
+    },
+    {
+      label: "البريد الإلكتروني",
+      value: request.email || "—",
+      dir: "ltr" as const,
+    },
     { label: "المسؤول الحالي", value: request.assignee?.name || "غير محدد" },
     { label: "تاريخ إنشاء السجل", value: formatDateTime(request.createdAt) },
     {
       label: "آخر تواصل",
-      value: request.lastContactAt ? formatDateTime(request.lastContactAt) : "لا يوجد",
+      value: request.lastContactAt
+        ? formatDateTime(request.lastContactAt)
+        : "لا يوجد",
     },
   ];
 
@@ -469,7 +539,7 @@ export function RequestDetailView({
   ];
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <div className="flex flex-col gap-6   " dir="rtl">
       <Card>
         <CardContent className="flex flex-col gap-5 p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
@@ -483,11 +553,15 @@ export function RequestDetailView({
                   <h2 className="truncate text-2xl font-semibold tracking-tight">
                     {request.companyName}
                   </h2>
-                  <Badge variant={statusVariant(request.status)}>{stageLabel}</Badge>
+                  <Badge variant={statusVariant(request.status)}>
+                    {stageLabel}
+                  </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   جهة الاتصال: {request.contactName || "—"}
-                  {request.businessName ? ` • النشاط: ${request.businessName}` : ""}
+                  {request.businessName
+                    ? ` • النشاط: ${request.businessName}`
+                    : ""}
                 </p>
               </div>
             </div>
@@ -498,7 +572,9 @@ export function RequestDetailView({
               </Button>
               {request.client ? (
                 <Button asChild variant="outline">
-                  <Link href={`/dashboard/${mode === "admin" ? "admin" : "sales"}/clients/${request.client.id}`}>
+                  <Link
+                    href={`/dashboard/${mode === "admin" ? "admin" : "sales"}/clients/${request.client.id}`}
+                  >
                     فتح ملف العميل
                   </Link>
                 </Button>
@@ -513,11 +589,21 @@ export function RequestDetailView({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">الخدمات: {formatNumber(services.length)}</Badge>
-            <Badge variant="outline">محاولات التواصل: {formatNumber(request.contactAttemptCount)}</Badge>
-            <Badge variant="outline">المكالمات: {formatNumber(calls.length)}</Badge>
-            <Badge variant="outline">الاجتماعات: {formatNumber(meetings.length)}</Badge>
-            <Badge variant="outline">آخر نشاط: {formatRelativeTime(request.updatedAt)}</Badge>
+            <Badge variant="outline">
+              الخدمات: {formatNumber(services.length)}
+            </Badge>
+            <Badge variant="outline">
+              محاولات التواصل: {formatNumber(request.contactAttemptCount)}
+            </Badge>
+            <Badge variant="outline">
+              المكالمات: {formatNumber(calls.length)}
+            </Badge>
+            <Badge variant="outline">
+              الاجتماعات: {formatNumber(meetings.length)}
+            </Badge>
+            <Badge variant="outline">
+              آخر نشاط: {formatRelativeTime(request.updatedAt)}
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -556,9 +642,13 @@ export function RequestDetailView({
           <Card key={item.label}>
             <CardContent className="flex items-start justify-between gap-4 p-5">
               <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground">{item.label}</span>
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
                 <span className="text-lg font-semibold">{item.value}</span>
-                <span className="text-sm text-muted-foreground">{item.hint}</span>
+                <span className="text-sm text-muted-foreground">
+                  {item.hint}
+                </span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <item.icon />
@@ -573,7 +663,8 @@ export function RequestDetailView({
           <CardHeader className="gap-2">
             <CardTitle>ملف العميل المحتمل</CardTitle>
             <CardDescription>
-              البيانات الأساسية التي يعتمد عليها الفريق قبل الانتقال إلى العرض والعقد.
+              البيانات الأساسية التي يعتمد عليها الفريق قبل الانتقال إلى العرض
+              والعقد.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
@@ -622,7 +713,9 @@ export function RequestDetailView({
                 <Label htmlFor="request-stage">تحديث الحالة</Label>
                 <Select
                   value={request.status}
-                  onValueChange={(value) => onStageChange(value as RequestStatus)}
+                  onValueChange={(value) =>
+                    onStageChange(value as RequestStatus)
+                  }
                   disabled={isUpdatingStage}
                 >
                   <SelectTrigger id="request-stage">
@@ -644,12 +737,17 @@ export function RequestDetailView({
             {REQUEST_STAGE_ORDER.map((status) => {
               const isCurrent = status === request.status;
               return (
-                <div key={status} className="flex items-center justify-between rounded-lg border p-3">
+                <div
+                  key={status}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
                   <div className="flex items-center gap-3">
                     <div className="flex size-8 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground">
                       {REQUEST_STAGE_ORDER.indexOf(status) + 1}
                     </div>
-                    <span className="text-sm font-medium">{REQUEST_STATUS_AR[status]}</span>
+                    <span className="text-sm font-medium">
+                      {REQUEST_STATUS_AR[status]}
+                    </span>
                   </div>
                   <Badge variant={isCurrent ? "default" : "outline"}>
                     {isCurrent ? "الآن" : "—"}
@@ -671,12 +769,20 @@ export function RequestDetailView({
         <CardContent>
           <Tabs defaultValue="activity" className="flex flex-col gap-4">
             <TabsList className="h-auto w-full justify-start">
-              <TabsTrigger value="activity">كل النشاط ({formatNumber(contactLogs.length)})</TabsTrigger>
-              <TabsTrigger value="calls">المكالمات ({formatNumber(calls.length)})</TabsTrigger>
-              <TabsTrigger value="meetings">الاجتماعات ({formatNumber(meetings.length)})</TabsTrigger>
+              <TabsTrigger value="activity">
+                كل النشاط ({formatNumber(contactLogs.length)})
+              </TabsTrigger>
+              <TabsTrigger value="calls">
+                المكالمات ({formatNumber(calls.length)})
+              </TabsTrigger>
+              <TabsTrigger value="meetings">
+                الاجتماعات ({formatNumber(meetings.length)})
+              </TabsTrigger>
               <TabsTrigger value="workflow">الربط والتحويل</TabsTrigger>
               <TabsTrigger value="services">الخدمات</TabsTrigger>
-              <TabsTrigger value="history">سجل الحالة ({formatNumber(statusHistory.length)})</TabsTrigger>
+              <TabsTrigger value="history">
+                سجل الحالة ({formatNumber(statusHistory.length)})
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="activity" className="mt-0">
@@ -727,7 +833,9 @@ export function RequestDetailView({
                           <TableCell className="font-medium">
                             {service.service.nameAr || service.service.name}
                           </TableCell>
-                          <TableCell>{formatNumber(service.quantity)}</TableCell>
+                          <TableCell>
+                            {formatNumber(service.quantity)}
+                          </TableCell>
                           <TableCell className="max-w-[320px] truncate">
                             {service.notes?.trim() || "—"}
                           </TableCell>
