@@ -110,6 +110,7 @@ export function KanbanBoard<T extends { id: string }>({
   canDropItem,
   onInvalidDrop,
   renderLoadingSkeleton,
+  stagePagination,
 }: KanbanBoardProps<T>) {
   const [activeItem, setActiveItem] = useState<T | null>(null);
 
@@ -235,6 +236,7 @@ export function KanbanBoard<T extends { id: string }>({
                 canDragItem,
                 activeItem,
                 canDropItem,
+                stagePagination,
               )
             : renderFlatLayout(
                 config,
@@ -243,6 +245,7 @@ export function KanbanBoard<T extends { id: string }>({
                 canDragItem,
                 activeItem,
                 canDropItem,
+                stagePagination,
               )}
         </div>
         <ScrollBar orientation="horizontal" />
@@ -268,6 +271,7 @@ function renderGroupedLayout<T extends { id: string }>(
   canDragItem?: (item: T) => boolean,
   activeItem: T | null = null,
   canDropItem?: (item: T, destinationStage: string) => boolean,
+  stagePagination?: KanbanBoardProps<T>["stagePagination"],
 ) {
   return config.groups.map((group) => {
     const groupCount = group.stages.reduce(
@@ -287,6 +291,7 @@ function renderGroupedLayout<T extends { id: string }>(
             canDragItem={canDragItem}
             activeItem={activeItem}
             canDropItem={canDropItem}
+            stagePagination={stagePagination?.[stage]}
           />
         ))}
       </KanbanGroup>
@@ -303,6 +308,7 @@ function renderFlatLayout<T extends { id: string }>(
   canDragItem?: (item: T) => boolean,
   activeItem: T | null = null,
   canDropItem?: (item: T, destinationStage: string) => boolean,
+  stagePagination?: KanbanBoardProps<T>["stagePagination"],
 ) {
   return config.stageOrder.map((stage) => (
     <KanbanStandaloneColumn
@@ -314,6 +320,7 @@ function renderFlatLayout<T extends { id: string }>(
       canDragItem={canDragItem}
       activeItem={activeItem}
       canDropItem={canDropItem}
+      stagePagination={stagePagination?.[stage]}
     />
   ));
 }

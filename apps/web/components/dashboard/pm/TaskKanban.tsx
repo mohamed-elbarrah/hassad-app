@@ -39,6 +39,27 @@ interface TaskKanbanProps {
   view?: "kanban" | "table";
 }
 
+function useTaskStagePage(status: TaskStatus, projectId: string, periodId: string | undefined, enabled: boolean) {
+  const [page, setPage] = useState(1);
+  const [items, setItems] = useState<TaskWithMeta[]>([]);
+  const query = useGetPmTasksQuery({ projectId, periodId, status, page, limit: 10 }, { skip: !enabled });
+
+  useEffect(() => { setPage(1); setItems([]); }, [status, projectId, periodId]);
+  useEffect(() => {
+    if (!enabled || !query.data || query.data.meta.page !== page) return;
+    setItems((current) => {
+      const seen = new Set(current.map((item) => item.id));
+      return [...current, ...query.data.items.filter((item) => !seen.has(item.id))] as TaskWithMeta[];
+    });
+  }, [enabled, page, query.data]);
+
+  return {
+    items, isLoading: query.isLoading, isFetching: query.isFetching, isError: query.isError,
+    hasMore: page < (query.data?.meta.totalPages ?? 1),
+    onLoadMore: () => { if (!query.isFetching && page < (query.data?.meta.totalPages ?? 1)) setPage((current) => current + 1); },
+  };
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanProps) {
@@ -46,14 +67,26 @@ export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanP
   useEffect(() => {
     setPage(1);
   }, [projectId, periodId]);
-  const {
-    data: tasks,
-    isLoading,
-    isError,
-  } = useGetPmTasksQuery({ projectId, periodId, page, limit: 24 });
+  const tableQuery = useGetPmTasksQuery({ projectId, periodId, page, limit: 24 }, { skip: view !== "table" });
+  const stageQueries = [
+    useTaskStagePage(TaskStatus.TODO, projectId, periodId, view === "kanban"),
+    useTaskStagePage(TaskStatus.IN_PROGRESS, projectId, periodId, view === "kanban"),
+    useTaskStagePage(TaskStatus.IN_REVIEW, projectId, periodId, view === "kanban"),
+    useTaskStagePage(TaskStatus.REVISION, projectId, periodId, view === "kanban"),
+    useTaskStagePage(TaskStatus.DONE, projectId, periodId, view === "kanban"),
+  ];
+  const tasks = tableQuery.data;
+  const isLoading = view === "table" ? tableQuery.isLoading : stageQueries.some((query) => query.isLoading);
+  const isError = view === "table" ? tableQuery.isError : stageQueries.some((query) => query.isError);
+  const typedTasks = view === "table" ? ((tasks?.items ?? []) as TaskWithMeta[]) : stageQueries.flatMap((query) => query.items);
+  const stagePagination = Object.fromEntries(
+    TASK_STATUS_CONFIG.stageOrder.map((stage, index) => [stage, {
+      hasMore: stageQueries[index].hasMore,
+      isLoading: stageQueries[index].isFetching,
+      onLoadMore: stageQueries[index].onLoadMore,
+    }]),
+  );
   const [changeTaskStatus] = useChangePmTaskStatusMutation();
-
-  const typedTasks = (tasks?.items ?? []) as TaskWithMeta[];
 
   // ── Drag end handler (state machine) ─────────────────────────────────
   const handleDragEnd = useCallback(
@@ -169,14 +202,8 @@ export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanP
       isError={isError}
       errorMessage="حدث خطأ أثناء تحميل المهام"
       emptyMessage="لا توجد مهام — ابدأ بإضافة مهمة جديدة لهذا المشروع"
+      stagePagination={stagePagination}
       />
-      {(tasks?.meta.totalPages ?? 1) > 1 ? (
-        <div className="flex items-center justify-center gap-3">
-          <Button variant="outline" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>السابق</Button>
-          <span className="text-sm text-muted-foreground">صفحة {page} من {tasks?.meta.totalPages}</span>
-          <Button variant="outline" disabled={page >= (tasks?.meta.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>التالي</Button>
-        </div>
-      ) : null}
     </div>
   );
 }

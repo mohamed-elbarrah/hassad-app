@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ProjectStatus } from "@hassad/shared";
 import {
   useGetPmProjectsQuery,
+  type PmProjectCard,
   useUpdatePmProjectStatusMutation,
 } from "@/features/projects/projectsApi";
 import { KanbanBoard } from "@/components/dashboard/kanban";
-import { Button } from "@/components/ui/button";
 import { PROJECT_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/project-status";
 import { ProjectKanbanCardContent } from "@/components/dashboard/kanban/cards/ProjectKanbanCardContent";
 import { projectErrorMessage } from "@/lib/i18n";
@@ -21,21 +21,45 @@ interface ProjectKanbanBoardProps {
   status?: ProjectStatus;
 }
 
+function useProjectStagePage(stage: ProjectStatus, search: string | undefined, enabled: boolean) {
+  const [page, setPage] = useState(1);
+  const [items, setItems] = useState<PmProjectCard[]>([]);
+  const query = useGetPmProjectsQuery({ search, status: stage, page, limit: 10 }, { pollingInterval: 30_000, skip: !enabled });
+  useEffect(() => { setPage(1); setItems([]); }, [stage, search]);
+  useEffect(() => {
+    if (!enabled || !query.data || query.data.meta.page !== page) return;
+    setItems((current) => {
+      const seen = new Set(current.map((item) => item.id));
+      return [...current, ...query.data.items.filter((item) => !seen.has(item.id))];
+    });
+  }, [enabled, page, query.data]);
+  return {
+    items, isLoading: query.isLoading, isFetching: query.isFetching, isError: query.isError,
+    hasMore: page < (query.data?.meta.totalPages ?? 1),
+    onLoadMore: () => { if (!query.isFetching && page < (query.data?.meta.totalPages ?? 1)) setPage((current) => current + 1); },
+  };
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function ProjectKanbanBoard({
   search,
-  status,
+  status: _status,
 }: ProjectKanbanBoardProps) {
   const [updateProjectStatus] = useUpdatePmProjectStatusMutation();
-  const [page, setPage] = useState(1);
-
-  const { data, isLoading, isError } = useGetPmProjectsQuery(
-    { search, status, page, limit: 24 },
-    { pollingInterval: 30_000 },
-  );
-
-  const projects: ProjectWithMeta[] = (data?.items ?? [])
+  const stageQueries = [
+    useProjectStagePage(ProjectStatus.PLANNING, search, !_status || _status === ProjectStatus.PLANNING),
+    useProjectStagePage(ProjectStatus.PENDING_ACTIVATION, search, !_status || _status === ProjectStatus.PENDING_ACTIVATION),
+    useProjectStagePage(ProjectStatus.ACTIVE, search, !_status || _status === ProjectStatus.ACTIVE),
+    useProjectStagePage(ProjectStatus.ON_HOLD, search, !_status || _status === ProjectStatus.ON_HOLD),
+    useProjectStagePage(ProjectStatus.AWAITING_REVIEW, search, !_status || _status === ProjectStatus.AWAITING_REVIEW),
+    useProjectStagePage(ProjectStatus.NEEDS_REVISION, search, !_status || _status === ProjectStatus.NEEDS_REVISION),
+    useProjectStagePage(ProjectStatus.COMPLETED, search, !_status || _status === ProjectStatus.COMPLETED),
+    useProjectStagePage(ProjectStatus.CANCELLED, search, !_status || _status === ProjectStatus.CANCELLED),
+  ];
+  const isLoading = stageQueries.some((query) => query.isLoading);
+  const isError = stageQueries.some((query) => query.isError);
+  const projects: ProjectWithMeta[] = stageQueries.flatMap((query) => query.items)
     .map((project) =>
       ({
         id: project.id,
@@ -90,18 +114,14 @@ export function ProjectKanbanBoard({
       isError={isError}
       errorMessage="حدث خطأ أثناء تحميل المشاريع"
       emptyMessage="لا توجد مشاريع حالياً — ستظهر المشاريع الجديدة تلقائياً بعد توقيع العقود"
+      stagePagination={Object.fromEntries(
+        PROJECT_STATUS_CONFIG.stageOrder.map((stage, index) => [stage, {
+          hasMore: stageQueries[index].hasMore,
+          isLoading: stageQueries[index].isFetching,
+          onLoadMore: stageQueries[index].onLoadMore,
+        }]),
+      )}
       />
-      {(data?.meta?.totalPages ?? 1) > 1 ? (
-        <div className="flex items-center justify-center gap-3">
-          <Button variant="outline" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
-            السابق
-          </Button>
-          <span className="text-sm text-muted-foreground">صفحة {page} من {data?.meta?.totalPages}</span>
-          <Button variant="outline" disabled={page >= (data?.meta?.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>
-            التالي
-          </Button>
-        </div>
-      ) : null}
     </div>
   );
 }

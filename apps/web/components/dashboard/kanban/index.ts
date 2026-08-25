@@ -27,4 +27,5 @@ export type {
   KanbanStageConfig,
   KanbanGroupConfig,
   KanbanBoardProps,
+  KanbanStagePagination,
 } from "./types";

@@ -1,10 +1,11 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import type { KanbanConfig } from "./types";
+import type { KanbanConfig, KanbanStagePagination } from "./types";
 import { KanbanCard } from "./KanbanCard";
 
 interface KanbanColumnProps<T extends { id: string }> {
@@ -15,6 +16,7 @@ interface KanbanColumnProps<T extends { id: string }> {
   canDragItem?: (item: T) => boolean;
   activeItem: T | null;
   canDropItem?: (item: T, destinationStage: string) => boolean;
+  stagePagination?: KanbanStagePagination;
 }
 
 /**
@@ -31,8 +33,15 @@ export function KanbanColumn<T extends { id: string }>({
   canDragItem,
   activeItem,
   canDropItem,
+  stagePagination,
 }: KanbanColumnProps<T>) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const { setNodeRef, isOver } = useDroppable({ id: stage });
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content || !stagePagination?.hasMore || stagePagination.isLoading) return;
+    if (content.scrollHeight <= content.clientHeight) stagePagination.onLoadMore();
+  }, [items.length, stagePagination]);
   const isDropAllowed =
     !activeItem || !canDropItem || canDropItem(activeItem, stage);
   const stageConfig = config.stages[stage];
@@ -80,6 +89,15 @@ export function KanbanColumn<T extends { id: string }>({
       </div>
 
       <CardContent
+        ref={contentRef}
+        aria-busy={stagePagination?.isLoading || undefined}
+        onScroll={(event) => {
+          if (!stagePagination?.hasMore || stagePagination.isLoading) return;
+          const target = event.currentTarget;
+          if (target.scrollHeight - target.scrollTop - target.clientHeight < 80) {
+            stagePagination.onLoadMore();
+          }
+        }}
         className={cn(
           "flex min-h-14 max-h-[calc(100vh-18rem)] flex-col gap-2 overflow-y-auto p-1.5",
           stageConfig.surfaceClass,

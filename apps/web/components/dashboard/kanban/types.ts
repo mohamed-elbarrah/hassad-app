@@ -49,6 +49,12 @@ export interface KanbanConfig {
 
 // ─── Board component props ───────────────────────────────────────────────────
 
+export interface KanbanStagePagination {
+  hasMore: boolean;
+  isLoading: boolean;
+  onLoadMore: () => void;
+}
+
 export interface KanbanBoardProps<T extends { id: string }> {
   /** Stage/group configuration */
   config: KanbanConfig;
@@ -87,4 +93,6 @@ export interface KanbanBoardProps<T extends { id: string }> {
 
   // ── Optional render overrides ─────────────────────────────────────────
   renderLoadingSkeleton?: () => React.ReactNode;
+  /** Independent pagination state for each stage (columns auto-load on scroll). */
+  stagePagination?: Record<string, KanbanStagePagination>;
 }
