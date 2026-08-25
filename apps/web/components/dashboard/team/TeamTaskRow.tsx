@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Pill } from "@/components/design-system/Pill";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Card } from "@/components/ui/card";
+import { formatShortDate } from "@/lib/format";
 import { Archive, ArchiveRestore } from "lucide-react";
 import { TaskStatus, TaskPriority, TaskDepartment } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
@@ -59,13 +60,7 @@ export function TeamTaskRow({ task, onArchive, isArchiving }: TaskRowProps) {
     task.status !== TaskStatus.DONE &&
     new Date(task.dueDate) < new Date();
 
-  const dueDateFormatted = task.dueDate
-    ? new Intl.DateTimeFormat("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }).format(new Date(task.dueDate))
-    : null;
+  const dueDateFormatted = task.dueDate ? formatShortDate(task.dueDate) : null;
 
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow">
@@ -79,7 +74,7 @@ export function TeamTaskRow({ task, onArchive, isArchiving }: TaskRowProps) {
             {task.title}
           </Link>
           {task.project && (
-            <p className="text-xs text-neutral-300 mt-0.5 line-clamp-1">
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
               {task.project.name}
             </p>
           )}
@@ -103,7 +98,7 @@ export function TeamTaskRow({ task, onArchive, isArchiving }: TaskRowProps) {
         {dueDateFormatted && (
           <p
             className={`text-xs shrink-0 ${
-              isOverdue ? "text-danger-500 font-medium" : "text-neutral-300"
+              isOverdue ? "text-destructive font-medium" : "text-muted-foreground"
             }`}
           >
             {dueDateFormatted}

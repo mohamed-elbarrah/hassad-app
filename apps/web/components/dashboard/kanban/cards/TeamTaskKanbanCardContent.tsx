@@ -4,13 +4,14 @@ import Link from "next/link";
 import { GripVertical, Lock } from "lucide-react";
 import { TaskStatus } from "@hassad/shared";
 import { TASK_PRIORITY_LABELS } from "@/lib/utils/task-status";
-import type { TaskWithProject } from "@/features/tasks/tasksApi";
+import type { TeamTaskCard } from "@/features/team/teamApi";
+import { formatShortDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface TeamTaskKanbanCardContentProps {
-  task: TaskWithProject;
+  task: TeamTaskCard;
   canDrag?: boolean;
 }
 
@@ -29,12 +30,7 @@ export function TeamTaskKanbanCardContent({
     task.status !== TaskStatus.DONE &&
     new Date(task.dueDate) < new Date();
 
-  const dueDateFormatted = task.dueDate
-    ? new Intl.DateTimeFormat("ar-SA-u-nu-latn", {
-        day: "numeric",
-        month: "short",
-      }).format(new Date(task.dueDate))
-    : null;
+  const dueDateFormatted = task.dueDate ? formatShortDate(task.dueDate) : null;
 
   return (
     <>

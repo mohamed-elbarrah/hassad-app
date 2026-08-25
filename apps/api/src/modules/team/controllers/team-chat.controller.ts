@@ -76,7 +76,7 @@ export class TeamChatController {
       otherUserId,
     );
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw new NotFoundException({ code: "TEAM_DIRECT_CONVERSATION_UNAVAILABLE", details: {} });
     }
     return conversation;
   }
@@ -163,7 +163,7 @@ export class TeamChatController {
     );
 
     if (!conversation) {
-      throw new NotFoundException("Could not create direct conversation");
+      throw new NotFoundException({ code: "TEAM_DIRECT_CONVERSATION_UNAVAILABLE", details: {} });
     }
 
     const attachments =

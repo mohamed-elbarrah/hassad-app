@@ -102,6 +102,15 @@ import {
   useLazyGetPmTaskFileDownloadQuery,
   type TaskWithProject,
 } from "@/features/tasks/tasksApi";
+import {
+  useGetTeamTaskQuery,
+  useGetTeamTaskCommentsQuery,
+  useGetTeamTaskFilesQuery,
+  useAddTeamTaskCommentMutation,
+  useUploadTeamTaskFileMutation,
+  useChangeTeamTaskStatusMutation,
+  useLazyGetTeamTaskFileDownloadQuery,
+} from "@/features/team/teamApi";
 
 const FILE_PURPOSE_LABELS: Record<FilePurpose, string> = {
   [FilePurpose.DELIVERABLE]: "تسليم نهائي",
@@ -142,6 +151,7 @@ interface TaskWorkspaceDetailProps {
   includeMarketingExtras?: boolean;
   canManageMarketingExtras?: boolean;
   pmOwned?: boolean;
+  teamOwned?: boolean;
 }
 
 function mapTaskEntity(task: WorkspaceTask): TaskDetailEntity {
@@ -266,6 +276,7 @@ export function TaskWorkspaceDetail({
   includeMarketingExtras = false,
   canManageMarketingExtras = false,
   pmOwned = false,
+  teamOwned = false,
 }: TaskWorkspaceDetailProps) {
   const { user } = useAppSelector((state) => state.auth);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -277,27 +288,28 @@ export function TaskWorkspaceDetail({
     enabled: includeMarketingExtras,
   });
 
-  const genericTaskQuery = useGetTaskByIdQuery(taskId, { skip: pmOwned });
+  const genericTaskQuery = useGetTaskByIdQuery(taskId, { skip: pmOwned || teamOwned });
   const pmTaskQuery = useGetPmTaskByIdQuery(taskId, { skip: !pmOwned });
-  const genericFilesQuery = useGetTaskFilesQuery(taskId, { skip: pmOwned });
+  const teamTaskQuery = useGetTeamTaskQuery(taskId, { skip: !teamOwned });
+  const genericFilesQuery = useGetTaskFilesQuery(taskId, { skip: pmOwned || teamOwned });
   const pmFilesQuery = useGetPmTaskFilesQuery(taskId, { skip: !pmOwned });
-  const genericCommentsQuery = useGetTaskCommentsQuery(taskId, { skip: pmOwned });
+  const teamFilesQuery = useGetTeamTaskFilesQuery({ id: taskId, page: 1, limit: 25 }, { skip: !teamOwned });
+  const genericCommentsQuery = useGetTaskCommentsQuery(taskId, { skip: pmOwned || teamOwned });
   const pmCommentsQuery = useGetPmTaskCommentsQuery(taskId, { skip: !pmOwned });
-  const task = (pmTaskQuery.data ?? genericTaskQuery.data) as
-    | WorkspaceTask
-    | undefined;
-  const files = pmFilesQuery.data ?? genericFilesQuery.data;
-  const comments = pmCommentsQuery.data ?? genericCommentsQuery.data;
-  const isLoading = pmOwned ? pmTaskQuery.isLoading : genericTaskQuery.isLoading;
-  const isError = pmOwned ? pmTaskQuery.isError : genericTaskQuery.isError;
-  const filesLoading = pmOwned ? pmFilesQuery.isLoading : genericFilesQuery.isLoading;
-  const filesError = pmOwned ? pmFilesQuery.error : genericFilesQuery.error;
-  const commentsLoading = pmOwned ? pmCommentsQuery.isLoading : genericCommentsQuery.isLoading;
-  const commentsError = pmOwned ? pmCommentsQuery.error : genericCommentsQuery.error;
+  const teamCommentsQuery = useGetTeamTaskCommentsQuery({ id: taskId, page: 1, limit: 25 }, { skip: !teamOwned });
+  const task = (pmTaskQuery.data ?? teamTaskQuery.data ?? genericTaskQuery.data) as WorkspaceTask | undefined;
+  const files = pmFilesQuery.data ?? teamFilesQuery.data?.items ?? genericFilesQuery.data;
+  const comments = pmCommentsQuery.data ?? teamCommentsQuery.data?.items ?? genericCommentsQuery.data;
+  const isLoading = pmOwned ? pmTaskQuery.isLoading : teamOwned ? teamTaskQuery.isLoading : genericTaskQuery.isLoading;
+  const isError = pmOwned ? pmTaskQuery.isError : teamOwned ? teamTaskQuery.isError : genericTaskQuery.isError;
+  const filesLoading = pmOwned ? pmFilesQuery.isLoading : teamOwned ? teamFilesQuery.isLoading : genericFilesQuery.isLoading;
+  const filesError = pmOwned ? pmFilesQuery.error : teamOwned ? teamFilesQuery.error : genericFilesQuery.error;
+  const commentsLoading = pmOwned ? pmCommentsQuery.isLoading : teamOwned ? teamCommentsQuery.isLoading : genericCommentsQuery.isLoading;
+  const commentsError = pmOwned ? pmCommentsQuery.error : teamOwned ? teamCommentsQuery.error : genericCommentsQuery.error;
 
   const clientId = task?.project?.clientId ?? "";
   const { data: genericTeamView } = useGetClientTeamViewQuery(clientId, {
-    skip: !clientId || pmOwned,
+    skip: !clientId || pmOwned || teamOwned,
   });
   const { data: pmTeamView } = useGetPmClientTeamViewQuery(clientId, {
     skip: !clientId || !pmOwned,
@@ -306,6 +318,7 @@ export function TaskWorkspaceDetail({
 
   const [startTask] = useStartTaskMutation();
   const [changePmTaskStatus] = useChangePmTaskStatusMutation();
+  const [changeTeamTaskStatus] = useChangeTeamTaskStatusMutation();
   const [submitTask] = useSubmitTaskMutation();
   const [approveTask] = useApproveTaskMutation();
   const [rejectTask] = useRejectTaskMutation();
@@ -313,13 +326,16 @@ export function TaskWorkspaceDetail({
   const [deleteFile, { isLoading: isDeletingGenericFile }] = useDeleteTaskFileMutation();
   const [deletePmFile, { isLoading: isDeletingPmFile }] = useDeletePmTaskFileMutation();
   const [addComment, { isLoading: isAddingGenericComment }] = useAddTaskCommentMutation();
+  const [addTeamComment, { isLoading: isAddingTeamComment }] = useAddTeamTaskCommentMutation();
   const [addPmComment, { isLoading: isAddingPmComment }] = useAddPmTaskCommentMutation();
   const [uploadPmFile, { isLoading: isUploadingPmFile }] = useUploadPmTaskFileMutation();
+  const [uploadTeamFile, { isLoading: isUploadingTeamFile }] = useUploadTeamTaskFileMutation();
   const [getPmFileDownload] = useLazyGetPmTaskFileDownloadQuery();
-  const isUploading = isUploadingGeneric || isUploadingPmFile;
+  const [getTeamFileDownload] = useLazyGetTeamTaskFileDownloadQuery();
+  const isUploading = isUploadingGeneric || isUploadingPmFile || isUploadingTeamFile;
   const isDeletingFile = isDeletingGenericFile || isDeletingPmFile;
-  const isAddingComment = isAddingGenericComment || isAddingPmComment;
-  const taskError = pmOwned ? pmTaskQuery.error : genericTaskQuery.error;
+  const isAddingComment = isAddingGenericComment || isAddingPmComment || isAddingTeamComment;
+  const taskError = pmOwned ? pmTaskQuery.error : teamOwned ? teamTaskQuery.error : genericTaskQuery.error;
 
   if (!user) return null;
   if (isLoading) return <TaskDetailLoading />;
@@ -355,7 +371,15 @@ export function TaskWorkspaceDetail({
 
   async function runStatusAction(action: "start" | "submit" | "approve" | "reject") {
     try {
-      if (pmOwned) {
+      if (teamOwned) {
+        const statusByAction = {
+          start: TaskStatus.IN_PROGRESS,
+          submit: TaskStatus.IN_REVIEW,
+          approve: TaskStatus.DONE,
+          reject: TaskStatus.REVISION,
+        } as const;
+        await changeTeamTaskStatus({ id: taskId, status: statusByAction[action] }).unwrap();
+      } else if (pmOwned) {
         const statusByAction = {
           start: TaskStatus.IN_PROGRESS,
           submit: TaskStatus.IN_REVIEW,
@@ -382,7 +406,9 @@ export function TaskWorkspaceDetail({
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      if (pmOwned) {
+      if (teamOwned) {
+        await uploadTeamFile({ taskId, file, purpose: filePurpose }).unwrap();
+      } else if (pmOwned) {
         await uploadPmFile({ taskId, file, purpose: filePurpose }).unwrap();
       } else {
         await uploadFile({ taskId, file, purpose: filePurpose }).unwrap();
@@ -412,7 +438,9 @@ export function TaskWorkspaceDetail({
     const value = commentText.trim();
     if (!value) return;
     try {
-      if (pmOwned) {
+      if (teamOwned) {
+        await addTeamComment({ taskId, content: value }).unwrap();
+      } else if (pmOwned) {
         await addPmComment({ taskId, content: value }).unwrap();
       } else {
         await addComment({ taskId, content: value }).unwrap();
@@ -685,7 +713,10 @@ export function TaskWorkspaceDetail({
                         size="sm"
                         onClick={async () => {
                           try {
-                            if (pmOwned) {
+                            if (teamOwned) {
+                              const result = await getTeamFileDownload({ taskId, fileId: file.id }).unwrap();
+                              window.open(result.url, "_blank", "noopener,noreferrer");
+                            } else if (pmOwned) {
                               const result = await getPmFileDownload({
                                 taskId,
                                 fileId: file.id,
@@ -702,15 +733,17 @@ export function TaskWorkspaceDetail({
                         <Download data-icon="inline-start" />
                         تحميل
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteFile(file.id)}
-                        disabled={isDeletingFile}
-                      >
-                        <X data-icon="inline-start" />
-                        حذف
-                      </Button>
+                      {!teamOwned ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteFile(file.id)}
+                          disabled={isDeletingFile}
+                        >
+                          <X data-icon="inline-start" />
+                          حذف
+                        </Button>
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>

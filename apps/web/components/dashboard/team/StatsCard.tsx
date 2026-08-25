@@ -10,10 +10,10 @@ const VARIANT_CLASSES: Record<
   NonNullable<StatsCardProps["variant"]>,
   string
 > = {
-  default: "text-natural-100",
-  warning: "text-alert-600",
-  success: "text-success-600",
-  destructive: "text-danger-500",
+  default: "text-foreground",
+  warning: "text-warning",
+  success: "text-success",
+  destructive: "text-destructive",
 };
 
 export function StatsCard({

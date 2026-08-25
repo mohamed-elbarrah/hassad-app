@@ -9,6 +9,7 @@ import { clientsApi } from "@/features/clients/clientsApi";
 import { leadsApi } from "@/features/leads/leadsApi";
 import { projectsApi } from "@/features/projects/projectsApi";
 import { tasksApi } from "@/features/tasks/tasksApi";
+import { teamApi } from "@/features/team/teamApi";
 import { usersApi } from "@/features/users/usersApi";
 import { notificationsApi } from "@/features/notifications/notificationsApi";
 import { proposalsApi } from "@/features/proposals/proposalsApi";
@@ -58,6 +59,7 @@ export const store = configureStore({
     [leadsApi.reducerPath]: leadsApi.reducer,
     [projectsApi.reducerPath]: projectsApi.reducer,
     [tasksApi.reducerPath]: tasksApi.reducer,
+    [teamApi.reducerPath]: teamApi.reducer,
     [usersApi.reducerPath]: usersApi.reducer,
     [notificationsApi.reducerPath]: notificationsApi.reducer,
     [proposalsApi.reducerPath]: proposalsApi.reducer,
@@ -103,6 +105,7 @@ export const store = configureStore({
       leadsApi.middleware,
       projectsApi.middleware,
       tasksApi.middleware,
+      teamApi.middleware,
       usersApi.middleware,
       notificationsApi.middleware,
       proposalsApi.middleware,
@@ -158,6 +161,7 @@ authLifecycleMiddleware.startListening({
       leadsApi,
       projectsApi,
       tasksApi,
+      teamApi,
       usersApi,
       notificationsApi,
       proposalsApi,

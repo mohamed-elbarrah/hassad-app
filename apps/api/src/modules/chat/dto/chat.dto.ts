@@ -4,6 +4,9 @@ import {
   IsUUID,
   IsOptional,
   IsEnum,
+  IsInt,
+  Max,
+  Min,
   IsIn,
   MinLength,
 } from "class-validator";
@@ -64,21 +67,31 @@ export class GetConversationsQueryDto {
 
   @IsOptional()
   @Type(() => Number)
-  page?: number;
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
 
   @IsOptional()
   @Type(() => Number)
-  limit?: number;
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 50;
 }
 
 export class GetMessagesQueryDto {
   @IsOptional()
   @Type(() => Number)
-  page?: number;
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
 
   @IsOptional()
   @Type(() => Number)
-  limit?: number;
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 50;
 }
 
 export class UpdateMessageDto {

@@ -22,6 +22,7 @@ import {
   TeamTaskFileDto,
   TeamTasksQueryDto,
   TeamTaskStatusDto,
+  TeamTaskPaginationDto,
 } from "../dto/team-tasks.dto";
 import { TeamTasksService } from "../services/team-tasks.service";
 
@@ -76,8 +77,12 @@ export class TeamTasksController {
 
   @Get("tasks/:id/comments")
   @RequirePermissions("tasks.read")
-  comments(@CurrentUser("id") userId: string, @Param("id") id: string) {
-    return this.service.comments(userId, id);
+  comments(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Query() pagination: TeamTaskPaginationDto,
+  ) {
+    return this.service.comments(userId, id, pagination.page, pagination.limit);
   }
 
   @Post("tasks/:id/files")
@@ -94,8 +99,12 @@ export class TeamTasksController {
 
   @Get("tasks/:id/files")
   @RequirePermissions("tasks.read")
-  files(@CurrentUser("id") userId: string, @Param("id") id: string) {
-    return this.service.files(userId, id);
+  files(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Query() pagination: TeamTaskPaginationDto,
+  ) {
+    return this.service.files(userId, id, pagination.page, pagination.limit);
   }
 
   @Get("tasks/:id/files/:fileId/download")

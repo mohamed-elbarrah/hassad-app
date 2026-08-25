@@ -1,3 +1,4 @@
+import { Type } from "class-transformer";
 import { IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
 import { TaskDepartment, TaskPriority, TaskStatus, FilePurpose } from "@hassad/shared";
 
@@ -56,4 +57,19 @@ export class TeamTaskFileDto {
   @IsOptional()
   @IsEnum(FilePurpose)
   purpose?: FilePurpose;
+}
+
+export class TeamTaskPaginationDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit = 25;
 }

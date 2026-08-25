@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { FilePurpose } from "@prisma/client";
 import { TaskStatus } from "@hassad/shared";
 
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
@@ -24,76 +25,65 @@ export class TeamTasksService {
       select: { id: true },
     });
 
-    if (!task) throw new NotFoundException("Task not found");
+    if (!task) throw new NotFoundException({ code: "TEAM_TASK_NOT_FOUND", details: {} });
     return task;
   }
 
-  async overview(userId: string, query: TeamTasksQueryDto) {
-    const [tasks, stats] = await Promise.all([
-      this.tasksService.findMine(userId, {
-        status: query.status,
-        priority: query.priority,
-        deptName: query.department,
-        projectId: query.projectId,
-        dueBefore: query.dueBefore,
-        dueAfter: query.dueAfter,
-      }),
-      this.tasksService.myStats(userId),
-    ]);
-
-    const search = query.search?.trim().toLowerCase();
-    const filtered = tasks.filter((task: any) => {
-      if (!search) return true;
-      return [task.title, task.project?.name, task.department?.name]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(search);
-    });
-
-    const items = filtered.map((task: any) => this.mapCard(task));
-    const kanban = Object.fromEntries(
-      Object.values(TaskStatus).map((status) => [
-        status,
-        items.filter((item) => item.status === status),
-      ]),
-    );
-
+  private taskWhere(userId: string, query: TeamTasksQueryDto): Prisma.TaskWhereInput {
+    const search = query.search?.trim();
     return {
-      summary: {
-        total: stats.total,
-        todo: stats.todo,
-        inProgress: stats.inProgress,
-        inReview: stats.inReview,
-        revision: items.filter((item) => item.status === TaskStatus.REVISION).length,
-        done: stats.done,
-        overdue: stats.overdue,
-        dueToday: items.filter((item) => item.dueDate.slice(0, 10) === new Date().toISOString().slice(0, 10)).length,
-      },
-      kanban,
-      items,
+      assignedTo: userId,
+      archivedAt: null,
+      status: query.status,
+      priority: query.priority,
+      department: query.department ? { name: query.department } : undefined,
+      projectId: query.projectId,
+      dueDate: query.dueBefore || query.dueAfter
+        ? { lte: query.dueBefore ? new Date(query.dueBefore) : undefined, gte: query.dueAfter ? new Date(query.dueAfter) : undefined }
+        : undefined,
+      OR: search ? [
+        { title: { contains: search, mode: "insensitive" } },
+        { project: { name: { contains: search, mode: "insensitive" } } },
+        { department: { name: { contains: search, mode: "insensitive" } } },
+      ] : undefined,
+    };
+  }
+
+  private taskInclude = {
+    project: { select: { id: true, name: true } },
+    assignee: { select: { id: true, name: true } },
+    department: { select: { name: true } },
+    period: { select: { id: true, periodNumber: true } },
+  } satisfies Prisma.TaskInclude;
+
+  async overview(userId: string, query: TeamTasksQueryDto) {
+    const where = this.taskWhere(userId, query);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+    const [tasks, total, grouped, overdue, dueToday] = await Promise.all([
+      this.prisma.task.findMany({ where, include: this.taskInclude, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+      this.prisma.task.count({ where }),
+      this.prisma.task.groupBy({ by: ["status"], where: this.taskWhere(userId, { ...query, status: undefined }), _count: { status: true } }),
+      this.prisma.task.count({ where: { ...where, dueDate: { lt: new Date() }, status: { not: TaskStatus.DONE } } }),
+      this.prisma.task.count({ where: { ...where, dueDate: { gte: new Date(new Date().setHours(0, 0, 0, 0)), lt: new Date(new Date().setHours(24, 0, 0, 0)) } } }),
+    ]);
+    const counts = Object.fromEntries(grouped.map((row) => [row.status, row._count.status]));
+    const items = tasks.map((task) => this.mapCard(task));
+    const kanban = Object.fromEntries(Object.values(TaskStatus).map((status) => [status, items.filter((item) => item.status === status)]));
+    return {
+      summary: { total, todo: counts[TaskStatus.TODO] ?? 0, inProgress: counts[TaskStatus.IN_PROGRESS] ?? 0, inReview: counts[TaskStatus.IN_REVIEW] ?? 0, revision: counts[TaskStatus.REVISION] ?? 0, done: counts[TaskStatus.DONE] ?? 0, overdue, dueToday },
+      kanban, items, page, limit, totalPages: Math.ceil(total / limit),
     };
   }
 
   async list(userId: string, query: TeamTasksQueryDto) {
-    const result = await this.overview(userId, query);
-    const limit = query.limit ?? 50;
-    const page = query.page ?? 1;
-    const start = (page - 1) * limit;
-    const items = result.items.slice(start, start + limit);
-
-    return {
-      items,
-      page,
-      limit,
-      total: result.items.length,
-      totalPages: Math.ceil(result.items.length / limit),
-    };
+    const overview = await this.overview(userId, query);
+    return { items: overview.items, page: overview.page, limit: overview.limit, total: overview.summary.total, totalPages: overview.totalPages };
   }
 
   async clientView(userId: string, clientId: string) {
     const access = await this.prisma.task.findFirst({ where: { ...this.ownedTaskWhere(userId), project: { clientId } }, select: { id: true } });
-    if (!access) throw new NotFoundException("Client not found");
+    if (!access) throw new NotFoundException({ code: "TEAM_CLIENT_NOT_FOUND", details: {} });
     return this.clientProfileService.getTeamView(clientId);
   }
 
@@ -112,7 +102,7 @@ export class TeamTasksService {
     await this.ownedTask(userId, taskId);
 
     if (status === TaskStatus.DONE || status === TaskStatus.TODO) {
-      throw new BadRequestException("Team users cannot make this status transition");
+      throw new BadRequestException({ code: "TEAM_TASK_STATUS_FORBIDDEN", details: {} });
     }
 
     return this.tasksService.changeStatus(taskId, userId, status);
@@ -123,20 +113,46 @@ export class TeamTasksService {
     return this.tasksService.addComment(taskId, userId, { content, isInternal: false });
   }
 
-  async comments(userId: string, taskId: string) {
+  async comments(userId: string, taskId: string, page = 1, limit = 25) {
     await this.ownedTask(userId, taskId);
-    const items = await this.tasksService.getComments(taskId);
-    return { items: items.filter((item: any) => !item.isInternal) };
+    const where = { taskId, isInternal: false };
+    const [items, total] = await Promise.all([
+      this.prisma.taskComment.findMany({ where, include: { user: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+      this.prisma.taskComment.count({ where }),
+    ]);
+    return { items, page, limit, total, totalPages: Math.ceil(total / limit) };
   }
 
-  async files(userId: string, taskId: string) {
+  async files(userId: string, taskId: string, page = 1, limit = 25) {
     await this.ownedTask(userId, taskId);
-    return { items: await this.tasksService.getFiles(taskId) };
+    const [files, total] = await Promise.all([
+      this.prisma.taskFile.findMany({ where: { taskId }, orderBy: { uploadedAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+      this.prisma.taskFile.count({ where: { taskId } }),
+    ]);
+    const urls = await this.storageService.getMultiplePresignedUrls(files.map((file) => file.filePath));
+    return {
+      items: files.map((file) => ({
+        id: file.id,
+        taskId: file.taskId,
+        uploadedBy: file.uploadedBy,
+        fileName: file.fileName,
+        filePath: file.filePath,
+        fileSize: file.fileSize,
+        mimeType: file.fileType,
+        purpose: file.purpose,
+        createdAt: file.uploadedAt,
+        url: urls.get(file.filePath) ?? null,
+      })),
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async uploadFile(userId: string, taskId: string, file: Express.Multer.File, purpose?: FilePurpose) {
     await this.ownedTask(userId, taskId);
-    if (!file) throw new BadRequestException("Task file is required");
+    if (!file) throw new BadRequestException({ code: "TEAM_TASK_FILE_REQUIRED", details: {} });
 
     const upload = await this.storageService.upload({
       category: StorageCategory.TASK_FILE,
@@ -176,7 +192,7 @@ export class TeamTasksService {
       revisionCount: task.revisionCount ?? 0,
       project: task.project ? { id: task.project.id, name: task.project.name } : null,
       period: task.period
-        ? { id: task.period.id, label: `P${task.period.periodNumber}` }
+        ? { id: task.period.id, periodNumber: task.period.periodNumber }
         : null,
       assignee: task.assignee ? { id: task.assignee.id, name: task.assignee.name } : null,
       isClientVisible: task.isVisibleToClient,

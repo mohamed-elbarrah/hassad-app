@@ -2,48 +2,22 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { TaskStatus, UserRole } from "@hassad/shared";
-import type { TaskWithProject } from "@/features/tasks/tasksApi";
-import {
-  useStartTaskMutation,
-  useSubmitTaskMutation,
-  useApproveTaskMutation,
-  useRejectTaskMutation,
-} from "@/features/tasks/tasksApi";
+import { TaskStatus } from "@hassad/shared";
+import type { TeamTaskCard, TeamTasksParams } from "@/features/team/teamApi";
+import { useChangeTeamTaskStatusMutation, useLazyGetTeamTasksQuery } from "@/features/team/teamApi";
+import { pmErrorMessage } from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
 import { KanbanBoard } from "@/components/dashboard/kanban";
 import { TASK_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/task-status";
 import { TeamTaskKanbanCardContent } from "@/components/dashboard/kanban/cards/TeamTaskKanbanCardContent";
 
-// ─── Allowed status transitions per role ──────────────────────────────────────
-
-const TASK_STATUS_TRANSITIONS: Partial<
-  Record<TaskStatus, Partial<Record<string, TaskStatus[]>>>
-> = {
-  [TaskStatus.TODO]: {
-    TEAM: [TaskStatus.IN_PROGRESS],
-    ADMIN: [TaskStatus.IN_PROGRESS],
-  },
-  [TaskStatus.IN_PROGRESS]: {
-    TEAM: [TaskStatus.IN_REVIEW],
-    ADMIN: [TaskStatus.IN_REVIEW],
-  },
-  [TaskStatus.IN_REVIEW]: {
-    PM: [TaskStatus.DONE, TaskStatus.REVISION],
-    ADMIN: [TaskStatus.DONE, TaskStatus.REVISION],
-  },
-  [TaskStatus.REVISION]: {
-    TEAM: [TaskStatus.IN_PROGRESS],
-    ADMIN: [TaskStatus.IN_PROGRESS],
-  },
-};
-
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
 interface TeamTaskKanbanProps {
-  tasks: TaskWithProject[];
+  tasks: TeamTaskCard[];
   isLoading: boolean;
   onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
+  filters?: Omit<TeamTasksParams, "status" | "page">;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -52,36 +26,47 @@ export function TeamTaskKanban({
   tasks,
   isLoading,
   onStatusChange,
+  filters,
 }: TeamTaskKanbanProps) {
   const { user } = useAppSelector((state) => state.auth);
-  const [startTask, { isLoading: isStarting }] = useStartTaskMutation();
-  const [submitTask, { isLoading: isSubmitting }] = useSubmitTaskMutation();
-  const [approveTask, { isLoading: isApproving }] = useApproveTaskMutation();
-  const [rejectTask, { isLoading: isRejecting }] = useRejectTaskMutation();
-  const isUpdating = isStarting || isSubmitting || isApproving || isRejecting;
-  const [localTasks, setLocalTasks] = useState<TaskWithProject[]>(tasks);
+  const [changeStatus, { isLoading: isUpdating }] = useChangeTeamTaskStatusMutation();
+  const [loadTasks] = useLazyGetTeamTasksQuery();
+  const [localTasks, setLocalTasks] = useState<TeamTaskCard[]>(tasks);
+  const [stageState, setStageState] = useState<Record<string, { page: number; hasMore: boolean; loading: boolean }>>({});
+
+  const loadStage = useCallback(async (stage: string) => {
+    const state = stageState[stage] ?? { page: 0, hasMore: true, loading: false };
+    if (state.loading || !state.hasMore) return;
+    // The overview page is global; start each column at page 1 so no task
+    // outside the first global page is skipped.
+    const nextPage = state.page === 0 ? 1 : state.page + 1;
+    setStageState((current) => ({ ...current, [stage]: { ...state, loading: true } }));
+    try {
+      const result = await loadTasks({ ...filters, status: stage as TaskStatus, page: nextPage, limit: 25 }).unwrap();
+      setLocalTasks((current) => [...current, ...result.items.filter((item) => !current.some((existing) => existing.id === item.id))]);
+      setStageState((current) => ({ ...current, [stage]: { page: nextPage, hasMore: nextPage < result.totalPages, loading: false } }));
+    } catch {
+      setStageState((current) => ({ ...current, [stage]: { ...state, loading: false } }));
+    }
+  }, [filters, loadTasks, stageState]);
 
   useEffect(() => {
     setLocalTasks(tasks);
-  }, [tasks]);
+    setStageState({});
+  }, [tasks, filters?.search, filters?.priority, filters?.department, filters?.projectId, filters?.dueBefore, filters?.dueAfter]);
 
   // ── Permission check for dragging ────────────────────────────────────
   const canDragItem = useCallback(
-    (task: TaskWithProject) => {
-      if (!user) return false;
-      if (user.role === UserRole.ADMIN || user.role === UserRole.PM)
-        return true;
-      return task.assignedTo === user.id;
+    (_task: TeamTaskCard) => {
+      return Boolean(user);
     },
     [user],
   );
 
   const canDropItem = useCallback(
-    (task: TaskWithProject, destinationStage: string) => {
-      if (!user) return false;
-      if (user.role === UserRole.ADMIN) return true;
-      const allowed = TASK_STATUS_TRANSITIONS[task.status]?.[user.role] ?? [];
-      return allowed.includes(destinationStage as TaskStatus);
+    (task: TeamTaskCard, destinationStage: string) => {
+      // The API is the source of truth for capabilities and transition rules.
+      return Boolean(user && destinationStage !== task.status);
     },
     [user],
   );
@@ -96,25 +81,6 @@ export function TeamTaskKanban({
 
       if (newStatus === currentStatus) return;
 
-      // Permission check
-      if (user.role !== UserRole.ADMIN) {
-        const roleKey = user.role;
-        const allowed = TASK_STATUS_TRANSITIONS[currentStatus]?.[roleKey] ?? [];
-        if (!allowed.includes(newStatus)) {
-          if (
-            currentStatus === TaskStatus.IN_REVIEW &&
-            newStatus === TaskStatus.DONE
-          ) {
-            toast.error(
-              "يجب على مدير المشروع مراجعة المهمة والموافقة عليها قبل إتمامها",
-            );
-          } else {
-            toast.error("لا يمكنك نقل المهمة إلى هذه الحالة");
-          }
-          return;
-        }
-      }
-
       // Optimistic update
       const prevTasks = localTasks;
       const updatedTasks = localTasks.map((t) =>
@@ -123,56 +89,18 @@ export function TeamTaskKanban({
       setLocalTasks(updatedTasks);
 
       try {
-        if (
-          (currentStatus === TaskStatus.TODO ||
-            currentStatus === TaskStatus.REVISION) &&
-          newStatus === TaskStatus.IN_PROGRESS
-        ) {
-          await startTask(itemId).unwrap();
-        } else if (
-          currentStatus === TaskStatus.IN_PROGRESS &&
-          newStatus === TaskStatus.IN_REVIEW
-        ) {
-          await submitTask(itemId).unwrap();
-        } else if (
-          currentStatus === TaskStatus.IN_REVIEW &&
-          newStatus === TaskStatus.DONE
-        ) {
-          await approveTask(itemId).unwrap();
-        } else if (
-          currentStatus === TaskStatus.IN_REVIEW &&
-          newStatus === TaskStatus.REVISION
-        ) {
-          await rejectTask(itemId).unwrap();
-        } else if (
-          currentStatus === TaskStatus.REVISION &&
-          newStatus === TaskStatus.IN_PROGRESS
-        ) {
-          await startTask(itemId).unwrap();
-        } else {
-          setLocalTasks(prevTasks);
-          toast.error("لا يمكنك نقل المهمة إلى هذه الحالة");
-          return;
-        }
+        await changeStatus({ id: itemId, status: newStatus }).unwrap();
         onStatusChange?.(itemId, newStatus);
       } catch (err: unknown) {
         // Rollback on failure
         setLocalTasks(prevTasks);
-        const msg =
-          (err as { data?: { message?: string }; error?: string })?.data
-            ?.message ??
-          (err as { error?: string })?.error ??
-          "فشل تحديث الحالة";
-        toast.error(msg);
+        toast.error(pmErrorMessage(err));
       }
     },
     [
       user,
       localTasks,
-      startTask,
-      submitTask,
-      approveTask,
-      rejectTask,
+      changeStatus,
       onStatusChange,
       isUpdating,
     ],
@@ -180,7 +108,7 @@ export function TeamTaskKanban({
 
   // ── Render card ──────────────────────────────────────────────────────
   const renderCard = useCallback(
-    (task: TaskWithProject, _options: { isOverlay: boolean }) => (
+    (task: TeamTaskCard, _options: { isOverlay: boolean }) => (
       <TeamTaskKanbanCardContent task={task} canDrag={canDragItem(task)} />
     ),
     [canDragItem],
@@ -196,7 +124,12 @@ export function TeamTaskKanban({
       isLoading={isLoading}
       canDragItem={(task) => !isUpdating && canDragItem(task)}
       canDropItem={canDropItem}
-      onInvalidDrop={() => toast.error("لا يمكنك نقل المهمة إلى هذه الحالة")}
+      stagePagination={Object.fromEntries(Object.values(TaskStatus).map((stage) => [stage, {
+        hasMore: stageState[stage]?.hasMore ?? true,
+        isLoading: stageState[stage]?.loading ?? false,
+        onLoadMore: () => void loadStage(stage),
+      }]))}
+      onInvalidDrop={() => toast.error(pmErrorMessage({ data: { error: { code: "TEAM_TASK_STATUS_FORBIDDEN", details: {} } } }))}
       emptyMessage={
         "لم يتم إسناد أي مهمة إليك بعد. سيتم عرض المهام هنا عند إسنادها."
       }

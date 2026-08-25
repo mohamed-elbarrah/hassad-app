@@ -258,11 +258,11 @@ export class TasksService {
     });
 
     if (!user) {
-      throw new NotFoundException(`Assignee with ID ${userId} not found`);
+      throw new NotFoundException({ code: "TASK_ASSIGNEE_NOT_FOUND", details: {} });
     }
 
     if (!user.isActive) {
-      throw new BadRequestException("Cannot assign task to an inactive user");
+      throw new BadRequestException({ code: "TASK_ASSIGNEE_INACTIVE", details: {} });
     }
 
     const assigneeRole = user.role.name as UserRole;
@@ -272,9 +272,7 @@ export class TasksService {
         (d) => d.departmentId === departmentId,
       );
       if (!inDepartment) {
-        throw new BadRequestException(
-          "Assignee does not belong to the selected department",
-        );
+        throw new BadRequestException({ code: "TASK_ASSIGNEE_DEPARTMENT_MISMATCH", details: {} });
       }
     } else if (assigneeRole === UserRole.MARKETING) {
       const deptName =
@@ -286,14 +284,10 @@ export class TasksService {
           })
         )?.name;
       if (deptName !== TaskDepartment.MARKETING) {
-        throw new BadRequestException(
-          "Marketing users can only be assigned to marketing department tasks",
-        );
+        throw new BadRequestException({ code: "TASK_MARKETING_DEPARTMENT_REQUIRED", details: {} });
       }
     } else {
-      throw new BadRequestException(
-        "Task assignee must be an executable team member",
-      );
+      throw new BadRequestException({ code: "TASK_ASSIGNEE_ROLE_INVALID", details: {} });
     }
 
     return user;
@@ -304,7 +298,7 @@ export class TasksService {
       where: { name: dto.dept },
     });
     if (!department) {
-      throw new BadRequestException(`Department ${dto.dept} not found`);
+      throw new BadRequestException({ code: "TASK_DEPARTMENT_NOT_FOUND", details: {} });
     }
 
     if (dto.assignedTo) {
@@ -411,7 +405,7 @@ export class TasksService {
     });
 
     if (!task) {
-      throw new NotFoundException(`Task with ID ${id} not found`);
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
     }
 
     return task;
@@ -441,24 +435,22 @@ export class TasksService {
       task.status !== TaskStatus.TODO &&
       task.status !== TaskStatus.REVISION
     ) {
-      throw new BadRequestException("Task must be TODO or REVISION to start");
+      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_START", details: {} });
     }
     if (
       toStatus === TaskStatus.IN_REVIEW &&
       task.status !== TaskStatus.IN_PROGRESS
     ) {
-      throw new BadRequestException("Task must be IN_PROGRESS to submit");
+      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_SUBMIT", details: {} });
     }
     if (toStatus === TaskStatus.DONE && task.status !== TaskStatus.IN_REVIEW) {
-      throw new BadRequestException("Task must be IN_REVIEW to approve");
+      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_APPROVE", details: {} });
     }
     if (
       toStatus === TaskStatus.REVISION &&
       task.status !== TaskStatus.IN_REVIEW
     ) {
-      throw new BadRequestException(
-        "Task must be IN_REVIEW to reject for revision",
-      );
+      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_REVISION", details: {} });
     }
 
     const updatedTask = await this.prisma.$transaction(async (tx) => {
@@ -652,16 +644,12 @@ export class TasksService {
   async changeStatus(id: string, userId: string, toStatus: TaskStatus) {
     const validStatuses = Object.values(TaskStatus);
     if (!validStatuses.includes(toStatus)) {
-      throw new BadRequestException(
-        `Invalid status: ${toStatus}. Valid statuses: ${validStatuses.join(", ")}`,
-      );
+      throw new BadRequestException({ code: "TASK_STATUS_INVALID", details: {} });
     }
 
     switch (toStatus) {
       case TaskStatus.TODO:
-        throw new BadRequestException(
-          "Cannot revert a task to TODO. Use start to move to IN_PROGRESS.",
-        );
+        throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_TODO", details: {} });
       case TaskStatus.IN_PROGRESS:
         return this.start(id, userId);
       case TaskStatus.IN_REVIEW:
@@ -671,7 +659,7 @@ export class TasksService {
       case TaskStatus.REVISION:
         return this.reject(id, userId);
       default:
-        throw new BadRequestException(`Unhandled status: ${toStatus}`);
+        throw new BadRequestException({ code: "TASK_STATUS_UNHANDLED", details: {} });
     }
   }
 
@@ -692,7 +680,7 @@ export class TasksService {
     });
 
     if (!task) {
-      throw new NotFoundException(`Task with ID ${id} not found`);
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
     }
 
     const createdFile = await this.prisma.taskFile.create({
@@ -732,7 +720,7 @@ export class TasksService {
     });
 
     if (!file) {
-      throw new NotFoundException("Task file not found");
+      throw new NotFoundException({ code: "TASK_FILE_NOT_FOUND", details: {} });
     }
 
     return this.storageService.getPresignedUrl(file.filePath);
@@ -1089,7 +1077,7 @@ export class TasksService {
   ): Promise<{ code: string; archived: boolean }> {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
-      throw new NotFoundException("المهمة غير موجودة");
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
     }
 
     const isArchived = task.archivedAt !== null;

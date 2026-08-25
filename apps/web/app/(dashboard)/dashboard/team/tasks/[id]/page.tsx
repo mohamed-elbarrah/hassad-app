@@ -17,6 +17,7 @@ export default function TaskDetailPage({
       listLabel="المهام"
       rootHref="/dashboard/team"
       rootLabel="لوحة الفريق"
+      teamOwned
     />
   );
 }

@@ -33,21 +33,20 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamTaskKanban } from "@/components/dashboard/team/TeamTaskKanban";
-import {
-  useGetMyTasksQuery,
-  useGetMyTaskStatsQuery,
-} from "@/features/tasks/tasksApi";
+import { useGetTeamOverviewQuery } from "@/features/team/teamApi";
 import { useAppSelector } from "@/lib/hooks";
 import { TASK_PRIORITY_LABELS } from "@/lib/utils/task-status";
 
 export default function TeamDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
   const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
-  const { data: stats, isLoading: statsLoading } = useGetMyTaskStatsQuery();
-  const { data: tasks, isLoading: tasksLoading } = useGetMyTasksQuery(
-    {},
+  const { data: overview, isLoading: tasksLoading } = useGetTeamOverviewQuery(
+    { priority: priority === "ALL" ? undefined : priority, page: 1, limit: 25 },
     { pollingInterval: 30000 },
   );
+  const stats = overview?.summary;
+  const tasks = overview?.items;
+  const statsLoading = tasksLoading;
   const priorityCounts = useMemo(
     () =>
       (tasks ?? []).reduce<Record<string, number>>((counts, task) => {
@@ -56,13 +55,7 @@ export default function TeamDashboardPage() {
       }, {}),
     [tasks],
   );
-  const filteredTasks = useMemo(
-    () =>
-      priority === "ALL"
-        ? (tasks ?? [])
-        : (tasks ?? []).filter((task) => task.priority === priority),
-    [tasks, priority],
-  );
+  const filteredTasks = tasks ?? [];
   if (!user) return null;
   const metrics = [
     { label: "إجمالي المهام", value: stats?.total ?? 0, icon: ClipboardList },
@@ -151,7 +144,11 @@ export default function TeamDashboardPage() {
           </CardContent>
         </Card>
       ) : (
-        <TeamTaskKanban tasks={filteredTasks} isLoading={tasksLoading} />
+        <TeamTaskKanban
+          tasks={filteredTasks}
+          isLoading={tasksLoading}
+          filters={{ priority: priority === "ALL" ? undefined : priority }}
+        />
       )}
     </main>
   );

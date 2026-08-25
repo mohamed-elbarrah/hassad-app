@@ -27,9 +27,9 @@ const FILE_PURPOSE_LABELS: Record<FilePurpose, string> = {
 
 const FILE_PURPOSE_COLORS: Record<FilePurpose, string> = {
   [FilePurpose.DELIVERABLE]:
-    "bg-emerald-50 text-emerald-700 border-emerald-200",
-  [FilePurpose.REFERENCE]: "bg-blue-50 text-blue-700 border-blue-200",
-  [FilePurpose.INTERNAL_DRAFT]: "bg-amber-50 text-amber-700 border-amber-200",
+    "bg-success/10 text-success border-success/30",
+  [FilePurpose.REFERENCE]: "bg-info/10 text-info border-info/30",
+  [FilePurpose.INTERNAL_DRAFT]: "bg-warning/10 text-warning border-warning/30",
 };
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ export function FileItem({
       <FileIcon mimeType={file.mimeType} />
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate text-natural-100">
+        <p className="text-sm font-medium truncate text-foreground">
           {file.fileName}
         </p>
         <div className="flex items-center gap-2 mt-1 flex-wrap">
