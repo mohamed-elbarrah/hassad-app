@@ -1,3 +1,4 @@
+import { Type } from "class-transformer";
 import {
   IsString,
   IsEnum,
@@ -109,13 +110,21 @@ export class CampaignQueryDto {
 
 export class KpiSnapshotQueryDto {
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
+
+  @IsOptional()
   from?: string;
 
   @IsOptional()
   to?: string;
 
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  limit?: number;
 }

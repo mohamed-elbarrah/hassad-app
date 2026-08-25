@@ -1034,13 +1034,20 @@ export function notificationErrorMessage(error: unknown): string {
 }
 
 export function portalErrorMessage(error: unknown): string {
-  const code = (error as { data?: { error?: { code?: string } } })?.data?.error
-    ?.code;
-  return code === "PERMISSION_DENIED"
-    ? "ليس لديك صلاحية لعرض هذه البيانات."
-    : code === "AUTHENTICATION_REQUIRED"
-      ? "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى."
-      : "تعذر تحميل البيانات. يرجى المحاولة لاحقاً.";
+  const code = (error as { data?: { error?: { code?: string } } })?.data?.error?.code;
+  return code === "PERMISSION_DENIED" ? "ليس لديك صلاحية لعرض هذه البيانات." : code === "AUTHENTICATION_REQUIRED" ? "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى." : "تعذر تحميل البيانات. يرجى المحاولة لاحقاً.";
+}
+
+export function marketingErrorMessage(error: unknown): string {
+  const code = (error as { data?: { error?: { code?: string } } })?.data?.error?.code;
+  const messages: Record<string, string> = {
+    CAMPAIGN_NOT_FOUND: "لم يتم العثور على الحملة.",
+    CAMPAIGN_ARCHIVED: "لا يمكن تعديل حملة مؤرشفة.",
+    VALIDATION_ERROR: "تحقق من قيم المقاييس المدخلة.",
+    PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+    AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+  };
+  return (code && messages[code]) ?? "تعذر تنفيذ الإجراء على الحملة. يرجى المحاولة لاحقاً.";
 }
 
 const PM_ERROR_MESSAGES: Record<string, string> = {

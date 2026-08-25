@@ -5,6 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { Prisma } from "@prisma/client";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
   CampaignStatus,
@@ -274,11 +275,11 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException("لا يمكن تحديث بيانات حملة مؤرشفة");
+      throw new BadRequestException({ code: "CAMPAIGN_ARCHIVED", details: {} });
     }
 
     const latest: any = campaign.kpiSnapshots[0] ?? {};
@@ -382,20 +383,26 @@ export class CampaignsService {
   }
 
   async getKpiSnapshots(id: string, query?: KpiSnapshotQueryDto) {
-    const where: any = { campaignId: id };
+    const where: Prisma.CampaignKpiSnapshotWhereInput = { campaignId: id };
     if (query?.from || query?.to) {
       where.recordedAt = {};
       if (query.from) where.recordedAt.gte = new Date(query.from);
       if (query.to) where.recordedAt.lte = new Date(query.to);
     }
 
-    const limit = query?.limit ? Math.min(query.limit, 500) : 500;
+    const page = query?.page ?? 1;
+    const limit = query?.limit ? Math.min(query.limit, 100) : 20;
+    const [items, total] = await Promise.all([
+      this.prisma.campaignKpiSnapshot.findMany({
+        where,
+        orderBy: { recordedAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.campaignKpiSnapshot.count({ where }),
+    ]);
 
-    return this.prisma.campaignKpiSnapshot.findMany({
-      where,
-      orderBy: { recordedAt: "asc" },
-      take: limit,
-    });
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async updateStatus(id: string, status: CampaignStatus, userId: string) {
@@ -405,11 +412,11 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException("لا يمكن تغيير حالة حملة مؤرشفة");
+      throw new BadRequestException({ code: "CAMPAIGN_ARCHIVED", details: {} });
     }
 
     this.validateStatusTransition(
@@ -512,8 +519,8 @@ export class CampaignsService {
   }
 
   async archive(id: string, userId: string) {
-    const campaign = await this.prisma.campaign.findUnique({
-      where: { id },
+    const campaign = await this.prisma.campaign.findFirst({
+      where: { id, OR: [{ managedBy: userId }, { createdBy: userId }] },
     });
 
     if (!campaign) {
@@ -531,8 +538,8 @@ export class CampaignsService {
   }
 
   async unarchive(id: string, userId: string) {
-    const campaign = await this.prisma.campaign.findUnique({
-      where: { id },
+    const campaign = await this.prisma.campaign.findFirst({
+      where: { id, OR: [{ managedBy: userId }, { createdBy: userId }] },
     });
 
     if (!campaign) {
@@ -550,8 +557,8 @@ export class CampaignsService {
   }
 
   async duplicate(id: string, userId: string) {
-    const original = await this.prisma.campaign.findUnique({
-      where: { id },
+    const original = await this.prisma.campaign.findFirst({
+      where: { id, OR: [{ managedBy: userId }, { createdBy: userId }] },
     });
 
     if (!original) {

@@ -8,7 +8,8 @@ import { StorageCategory } from "../../../common/storage/storage.constants";
 import { ClientProfileService } from "../../crm/services/client-profile.service";
 import { CampaignsService } from "./campaigns.service";
 import { MarketingStrategyService } from "./marketing-strategy.service";
-import { MarketingTaskQueryDto, MarketingStrategyQueryDto, MarketingCampaignQueryDto } from "../dto/marketing-workspace.dto";
+import { MarketingCampaignKpiDto, MarketingCampaignKpiQueryDto, MarketingTaskQueryDto, MarketingStrategyQueryDto, MarketingCampaignQueryDto } from "../dto/marketing-workspace.dto";
+import { CreateCampaignDto, UpdateCampaignDto } from "../dto/campaign.dto";
 
 @Injectable()
 export class MarketingWorkspaceService {
@@ -164,11 +165,11 @@ export class MarketingWorkspaceService {
     return { items: data.map(({ kpiSnapshots, ...campaign }) => ({ ...campaign, analytics: kpiSnapshots[0] ?? { impressions: 0, clicks: 0, conversions: 0, revenue: 0, cpc: 0, cpa: 0, ctr: 0, conversionRate: 0, roas: 0 } })), total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  private async ownedCampaign(userId: string, id: string) {
+  private async ownedCampaign(userId: string, id: string, includeArchived = false) {
     const campaign = await this.prisma.campaign.findFirst({
       where: {
         id,
-        isArchived: false,
+        ...(includeArchived ? {} : { isArchived: false }),
         OR: [{ managedBy: userId }, { createdBy: userId }],
       },
     });
@@ -176,14 +177,17 @@ export class MarketingWorkspaceService {
     return campaign;
   }
 
-  async campaignDetail(userId: string, id: string) { await this.ownedCampaign(userId, id); return this.campaigns.findOne(id); }
-  async createCampaign(userId: string, dto: any) { await this.ownedTask(userId, dto.taskId); return this.campaigns.create(dto, userId); }
-  async updateCampaign(userId: string, id: string, dto: any) { await this.ownedCampaign(userId, id); return this.campaigns.update(id, dto); }
+  async campaignDetail(userId: string, id: string) { await this.ownedCampaign(userId, id, true); return this.campaigns.findOne(id); }
+  async createCampaign(userId: string, dto: CreateCampaignDto) { await this.ownedTask(userId, dto.taskId); return this.campaigns.create(dto, userId); }
+  async updateCampaign(userId: string, id: string, dto: UpdateCampaignDto) { await this.ownedCampaign(userId, id); return this.campaigns.update(id, dto); }
   async campaignStatus(userId: string, id: string, status: CampaignStatus) { await this.ownedCampaign(userId, id); return this.campaigns.updateStatus(id, status, userId); }
-  async campaignKpi(userId: string, id: string, dto: any) { await this.ownedCampaign(userId, id); return this.campaigns.createKpiSnapshot(id, dto, userId); }
-  async campaignKpis(userId: string, id: string, query: any) { await this.ownedCampaign(userId, id); return this.campaigns.getKpiSnapshots(id, query); }
+  async campaignKpi(userId: string, id: string, dto: MarketingCampaignKpiDto) { await this.ownedCampaign(userId, id); return this.campaigns.createKpiSnapshot(id, dto, userId); }
+  async campaignKpis(userId: string, id: string, query: MarketingCampaignKpiQueryDto) {
+    await this.ownedCampaign(userId, id);
+    return this.campaigns.getKpiSnapshots(id, query);
+  }
   async optimization(userId: string, id: string, value: boolean) { await this.ownedCampaign(userId, id); return this.campaigns.flagOptimization(id, value, userId); }
   async duplicateCampaign(userId: string, id: string) { await this.ownedCampaign(userId, id); return this.campaigns.duplicate(id, userId); }
   async archiveCampaign(userId: string, id: string) { await this.ownedCampaign(userId, id); return this.campaigns.archive(id, userId); }
-  async unarchiveCampaign(userId: string, id: string) { await this.ownedCampaign(userId, id); return this.campaigns.unarchive(id, userId); }
+  async unarchiveCampaign(userId: string, id: string) { await this.ownedCampaign(userId, id, true); return this.campaigns.unarchive(id, userId); }
 }

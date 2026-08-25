@@ -10,7 +10,7 @@ import { StorageCategory } from "../../../common/storage/storage.constants";
 import { MarketingStrategyService } from "../services/marketing-strategy.service";
 import { MarketingWorkspaceService } from "../services/marketing-workspace.service";
 import { CreateCampaignDto, UpdateCampaignDto } from "../dto/campaign.dto";
-import { MarketingCampaignKpiDto, MarketingCampaignQueryDto, MarketingStrategyQueryDto, MarketingTaskQueryDto } from "../dto/marketing-workspace.dto";
+import { MarketingCampaignKpiDto, MarketingCampaignKpiQueryDto, MarketingCampaignQueryDto, MarketingStrategyQueryDto, MarketingTaskQueryDto } from "../dto/marketing-workspace.dto";
 import { CreateTaskCommentDto, UploadTaskFileDto } from "../../tasks/dto/task.dto";
 
 @Controller("marketing")
@@ -131,7 +131,7 @@ export class MarketingWorkspaceController {
 
   @Get("campaigns/:id/kpis")
   @RequirePermissions("marketing.read")
-  campaignKpis(@CurrentUser("id") userId: string, @Param("id") id: string, @Query() query: any) { return this.workspace.campaignKpis(userId, id, query); }
+  campaignKpis(@CurrentUser("id") userId: string, @Param("id") id: string, @Query() query: MarketingCampaignKpiQueryDto) { return this.workspace.campaignKpis(userId, id, query); }
 
   @Post("campaigns/:id/kpis")
   @RequirePermissions("marketing.manage_kpis")

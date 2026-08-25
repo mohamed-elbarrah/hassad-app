@@ -34,9 +34,16 @@ export class MarketingCampaignQueryDto {
 }
 
 export class MarketingCampaignKpiDto {
-  @IsOptional() @IsNumber() @Min(0) budgetSpent?: number;
-  @IsOptional() @IsInt() @Min(0) impressions?: number;
-  @IsOptional() @IsInt() @Min(0) clicks?: number;
-  @IsOptional() @IsInt() @Min(0) conversions?: number;
-  @IsOptional() @IsNumber() @Min(0) revenue?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) budgetSpent?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) impressions?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) clicks?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) conversions?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) revenue?: number;
+}
+
+export class MarketingCampaignKpiQueryDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number = 20;
+  @IsOptional() @IsDateString() from?: string;
+  @IsOptional() @IsDateString() to?: string;
 }

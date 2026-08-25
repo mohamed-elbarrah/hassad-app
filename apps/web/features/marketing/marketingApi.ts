@@ -8,6 +8,8 @@ export interface MarketingCampaign extends Campaign {
 }
 export interface CampaignListResponse { items: MarketingCampaign[]; total: number; page: number; limit: number; totalPages: number; }
 export interface CampaignListQuery { page: number; limit: number; status?: Campaign["status"]; platform?: CampaignPlatform; search?: string; sortBy?: "name" | "createdAt" | "startDate" | "budgetTotal" | "budgetSpent"; sortOrder?: "asc" | "desc"; }
+export interface MarketingKpiSnapshot { id: string; campaignId: string; impressions: number; clicks: number; conversions: number; revenue: number; cpc: number; cpa: number; ctr: number; conversionRate: number; roas: number; source: string | null; recordedAt: string; createdAt: string; }
+export interface MarketingKpiHistoryResponse { items: MarketingKpiSnapshot[]; total: number; page: number; limit: number; totalPages: number; }
 
 export interface MarketingStrategy {
   id: string;
@@ -74,6 +76,10 @@ export const marketingApi = createApi({
         "Campaign",
       ],
     }),
+    getCampaignKpiHistory: builder.query<MarketingKpiHistoryResponse, { id: string; page?: number; limit?: number }>({
+      query: ({ id, page = 1, limit = 20 }) => ({ url: `marketing/campaigns/${id}/kpis`, params: { page, limit } }),
+      providesTags: (result, error, { id }) => [{ type: "Campaign", id }, { type: "Campaign", id: `${id}-kpis` }],
+    }),
     updateCampaignMetrics: builder.mutation<
       Campaign,
       { id: string; body: UpdateCampaignMetricsInput }
@@ -85,6 +91,7 @@ export const marketingApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: "Campaign", id },
+        { type: "Campaign", id: `${id}-kpis` },
         "TaskCampaigns",
         "Campaign",
       ],
@@ -217,6 +224,7 @@ export const {
   useGetCampaignsQuery,
   useGetMyCampaignStatsQuery,
   useCreateCampaignMutation,
+  useGetCampaignKpiHistoryQuery,
   useUpdateCampaignMetricsMutation,
   useUpdateCampaignStatusMutation,
   useFlagOptimizationMutation,
