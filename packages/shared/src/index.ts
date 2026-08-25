@@ -409,6 +409,16 @@ export interface TaskComment {
   updatedAt: Date | string;
 }
 
+export interface TaskNote {
+  id: string;
+  taskId: string;
+  userId: string;
+  user?: { id: string; name: string };
+  content: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
 export interface Notification {
   id: string;
   userId: string;

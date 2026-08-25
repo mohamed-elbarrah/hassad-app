@@ -5,7 +5,7 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
-import { PmTaskAssignDto, PmTaskCommentDto, PmTaskFileDto, PmTaskStatusDto, PmTasksQueryDto } from "../dto/pm-tasks.dto";
+import { PmTaskAssignDto, PmTaskCommentDto, PmTaskFileDto, PmTaskNoteDto, PmTaskStatusDto, PmTasksQueryDto } from "../dto/pm-tasks.dto";
 import { PmTasksService } from "../services/pm-tasks.service";
 
 @Controller("pm/tasks")
@@ -46,7 +46,19 @@ export class PmTasksController {
   @Post(":id/comments")
   @RequirePermissions("tasks.comment")
   addComment(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: PmTaskCommentDto) {
-    return this.service.addComment(userId, id, dto.content, dto.isInternal ?? true);
+    return this.service.addComment(userId, id, dto.content);
+  }
+
+  @Get(":id/notes")
+  @RequirePermissions("tasks.read")
+  listNotes(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.service.listNotes(userId, id);
+  }
+
+  @Post(":id/notes")
+  @RequirePermissions("tasks.comment")
+  addNote(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: PmTaskNoteDto) {
+    return this.service.addNote(userId, id, dto.content);
   }
 
   @Get(":id/comments")

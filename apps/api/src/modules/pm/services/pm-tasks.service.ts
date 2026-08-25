@@ -157,7 +157,10 @@ export class PmTasksService {
   async detail(userId: string, taskId: string) {
     await this.ownedTask(taskId, userId);
     return this.execute(
-      () => this.tasksService.findOne(taskId),
+      async () => {
+        const task = await this.tasksService.findOne(taskId);
+        return { ...task, comments: task.comments.filter((comment) => !comment.isInternal) };
+      },
       "TASK_NOT_FOUND",
     );
   }
@@ -182,12 +185,11 @@ export class PmTasksService {
     userId: string,
     taskId: string,
     content: string,
-    isInternal = true,
   ) {
     await this.ownedTask(taskId, userId);
     return this.execute(
       () =>
-        this.tasksService.addComment(taskId, userId, { content, isInternal }),
+        this.tasksService.addComment(taskId, userId, { content, isInternal: false }),
       "TASK_COMMENT_FAILED",
     );
   }
@@ -196,10 +198,39 @@ export class PmTasksService {
     await this.ownedTask(taskId, userId);
     return {
       items: await this.execute(
-        () => this.tasksService.getComments(taskId),
+        () => this.prisma.taskComment.findMany({
+          where: { taskId, isInternal: false },
+          include: { user: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "desc" },
+        }),
         "TASK_COMMENTS_LOAD_FAILED",
       ),
     };
+  }
+
+  async listNotes(userId: string, taskId: string) {
+    await this.ownedTask(taskId, userId);
+    return {
+      items: await this.execute(
+        () => this.prisma.taskNote.findMany({
+          where: { taskId },
+          include: { user: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "desc" },
+        }),
+        "TASK_NOTES_LOAD_FAILED",
+      ),
+    };
+  }
+
+  async addNote(userId: string, taskId: string, content: string) {
+    await this.ownedTask(taskId, userId);
+    return this.execute(
+      () => this.prisma.taskNote.create({
+        data: { taskId, userId, content },
+        include: { user: { select: { id: true, name: true } } },
+      }),
+      "TASK_NOTE_FAILED",
+    );
   }
 
   async listFiles(userId: string, taskId: string) {

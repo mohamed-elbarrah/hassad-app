@@ -7,6 +7,7 @@ import type {
   UpdateTaskInput,
   TaskFile,
   TaskComment,
+  TaskNote,
   TaskStatus,
   TaskPriority,
   TaskDepartment,
@@ -204,6 +205,19 @@ export const tasksApi = createApi({
       providesTags: (_result, _error, taskId) => [
         { type: "Task", id: `FILES_${taskId}` },
       ],
+    }),
+
+    /** GET /v1/pm/tasks/:taskId/notes */
+    getPmTaskNotes: builder.query<TaskNote[], string>({
+      query: (taskId) => `/pm/tasks/${taskId}/notes`,
+      transformResponse: (response: { items: TaskNote[] }) => response.items,
+      providesTags: (_result, _error, taskId) => [{ type: "Task", id: `NOTES_${taskId}` }],
+    }),
+
+    /** POST /v1/pm/tasks/:taskId/notes */
+    addPmTaskNote: builder.mutation<TaskNote, { taskId: string; content: string }>({
+      query: ({ taskId, content }) => ({ url: `/pm/tasks/${taskId}/notes`, method: "POST", body: { content } }),
+      invalidatesTags: (_result, _error, { taskId }) => [{ type: "Task", id: `NOTES_${taskId}` }],
     }),
 
     /** GET /v1/pm/tasks/:taskId/comments */
@@ -465,6 +479,8 @@ export const {
   useGetPmTaskByIdQuery,
   useGetPmTaskFilesQuery,
   useGetPmTaskCommentsQuery,
+  useGetPmTaskNotesQuery,
+  useAddPmTaskNoteMutation,
   useAddPmTaskCommentMutation,
   useUploadPmTaskFileMutation,
   useDeletePmTaskFileMutation,

@@ -78,6 +78,7 @@ model User {
   submittedRequests     Request[]                 @relation("RequestSubmitter")
   workload              StaffWorkload?
   taskComments          TaskComment[]
+  taskNotes             TaskNote[]
   notifiedDelays        TaskDelayAlert[]
   uploadedFiles         TaskFile[]
   taskHistory           TaskStatusHistory[]
@@ -819,6 +820,7 @@ model Task {
   internalRating      InternalRating?
   invoiceItems        InvoiceItem[]
   comments            TaskComment[]
+  notes               TaskNote[]
   delayAlerts         TaskDelayAlert[]
   files               TaskFile[]
   statusHistory       TaskStatusHistory[]
@@ -880,6 +882,20 @@ model TaskComment {
 
   @@index([taskId])
   @@map("task_comments")
+}
+
+model TaskNote {
+  id        String   @id @default(uuid())
+  taskId    String   @map("task_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId, createdAt])
+  @@map("task_notes")
 }
 
 model TaskDelayAlert {

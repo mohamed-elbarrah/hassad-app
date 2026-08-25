@@ -1102,6 +1102,7 @@ const PM_SUCCESS_MESSAGES: Record<string, string> = {
   TASK_FILE_UPLOADED: "تم رفع الملف.",
   TASK_FILE_DELETED: "تم حذف الملف.",
   TASK_COMMENT_ADDED: "تمت إضافة التعليق.",
+  TASK_NOTE_ADDED: "تم حفظ الملاحظة الخاصة.",
   TASK_CREATED: "تم إنشاء المهمة بنجاح.",
   DISPUTE_ACKNOWLEDGED: "تم بدء المعالجة.",
   DISPUTE_RESOLVED: "تم إرسال الحل للعميل.",

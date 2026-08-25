@@ -754,7 +754,8 @@ export class TasksService {
       data: {
         taskId: id,
         userId,
-        ...dto,
+        content: dto.content,
+        isInternal: false,
       },
     });
 
@@ -1022,7 +1023,7 @@ export class TasksService {
 
   async getComments(taskId: string) {
     return this.prisma.taskComment.findMany({
-      where: { taskId },
+      where: { taskId, isInternal: false },
       include: {
         user: { select: { id: true, name: true } },
       },

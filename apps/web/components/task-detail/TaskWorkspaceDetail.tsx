@@ -9,6 +9,7 @@ import {
   Download,
   FolderKanban,
   MessageSquare,
+  StickyNote,
   Paperclip,
   RotateCcw,
   Send,
@@ -25,6 +26,7 @@ import {
   UserRole,
   type TaskComment,
   type TaskFile,
+  type TaskNote,
 } from "@hassad/shared";
 import { ClientProfileCard } from "@/components/client-detail/ClientDetailPattern";
 import { TaskWorkflowStepper } from "@/components/dashboard/pm/TaskWorkflowStepper";
@@ -89,6 +91,8 @@ import {
   useGetPmTaskByIdQuery,
   useGetTaskCommentsQuery,
   useGetPmTaskCommentsQuery,
+  useGetPmTaskNotesQuery,
+  useAddPmTaskNoteMutation,
   useGetTaskFilesQuery,
   useGetPmTaskFilesQuery,
   useRejectTaskMutation,
@@ -210,6 +214,15 @@ function mapComments(comments?: TaskComment[]): TaskCommentRecord[] {
     }));
 }
 
+function mapNotes(notes?: TaskNote[]): TaskCommentRecord[] {
+  return (notes ?? []).map((note) => ({
+    id: note.id,
+    content: note.content,
+    createdAt: note.createdAt ? String(note.createdAt) : null,
+    userName: note.user?.name ?? null,
+  }));
+}
+
 function mapFiles(files?: TaskFile[]): TaskFileRecord[] {
   return (files ?? [])
     .slice()
@@ -281,6 +294,7 @@ export function TaskWorkspaceDetail({
   const { user } = useAppSelector((state) => state.auth);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [commentText, setCommentText] = useState("");
+  const [noteText, setNoteText] = useState("");
   const [filePurpose, setFilePurpose] = useState<FilePurpose>(FilePurpose.REFERENCE);
   const marketingTabs = useMarketingTaskExtraTabs({
     taskId,
@@ -296,6 +310,7 @@ export function TaskWorkspaceDetail({
   const teamFilesQuery = useGetTeamTaskFilesQuery({ id: taskId, page: 1, limit: 25 }, { skip: !teamOwned });
   const genericCommentsQuery = useGetTaskCommentsQuery(taskId, { skip: pmOwned || teamOwned });
   const pmCommentsQuery = useGetPmTaskCommentsQuery(taskId, { skip: !pmOwned });
+  const pmNotesQuery = useGetPmTaskNotesQuery(taskId, { skip: !pmOwned });
   const teamCommentsQuery = useGetTeamTaskCommentsQuery({ id: taskId, page: 1, limit: 25 }, { skip: !teamOwned });
   const task = (pmTaskQuery.data ?? teamTaskQuery.data ?? genericTaskQuery.data) as WorkspaceTask | undefined;
   const files = pmFilesQuery.data ?? teamFilesQuery.data?.items ?? genericFilesQuery.data;
@@ -328,6 +343,7 @@ export function TaskWorkspaceDetail({
   const [addComment, { isLoading: isAddingGenericComment }] = useAddTaskCommentMutation();
   const [addTeamComment, { isLoading: isAddingTeamComment }] = useAddTeamTaskCommentMutation();
   const [addPmComment, { isLoading: isAddingPmComment }] = useAddPmTaskCommentMutation();
+  const [addPmNote, { isLoading: isAddingPmNote }] = useAddPmTaskNoteMutation();
   const [uploadPmFile, { isLoading: isUploadingPmFile }] = useUploadPmTaskFileMutation();
   const [uploadTeamFile, { isLoading: isUploadingTeamFile }] = useUploadTeamTaskFileMutation();
   const [getPmFileDownload] = useLazyGetPmTaskFileDownloadQuery();
@@ -335,6 +351,10 @@ export function TaskWorkspaceDetail({
   const isUploading = isUploadingGeneric || isUploadingPmFile || isUploadingTeamFile;
   const isDeletingFile = isDeletingGenericFile || isDeletingPmFile;
   const isAddingComment = isAddingGenericComment || isAddingPmComment || isAddingTeamComment;
+  const notes = pmNotesQuery.data;
+  const notesData = mapNotes(notes);
+  const notesLoading = pmNotesQuery.isLoading;
+  const notesError = pmNotesQuery.error;
   const taskError = pmOwned ? pmTaskQuery.error : teamOwned ? teamTaskQuery.error : genericTaskQuery.error;
 
   if (!user) return null;
@@ -429,6 +449,18 @@ export function TaskWorkspaceDetail({
         await deleteFile({ taskId, fileId }).unwrap();
       }
       toast.success(pmSuccessMessage("TASK_FILE_DELETED"));
+    } catch (error) {
+      toast.error(pmErrorMessage(error));
+    }
+  }
+
+  async function handleAddNote() {
+    const value = noteText.trim();
+    if (!value) return;
+    try {
+      await addPmNote({ taskId, content: value }).unwrap();
+      setNoteText("");
+      toast.success(pmSuccessMessage("TASK_NOTE_ADDED"));
     } catch (error) {
       toast.error(pmErrorMessage(error));
     }
@@ -565,6 +597,25 @@ export function TaskWorkspaceDetail({
         </div>
       ),
     },
+    ...(pmOwned ? [{
+      value: "notes",
+      label: "ملاحظات خاصة",
+      icon: StickyNote,
+      badge: String(notesData.length),
+      content: (
+        <div className="flex flex-col gap-6">
+          {notesLoading ? <Skeleton className="h-20 rounded-lg" /> : notesError ? (
+            <Alert variant="destructive"><AlertTitle>تعذر تحميل الملاحظات</AlertTitle><AlertDescription>{pmErrorMessage(notesError)}</AlertDescription></Alert>
+          ) : <TaskCommentsTable comments={notesData} compact />}
+          <Separator />
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-medium">إضافة ملاحظة خاصة</h3><p className="text-sm text-muted-foreground">تظهر هذه الملاحظات لمديري المشاريع فقط.</p></div><Badge variant="outline">{user.name}</Badge></div>
+            <Textarea rows={4} placeholder="اكتب ملاحظتك هنا..." aria-label="نص الملاحظة الخاصة" value={noteText} onChange={(event) => setNoteText(event.target.value)} disabled={isAddingPmNote} />
+            <div className="flex justify-end"><Button onClick={handleAddNote} disabled={isAddingPmNote || !noteText.trim()}><Send data-icon="inline-start" />{isAddingPmNote ? "جارٍ الحفظ..." : "حفظ الملاحظة"}</Button></div>
+          </div>
+        </div>
+      ),
+    }] : []),
     {
       value: "comments",
       label: "التعليقات",

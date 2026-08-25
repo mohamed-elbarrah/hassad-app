@@ -4,10 +4,13 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   Min,
+  MinLength,
 } from "class-validator";
 import {
   FilePurpose,
@@ -80,10 +83,14 @@ export class PmTaskAssignDto {
 export class PmTaskCommentDto {
   @IsString()
   content!: string;
+}
 
-  @IsOptional()
-  @IsBoolean()
-  isInternal?: boolean;
+export class PmTaskNoteDto {
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  @MaxLength(10000)
+  content!: string;
 }
 
 export class PmTaskFileDto {
