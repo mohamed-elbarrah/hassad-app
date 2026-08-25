@@ -294,9 +294,29 @@ export class ProjectPeriodsService {
           select: { id: true, invoiceNumber: true, amount: true, status: true },
         },
         project: { select: { id: true, clientId: true } },
+        meetings: {
+          orderBy: { scheduledAt: "asc" },
+          select: {
+            id: true,
+            title: true,
+            scheduledAt: true,
+            durationMin: true,
+            location: true,
+            meetingLink: true,
+            status: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
     });
-    if (!period) throw new NotFoundException("Period not found");
+    if (!period) {
+      throw new NotFoundException({
+        code: "PROJECT_PERIOD_NOT_FOUND",
+        details: { periodId },
+      });
+    }
 
     const tasksByStatus = period.tasks.reduce<Record<string, number>>(
       (acc, t) => {

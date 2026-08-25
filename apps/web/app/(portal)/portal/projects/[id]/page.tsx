@@ -24,6 +24,7 @@ import {
   type PortalPeriodFile,
 } from "@/features/portal/portalApi";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
@@ -36,8 +37,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   ProjectHeader,
-  HeroCard,
-  StatCards,
   GoalsTab,
   FilesTab,
   ReportsTab,
@@ -45,7 +44,9 @@ import {
   MeetingsTab,
   InvoiceTab,
 } from "@/components/portal/project-detail";
-import { ProjectPeriodStatus } from "@hassad/shared";
+import { ProjectPeriodStatus, PROJECT_STATUS_AR } from "@hassad/shared";
+import { ProjectPeriodWorkspace } from "@/components/project-detail/ProjectPeriodWorkspace";
+import { daysUntil, formatShortDate } from "@/lib/format";
 
 interface TabDef {
   id: string;
@@ -275,33 +276,40 @@ export default function PortalProjectPeriodsPage() {
       {project && <ProjectHeader project={project} />}
 
       {selectedPeriod && (
-        <div
-          className="grid grid-cols-1 items-start gap-5 md:grid-cols-5"
-          dir="rtl"
+        <ProjectPeriodWorkspace
+          role="client"
+          periods={periods}
+          selectedPeriodId={selectedPeriod.id}
+          onSelectPeriod={(periodId) => setSelectedPeriodId(periodId)}
+          overview={
+            <div className="flex flex-col gap-5">
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
+                  <dt className="text-xs text-muted-foreground">العميل</dt>
+                  <dd className="truncate font-medium">{project?.client.companyName}</dd>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
+                  <dt className="text-xs text-muted-foreground">مدير المشروع</dt>
+                  <dd className="truncate font-medium">{project?.manager?.name || "غير محدد"}</dd>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
+                  <dt className="text-xs text-muted-foreground">حالة المشروع</dt>
+                  <dd><Badge variant="secondary">{project ? PROJECT_STATUS_AR[project.status] : "—"}</Badge></dd>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
+                  <dt className="text-xs text-muted-foreground">مدة المشروع</dt>
+                  <dd className="font-medium">{formatShortDate(project?.startDate)} - {formatShortDate(project?.endDate)}</dd>
+                </div>
+              </dl>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                <div className="flex items-center justify-between gap-2 border-b pb-3"><dt className="text-xs text-muted-foreground">الأهداف المكتملة</dt><dd className="font-semibold tabular-nums">{selectedPeriod.stats.goalsCompleted}/{selectedPeriod.stats.goalsTotal}</dd></div>
+                <div className="flex items-center justify-between gap-2 border-b pb-3"><dt className="text-xs text-muted-foreground">الملفات</dt><dd className="font-semibold tabular-nums">{selectedPeriod.stats.filesCount}</dd></div>
+                <div className="flex items-center justify-between gap-2 border-b pb-3"><dt className="text-xs text-muted-foreground">التقارير</dt><dd className="font-semibold tabular-nums">{selectedPeriod.stats.reportsCount}</dd></div>
+                <div className="flex items-center justify-between gap-2 border-b pb-3"><dt className="text-xs text-muted-foreground">الوقت المتبقي</dt><dd className="font-semibold tabular-nums">{daysUntil(project?.endDate) ?? "—"}</dd></div>
+              </dl>
+            </div>
+          }
         >
-          <div className="md:col-span-3">
-            <HeroCard
-              period={selectedPeriod}
-              periods={periods}
-              onSelectPeriod={(period) => setSelectedPeriodId(period.id)}
-              onDownloadReport={downloadPeriodReport}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <section
-              className="flex flex-col gap-3"
-              aria-labelledby="period-stats-title"
-            >
-              <h2 id="period-stats-title" className="text-base font-semibold">
-                ملخص الفترة الحالية
-              </h2>
-              <StatCards stats={selectedPeriod.stats} />
-            </section>
-          </div>
-        </div>
-      )}
-
-      {selectedPeriod && (
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
@@ -354,6 +362,7 @@ export default function PortalProjectPeriodsPage() {
             <InvoiceTab invoice={selectedPeriod.invoice} />
           </TabsContent>
         </Tabs>
+        </ProjectPeriodWorkspace>
       )}
     </main>
   );

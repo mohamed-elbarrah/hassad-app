@@ -69,9 +69,11 @@ const isTerminal = (status: MeetingStatus) =>
 function CreateMeetingForm({
   periodId,
   onDone,
+  onChanged,
 }: {
   periodId: string;
   onDone: () => void;
+  onChanged?: () => void;
 }) {
   const [createMeeting, { isLoading }] = useCreateMeetingMutation();
   const [form, setForm] = useState({
@@ -99,6 +101,7 @@ function CreateMeetingForm({
           meetingLink: form.meetingLink || undefined,
         },
       }).unwrap();
+      onChanged?.();
       onDone();
     } catch (e) {
       toast.error(pmErrorMessage(e));
@@ -200,10 +203,12 @@ function MeetingRow({
   meeting,
   periodId,
   canEdit,
+  onChanged,
 }: {
   meeting: ProjectMeeting;
   periodId: string;
   canEdit: boolean;
+  onChanged?: () => void;
 }) {
   const [updateMeeting, { isLoading }] = useUpdateMeetingMutation();
   const [editing, setEditing] = useState(false);
@@ -234,6 +239,7 @@ function MeetingRow({
           meetingLink: editForm.meetingLink || undefined,
         },
       }).unwrap();
+      onChanged?.();
       setEditing(false);
     } catch (e) {
       toast.error(pmErrorMessage(e));
@@ -247,6 +253,7 @@ function MeetingRow({
         periodId,
         body: { status },
       }).unwrap();
+      onChanged?.();
     } catch (e) {
       toast.error(pmErrorMessage(e));
     }
@@ -259,6 +266,7 @@ function MeetingRow({
         periodId,
         body: { notes },
       }).unwrap();
+      onChanged?.();
       setShowNotes(false);
     } catch (e) {
       toast.error(pmErrorMessage(e));
@@ -518,6 +526,7 @@ interface PMPeriodMeetingsProps {
   periodId: string;
   meetings: ProjectMeeting[];
   canEdit: boolean;
+  onChanged?: () => void;
 }
 
 /** PM management of a period's client meetings: schedule, edit, cancel, mark done. */
@@ -525,6 +534,7 @@ export function PMPeriodMeetings({
   periodId,
   meetings,
   canEdit,
+  onChanged,
 }: PMPeriodMeetingsProps) {
   const [showForm, setShowForm] = useState(false);
 
@@ -555,6 +565,7 @@ export function PMPeriodMeetings({
         <CreateMeetingForm
           periodId={periodId}
           onDone={() => setShowForm(false)}
+          onChanged={onChanged}
         />
       )}
 
@@ -570,6 +581,7 @@ export function PMPeriodMeetings({
               meeting={meeting}
               periodId={periodId}
               canEdit={canEdit}
+              onChanged={onChanged}
             />
           ))}
         </div>

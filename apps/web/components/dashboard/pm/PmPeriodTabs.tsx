@@ -172,7 +172,12 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
 
       <TabsContent value="meetings" className="mt-6 flex flex-col gap-4">
         <h3 className="text-lg font-semibold">اجتماعات الفترة</h3>
-        <PMPeriodMeetings periodId={period.id} meetings={period.meetings ?? []} canEdit />
+        <PMPeriodMeetings
+          periodId={period.id}
+          meetings={period.meetings ?? []}
+          canEdit
+          onChanged={onChanged}
+        />
       </TabsContent>
 
       <TabsContent value="invoices" className="mt-6">
