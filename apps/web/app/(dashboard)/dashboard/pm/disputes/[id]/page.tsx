@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DisputeDetailEmptyState, DisputeDetailPattern } from "@/components/disputes/DisputeDetailPattern";
 import { PmResolveDialog } from "@/components/disputes/PmResolveDialog";
-import { pmErrorMessage } from "@/lib/i18n";
+import { pmErrorMessage, pmSuccessMessage } from "@/lib/i18n";
 
 interface PmDisputeDetailPageProps {
   params: Promise<{ id: string }>;
@@ -40,7 +40,7 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
   const handleAcknowledge = async () => {
     try {
       await acknowledge(id).unwrap();
-      toast.success("تم بدء المعالجة");
+      toast.success(pmSuccessMessage("DISPUTE_ACKNOWLEDGED"));
       refetch();
     } catch (error) {
       toast.error(pmErrorMessage(error));
@@ -59,7 +59,7 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
   const handleResolve = async (message: string) => {
     try {
       await resolveDispute({ disputeId: id, input: { message } }).unwrap();
-      toast.success("تم إرسال الحل للعميل");
+      toast.success(pmSuccessMessage("DISPUTE_RESOLVED"));
       setIsResolveDialogOpen(false);
       refetch();
     } catch (error) {

@@ -27,12 +27,13 @@ import {
   Loader2,
 } from "lucide-react";
 import { MeetingStatus } from "@hassad/shared";
+import type { ProjectMeeting } from "@/features/projects/periodsApi";
 import {
-  useCreateMeetingMutation,
-  useUpdateMeetingMutation,
-  type ProjectMeeting,
-} from "@/features/projects/periodsApi";
+  useCreatePmMeetingMutation,
+  useUpdatePmMeetingMutation,
+} from "@/features/projects/projectsApi";
 import { pmErrorMessage } from "@/lib/i18n";
+import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const statusLabels: Record<MeetingStatus, string> = {
@@ -41,16 +42,6 @@ const statusLabels: Record<MeetingStatus, string> = {
   CANCELLED: "ملغي",
   RESCHEDULED: "مؤجل",
 };
-
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString("ar-SA-u-nu-latn", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 function toDateTimeParts(iso: string) {
   const d = new Date(iso);
@@ -67,15 +58,17 @@ const isTerminal = (status: MeetingStatus) =>
 // ── Create form ────────────────────────────────────────────────────────────────
 
 function CreateMeetingForm({
+  projectId,
   periodId,
   onDone,
   onChanged,
 }: {
+  projectId: string;
   periodId: string;
   onDone: () => void;
   onChanged?: () => void;
 }) {
-  const [createMeeting, { isLoading }] = useCreateMeetingMutation();
+  const [createMeeting, { isLoading }] = useCreatePmMeetingMutation();
   const [form, setForm] = useState({
     title: "",
     scheduledDate: "",
@@ -92,6 +85,7 @@ function CreateMeetingForm({
     if (!form.title.trim() || !form.scheduledDate || !form.scheduledTime) return;
     try {
       await createMeeting({
+        projectId,
         periodId,
         body: {
           title: form.title.trim(),
@@ -201,16 +195,18 @@ function CreateMeetingForm({
 
 function MeetingRow({
   meeting,
+  projectId,
   periodId,
   canEdit,
   onChanged,
 }: {
   meeting: ProjectMeeting;
+  projectId: string;
   periodId: string;
   canEdit: boolean;
   onChanged?: () => void;
 }) {
-  const [updateMeeting, { isLoading }] = useUpdateMeetingMutation();
+  const [updateMeeting, { isLoading }] = useUpdatePmMeetingMutation();
   const [editing, setEditing] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState(meeting.notes ?? "");
@@ -229,6 +225,7 @@ function MeetingRow({
   const saveEdit = async () => {
     try {
       await updateMeeting({
+        projectId,
         meetingId: meeting.id,
         periodId,
         body: {
@@ -249,6 +246,7 @@ function MeetingRow({
   const setStatus = async (status: MeetingStatus) => {
     try {
       await updateMeeting({
+        projectId,
         meetingId: meeting.id,
         periodId,
         body: { status },
@@ -262,6 +260,7 @@ function MeetingRow({
   const saveNotes = async () => {
     try {
       await updateMeeting({
+        projectId,
         meetingId: meeting.id,
         periodId,
         body: { notes },
@@ -523,6 +522,7 @@ function MeetingRow({
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 interface PMPeriodMeetingsProps {
+  projectId: string;
   periodId: string;
   meetings: ProjectMeeting[];
   canEdit: boolean;
@@ -531,6 +531,7 @@ interface PMPeriodMeetingsProps {
 
 /** PM management of a period's client meetings: schedule, edit, cancel, mark done. */
 export function PMPeriodMeetings({
+  projectId,
   periodId,
   meetings,
   canEdit,
@@ -563,6 +564,7 @@ export function PMPeriodMeetings({
 
       {showForm && (
         <CreateMeetingForm
+          projectId={projectId}
           periodId={periodId}
           onDone={() => setShowForm(false)}
           onChanged={onChanged}
@@ -579,6 +581,7 @@ export function PMPeriodMeetings({
             <MeetingRow
               key={meeting.id}
               meeting={meeting}
+              projectId={projectId}
               periodId={periodId}
               canEdit={canEdit}
               onChanged={onChanged}

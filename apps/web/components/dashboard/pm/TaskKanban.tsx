@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Calendar, User } from "lucide-react";
@@ -10,6 +10,7 @@ import {
   useChangePmTaskStatusMutation,
 } from "@/features/tasks/tasksApi";
 import { KanbanBoard } from "@/components/dashboard/kanban";
+import { Button } from "@/components/ui/button";
 import { TASK_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/task-status";
 import { TaskKanbanCardContent } from "@/components/dashboard/kanban/cards/TaskKanbanCardContent";
 import type { TaskWithMeta } from "@/lib/utils/task-status";
@@ -41,11 +42,15 @@ interface TaskKanbanProps {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanProps) {
+  const [page, setPage] = useState(1);
+  useEffect(() => {
+    setPage(1);
+  }, [projectId, periodId]);
   const {
     data: tasks,
     isLoading,
     isError,
-  } = useGetPmTasksQuery({ projectId, periodId, limit: 100 });
+  } = useGetPmTasksQuery({ projectId, periodId, page, limit: 24 });
   const [changeTaskStatus] = useChangePmTaskStatusMutation();
 
   const typedTasks = (tasks?.items ?? []) as TaskWithMeta[];
@@ -70,7 +75,7 @@ export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanP
               newStatus === TaskStatus.REVISION));
 
         if (!validTransition) {
-          toast.error("الانتقال غير مسموح في مسار حالة المهام");
+          toast.error(pmErrorMessage({ data: { error: { code: "TASK_INVALID_TRANSITION" } } }));
           return;
         }
 
@@ -109,6 +114,7 @@ export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanP
     }
 
     return (
+      <div className="flex flex-col gap-4">
       <div className="overflow-hidden rounded-lg border">
         <Table>
           <TableCaption>قائمة مهام الفترة</TableCaption>
@@ -140,11 +146,20 @@ export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanP
           </TableBody>
         </Table>
       </div>
+      {(tasks?.meta.totalPages ?? 1) > 1 ? (
+        <div className="flex items-center justify-center gap-3">
+          <Button variant="outline" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>السابق</Button>
+          <span className="text-sm text-muted-foreground">صفحة {page} من {tasks?.meta.totalPages}</span>
+          <Button variant="outline" disabled={page >= (tasks?.meta.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>التالي</Button>
+        </div>
+      ) : null}
+      </div>
     );
   }
 
   return (
-    <KanbanBoard
+    <div className="flex flex-col gap-4">
+      <KanbanBoard
       config={TASK_STATUS_CONFIG}
       items={typedTasks}
       getItemStage={(t) => t.status}
@@ -154,6 +169,14 @@ export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanP
       isError={isError}
       errorMessage="حدث خطأ أثناء تحميل المهام"
       emptyMessage="لا توجد مهام — ابدأ بإضافة مهمة جديدة لهذا المشروع"
-    />
+      />
+      {(tasks?.meta.totalPages ?? 1) > 1 ? (
+        <div className="flex items-center justify-center gap-3">
+          <Button variant="outline" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>السابق</Button>
+          <span className="text-sm text-muted-foreground">صفحة {page} من {tasks?.meta.totalPages}</span>
+          <Button variant="outline" disabled={page >= (tasks?.meta.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>التالي</Button>
+        </div>
+      ) : null}
+    </div>
   );
 }

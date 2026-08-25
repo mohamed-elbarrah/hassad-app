@@ -38,7 +38,7 @@ import { useCreatePmProjectTaskMutation } from "@/features/tasks/tasksApi";
 import { useSearchTaskAssigneesQuery } from "@/features/users/usersApi";
 import { TaskDepartment, TaskPriority } from "@hassad/shared";
 import { cn } from "@/lib/utils";
-import { pmErrorMessage } from "@/lib/i18n";
+import { pmErrorMessage, pmSuccessMessage } from "@/lib/i18n";
 
 // ── Labels ────────────────────────────────────────────────────────────────────
 
@@ -296,7 +296,7 @@ export function TaskForm({
         dueDate: new Date(values.dueDate),
         description: values.description || undefined,
       }).unwrap();
-      toast.success("تم إنشاء المهمة بنجاح.");
+      toast.success(pmSuccessMessage("TASK_CREATED"));
       form.reset();
       setOpen(false);
     } catch (error) {

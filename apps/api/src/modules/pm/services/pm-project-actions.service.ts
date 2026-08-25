@@ -88,6 +88,49 @@ export class PmProjectActionsService {
     return this.tasksService.assign(taskId, userId, { userId: assigneeId });
   }
 
+  private async ownedPeriod(userId: string, projectId: string, periodId: string) {
+    await this.ownedProject(projectId, userId);
+    const period = await this.prisma.projectPeriod.findFirst({
+      where: { id: periodId, projectId },
+      select: { id: true },
+    });
+    if (!period) {
+      throw new NotFoundException({ code: "PERIOD_NOT_FOUND", details: { periodId } });
+    }
+    return period;
+  }
+
+  async savePeriodGoals(
+    userId: string,
+    projectId: string,
+    periodId: string,
+    goals: Array<{ title: string; description?: string; progress: number; status: string }>,
+  ) {
+    await this.ownedPeriod(userId, projectId, periodId);
+    return this.periodsService.saveGoals(periodId, goals);
+  }
+
+  async savePeriodReport(
+    userId: string,
+    projectId: string,
+    periodId: string,
+    file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException({ code: "REPORT_FILE_REQUIRED", details: {} });
+    await this.ownedPeriod(userId, projectId, periodId);
+    const uploadResult = await this.storageService.upload({
+      category: StorageCategory.PROJECT_FILE,
+      entityId: periodId,
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+    return this.periodsService.saveReport(periodId, uploadResult.key);
+  }
+
   async createMeeting(userId: string, projectId: string, dto: {
     title: string;
     scheduledAt: string;

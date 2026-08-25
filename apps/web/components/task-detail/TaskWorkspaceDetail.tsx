@@ -73,11 +73,14 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadTaskFile } from "@/lib/downloadFile";
-import { pmErrorMessage } from "@/lib/i18n";
+import { pmErrorMessage, pmSuccessMessage } from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
 import { formatDateTime, formatShortDate } from "@/lib/format";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/utils/task-status";
-import { useGetClientTeamViewQuery } from "@/features/clients/clientsApi";
+import {
+  useGetClientTeamViewQuery,
+  useGetPmClientTeamViewQuery,
+} from "@/features/clients/clientsApi";
 import {
   useAddTaskCommentMutation,
   useApproveTaskMutation,
@@ -114,6 +117,22 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.PRODUCTION]: "المونتاج",
 };
 
+interface TaskHistoryEntry {
+  id: string;
+  fromStatus: string;
+  toStatus: string;
+  changedAt?: string | Date | null;
+  changer?: { name?: string | null } | null;
+}
+
+type WorkspaceTask = TaskWithProject & {
+  startedAt?: string | Date | null;
+  submittedAt?: string | Date | null;
+  approvedAt?: string | Date | null;
+  isVisibleToClient?: boolean | null;
+  statusHistory?: TaskHistoryEntry[];
+};
+
 interface TaskWorkspaceDetailProps {
   taskId: string;
   listHref: string;
@@ -125,7 +144,7 @@ interface TaskWorkspaceDetailProps {
   pmOwned?: boolean;
 }
 
-function mapTaskEntity(task: any): TaskDetailEntity {
+function mapTaskEntity(task: WorkspaceTask): TaskDetailEntity {
   return {
     id: task.id,
     title: task.title,
@@ -156,7 +175,7 @@ function mapTaskEntity(task: any): TaskDetailEntity {
   };
 }
 
-function mapHistory(history?: any[]): TaskHistoryRecord[] {
+function mapHistory(history?: TaskHistoryEntry[]): TaskHistoryRecord[] {
   return (history ?? []).map((entry) => ({
     id: entry.id,
     fromStatus: entry.fromStatus,
@@ -265,7 +284,7 @@ export function TaskWorkspaceDetail({
   const genericCommentsQuery = useGetTaskCommentsQuery(taskId, { skip: pmOwned });
   const pmCommentsQuery = useGetPmTaskCommentsQuery(taskId, { skip: !pmOwned });
   const task = (pmTaskQuery.data ?? genericTaskQuery.data) as
-    | TaskWithProject
+    | WorkspaceTask
     | undefined;
   const files = pmFilesQuery.data ?? genericFilesQuery.data;
   const comments = pmCommentsQuery.data ?? genericCommentsQuery.data;
@@ -276,10 +295,14 @@ export function TaskWorkspaceDetail({
   const commentsLoading = pmOwned ? pmCommentsQuery.isLoading : genericCommentsQuery.isLoading;
   const commentsError = pmOwned ? pmCommentsQuery.error : genericCommentsQuery.error;
 
-  const clientId = (task as any)?.project?.client?.id ?? (task as any)?.project?.clientId ?? "";
-  const { data: teamView } = useGetClientTeamViewQuery(clientId, {
-    skip: !clientId,
+  const clientId = task?.project?.clientId ?? "";
+  const { data: genericTeamView } = useGetClientTeamViewQuery(clientId, {
+    skip: !clientId || pmOwned,
   });
+  const { data: pmTeamView } = useGetPmClientTeamViewQuery(clientId, {
+    skip: !clientId || !pmOwned,
+  });
+  const teamView = pmTeamView ?? genericTeamView;
 
   const [startTask] = useStartTaskMutation();
   const [changePmTaskStatus] = useChangePmTaskStatusMutation();
@@ -314,7 +337,7 @@ export function TaskWorkspaceDetail({
   const isMarketingTask = task.department?.name === TaskDepartment.MARKETING;
   const commentsData = mapComments(comments);
   const filesData = mapFiles(files);
-  const historyData = mapHistory((task as any).statusHistory);
+  const historyData = mapHistory(task.statusHistory);
 
   const isPmReviewer = user.role === UserRole.PM || user.role === UserRole.ADMIN;
   const canReview = isPmReviewer && task.status === TaskStatus.IN_REVIEW;
@@ -349,7 +372,7 @@ export function TaskWorkspaceDetail({
         if (action === "approve") await approveTask(taskId).unwrap();
         if (action === "reject") await rejectTask(taskId).unwrap();
       }
-      toast.success("تم تحديث حالة المهمة");
+      toast.success(pmSuccessMessage("TASK_STATUS_UPDATED"));
     } catch (error) {
       toast.error(pmErrorMessage(error));
     }
@@ -364,7 +387,7 @@ export function TaskWorkspaceDetail({
       } else {
         await uploadFile({ taskId, file, purpose: filePurpose }).unwrap();
       }
-      toast.success("تم رفع الملف");
+      toast.success(pmSuccessMessage("TASK_FILE_UPLOADED"));
     } catch (error) {
       toast.error(pmErrorMessage(error));
     } finally {
@@ -379,7 +402,7 @@ export function TaskWorkspaceDetail({
       } else {
         await deleteFile({ taskId, fileId }).unwrap();
       }
-      toast.success("تم حذف الملف");
+      toast.success(pmSuccessMessage("TASK_FILE_DELETED"));
     } catch (error) {
       toast.error(pmErrorMessage(error));
     }
@@ -395,7 +418,7 @@ export function TaskWorkspaceDetail({
         await addComment({ taskId, content: value }).unwrap();
       }
       setCommentText("");
-      toast.success("تمت إضافة التعليق");
+      toast.success(pmSuccessMessage("TASK_COMMENT_ADDED"));
     } catch (error) {
       toast.error(pmErrorMessage(error));
     }

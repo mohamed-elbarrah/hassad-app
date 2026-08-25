@@ -67,7 +67,11 @@ export function PmTasksKanban({
       )}
       onDragEnd={handleDragEnd}
       canDropItem={canDropItem}
-      onInvalidDrop={() => toast.error("لا يمكن نقل المهمة إلى هذه الحالة")}
+      onInvalidDrop={() =>
+        toast.error(
+          pmErrorMessage({ data: { error: { code: "TASK_DROP_NOT_ALLOWED" } } }),
+        )
+      }
       isLoading={isLoading}
       isError={isError}
       errorMessage="تعذر تحميل المهام"

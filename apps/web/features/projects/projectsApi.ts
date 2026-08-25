@@ -8,7 +8,12 @@ import type {
   UpdateProjectStatusInput,
 } from "@hassad/shared";
 import type { ProjectStatus } from "@hassad/shared";
-import type { ProjectPeriod } from "@/features/projects/periodsApi";
+import type {
+  CreateMeetingInput,
+  ProjectMeeting,
+  ProjectPeriod,
+  UpdateMeetingInput,
+} from "@/features/projects/periodsApi";
 
 // ── Response types ────────────────────────────────────────────────────────────
 
@@ -173,6 +178,74 @@ export const projectsApi = createApi({
       query: (projectId) => `/pm/projects/${projectId}/periods`,
       providesTags: (_result, _error, projectId) => [
         { type: "ProjectPeriod", id: `list-${projectId}` },
+      ],
+    }),
+
+    /** PATCH /v1/pm/projects/:projectId/periods/:periodId/goals */
+    savePmPeriodGoals: builder.mutation<
+      ProjectPeriod,
+      { projectId: string; periodId: string; goals: NonNullable<ProjectPeriod["goals"]> }
+    >({
+      query: ({ projectId, periodId, goals }) => ({
+        url: `/pm/projects/${projectId}/periods/${periodId}/goals`,
+        method: "PATCH",
+        body: { goals },
+      }),
+      invalidatesTags: (_result, _error, { projectId, periodId }) => [
+        { type: "ProjectPeriod", id: `list-${projectId}` },
+        { type: "ProjectPeriod", id: `${projectId}-${periodId}` },
+      ],
+    }),
+
+    /** POST /v1/pm/projects/:projectId/periods/:periodId/report */
+    uploadPmPeriodReport: builder.mutation<
+      ProjectPeriod,
+      { projectId: string; periodId: string; file: File }
+    >({
+      query: ({ projectId, periodId, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: `/pm/projects/${projectId}/periods/${periodId}/report`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: (_result, _error, { projectId, periodId }) => [
+        { type: "ProjectPeriod", id: `list-${projectId}` },
+        { type: "ProjectPeriod", id: `${projectId}-${periodId}` },
+      ],
+    }),
+
+    /** POST /v1/pm/projects/:id/meetings — PM-owned meeting creation */
+    createPmMeeting: builder.mutation<
+      ProjectMeeting,
+      { projectId: string; periodId?: string; body: CreateMeetingInput }
+    >({
+      query: ({ projectId, periodId, body }) => ({
+        url: `/pm/projects/${projectId}/meetings`,
+        method: "POST",
+        body: { ...body, periodId },
+      }),
+      invalidatesTags: (_result, _error, { projectId, periodId }) => [
+        { type: "ProjectPeriod", id: `list-${projectId}` },
+        ...(periodId ? [{ type: "ProjectPeriod" as const, id: `${projectId}-${periodId}` }] : []),
+      ],
+    }),
+
+    /** PATCH /v1/pm/projects/:id/meetings/:meetingId — PM-owned meeting update */
+    updatePmMeeting: builder.mutation<
+      ProjectMeeting,
+      { projectId: string; meetingId: string; periodId?: string; body: UpdateMeetingInput }
+    >({
+      query: ({ projectId, meetingId, body }) => ({
+        url: `/pm/projects/${projectId}/meetings/${meetingId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { projectId, periodId }) => [
+        { type: "ProjectPeriod", id: `list-${projectId}` },
+        ...(periodId ? [{ type: "ProjectPeriod" as const, id: `${projectId}-${periodId}` }] : []),
       ],
     }),
 
@@ -369,6 +442,10 @@ export const {
   useGetPmProjectByIdQuery,
   useGetPmProjectPeriodsQuery,
   useGetPmProjectPeriodQuery,
+  useSavePmPeriodGoalsMutation,
+  useUploadPmPeriodReportMutation,
+  useCreatePmMeetingMutation,
+  useUpdatePmMeetingMutation,
   useGetPmProjectFilesQuery,
   useCreateProjectMutation,
   useUpdateProjectMutation,

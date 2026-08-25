@@ -48,7 +48,7 @@ import {
 } from "@/features/projects/projectsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
-import { projectErrorMessage } from "@/lib/i18n";
+import { projectErrorMessage, projectSuccessMessage } from "@/lib/i18n";
 
 const schema = z.object({
   name: z.string().min(2, "اسم المشروع يجب أن يكون حرفين على الأقل"),
@@ -118,7 +118,7 @@ export function ProjectForm({
           description: values.description || undefined,
         }).unwrap();
       toast.success(
-        editing ? "تم تحديث المشروع بنجاح." : "تم إنشاء المشروع بنجاح.",
+        projectSuccessMessage(editing ? "PROJECT_UPDATED" : "PROJECT_CREATED"),
       );
       setOpen(false);
     } catch (error) {

@@ -6,7 +6,7 @@ import { RequirePermissions } from "../../../common/decorators/permissions.decor
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { PmProjectActionsService } from "../services/pm-project-actions.service";
-import { AssignPmTaskDto, CreatePmMeetingDto, CreatePmTaskDto, PmAssignableUsersQueryDto, UpdatePmMeetingDto, UploadPmProjectFileDto } from "../dto/pm-project-actions.dto";
+import { AssignPmTaskDto, CreatePmMeetingDto, CreatePmTaskDto, PmAssignableUsersQueryDto, SavePmPeriodGoalsDto, UpdatePmMeetingDto, UploadPmProjectFileDto } from "../dto/pm-project-actions.dto";
 
 @Controller("pm")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -34,6 +34,29 @@ export class PmProjectActionsController {
     @Body() dto: AssignPmTaskDto,
   ) {
     return this.service.assignTask(userId, projectId, taskId, dto.userId);
+  }
+
+  @Patch("projects/:projectId/periods/:periodId/goals")
+  @RequirePermissions("projects.update")
+  savePeriodGoals(
+    @CurrentUser("id") userId: string,
+    @Param("projectId") projectId: string,
+    @Param("periodId") periodId: string,
+    @Body() dto: SavePmPeriodGoalsDto,
+  ) {
+    return this.service.savePeriodGoals(userId, projectId, periodId, dto.goals);
+  }
+
+  @Post("projects/:projectId/periods/:periodId/report")
+  @RequirePermissions("projects.update")
+  @UseInterceptors(FileInterceptor("file"))
+  savePeriodReport(
+    @CurrentUser("id") userId: string,
+    @Param("projectId") projectId: string,
+    @Param("periodId") periodId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.service.savePeriodReport(userId, projectId, periodId, file);
   }
 
   @Post("projects/:id/meetings")

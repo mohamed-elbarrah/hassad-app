@@ -1057,6 +1057,8 @@ const PM_ERROR_MESSAGES: Record<string, string> = {
   TASK_FILE_DOWNLOAD_FAILED: "تعذر تحميل الملف.",
   TASK_FILE_UPLOAD_FAILED: "تعذر رفع الملف.",
   TASK_FILE_DELETE_FAILED: "تعذر حذف الملف.",
+  TASK_INVALID_TRANSITION: "الانتقال غير مسموح في مسار حالة المهام.",
+  TASK_DROP_NOT_ALLOWED: "لا يمكن نقل المهمة إلى هذه الحالة.",
   PERIOD_NOT_FOUND: "الفترة غير موجودة.",
   PERIOD_REQUIRED_FOR_RETAINER: "يجب تحديد فترة لهذا النوع من المشاريع.",
   MEETING_NOT_FOUND: "الاجتماع غير موجود.",
@@ -1074,6 +1076,29 @@ const DISPUTE_HISTORY_MESSAGES: Record<string, string> = {
 
 export function disputeHistoryMessage(code: string): string {
   return DISPUTE_HISTORY_MESSAGES[code] ?? "تم تحديث حالة النزاع.";
+}
+
+const PM_SUCCESS_MESSAGES: Record<string, string> = {
+  TASK_STATUS_UPDATED: "تم تحديث حالة المهمة.",
+  TASK_FILE_UPLOADED: "تم رفع الملف.",
+  TASK_FILE_DELETED: "تم حذف الملف.",
+  TASK_COMMENT_ADDED: "تمت إضافة التعليق.",
+  TASK_CREATED: "تم إنشاء المهمة بنجاح.",
+  DISPUTE_ACKNOWLEDGED: "تم بدء المعالجة.",
+  DISPUTE_RESOLVED: "تم إرسال الحل للعميل.",
+  UNKNOWN_SUCCESS: "تمت العملية بنجاح.",
+};
+
+export function pmSuccessMessage(code: string | undefined): string {
+  return PM_SUCCESS_MESSAGES[code ?? "UNKNOWN_SUCCESS"] ?? PM_SUCCESS_MESSAGES.UNKNOWN_SUCCESS;
+}
+
+export function projectSuccessMessage(code: string): string {
+  const messages: Record<string, string> = {
+    PROJECT_CREATED: "تم إنشاء المشروع بنجاح.",
+    PROJECT_UPDATED: "تم تحديث المشروع بنجاح.",
+  };
+  return messages[code] ?? "تمت العملية بنجاح.";
 }
 
 export function pmErrorMessage(error: unknown): string {

@@ -678,11 +678,11 @@ function PerformanceTab({
 export function useMarketingTaskExtraTabs({
   taskId,
   canManage,
-  enabled,
+  enabled = true,
 }: {
   taskId: string;
   canManage: boolean;
-  enabled: boolean;
+  enabled?: boolean;
 }) {
   const { data: campaigns = [] } = useGetCampaignsByTaskQuery(taskId, {
     skip: !enabled,

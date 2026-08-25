@@ -62,7 +62,7 @@ export default function PMTasksPage() {
     priority: priority !== "ALL" ? priority : undefined,
     overdue: status === "OVERDUE" ? true : undefined,
     page,
-    limit: 100,
+    limit: 24,
   });
 
   const tasks = taskResponse?.items ?? [];

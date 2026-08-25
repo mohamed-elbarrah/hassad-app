@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min, IsBoolean } from "class-validator";
+import { IsArray, IsDateString, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min, IsBoolean, ValidateNested, MinLength } from "class-validator";
 import { Type } from "class-transformer";
 import { MeetingStatus, TaskDepartment, TaskPriority, FilePurpose } from "@hassad/shared";
 import { IsUrl } from "class-validator";
@@ -102,6 +102,32 @@ export class UpdatePmMeetingDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+export class PmPeriodGoalDto {
+  @IsString()
+  @MinLength(1)
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  progress: number;
+
+  @IsString()
+  @IsIn(["done", "in_progress", "pending"])
+  status: string;
+}
+
+export class SavePmPeriodGoalsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PmPeriodGoalDto)
+  goals: PmPeriodGoalDto[];
 }
 
 export class UploadPmProjectFileDto {

@@ -8,7 +8,10 @@ import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
 import { PMGoalEditor, GoalList } from "@/components/dashboard/pm/PMGoalEditor";
 import { PMPeriodMeetings } from "@/components/dashboard/pm/PMPeriodMeetings";
-import { useSavePeriodGoalsMutation, useUploadPeriodReportMutation } from "@/features/projects/periodsApi";
+import {
+  useSavePmPeriodGoalsMutation,
+  useUploadPmPeriodReportMutation,
+} from "@/features/projects/projectsApi";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -26,8 +29,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export function PmPeriodTabs({ period, projectId, onChanged }: { period: ProjectPeriod; projectId: string; onChanged?: () => void }) {
   const [editingGoals, setEditingGoals] = useState(false);
   const [goals, setGoals] = useState(period.goals ?? []);
-  const [saveGoals, { isLoading: isSavingGoals }] = useSavePeriodGoalsMutation();
-  const [uploadReport, { isLoading: isUploadingReport }] = useUploadPeriodReportMutation();
+  const [saveGoals, { isLoading: isSavingGoals }] = useSavePmPeriodGoalsMutation();
+  const [uploadReport, { isLoading: isUploadingReport }] = useUploadPmPeriodReportMutation();
   const reportInputRef = useRef<HTMLInputElement>(null);
   const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [taskView, setTaskView] = useState<"kanban" | "table">("kanban");
@@ -44,7 +47,7 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
 
   const handleSaveGoals = async () => {
     try {
-      await saveGoals({ periodId: period.id, goals }).unwrap();
+      await saveGoals({ projectId, periodId: period.id, goals }).unwrap();
       onChanged?.();
       setEditingGoals(false);
     } catch (error) {
@@ -144,7 +147,7 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
               <CardDescription>أضف تقرير الفترة أو استبدل التقرير الحالي.</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={() => reportInputRef.current?.click()} disabled={isUploadingReport}><Upload data-icon="inline-start" /> {period.reportFilePath ? "استبدال التقرير" : "رفع التقرير"}</Button>
-            <input ref={reportInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" aria-label="رفع تقرير الفترة" onChange={async (event) => { const file = event.target.files?.[0]; if (file) { try { await uploadReport({ periodId: period.id, file }).unwrap(); onChanged?.(); } catch (error) { toast.error(pmErrorMessage(error)); } } event.target.value = ""; }} />
+            <input ref={reportInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" aria-label="رفع تقرير الفترة" onChange={async (event) => { const file = event.target.files?.[0]; if (file) { try { await uploadReport({ projectId, periodId: period.id, file }).unwrap(); onChanged?.(); } catch (error) { toast.error(pmErrorMessage(error)); } } event.target.value = ""; }} />
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-4">
@@ -173,6 +176,7 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
       <TabsContent value="meetings" className="mt-6 flex flex-col gap-4">
         <h3 className="text-lg font-semibold">اجتماعات الفترة</h3>
         <PMPeriodMeetings
+          projectId={projectId}
           periodId={period.id}
           meetings={period.meetings ?? []}
           canEdit

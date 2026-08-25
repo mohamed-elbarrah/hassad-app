@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { ProjectStatus } from "@hassad/shared";
 import {
@@ -8,6 +8,7 @@ import {
   useUpdatePmProjectStatusMutation,
 } from "@/features/projects/projectsApi";
 import { KanbanBoard } from "@/components/dashboard/kanban";
+import { Button } from "@/components/ui/button";
 import { PROJECT_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/project-status";
 import { ProjectKanbanCardContent } from "@/components/dashboard/kanban/cards/ProjectKanbanCardContent";
 import { projectErrorMessage } from "@/lib/i18n";
@@ -27,9 +28,10 @@ export function ProjectKanbanBoard({
   status,
 }: ProjectKanbanBoardProps) {
   const [updateProjectStatus] = useUpdatePmProjectStatusMutation();
+  const [page, setPage] = useState(1);
 
   const { data, isLoading, isError } = useGetPmProjectsQuery(
-    { search, status, limit: 100 },
+    { search, status, page, limit: 24 },
     { pollingInterval: 30_000 },
   );
 
@@ -77,7 +79,8 @@ export function ProjectKanbanBoard({
   );
 
   return (
-    <KanbanBoard
+    <div className="flex flex-col gap-4">
+      <KanbanBoard
       config={PROJECT_STATUS_CONFIG}
       items={projects}
       getItemStage={(p) => p.status}
@@ -87,6 +90,18 @@ export function ProjectKanbanBoard({
       isError={isError}
       errorMessage="حدث خطأ أثناء تحميل المشاريع"
       emptyMessage="لا توجد مشاريع حالياً — ستظهر المشاريع الجديدة تلقائياً بعد توقيع العقود"
-    />
+      />
+      {(data?.meta?.totalPages ?? 1) > 1 ? (
+        <div className="flex items-center justify-center gap-3">
+          <Button variant="outline" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
+            السابق
+          </Button>
+          <span className="text-sm text-muted-foreground">صفحة {page} من {data?.meta?.totalPages}</span>
+          <Button variant="outline" disabled={page >= (data?.meta?.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>
+            التالي
+          </Button>
+        </div>
+      ) : null}
+    </div>
   );
 }
