@@ -770,31 +770,29 @@ export function TaskWorkspaceDetail({
         />
       </div>
 
-      <TaskStatsGrid stats={stats} />
-
       <Card>
-        <CardHeader className="gap-2">
-          <CardTitle>مسار التنفيذ</CardTitle>
-          <CardDescription>يتتبع موقع المهمة ضمن سير العمل الحالي.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <TaskWorkflowStepper
-            currentStatus={task.status as TaskStatus}
-            revisionCount={task.revisionCount ?? 0}
-          />
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">
-              {TASK_STATUS_LABELS[task.status as TaskStatus]}
-            </Badge>
-            <Badge variant="outline">
-              {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
-            </Badge>
-            {task.dueDate ? (
-              <Badge variant="outline">
-                الاستحقاق: {formatDateTime(task.dueDate)}
-              </Badge>
-            ) : null}
-          </div>
+        <CardContent className="grid items-start gap-6 p-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">
+          <section aria-labelledby="task-overview-title" className="flex min-w-0 flex-col gap-4">
+            <h2 id="task-overview-title" className="text-base font-semibold">نظرة عامة على المهمة</h2>
+            <TaskStatsGrid stats={stats} compact />
+          </section>
+          <section aria-labelledby="task-workflow-title" className="min-w-0 lg:border-s lg:ps-6">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <h2 id="task-workflow-title" className="text-base font-semibold">مسار التنفيذ</h2>
+                <p className="text-sm text-muted-foreground">يتتبع موقع المهمة ضمن سير العمل الحالي.</p>
+              </div>
+              <TaskWorkflowStepper
+                currentStatus={task.status as TaskStatus}
+                revisionCount={task.revisionCount ?? 0}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">{TASK_STATUS_LABELS[task.status as TaskStatus]}</Badge>
+                <Badge variant="outline">{TASK_PRIORITY_LABELS[task.priority as TaskPriority]}</Badge>
+                {task.dueDate ? <Badge variant="outline">الاستحقاق: {formatDateTime(task.dueDate)}</Badge> : null}
+              </div>
+            </div>
+          </section>
         </CardContent>
       </Card>
 

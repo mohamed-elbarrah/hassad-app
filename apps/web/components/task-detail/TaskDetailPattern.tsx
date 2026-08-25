@@ -271,7 +271,26 @@ export function TaskSummaryCard({
   );
 }
 
-export function TaskStatsGrid({ stats }: { stats: TaskStatItem[] }) {
+export function TaskStatsGrid({
+  stats,
+  compact = false,
+}: {
+  stats: TaskStatItem[];
+  compact?: boolean;
+}) {
+  if (compact) {
+    return (
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+        {stats.map((item) => (
+          <div key={item.label} className="flex min-w-0 flex-col gap-1 border-b pb-3">
+            <dt className="text-xs text-muted-foreground">{item.label}</dt>
+            <dd className="font-semibold tabular-nums">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {stats.map((item) => (
@@ -280,9 +299,7 @@ export function TaskStatsGrid({ stats }: { stats: TaskStatItem[] }) {
             <div className="flex flex-col gap-2">
               <span className="text-sm text-muted-foreground">{item.label}</span>
               <span className="text-lg font-semibold">{item.value}</span>
-              {item.hint ? (
-                <span className="text-sm text-muted-foreground">{item.hint}</span>
-              ) : null}
+              {item.hint ? <span className="text-sm text-muted-foreground">{item.hint}</span> : null}
             </div>
             <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <item.icon />
