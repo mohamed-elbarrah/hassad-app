@@ -31,6 +31,7 @@ import {
   useCreateCampaignMutation,
   useGetCampaignsByTaskQuery,
   useGetTaskStrategyQuery,
+  useLazyGetStrategyDownloadUrlQuery,
   useResubmitStrategyMutation,
   useSendStrategyToClientMutation,
   useUpdateCampaignStatusMutation,
@@ -67,6 +68,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { marketingErrorMessage } from "@/lib/i18n";
 import {
   CAMPAIGN_STATUS_LABELS,
   PLATFORM_LABELS,
@@ -98,11 +100,6 @@ function campaignStatusVariant(status?: string | null) {
   }
 }
 
-function openStrategyDownload(strategyId: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "/v1";
-  window.open(`${baseUrl}/marketing-strategies/${strategyId}/download`, "_blank", "noopener,noreferrer");
-}
-
 function StrategyTab({
   taskId,
   canManage,
@@ -118,6 +115,7 @@ function StrategyTab({
     refetch,
   } = useGetTaskStrategyQuery(taskId, { skip: !enabled });
   const [uploadStrategy, { isLoading: isUploading }] = useUploadStrategyMutation();
+  const [getDownloadUrl, { isFetching: isDownloading }] = useLazyGetStrategyDownloadUrlQuery();
   const [sendStrategy, { isLoading: isSending }] = useSendStrategyToClientMutation();
   const [resubmitStrategy, { isLoading: isResubmitting }] = useResubmitStrategyMutation();
   const uploadRef = useRef<HTMLInputElement>(null);
@@ -125,7 +123,7 @@ function StrategyTab({
 
   async function handleNewFile(file: File, mode: "create" | "revise") {
     if (file.type !== "application/pdf") {
-      toast.error("يجب أن يكون الملف بصيغة PDF");
+      toast.error(marketingErrorMessage({ data: { error: { code: "MARKETING_STRATEGY_PDF_REQUIRED" } } }));
       return;
     }
 
@@ -138,8 +136,8 @@ function StrategyTab({
         toast.success("تم رفع النسخة المعدلة");
       }
       void refetch();
-    } catch {
-      toast.error("فشل حفظ الدراسة التسويقية");
+    } catch (error) {
+      toast.error(marketingErrorMessage(error));
     }
   }
 
@@ -220,9 +218,16 @@ function StrategyTab({
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => openStrategyDownload(strategy.id)}>
+                <Button variant="outline" size="sm" disabled={isDownloading} onClick={async () => {
+                  try {
+                    const url = await getDownloadUrl(strategy.id).unwrap();
+                    window.location.assign(url);
+                  } catch (error) {
+                    toast.error(marketingErrorMessage(error));
+                  }
+                }}>
                   <Download data-icon="inline-start" />
-                  تحميل
+                  {isDownloading ? "جارٍ التحميل..." : "تحميل"}
                 </Button>
                 {canManage && status === MarketingStrategyStatus.DRAFT ? (
                   <Button size="sm" onClick={async () => {
@@ -230,8 +235,8 @@ function StrategyTab({
                       await sendStrategy(strategy.id).unwrap();
                       toast.success("تم إرسال الدراسة للعميل");
                       void refetch();
-                    } catch {
-                      toast.error("فشل إرسال الدراسة");
+                    } catch (error) {
+                      toast.error(marketingErrorMessage(error));
                     }
                   }} disabled={isSending}>
                     <Send data-icon="inline-start" />
@@ -321,8 +326,8 @@ function CampaignCreateDialog({
       toast.success("تم إنشاء الحملة");
       setName("");
       onOpenChange(false);
-    } catch {
-      toast.error("فشل إنشاء الحملة");
+    } catch (error) {
+      toast.error(marketingErrorMessage(error));
     }
   }
 
@@ -469,7 +474,7 @@ function CampaignsTab({
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {campaigns.map((campaign) => {
-            const metrics = computeCampaignMetrics(campaign as any);
+            const metrics = computeCampaignMetrics(campaign);
             const budgetPct =
               campaign.budgetTotal > 0
                 ? Math.round((campaign.budgetSpent / campaign.budgetTotal) * 100)

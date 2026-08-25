@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
+import { IsBoolean, IsDateString, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
 import { CampaignPlatform, CampaignStatus, MarketingStrategyStatus, TaskPriority, TaskStatus } from "@hassad/shared";
 import { Type } from "class-transformer";
 
@@ -11,6 +11,11 @@ export class MarketingTaskQueryDto {
   @IsOptional() @IsDateString() dueAfter?: string;
   @IsOptional() @IsInt() @Min(1) page?: number = 1;
   @IsOptional() @IsInt() @Min(1) @Max(100) limit?: number = 50;
+}
+
+export class MarketingTaskStatusDto {
+  @IsEnum(TaskStatus)
+  status!: TaskStatus;
 }
 
 export class MarketingStrategyQueryDto {
@@ -39,6 +44,11 @@ export class MarketingCampaignKpiDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) clicks?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) conversions?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) revenue?: number;
+}
+
+export class MarketingCampaignOptimizationDto {
+  @IsBoolean()
+  needsOptimization!: boolean;
 }
 
 export class MarketingCampaignKpiQueryDto {

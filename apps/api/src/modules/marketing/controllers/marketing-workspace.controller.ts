@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors, BadRequestException } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors, BadRequestException } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { CampaignStatus, TaskStatus } from "@hassad/shared";
+import { FileValidationPipe } from "../../../common/storage/file-validator.pipe";
+import { CampaignStatus } from "@hassad/shared";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -10,7 +11,7 @@ import { StorageCategory } from "../../../common/storage/storage.constants";
 import { MarketingStrategyService } from "../services/marketing-strategy.service";
 import { MarketingWorkspaceService } from "../services/marketing-workspace.service";
 import { CreateCampaignDto, UpdateCampaignDto } from "../dto/campaign.dto";
-import { MarketingCampaignKpiDto, MarketingCampaignKpiQueryDto, MarketingCampaignQueryDto, MarketingStrategyQueryDto, MarketingTaskQueryDto } from "../dto/marketing-workspace.dto";
+import { MarketingCampaignKpiDto, MarketingCampaignKpiQueryDto, MarketingCampaignOptimizationDto, MarketingCampaignQueryDto, MarketingStrategyQueryDto, MarketingTaskQueryDto, MarketingTaskStatusDto } from "../dto/marketing-workspace.dto";
 import { CreateTaskCommentDto, UploadTaskFileDto } from "../../tasks/dto/task.dto";
 
 @Controller("marketing")
@@ -40,7 +41,7 @@ export class MarketingWorkspaceController {
 
   @Patch("tasks/:id/status")
   @RequirePermissions("tasks.update")
-  taskStatus(@CurrentUser("id") userId: string, @Param("id") id: string, @Body("status") status: TaskStatus) { return this.workspace.changeTaskStatus(userId, id, status); }
+  taskStatus(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: MarketingTaskStatusDto) { return this.workspace.changeTaskStatus(userId, id, dto.status); }
 
   @Get("tasks/:id/comments")
   @RequirePermissions("marketing.read")
@@ -54,10 +55,14 @@ export class MarketingWorkspaceController {
   @RequirePermissions("marketing.read")
   taskFiles(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.taskFiles(userId, id); }
 
+  @Delete("tasks/:id/files/:fileId")
+  @RequirePermissions("tasks.update")
+  deleteTaskFile(@CurrentUser("id") userId: string, @Param("id") id: string, @Param("fileId") fileId: string) { return this.workspace.deleteTaskFile(userId, id, fileId); }
+
   @Post("tasks/:id/files")
   @RequirePermissions("tasks.update")
   @UseInterceptors(FileInterceptor("file"))
-  uploadTaskFile(@CurrentUser("id") userId: string, @Param("id") id: string, @UploadedFile() file: Express.Multer.File, @Body() dto: UploadTaskFileDto) { return this.workspace.uploadTaskFile(userId, id, file, dto.purpose); }
+  uploadTaskFile(@CurrentUser("id") userId: string, @Param("id") id: string, @UploadedFile(new FileValidationPipe({ category: StorageCategory.TASK_FILE })) file: Express.Multer.File, @Body() dto: UploadTaskFileDto) { return this.workspace.uploadTaskFile(userId, id, file, dto.purpose); }
 
   @Get("tasks/:id/files/:fileId/download")
   @RequirePermissions("marketing.read")
@@ -74,8 +79,8 @@ export class MarketingWorkspaceController {
   @Post("tasks/:taskId/strategy")
   @RequirePermissions("marketing.create")
   @UseInterceptors(FileInterceptor("file"))
-  async createStrategy(@CurrentUser("id") userId: string, @Param("taskId") taskId: string, @UploadedFile() file?: Express.Multer.File) {
-    if (!file || file.mimetype !== "application/pdf") throw new BadRequestException("A PDF strategy file is required");
+  async createStrategy(@CurrentUser("id") userId: string, @Param("taskId") taskId: string, @UploadedFile(new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY })) file?: Express.Multer.File) {
+    if (!file || file.mimetype !== "application/pdf") throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
     const upload = await this.storage.upload({ category: StorageCategory.MARKETING_STRATEGY, entityId: taskId, file: { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype, size: file.size } });
     return this.strategies.create(taskId, { key: upload.key, originalName: file.originalname, size: file.size, mimeType: file.mimetype }, userId);
   }
@@ -87,8 +92,8 @@ export class MarketingWorkspaceController {
   @Post("strategies/:id/resubmit")
   @RequirePermissions("marketing.update")
   @UseInterceptors(FileInterceptor("file"))
-  async resubmitStrategy(@CurrentUser("id") userId: string, @Param("id") id: string, @UploadedFile() file?: Express.Multer.File) {
-    if (!file || file.mimetype !== "application/pdf") throw new BadRequestException("A PDF strategy file is required");
+  async resubmitStrategy(@CurrentUser("id") userId: string, @Param("id") id: string, @UploadedFile(new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY })) file?: Express.Multer.File) {
+    if (!file || file.mimetype !== "application/pdf") throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
     const upload = await this.storage.upload({ category: StorageCategory.MARKETING_STRATEGY, entityId: id, file: { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype, size: file.size } });
     return this.workspace.resubmitStrategy(userId, id, { key: upload.key, originalName: file.originalname, size: file.size, mimeType: file.mimetype });
   }
@@ -96,6 +101,10 @@ export class MarketingWorkspaceController {
   @Get("strategies/:id/download")
   @RequirePermissions("marketing.read")
   strategyDownload(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.strategyDownload(userId, id); }
+
+  @Get("campaigns/stats")
+  @RequirePermissions("marketing.read")
+  campaignStats(@CurrentUser("id") userId: string, @CurrentUser("role") role: string) { return this.workspace.campaignStats(userId, role); }
 
   @Get("campaigns")
   @RequirePermissions("marketing.read")
@@ -139,7 +148,7 @@ export class MarketingWorkspaceController {
 
   @Patch("campaigns/:id/optimization")
   @RequirePermissions("marketing.flag_optimization")
-  optimization(@CurrentUser("id") userId: string, @Param("id") id: string, @Body("needsOptimization") value: boolean) { return this.workspace.optimization(userId, id, value); }
+  optimization(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: MarketingCampaignOptimizationDto) { return this.workspace.optimization(userId, id, dto.needsOptimization); }
 
   @Post("campaigns/:id/duplicate")
   @RequirePermissions("marketing.create")

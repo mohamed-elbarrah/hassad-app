@@ -13,6 +13,7 @@ import {
   CreateCampaignDto,
   UpdateCampaignDto,
   UpdateCampaignMetricsDto,
+  UpdateCampaignStatusDto,
   CampaignQueryDto,
   KpiSnapshotQueryDto,
 } from "../dto/campaign.dto";
@@ -21,6 +22,7 @@ import { RequirePermissions } from "../../../common/decorators/permissions.decor
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import type { JwtPayload } from "../../../common/decorators/current-user.decorator";
 
 @Controller("campaigns")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -29,7 +31,7 @@ export class CampaignsController {
 
   @Post()
   @RequirePermissions("marketing.create")
-  create(@CurrentUser() user: any, @Body() dto: CreateCampaignDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateCampaignDto) {
     return this.campaignsService.create(dto, user.id);
   }
 
@@ -41,7 +43,7 @@ export class CampaignsController {
 
   @Get("my-stats")
   @RequirePermissions("marketing.read")
-  getMyStats(@CurrentUser() user: any) {
+  getMyStats(@CurrentUser() user: JwtPayload) {
     return this.campaignsService.myStats(user.id, user.role);
   }
 
@@ -61,7 +63,7 @@ export class CampaignsController {
   @RequirePermissions("marketing.manage_kpis")
   createKpiSnapshot(
     @Param("id") id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateCampaignMetricsDto,
   ) {
     return this.campaignsService.createKpiSnapshot(id, dto, user.id);
@@ -76,9 +78,15 @@ export class CampaignsController {
     return this.campaignsService.getKpiSnapshots(id, query);
   }
 
+  @Patch(":id/status")
+  @RequirePermissions("marketing.update")
+  updateStatus(@Param("id") id: string, @CurrentUser() user: JwtPayload, @Body() dto: UpdateCampaignStatusDto) {
+    return this.campaignsService.updateStatus(id, dto.status, user.id);
+  }
+
   @Post(":id/start")
   @RequirePermissions("marketing.update")
-  start(@Param("id") id: string, @CurrentUser() user: any) {
+  start(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
     return this.campaignsService.updateStatus(
       id,
       CampaignStatus.ACTIVE,
@@ -88,7 +96,7 @@ export class CampaignsController {
 
   @Post(":id/pause")
   @RequirePermissions("marketing.update")
-  pause(@Param("id") id: string, @CurrentUser() user: any) {
+  pause(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
     return this.campaignsService.updateStatus(
       id,
       CampaignStatus.PAUSED,
@@ -98,7 +106,7 @@ export class CampaignsController {
 
   @Post(":id/stop")
   @RequirePermissions("marketing.update")
-  stop(@Param("id") id: string, @CurrentUser() user: any) {
+  stop(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
     return this.campaignsService.updateStatus(
       id,
       CampaignStatus.STOPPED,
@@ -108,7 +116,7 @@ export class CampaignsController {
 
   @Post(":id/end")
   @RequirePermissions("marketing.update")
-  end(@Param("id") id: string, @CurrentUser() user: any) {
+  end(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
     return this.campaignsService.updateStatus(
       id,
       CampaignStatus.COMPLETED,
@@ -118,7 +126,7 @@ export class CampaignsController {
 
   @Post(":id/duplicate")
   @RequirePermissions("marketing.create")
-  duplicate(@Param("id") id: string, @CurrentUser() user: any) {
+  duplicate(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
     return this.campaignsService.duplicate(id, user.id);
   }
 
@@ -126,7 +134,7 @@ export class CampaignsController {
   @RequirePermissions("marketing.flag_optimization")
   flagOptimization(
     @Param("id") id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Body("needsOptimization") needsOptimization: boolean,
   ) {
     return this.campaignsService.flagOptimization(
@@ -138,13 +146,13 @@ export class CampaignsController {
 
   @Patch(":id/archive")
   @RequirePermissions("marketing.update")
-  archive(@Param("id") id: string, @CurrentUser() user: any) {
+  archive(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
     return this.campaignsService.archive(id, user.id);
   }
 
   @Patch(":id/unarchive")
   @RequirePermissions("marketing.update")
-  unarchive(@Param("id") id: string, @CurrentUser() user: any) {
+  unarchive(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
     return this.campaignsService.unarchive(id, user.id);
   }
 }

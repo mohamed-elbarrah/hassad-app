@@ -14,14 +14,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KanbanBoard } from "@/components/dashboard/kanban";
 import { TASK_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/task-status";
-import { useChangeTaskStatusMutation, type TaskWithProject } from "@/features/tasks/tasksApi";
+import { useChangeMarketingTaskStatusMutation, type MarketingTask } from "@/features/marketing/marketingApi";
 import { formatDate, daysUntil } from "@/lib/format";
-import { pmErrorMessage } from "@/lib/i18n";
+import { marketingErrorMessage } from "@/lib/i18n";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/utils/task-status";
 import { toast } from "sonner";
 
-type CampaignSummary = { id: string; name: string; status?: string; budgetSpent?: number; conversions?: number; kpiSnapshots?: { conversions?: number }[] };
-export type MarketingTask = TaskWithProject & { campaigns?: CampaignSummary[] };
 
 interface MarketingTaskWorkspaceProps {
   tasks: MarketingTask[];
@@ -33,7 +31,7 @@ export function MarketingTaskWorkspace({ tasks, isLoading = false }: MarketingTa
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ALL" | TaskStatus>("ALL");
   const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
-  const [changeStatus, { isLoading: isUpdating }] = useChangeTaskStatusMutation();
+  const [changeStatus, { isLoading: isUpdating }] = useChangeMarketingTaskStatusMutation();
   const [localTasks, setLocalTasks] = useState(tasks);
 
   useEffect(() => {
@@ -57,7 +55,7 @@ export function MarketingTaskWorkspace({ tasks, isLoading = false }: MarketingTa
       await changeStatus({ id, status: next }).unwrap();
     } catch (error) {
       setLocalTasks(previous);
-      toast.error(pmErrorMessage(error));
+      toast.error(marketingErrorMessage(error));
     }
   }
 
@@ -90,7 +88,7 @@ export function MarketingTaskWorkspace({ tasks, isLoading = false }: MarketingTa
           onDragEnd={(id, _from, to) => handleStatusChange(id, to)}
           isLoading={isUpdating}
           canDragItem={() => !isUpdating}
-          canDropItem={(task, destination) => task.status !== destination}
+          canDropItem={(task, destination) => task.status !== destination && destination !== TaskStatus.TODO && destination !== TaskStatus.DONE}
           emptyMessage="لا توجد مهام في هذه المرحلة."
         />
       ) : <MarketingTaskTable tasks={filtered} />}

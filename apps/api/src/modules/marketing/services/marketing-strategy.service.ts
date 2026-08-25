@@ -4,19 +4,12 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { MarketingStrategyStatus, TaskDepartment } from "@hassad/shared";
-
-const STRATEGY_STATUS_AR: Record<string, string> = {
-  DRAFT: "مسودة",
-  SENT: "تم الإرسال",
-  APPROVED: "تمت الموافقة",
-  REVISION_REQUESTED: "مطلوب تعديل",
-  REJECTED: "مرفوض",
-};
 
 @Injectable()
 export class MarketingStrategyService {
@@ -42,11 +35,11 @@ export class MarketingStrategyService {
     });
 
     if (!task) {
-      throw new NotFoundException("المهمة غير موجودة");
+      throw new NotFoundException({ code: "MARKETING_TASK_NOT_FOUND", details: {} });
     }
 
     if (task.department?.name !== TaskDepartment.MARKETING) {
-      throw new BadRequestException("يجب أن تكون المهمة من نوع تسويق");
+      throw new BadRequestException({ code: "MARKETING_TASK_DEPARTMENT_REQUIRED", details: {} });
     }
 
     if (task.assignedTo !== userId) {
@@ -76,7 +69,7 @@ export class MarketingStrategyService {
     }
 
     if (!task.project?.clientId) {
-      throw new BadRequestException("المهمة غير مرتبطة بمشروع أو عميل");
+      throw new BadRequestException({ code: "MARKETING_TASK_CLIENT_REQUIRED", details: {} });
     }
 
     const strategy = await this.prisma.marketingStrategy.create({
@@ -105,20 +98,18 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
     }
 
     if (strategy.createdBy !== userId) {
-      throw new BadRequestException("يمكن فقط لمنشئ الدراسة إرسالها");
+      throw new BadRequestException({ code: "MARKETING_STRATEGY_OWNER_REQUIRED", details: {} });
     }
 
     if (
       strategy.status !== MarketingStrategyStatus.DRAFT &&
       strategy.status !== MarketingStrategyStatus.REVISION_REQUESTED
     ) {
-      throw new BadRequestException(
-        `لا يمكن إرسال الدراسة في الحالة الحالية: ${STRATEGY_STATUS_AR[strategy.status] ?? strategy.status}`,
-      );
+      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
     }
 
     const updated = await this.prisma.marketingStrategy.update({
@@ -177,15 +168,13 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
     }
 
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
     if (strategy.status !== MarketingStrategyStatus.SENT) {
-      throw new BadRequestException(
-        "يمكن الموافقة على الدراسة فقط عندما تكون في حالة الإرسال",
-      );
+      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
     }
 
     const updated = await this.prisma.marketingStrategy.update({
@@ -231,15 +220,13 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
     }
 
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
     if (strategy.status !== MarketingStrategyStatus.SENT) {
-      throw new BadRequestException(
-        "يمكن طلب تعديل على الدراسة فقط عندما تكون في حالة الإرسال",
-      );
+      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
     }
 
     const updated = await this.prisma.marketingStrategy.update({
@@ -284,15 +271,13 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
     }
 
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
     if (strategy.status !== MarketingStrategyStatus.SENT) {
-      throw new BadRequestException(
-        "يمكن رفض الدراسة فقط عندما تكون في حالة الإرسال",
-      );
+      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
     }
 
     const updated = await this.prisma.marketingStrategy.update({
@@ -339,17 +324,15 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
     }
 
     if (strategy.createdBy !== userId) {
-      throw new BadRequestException("يمكن فقط لمنشئ الدراسة إعادة إرسالها");
+      throw new BadRequestException({ code: "MARKETING_STRATEGY_OWNER_REQUIRED", details: {} });
     }
 
     if (strategy.status !== MarketingStrategyStatus.REVISION_REQUESTED) {
-      throw new BadRequestException(
-        "يمكن إعادة إرسال الدراسة فقط عندما تكون في حالة طلب تعديل",
-      );
+      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
     }
 
     const updated = await this.prisma.marketingStrategy.update({
@@ -406,7 +389,7 @@ export class MarketingStrategyService {
     clientId: string,
     query?: { status?: MarketingStrategyStatus },
   ) {
-    const where: any = { clientId };
+    const where: Prisma.MarketingStrategyWhereInput = { clientId };
     if (query?.status) where.status = query.status;
 
     return this.prisma.marketingStrategy.findMany({
@@ -441,7 +424,7 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
     }
 
     return strategy;
@@ -454,7 +437,7 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
     }
 
     return this.storageService.getPresignedUrl(strategy.filePath);
@@ -468,7 +451,7 @@ export class MarketingStrategyService {
   }) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const where: any = {};
+    const where: Prisma.MarketingStrategyWhereInput = {};
 
     if (query.status) where.status = query.status;
     if (query.taskId) where.taskId = query.taskId;
@@ -500,7 +483,7 @@ export class MarketingStrategyService {
     });
 
     if (!client?.userId || client.userId !== clientUserId) {
-      throw new BadRequestException("غير مصرح بهذا الإجراء");
+      throw new BadRequestException({ code: "PERMISSION_DENIED", details: {} });
     }
   }
 }

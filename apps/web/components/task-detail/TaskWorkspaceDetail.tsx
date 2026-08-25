@@ -87,7 +87,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadTaskFile } from "@/lib/downloadFile";
-import { pmErrorMessage, pmSuccessMessage } from "@/lib/i18n";
+import { marketingErrorMessage, pmErrorMessage, pmSuccessMessage } from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
 import { formatDateTime, formatShortDate } from "@/lib/format";
 import {
@@ -121,6 +121,16 @@ import {
   useLazyGetPmTaskFileDownloadQuery,
   type TaskWithProject,
 } from "@/features/tasks/tasksApi";
+import {
+  useGetMarketingTaskByIdQuery,
+  useGetMarketingTaskCommentsQuery,
+  useAddMarketingTaskCommentMutation,
+  useGetMarketingTaskFilesQuery,
+  useUploadMarketingTaskFileMutation,
+  useDeleteMarketingTaskFileMutation,
+  useLazyGetMarketingTaskFileDownloadQuery,
+  useChangeMarketingTaskStatusMutation,
+} from "@/features/marketing/marketingApi";
 import {
   useGetTeamTaskQuery,
   useGetTeamTaskCommentsQuery,
@@ -171,6 +181,7 @@ interface TaskWorkspaceDetailProps {
   canManageMarketingExtras?: boolean;
   pmOwned?: boolean;
   teamOwned?: boolean;
+  marketingOwned?: boolean;
 }
 
 function mapTaskEntity(task: WorkspaceTask): TaskDetailEntity {
@@ -306,7 +317,10 @@ export function TaskWorkspaceDetail({
   canManageMarketingExtras = false,
   pmOwned = false,
   teamOwned = false,
+  marketingOwned = false,
 }: TaskWorkspaceDetailProps) {
+  const workspaceErrorMessage = (error: unknown) =>
+    marketingOwned ? marketingErrorMessage(error) : pmErrorMessage(error);
   const { user } = useAppSelector((state) => state.auth);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [commentText, setCommentText] = useState("");
@@ -321,21 +335,24 @@ export function TaskWorkspaceDetail({
   });
 
   const genericTaskQuery = useGetTaskByIdQuery(taskId, {
-    skip: pmOwned || teamOwned,
+    skip: pmOwned || teamOwned || marketingOwned,
   });
   const pmTaskQuery = useGetPmTaskByIdQuery(taskId, { skip: !pmOwned });
+  const marketingTaskQuery = useGetMarketingTaskByIdQuery(taskId, { skip: !marketingOwned });
   const teamTaskQuery = useGetTeamTaskQuery(taskId, { skip: !teamOwned });
   const genericFilesQuery = useGetTaskFilesQuery(taskId, {
-    skip: pmOwned || teamOwned,
+    skip: pmOwned || teamOwned || marketingOwned,
   });
+  const marketingFilesQuery = useGetMarketingTaskFilesQuery(taskId, { skip: !marketingOwned });
   const pmFilesQuery = useGetPmTaskFilesQuery(taskId, { skip: !pmOwned });
   const teamFilesQuery = useGetTeamTaskFilesQuery(
     { id: taskId, page: 1, limit: 25 },
     { skip: !teamOwned },
   );
   const genericCommentsQuery = useGetTaskCommentsQuery(taskId, {
-    skip: pmOwned || teamOwned,
+    skip: pmOwned || teamOwned || marketingOwned,
   });
+  const marketingCommentsQuery = useGetMarketingTaskCommentsQuery(taskId, { skip: !marketingOwned });
   const pmCommentsQuery = useGetPmTaskCommentsQuery(taskId, { skip: !pmOwned });
   const pmNotesQuery = useGetPmTaskNotesQuery(taskId, { skip: !pmOwned });
   const teamCommentsQuery = useGetTeamTaskCommentsQuery(
@@ -344,47 +361,61 @@ export function TaskWorkspaceDetail({
   );
   const task = (pmTaskQuery.data ??
     teamTaskQuery.data ??
+    marketingTaskQuery.data ??
     genericTaskQuery.data) as WorkspaceTask | undefined;
   const files =
-    pmFilesQuery.data ?? teamFilesQuery.data?.items ?? genericFilesQuery.data;
+    pmFilesQuery.data ?? teamFilesQuery.data?.items ?? marketingFilesQuery.data ?? genericFilesQuery.data;
   const comments =
     pmCommentsQuery.data ??
     teamCommentsQuery.data?.items ??
+    marketingCommentsQuery.data ??
     genericCommentsQuery.data;
   const isLoading = pmOwned
     ? pmTaskQuery.isLoading
     : teamOwned
       ? teamTaskQuery.isLoading
-      : genericTaskQuery.isLoading;
+      : marketingOwned
+        ? marketingTaskQuery.isLoading
+        : genericTaskQuery.isLoading;
   const isError = pmOwned
     ? pmTaskQuery.isError
     : teamOwned
       ? teamTaskQuery.isError
-      : genericTaskQuery.isError;
+      : marketingOwned
+        ? marketingTaskQuery.isError
+        : genericTaskQuery.isError;
   const filesLoading = pmOwned
     ? pmFilesQuery.isLoading
     : teamOwned
       ? teamFilesQuery.isLoading
-      : genericFilesQuery.isLoading;
+      : marketingOwned
+        ? marketingFilesQuery.isLoading
+        : genericFilesQuery.isLoading;
   const filesError = pmOwned
     ? pmFilesQuery.error
     : teamOwned
       ? teamFilesQuery.error
-      : genericFilesQuery.error;
+      : marketingOwned
+        ? marketingFilesQuery.error
+        : genericFilesQuery.error;
   const commentsLoading = pmOwned
     ? pmCommentsQuery.isLoading
     : teamOwned
       ? teamCommentsQuery.isLoading
-      : genericCommentsQuery.isLoading;
+      : marketingOwned
+        ? marketingCommentsQuery.isLoading
+        : genericCommentsQuery.isLoading;
   const commentsError = pmOwned
     ? pmCommentsQuery.error
     : teamOwned
       ? teamCommentsQuery.error
-      : genericCommentsQuery.error;
+      : marketingOwned
+        ? marketingCommentsQuery.error
+        : genericCommentsQuery.error;
 
   const clientId = task?.project?.clientId ?? "";
   const { data: genericTeamView } = useGetClientTeamViewQuery(clientId, {
-    skip: !clientId || pmOwned || teamOwned,
+    skip: !clientId || pmOwned || teamOwned || marketingOwned,
   });
   const { data: pmTeamView } = useGetPmClientTeamViewQuery(clientId, {
     skip: !clientId || !pmOwned,
@@ -394,17 +425,21 @@ export function TaskWorkspaceDetail({
   const [startTask] = useStartTaskMutation();
   const [changePmTaskStatus] = useChangePmTaskStatusMutation();
   const [changeTeamTaskStatus] = useChangeTeamTaskStatusMutation();
+  const [changeMarketingTaskStatus] = useChangeMarketingTaskStatusMutation();
   const [submitTask] = useSubmitTaskMutation();
   const [approveTask] = useApproveTaskMutation();
   const [rejectTask] = useRejectTaskMutation();
   const [uploadFile, { isLoading: isUploadingGeneric }] =
     useUploadTaskFileMutation();
+  const [uploadMarketingFile, { isLoading: isUploadingMarketingFile }] = useUploadMarketingTaskFileMutation();
   const [deleteFile, { isLoading: isDeletingGenericFile }] =
     useDeleteTaskFileMutation();
   const [deletePmFile, { isLoading: isDeletingPmFile }] =
     useDeletePmTaskFileMutation();
+  const [deleteMarketingFile, { isLoading: isDeletingMarketingFile }] = useDeleteMarketingTaskFileMutation();
   const [addComment, { isLoading: isAddingGenericComment }] =
     useAddTaskCommentMutation();
+  const [addMarketingComment, { isLoading: isAddingMarketingComment }] = useAddMarketingTaskCommentMutation();
   const [addTeamComment, { isLoading: isAddingTeamComment }] =
     useAddTeamTaskCommentMutation();
   const [addPmComment, { isLoading: isAddingPmComment }] =
@@ -416,11 +451,12 @@ export function TaskWorkspaceDetail({
     useUploadTeamTaskFileMutation();
   const [getPmFileDownload] = useLazyGetPmTaskFileDownloadQuery();
   const [getTeamFileDownload] = useLazyGetTeamTaskFileDownloadQuery();
+  const [getMarketingFileDownload] = useLazyGetMarketingTaskFileDownloadQuery();
   const isUploading =
-    isUploadingGeneric || isUploadingPmFile || isUploadingTeamFile;
-  const isDeletingFile = isDeletingGenericFile || isDeletingPmFile;
+    isUploadingGeneric || isUploadingPmFile || isUploadingTeamFile || isUploadingMarketingFile;
+  const isDeletingFile = isDeletingGenericFile || isDeletingPmFile || isDeletingMarketingFile;
   const isAddingComment =
-    isAddingGenericComment || isAddingPmComment || isAddingTeamComment;
+    isAddingGenericComment || isAddingPmComment || isAddingTeamComment || isAddingMarketingComment;
   const notes = pmNotesQuery.data;
   const notesData = mapNotes(notes);
   const notesLoading = pmNotesQuery.isLoading;
@@ -429,7 +465,9 @@ export function TaskWorkspaceDetail({
     ? pmTaskQuery.error
     : teamOwned
       ? teamTaskQuery.error
-      : genericTaskQuery.error;
+      : marketingOwned
+        ? marketingTaskQuery.error
+        : genericTaskQuery.error;
 
   if (!user) return null;
   if (isLoading) return <TaskDetailLoading />;
@@ -438,7 +476,7 @@ export function TaskWorkspaceDetail({
       <ErrorState
         listHref={listHref}
         listLabel={listLabel}
-        description={pmErrorMessage(taskError)}
+        description={workspaceErrorMessage(taskError)}
       />
     );
   }
@@ -469,29 +507,25 @@ export function TaskWorkspaceDetail({
   async function runStatusAction(
     action: "start" | "submit" | "approve" | "reject",
   ) {
+    const statusByAction = {
+      start: TaskStatus.IN_PROGRESS,
+      submit: TaskStatus.IN_REVIEW,
+      approve: TaskStatus.DONE,
+      reject: TaskStatus.REVISION,
+    } as const;
     try {
       if (teamOwned) {
-        const statusByAction = {
-          start: TaskStatus.IN_PROGRESS,
-          submit: TaskStatus.IN_REVIEW,
-          approve: TaskStatus.DONE,
-          reject: TaskStatus.REVISION,
-        } as const;
         await changeTeamTaskStatus({
           id: taskId,
           status: statusByAction[action],
         }).unwrap();
       } else if (pmOwned) {
-        const statusByAction = {
-          start: TaskStatus.IN_PROGRESS,
-          submit: TaskStatus.IN_REVIEW,
-          approve: TaskStatus.DONE,
-          reject: TaskStatus.REVISION,
-        } as const;
         await changePmTaskStatus({
           id: taskId,
           status: statusByAction[action],
         }).unwrap();
+      } else if (marketingOwned) {
+        await changeMarketingTaskStatus({ id: taskId, status: statusByAction[action] }).unwrap();
       } else {
         if (action === "start") await startTask(taskId).unwrap();
         if (action === "submit") await submitTask(taskId).unwrap();
@@ -500,7 +534,7 @@ export function TaskWorkspaceDetail({
       }
       toast.success(pmSuccessMessage("TASK_STATUS_UPDATED"));
     } catch (error) {
-      toast.error(pmErrorMessage(error));
+      toast.error(workspaceErrorMessage(error));
     }
   }
 
@@ -512,12 +546,14 @@ export function TaskWorkspaceDetail({
         await uploadTeamFile({ taskId, file, purpose: filePurpose }).unwrap();
       } else if (pmOwned) {
         await uploadPmFile({ taskId, file, purpose: filePurpose }).unwrap();
+      } else if (marketingOwned) {
+        await uploadMarketingFile({ taskId, file, purpose: filePurpose }).unwrap();
       } else {
         await uploadFile({ taskId, file, purpose: filePurpose }).unwrap();
       }
       toast.success(pmSuccessMessage("TASK_FILE_UPLOADED"));
     } catch (error) {
-      toast.error(pmErrorMessage(error));
+      toast.error(workspaceErrorMessage(error));
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -527,12 +563,14 @@ export function TaskWorkspaceDetail({
     try {
       if (pmOwned) {
         await deletePmFile({ taskId, fileId }).unwrap();
+      } else if (marketingOwned) {
+        await deleteMarketingFile({ taskId, fileId }).unwrap();
       } else {
         await deleteFile({ taskId, fileId }).unwrap();
       }
       toast.success(pmSuccessMessage("TASK_FILE_DELETED"));
     } catch (error) {
-      toast.error(pmErrorMessage(error));
+      toast.error(workspaceErrorMessage(error));
     }
   }
 
@@ -544,7 +582,7 @@ export function TaskWorkspaceDetail({
       setNoteText("");
       toast.success(pmSuccessMessage("TASK_NOTE_ADDED"));
     } catch (error) {
-      toast.error(pmErrorMessage(error));
+      toast.error(workspaceErrorMessage(error));
     }
   }
 
@@ -556,13 +594,15 @@ export function TaskWorkspaceDetail({
         await addTeamComment({ taskId, content: value }).unwrap();
       } else if (pmOwned) {
         await addPmComment({ taskId, content: value }).unwrap();
+      } else if (marketingOwned) {
+        await addMarketingComment({ taskId, content: value }).unwrap();
       } else {
         await addComment({ taskId, content: value }).unwrap();
       }
       setCommentText("");
       toast.success(pmSuccessMessage("TASK_COMMENT_ADDED"));
     } catch (error) {
-      toast.error(pmErrorMessage(error));
+      toast.error(workspaceErrorMessage(error));
     }
   }
 
@@ -703,7 +743,7 @@ export function TaskWorkspaceDetail({
                   <Alert variant="destructive">
                     <AlertTitle>تعذر تحميل الملاحظات</AlertTitle>
                     <AlertDescription>
-                      {pmErrorMessage(notesError)}
+                      {workspaceErrorMessage(notesError)}
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -760,7 +800,7 @@ export function TaskWorkspaceDetail({
             <Alert variant="destructive">
               <AlertTitle>تعذر تحميل التعليقات</AlertTitle>
               <AlertDescription>
-                {pmErrorMessage(commentsError)}
+                {workspaceErrorMessage(commentsError)}
               </AlertDescription>
             </Alert>
           ) : (
@@ -859,7 +899,7 @@ export function TaskWorkspaceDetail({
           ) : filesError ? (
             <Alert variant="destructive">
               <AlertTitle>تعذر تحميل الملفات</AlertTitle>
-              <AlertDescription>{pmErrorMessage(filesError)}</AlertDescription>
+              <AlertDescription>{workspaceErrorMessage(filesError)}</AlertDescription>
             </Alert>
           ) : filesData.length === 0 ? (
             <Card>
@@ -927,15 +967,14 @@ export function TaskWorkspaceDetail({
                                 "_blank",
                                 "noopener,noreferrer",
                               );
+                            } else if (marketingOwned) {
+                              const result = await getMarketingFileDownload({ taskId, fileId: file.id }).unwrap();
+                              window.open(result.url, "_blank", "noopener,noreferrer");
                             } else {
-                              await downloadTaskFile(
-                                taskId,
-                                file.id,
-                                file.fileName,
-                              );
+                              await downloadTaskFile(taskId, file.id, file.fileName);
                             }
                           } catch (error) {
-                            toast.error(pmErrorMessage(error));
+                            toast.error(workspaceErrorMessage(error));
                           }
                         }}
                       >

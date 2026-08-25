@@ -19,6 +19,7 @@ export default function MarketingTaskDetailPage({
       rootLabel="لوحة التسويق"
       includeMarketingExtras
       canManageMarketingExtras
+      marketingOwned
     />
   );
 }

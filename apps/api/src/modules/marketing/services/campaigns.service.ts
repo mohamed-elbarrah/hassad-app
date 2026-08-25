@@ -43,19 +43,19 @@ export class CampaignsService {
     });
 
     if (!task) {
-      throw new NotFoundException("المهمة غير موجودة");
+      throw new NotFoundException({ code: "MARKETING_TASK_NOT_FOUND", details: {} });
     }
 
     if (task.department?.name !== "MARKETING") {
-      throw new BadRequestException("يجب أن تكون المهمة من نوع تسويق");
+      throw new BadRequestException({ code: "MARKETING_TASK_DEPARTMENT_REQUIRED", details: {} });
     }
 
     if (!task.assignedTo) {
-      throw new BadRequestException("يجب إسناد المهمة لمسوق أولاً");
+      throw new BadRequestException({ code: "MARKETING_TASK_UNASSIGNED", details: {} });
     }
 
     if (!task.project?.clientId) {
-      throw new BadRequestException("المهمة غير مرتبطة بمشروع أو عميل");
+      throw new BadRequestException({ code: "MARKETING_TASK_CLIENT_REQUIRED", details: {} });
     }
 
     // Enforce: marketing strategy must be APPROVED before creating campaigns
@@ -73,6 +73,9 @@ export class CampaignsService {
     }
 
     const { taskId, name, platform, startDate, endDate, budgetTotal } = data;
+    if (endDate && new Date(endDate) < new Date(startDate)) {
+      throw new BadRequestException({ code: "INVALID_DATE_RANGE", details: {} });
+    }
 
     const campaign = await this.prisma.campaign.create({
       data: {
@@ -117,7 +120,7 @@ export class CampaignsService {
   async findAll(query: CampaignQueryDto) {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
-    const where: any = { isArchived: false };
+    const where: Prisma.CampaignWhereInput = { isArchived: false };
 
     if (query.status) {
       where.status = query.status;
@@ -154,24 +157,35 @@ export class CampaignsService {
     };
   }
 
-  async update(id: string, dto: UpdateCampaignDto) {
-    const campaign = await this.prisma.campaign.findUnique({ where: { id } });
+  // userId scopes Marketing-owned calls; omitted for privileged generic campaign routes.
+  async update(id: string, dto: UpdateCampaignDto, userId?: string) {
+    const campaign = await this.prisma.campaign.findFirst({
+      where: {
+        id,
+        ...(userId ? { OR: [{ managedBy: userId }, { createdBy: userId }] } : {}),
+      },
+    });
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
     if (
       campaign.status === CampaignStatus.STOPPED ||
       campaign.status === CampaignStatus.COMPLETED
     ) {
-      throw new BadRequestException("لا يمكن تعديل حملة منتهية أو مكتملة");
+      throw new BadRequestException({ code: "CAMPAIGN_NOT_EDITABLE", details: {} });
     }
 
-    const data: any = {};
+    const data: Prisma.CampaignUpdateInput = {};
+    const effectiveStart = dto.startDate ? new Date(dto.startDate) : campaign.startDate;
+    const effectiveEnd = dto.endDate !== undefined ? (dto.endDate ? new Date(dto.endDate) : null) : campaign.endDate;
+    if (effectiveEnd && effectiveEnd < effectiveStart) {
+      throw new BadRequestException({ code: "INVALID_DATE_RANGE", details: {} });
+    }
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.platform !== undefined) {
       if (campaign.status !== CampaignStatus.PLANNING) {
-        throw new BadRequestException("لا يمكن تغيير منصة الحملة بعد تفعيلها");
+        throw new BadRequestException({ code: "CAMPAIGN_PLATFORM_LOCKED", details: {} });
       }
       data.platform = dto.platform;
     }
@@ -203,14 +217,18 @@ export class CampaignsService {
     }));
   }
 
-  async findOne(id: string) {
-    const campaign = await this.prisma.campaign.findUnique({
-      where: { id },
+  // userId scopes Marketing-owned calls; omitted for privileged generic campaign routes.
+  async findOne(id: string, userId?: string) {
+    const campaign = await this.prisma.campaign.findFirst({
+      where: {
+        id,
+        ...(userId ? { OR: [{ managedBy: userId }, { createdBy: userId }] } : {}),
+      },
       include: { client: true, task: true, project: true },
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
     const analytics = await this.getLatestAnalytics(id);
@@ -220,7 +238,7 @@ export class CampaignsService {
   async myStats(userId: string, userRole?: string) {
     // PMs and admins see all campaigns across projects they manage
     // Marketers see only their assigned campaigns
-    const where: any = { isArchived: false };
+    const where: Prisma.CampaignWhereInput = { isArchived: false };
 
     if (userRole === "ADMIN" || userRole === "PM") {
       where.task = {
@@ -265,9 +283,13 @@ export class CampaignsService {
     id: string,
     data: UpdateCampaignMetricsDto,
     userId: string,
+    ownerUserId?: string,
   ) {
-    const campaign = await this.prisma.campaign.findUnique({
-      where: { id },
+    const campaign = await this.prisma.campaign.findFirst({
+      where: {
+        id,
+        ...(ownerUserId ? { OR: [{ managedBy: ownerUserId }, { createdBy: ownerUserId }] } : {}),
+      },
       include: {
         task: true,
         kpiSnapshots: { orderBy: { recordedAt: "desc" }, take: 1 },
@@ -282,11 +304,11 @@ export class CampaignsService {
       throw new BadRequestException({ code: "CAMPAIGN_ARCHIVED", details: {} });
     }
 
-    const latest: any = campaign.kpiSnapshots[0] ?? {};
-    const impressions = data.impressions ?? latest.impressions ?? 0;
-    const clicks = data.clicks ?? latest.clicks ?? 0;
-    const conversions = data.conversions ?? latest.conversions ?? 0;
-    const revenue = data.revenue ?? latest.revenue ?? 0;
+    const latest = campaign.kpiSnapshots[0];
+    const impressions = data.impressions ?? latest?.impressions ?? 0;
+    const clicks = data.clicks ?? latest?.clicks ?? 0;
+    const conversions = data.conversions ?? latest?.conversions ?? 0;
+    const revenue = data.revenue ?? latest?.revenue ?? 0;
     const budgetSpent = data.budgetSpent ?? campaign.budgetSpent;
 
     const [snapshot] = await this.prisma.$transaction(async (tx) => {
@@ -382,8 +404,19 @@ export class CampaignsService {
     return snapshot;
   }
 
-  async getKpiSnapshots(id: string, query?: KpiSnapshotQueryDto) {
+  // userId scopes Marketing-owned KPI history; omitted for generic/admin capabilities.
+  async getKpiSnapshots(id: string, query?: KpiSnapshotQueryDto, userId?: string) {
+    if (userId) {
+      const campaign = await this.prisma.campaign.findFirst({
+        where: { id, OR: [{ managedBy: userId }, { createdBy: userId }] },
+        select: { id: true },
+      });
+      if (!campaign) throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
+    }
     const where: Prisma.CampaignKpiSnapshotWhereInput = { campaignId: id };
+    if (query?.from && query?.to && new Date(query.from) > new Date(query.to)) {
+      throw new BadRequestException({ code: "INVALID_DATE_RANGE", details: {} });
+    }
     if (query?.from || query?.to) {
       where.recordedAt = {};
       if (query.from) where.recordedAt.gte = new Date(query.from);
@@ -405,9 +438,12 @@ export class CampaignsService {
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async updateStatus(id: string, status: CampaignStatus, userId: string) {
-    const campaign = await this.prisma.campaign.findUnique({
-      where: { id },
+  async updateStatus(id: string, status: CampaignStatus, userId: string, ownerUserId?: string) {
+    const campaign = await this.prisma.campaign.findFirst({
+      where: {
+        id,
+        ...(ownerUserId ? { OR: [{ managedBy: ownerUserId }, { createdBy: ownerUserId }] } : {}),
+      },
       include: { task: { select: { createdBy: true } } },
     });
 
@@ -477,14 +513,18 @@ export class CampaignsService {
     id: string,
     needsOptimization: boolean,
     userId: string,
+    ownerUserId?: string,
   ) {
-    const campaign = await this.prisma.campaign.findUnique({
-      where: { id },
+    const campaign = await this.prisma.campaign.findFirst({
+      where: {
+        id,
+        ...(ownerUserId ? { OR: [{ managedBy: ownerUserId }, { createdBy: ownerUserId }] } : {}),
+      },
       include: { task: true },
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
     const updated = await this.prisma.campaign.update({
@@ -524,11 +564,11 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException("الحملة مؤرشفة بالفعل");
+      throw new BadRequestException({ code: "CAMPAIGN_ARCHIVED", details: {} });
     }
 
     return this.prisma.campaign.update({
@@ -543,11 +583,11 @@ export class CampaignsService {
     });
 
     if (!campaign) {
-      throw new NotFoundException("الحملة غير موجودة");
+      throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
     if (!campaign.isArchived) {
-      throw new BadRequestException("الحملة غير مؤرشفة");
+      throw new BadRequestException({ code: "CAMPAIGN_NOT_ARCHIVED", details: {} });
     }
 
     return this.prisma.campaign.update({
@@ -562,7 +602,7 @@ export class CampaignsService {
     });
 
     if (!original) {
-      throw new NotFoundException("الحملة الأصلية غير موجودة");
+      throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
     const {
@@ -653,9 +693,10 @@ export class CampaignsService {
     };
 
     if (!allowed[current].includes(next)) {
-      throw new BadRequestException(
-        `لا يمكن الانتقال من حالة ${current} إلى ${next}`,
-      );
+      throw new BadRequestException({
+        code: "CAMPAIGN_INVALID_STATUS_TRANSITION",
+        details: { current, next },
+      });
     }
   }
 

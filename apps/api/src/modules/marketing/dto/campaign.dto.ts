@@ -8,6 +8,7 @@ import {
   IsNumber,
   Min,
   IsInt,
+  Max,
 } from "class-validator";
 import { CampaignPlatform, CampaignStatus } from "@hassad/shared";
 
@@ -90,10 +91,17 @@ export class UpdateCampaignStatusDto {
 
 export class CampaignQueryDto {
   @IsOptional()
-  page?: number;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
 
   @IsOptional()
-  limit?: number;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
 
   @IsOptional()
   @IsEnum(CampaignStatus)
@@ -119,12 +127,15 @@ export class KpiSnapshotQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   limit?: number;
 
   @IsOptional()
+  @IsDateString()
   from?: string;
 
   @IsOptional()
+  @IsDateString()
   to?: string;
 
 }

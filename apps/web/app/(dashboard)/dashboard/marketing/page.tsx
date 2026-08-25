@@ -6,24 +6,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/common/PageHeader";
-import { MarketingTaskWorkspace, type MarketingTask } from "@/components/dashboard/marketing/MarketingTaskWorkspace";
-import { useGetMyCampaignStatsQuery } from "@/features/marketing/marketingApi";
-import { useGetMyTasksQuery, useGetMyTaskStatsQuery } from "@/features/tasks/tasksApi";
+import { MarketingTaskWorkspace } from "@/components/dashboard/marketing/MarketingTaskWorkspace";
+import { useGetMarketingOverviewQuery, useGetMyCampaignStatsQuery } from "@/features/marketing/marketingApi";
 import { formatCurrency, formatNumber } from "@/lib/format";
 
 export default function MarketingDashboardPage() {
-  const { data: rawTasks = [], isLoading: tasksLoading } = useGetMyTasksQuery(
-    { deptName: "MARKETING", includeCampaigns: true },
-    { pollingInterval: 30000 },
-  );
-  const { data: taskStats, isLoading: taskStatsLoading } = useGetMyTaskStatsQuery();
+  const { data: overview, isLoading: tasksLoading } = useGetMarketingOverviewQuery({}, { pollingInterval: 30000 });
+  const taskStats = overview?.summary;
   const { data: campaignStats, isLoading: campaignsLoading } = useGetMyCampaignStatsQuery(undefined, { pollingInterval: 30000 });
-  const tasks = rawTasks as MarketingTask[];
+  const tasks = overview?.items ?? [];
   const conversions = tasks.reduce(
-    (total, task) => total + (task.campaigns?.reduce((sum, campaign) => sum + (campaign.conversions ?? campaign.kpiSnapshots?.[0]?.conversions ?? 0), 0) || 0),
+    (total, task) => total + (task.campaigns?.reduce((sum, campaign) => sum + (campaign.conversions ?? 0), 0) || 0),
     0,
   );
-  const loading = tasksLoading || taskStatsLoading || campaignsLoading;
+  const loading = tasksLoading || campaignsLoading;
   const metrics = [
     { label: "المهام النشطة", value: taskStats?.inProgress || 0, icon: Zap },
     { label: "الحملات النشطة", value: campaignStats?.activeCampaigns || 0, icon: Activity },

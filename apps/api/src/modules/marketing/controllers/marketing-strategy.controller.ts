@@ -12,6 +12,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { FileValidationPipe } from "../../../common/storage/file-validator.pipe";
 import { MarketingStrategyService } from "../services/marketing-strategy.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
@@ -26,6 +27,7 @@ import { RequirePermissions } from "../../../common/decorators/permissions.decor
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import type { JwtPayload } from "../../../common/decorators/current-user.decorator";
 
 @Controller("tasks")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -40,15 +42,15 @@ export class TaskMarketingStrategyController {
   @UseInterceptors(FileInterceptor("file"))
   async create(
     @Param("taskId") taskId: string,
-    @CurrentUser() user: any,
-    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile(new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY })) file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new BadRequestException("ملف PDF مطلوب");
+      throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
     }
 
     if (file.mimetype !== "application/pdf") {
-      throw new BadRequestException("يجب أن يكون الملف بصيغة PDF");
+      throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
     }
 
     const uploadResult = await this.storageService.upload({
@@ -112,7 +114,7 @@ export class MarketingStrategiesController {
   @RequirePermissions("marketing.update")
   sendToClient(
     @Param("id") id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Body() _dto: SendStrategyDto,
   ) {
     return this.strategyService.sendToClient(id, user.id);
@@ -123,15 +125,15 @@ export class MarketingStrategiesController {
   @UseInterceptors(FileInterceptor("file"))
   async resubmit(
     @Param("id") id: string,
-    @CurrentUser() user: any,
-    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile(new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY })) file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new BadRequestException("ملف PDF مطلوب");
+      throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
     }
 
     if (file.mimetype !== "application/pdf") {
-      throw new BadRequestException("يجب أن يكون الملف بصيغة PDF");
+      throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
     }
 
     const uploadResult = await this.storageService.upload({

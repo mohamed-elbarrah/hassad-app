@@ -18,7 +18,7 @@ export class FileValidationPipe implements PipeTransform {
 
   transform(file: Express.Multer.File | undefined): Express.Multer.File {
     if (!file) {
-      throw new BadRequestException("File is required");
+      throw new BadRequestException({ code: "FILE_REQUIRED", details: {} });
     }
 
     const config = STORAGE_CONFIG[this.options.category];
@@ -27,9 +27,10 @@ export class FileValidationPipe implements PipeTransform {
       this.options.allowedMimeTypes ?? config.allowedMimeTypes;
 
     if (file.size > maxSize) {
-      throw new BadRequestException(
-        `File size ${(file.size / 1024 / 1024).toFixed(2)}MB exceeds the ${(maxSize / 1024 / 1024).toFixed(0)}MB limit`,
-      );
+      throw new BadRequestException({
+        code: "FILE_TOO_LARGE",
+        details: { maxBytes: maxSize },
+      });
     }
 
     const ext = extname(file.originalname).toLowerCase();
@@ -40,9 +41,10 @@ export class FileValidationPipe implements PipeTransform {
       !allowedTypes.includes(declaredMime) &&
       (!expectedMime || !allowedTypes.includes(expectedMime))
     ) {
-      throw new BadRequestException(
-        `File type "${declaredMime}" is not allowed. Allowed types: ${allowedTypes.join(", ")}`,
-      );
+      throw new BadRequestException({
+        code: "FILE_TYPE_NOT_ALLOWED",
+        details: { allowedMimeTypes: allowedTypes },
+      });
     }
 
     return file;
