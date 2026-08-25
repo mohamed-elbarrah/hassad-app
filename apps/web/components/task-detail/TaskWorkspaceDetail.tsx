@@ -40,7 +40,6 @@ import {
   TaskInfoGrid,
   TaskInlineMeta,
   TaskStatsGrid,
-  TaskSummaryCard,
   TaskTabsCard,
   type TaskCommentRecord,
   type TaskDetailEntity,
@@ -60,6 +59,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/common/PageHeader";
 import {
   Empty,
   EmptyContent,
@@ -757,17 +757,21 @@ export function TaskWorkspaceDetail({
           </BreadcrumbList>
         </Breadcrumb>
 
-        <TaskSummaryCard
-          task={taskEntity}
-          badges={[
-            task.project?.client?.companyName ? (
-              <Badge key="client" variant="outline">
-                {task.project.client.companyName}
-              </Badge>
-            ) : null,
-          ].filter(Boolean)}
+        <PageHeader
+          title={task.title}
+          description={task.description || "تفاصيل التنفيذ والمراجعة والتسليم لهذه المهمة."}
+          icon={FolderKanban}
           actions={actions}
         />
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{TASK_STATUS_LABELS[task.status as TaskStatus]}</Badge>
+          <Badge variant="outline">{TASK_PRIORITY_LABELS[task.priority as TaskPriority]}</Badge>
+          {task.project?.name ? <Badge variant="outline">المشروع: {task.project.name}</Badge> : null}
+          {task.project?.client?.companyName ? <Badge variant="outline">العميل: {task.project.client.companyName}</Badge> : null}
+          {taskEntity.assigneeName ? <Badge variant="outline">المكلّف: {taskEntity.assigneeName}</Badge> : null}
+          {typeof taskEntity.revisionCount === "number" ? <Badge variant="outline">التعديلات: {taskEntity.revisionCount}</Badge> : null}
+          {typeof taskEntity.isVisibleToClient === "boolean" ? <Badge variant="outline">مرئي للعميل: {taskEntity.isVisibleToClient ? "نعم" : "لا"}</Badge> : null}
+        </div>
       </div>
 
       <Card>
