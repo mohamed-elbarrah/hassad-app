@@ -87,135 +87,101 @@ export class AdminClientsService {
   }
 
   async getStats() {
-    const whereClient = { role: { name: "CLIENT" } };
+    const clientWhere = {};
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-    const [total, lead, active, inactive, newThisMonth] = await Promise.all([
-      this.prisma.user.count({ where: whereClient }),
-      this.prisma.user.count({
-        where: {
-          ...whereClient,
-          OR: [{ clientProfile: { kind: "LEAD" } }, { clientProfile: null }],
-        },
-      }),
-      this.prisma.user.count({
-        where: { ...whereClient, clientProfile: { status: "ACTIVE" } },
-      }),
-      this.prisma.user.count({
-        where: { ...whereClient, clientProfile: { status: "SUSPENDED" } },
-      }),
-      this.prisma.user.count({
-        where: {
-          ...whereClient,
-          createdAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          },
-        },
-      }),
+    const [total, lead, active, inactive, newThisMonth, revenue] = await Promise.all([
+      this.prisma.client.count({ where: clientWhere }),
+      this.prisma.client.count({ where: { kind: "LEAD" } }),
+      this.prisma.client.count({ where: { status: "ACTIVE" } }),
+      this.prisma.client.count({ where: { status: "SUSPENDED" } }),
+      this.prisma.client.count({ where: { createdAt: { gte: monthStart } } }),
+      this.prisma.client.aggregate({ _sum: { totalPaid: true } }),
     ]);
 
-    return { total, lead, active, inactive, newThisMonth };
+    return { total, lead, active, inactive, newThisMonth, totalRevenue: revenue._sum.totalPaid ?? 0 };
   }
 
   async findAll(filters: {
     search?: string;
-    status?: string;
+    status?: "active" | "stopped" | "inactive" | "lead";
     page?: number;
     limit?: number;
   }) {
-    const page = Number(filters.page) || 1;
-    const limit = Number(filters.limit) || 20;
-
-    const userWhere: any = {};
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 20;
     const clientWhere: any = {};
 
-    if (filters.status) {
-      if (filters.status === "active") {
-        clientWhere.status = "ACTIVE";
-      } else if (
-        filters.status === "stopped" ||
-        filters.status === "inactive"
-      ) {
-        clientWhere.status = "SUSPENDED";
-      } else if (filters.status === "lead") {
-        clientWhere.kind = "LEAD";
-      }
-    }
+    if (filters.status === "active") clientWhere.status = "ACTIVE";
+    if (filters.status === "stopped" || filters.status === "inactive") clientWhere.status = "SUSPENDED";
+    if (filters.status === "lead") clientWhere.kind = "LEAD";
 
-    if (filters.search) {
-      userWhere.OR = [
-        { name: { contains: filters.search, mode: "insensitive" } },
-        { email: { contains: filters.search, mode: "insensitive" } },
+    if (filters.search?.trim()) {
+      const search = filters.search.trim();
+      clientWhere.OR = [
+        { companyName: { contains: search, mode: "insensitive" } },
+        { businessName: { contains: search, mode: "insensitive" } },
+        { user: { name: { contains: search, mode: "insensitive" } } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
+        { manager: { name: { contains: search, mode: "insensitive" } } },
       ];
     }
 
-    const searchFilter: any = {};
-    if (filters.search) {
-      searchFilter.user = {
-        OR: [
-          { name: { contains: filters.search, mode: "insensitive" } },
-          { email: { contains: filters.search, mode: "insensitive" } },
-        ],
-      };
-    }
-
-    const clientRecords = await this.prisma.client.findMany({
-      where: { ...clientWhere, ...searchFilter },
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
-      take: limit,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            isActive: true,
-            createdAt: true,
-            lastLoginAt: true,
+    const [clientRecords, total] = await Promise.all([
+      this.prisma.client.findMany({
+        where: clientWhere,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          manager: { select: { id: true, name: true, email: true } },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              isActive: true,
+              lastLoginAt: true,
+              lastSeenAt: true,
+            },
           },
+          _count: { select: { contracts: true, projects: true, invoices: true } },
         },
-        _count: { select: { contracts: true, projects: true, invoices: true } },
-      },
-    });
+      }),
+      this.prisma.client.count({ where: clientWhere }),
+    ]);
 
-    const total =
-      clientRecords.length < limit && page === 1
-        ? clientRecords.length
-        : await this.prisma.client.count({
-            where: { ...clientWhere, ...searchFilter },
-          });
-
-    const clientIdList = clientRecords.map((c) => c.id);
-
+    const clientIds = clientRecords.map((client) => client.id);
     const overdueGroups = await this.prisma.invoice.groupBy({
       by: ["clientId"],
-      where: {
-        clientId: { in: clientIdList },
-        status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] },
-      },
+      where: { clientId: { in: clientIds }, status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] } },
       _count: { id: true },
     });
-    const overdueMap = new Map(
-      overdueGroups.map((o) => [o.clientId, o._count.id]),
-    );
+    const overdueMap = new Map(overdueGroups.map((item) => [item.clientId, item._count.id]));
 
-    const items = clientRecords.map((c) => ({
-      id: c.user?.id ?? c.id,
-      name: c.user?.name ?? c.companyName,
-      email: c.user?.email ?? null,
-      isActive: c.user?.isActive ?? true,
-      status: c.status,
-      createdAt: c.createdAt.toISOString(),
-      companyName: c.companyName ?? c.businessName ?? "—",
-      portalAccess: !!c.portalAccessToken,
-      contractsCount: c._count.contracts ?? 0,
-      projectsCount: c._count.projects ?? 0,
-      invoicesCount: c._count.invoices ?? 0,
-      totalRevenue: c.totalPaid ?? 0,
-      activeProjects: c.activeProjects ?? 0,
-      completedProjects: c.completedProjects ?? 0,
-      totalContractValue: c.totalContractValue ?? 0,
-      overdueInvoicesCount: overdueMap.get(c.id) ?? 0,
+    const items = clientRecords.map((client) => ({
+      id: client.id,
+      userId: client.user?.id ?? null,
+      name: client.user?.name ?? client.companyName ?? client.businessName,
+      email: client.user?.email ?? null,
+      isActive: client.user?.isActive ?? true,
+      lastActiveAt: client.user?.lastSeenAt?.toISOString() ?? client.user?.lastLoginAt?.toISOString() ?? null,
+      status: client.status,
+      kind: client.kind,
+      businessType: client.businessType,
+      createdAt: client.createdAt.toISOString(),
+      companyName: client.companyName ?? client.businessName ?? "—",
+      businessName: client.businessName ?? null,
+      manager: client.manager,
+      portalAccess: !!client.portalAccessToken,
+      contractsCount: client._count.contracts,
+      projectsCount: client._count.projects,
+      invoicesCount: client._count.invoices,
+      totalRevenue: client.totalPaid ?? 0,
+      activeProjects: client.activeProjects ?? 0,
+      completedProjects: client.completedProjects ?? 0,
+      totalContractValue: client.totalContractValue ?? 0,
+      overdueInvoicesCount: overdueMap.get(client.id) ?? 0,
     }));
 
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -310,6 +276,7 @@ export class AdminClientsService {
             avatarUrl: true,
             isActive: true,
             lastLoginAt: true,
+            lastSeenAt: true,
           },
         },
         profile: true,
@@ -343,6 +310,7 @@ export class AdminClientsService {
       satRatings,
       avgResult,
       overdueInvoicesCount,
+      signedContractValue,
     ] = await Promise.all([
       this.prisma.contract.findMany({
         where: { clientId },
@@ -426,6 +394,10 @@ export class AdminClientsService {
       this.prisma.invoice.count({
         where: { clientId, status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] } },
       }),
+      this.prisma.contract.aggregate({
+        where: { clientId, status: { in: ["SIGNED", "ACTIVE", "ON_HOLD", "COMPLETED", "EXPIRED"] } },
+        _sum: { totalValue: true },
+      }),
     ]);
 
     return {
@@ -436,6 +408,7 @@ export class AdminClientsService {
       managerName: client.manager?.name ?? null,
       hasPortalAccess: !!client.portalAccessToken,
       overdueInvoicesCount,
+      signedContractValue: signedContractValue._sum.totalValue ?? 0,
       contracts: contracts.map((c) => ({
         id: c.id,
         title: c.title,
@@ -760,6 +733,16 @@ export class AdminClientsService {
       phone: client.user?.phoneWhatsapp ?? null,
       isActive: client.user?.isActive ?? false,
       lastLoginAt: client.user?.lastLoginAt?.toISOString() ?? null,
+      lastSeenAt: client.user?.lastSeenAt?.toISOString() ?? null,
+      user: client.user
+        ? {
+            id: client.user.id,
+            name: client.user.name,
+            email: client.user.email,
+            phoneWhatsapp: client.user.phoneWhatsapp,
+            avatarUrl: client.user.avatarUrl,
+          }
+        : null,
       portalAccess:
         !!client.portalAccessToken ||
         !!client.user?.clientProfile?.portalAccessToken,

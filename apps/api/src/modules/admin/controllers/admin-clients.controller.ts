@@ -17,6 +17,7 @@ import {
   ReactivateClientDto,
   AssignManagerDto,
   QueryClientUsersDto,
+  QueryAdminClientsDto,
 } from "../dto/admin-clients.dto";
 
 @Controller("admin/clients")
@@ -26,7 +27,7 @@ export class AdminClientsController {
 
   @Get()
   @RequirePermissions("admin.clients.read")
-  findAll(@Query() q: any) {
+  findAll(@Query() q: QueryAdminClientsDto) {
     return this.service.findAll(q);
   }
 

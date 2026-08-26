@@ -13,7 +13,6 @@ import {
   ClientHistoryTable,
   ClientInvoicesTable,
   ClientPageHeader,
-  ClientPaymentsTable,
   ClientProjectsTable,
   ClientProposalsTable,
   ClientRecordsTabs,
@@ -105,6 +104,7 @@ export default function ClientDetailPage({
           mode="admin"
           badges={badges}
           stats={buildDefaultClientStats(client, "admin")}
+          unifiedProfile
         />
 
         <ClientRecordsTabs

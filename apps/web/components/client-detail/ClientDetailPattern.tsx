@@ -81,10 +81,12 @@ export interface ClientDetailEntity {
   source?: NullableString;
   hasPortalAccess?: boolean;
   lastLoginAt?: NullableString;
+  lastSeenAt?: NullableString;
   totalProjects?: number | null;
   activeProjects?: number | null;
   completedProjects?: number | null;
   totalContractValue?: number | null;
+  signedContractValue?: number | null;
   totalInvoiced?: number | null;
   totalPaid?: number | null;
   avgSatisfactionScore?: number | null;
@@ -428,8 +430,12 @@ export function buildClientPersonalFields(
             : "غير مفعل",
     },
     {
-      label: "آخر دخول",
-      value: client.lastLoginAt ? formatDateTime(client.lastLoginAt) : null,
+      label: "آخر نشاط",
+      value: client.lastSeenAt
+        ? formatDateTime(client.lastSeenAt)
+        : client.lastLoginAt
+          ? formatDateTime(client.lastLoginAt)
+          : null,
     },
     {
       label: "مصدر العميل",
@@ -474,7 +480,7 @@ export function buildClientPersonalFields(
           "البريد الإلكتروني",
           "رقم التواصل",
           "مدير الحساب",
-          "آخر دخول",
+          "آخر نشاط",
         ].includes(field.label),
       );
     case "internal":
@@ -936,21 +942,39 @@ export function ClientSummaryCard({
   );
 }
 
-export function ClientStatsGrid({ stats }: { stats: ClientStatItem[] }) {
+export function ClientStatsGrid({
+  stats,
+  compact = false,
+}: {
+  stats: ClientStatItem[];
+  compact?: boolean;
+}) {
+  if (compact) {
+    return (
+      <dl className="grid grid-cols-2 md:grid-cols-4">
+        {stats.map((item) => (
+          <div
+            key={item.label}
+            className="flex min-w-0 flex-col gap-1 border-b border-border/60 px-4 py-3 first:border-s-0 md:border-b-0 md:border-s md:first:border-s-0"
+          >
+            <dt className="truncate text-sm text-muted-foreground">{item.label}</dt>
+            <dd className="text-lg font-semibold">{item.value}</dd>
+            {item.hint ? <dd className="truncate text-xs text-muted-foreground">{item.hint}</dd> : null}
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
   return (
     <dl className="grid gap-x-6 md:grid-cols-2">
       {stats.map((item) => (
-        <div
-          key={item.label}
-          className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3 last:border-b-0"
-        >
+        <div key={item.label} className="flex min-w-0 items-start gap-3 border-b border-border/60 py-3 last:border-b-0">
           <item.icon />
           <div className="flex min-w-0 flex-col gap-1">
             <dt className="text-sm text-muted-foreground">{item.label}</dt>
             <dd className="text-lg font-semibold">{item.value}</dd>
-            {item.hint ? (
-              <dd className="text-sm text-muted-foreground">{item.hint}</dd>
-            ) : null}
+            {item.hint ? <dd className="text-sm text-muted-foreground">{item.hint}</dd> : null}
           </div>
         </div>
       ))}
@@ -995,28 +1019,28 @@ export function buildDefaultClientStats(
 
   return [
     {
-      label: "إجمالي المشاريع",
+      label: "الطلبات",
+      value: formatNumber(client.counters?.requests || 0),
+      hint: "مرتبطة بالعميل",
+      icon: Inbox,
+    },
+    {
+      label: "المشاريع",
       value: formatNumber(client.totalProjects || 0),
       hint: `${formatNumber(client.activeProjects || 0)} نشط`,
       icon: FolderKanban,
     },
     {
-      label: "العقود",
-      value: formatCurrency(client.totalContractValue || 0),
+      label: "العقود الموقعة",
+      value: formatCurrency(client.signedContractValue ?? client.totalContractValue ?? 0),
       hint: `${formatNumber(client.counters?.contracts || 0)} عقد`,
       icon: FileClock,
     },
     {
-      label: "المحصل",
+      label: "المدفوع",
       value: formatCurrency(client.totalPaid || 0),
-      hint: `${formatNumber(client.counters?.invoices || 0)} فاتورة`,
+      hint: `${formatNumber(client.counters?.payments || 0)} دفعة`,
       icon: CircleDollarSign,
-    },
-    {
-      label: "آخر تحديث",
-      value: client.updatedAt ? formatPortalDate(client.updatedAt) || "—" : "—",
-      hint: client.manager?.name || "بدون مدير حساب",
-      icon: CalendarDays,
     },
   ];
 }
@@ -1564,6 +1588,41 @@ export function ClientHistoryTable({
   );
 }
 
+export function ClientProfileOverviewCard({
+  client,
+  profile,
+  badges = [],
+  stats = [],
+}: {
+  client: ClientDetailEntity;
+  profile?: ClientProfile | null;
+  badges?: ReactNode[];
+  stats?: ClientStatItem[];
+}) {
+  const personalFields = buildClientPersonalFields(client, profile, "admin");
+  const businessName = getClientBusinessName(client, profile);
+  const businessTypeLabel = BUSINESS_TYPE_AR[client.businessType as keyof typeof BUSINESS_TYPE_AR] || client.businessType;
+
+  return (
+    <Card>
+      <CardHeader className="gap-4">
+        <div className="flex items-start gap-4">
+          <Avatar className="size-20"><AvatarImage src={client.user?.avatarUrl ?? undefined} alt={client.companyName} /><AvatarFallback className="text-lg font-semibold">{getInitials(client.companyName)}</AvatarFallback></Avatar>
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2"><CardTitle className="text-2xl">{client.companyName}</CardTitle>{client.status ? <Badge variant={statusVariant(client.status)}>{CLIENT_STATUS_AR[client.status as keyof typeof CLIENT_STATUS_AR] || client.status}</Badge> : null}</div>
+            <p className="text-sm text-muted-foreground">{businessName || "لم يتم تحديد اسم النشاط بعد"}</p>
+            <div className="flex flex-wrap gap-2"><Badge variant="outline">{businessTypeLabel}</Badge>{client.hasPortalAccess ? <Badge variant="outline">بوابة العميل مفعلة</Badge> : null}{badges}</div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
+        <dl className="grid gap-x-6 sm:grid-cols-2">{personalFields.map((field) => <InfoField key={field.label} {...field} />)}</dl>
+        <div className="border-t pt-2"><ClientStatsGrid stats={stats} compact /></div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ClientContextPanel({
   client,
   profile,
@@ -1572,6 +1631,7 @@ export function ClientContextPanel({
   stats,
   profileActions,
   profileContent,
+  unifiedProfile = false,
 }: {
   client: ClientDetailEntity;
   profile?: ClientProfile | null;
@@ -1580,7 +1640,17 @@ export function ClientContextPanel({
   stats?: ClientStatItem[];
   profileActions?: ReactNode;
   profileContent?: ReactNode;
+  unifiedProfile?: boolean;
 }) {
+  if (unifiedProfile) {
+    return (
+      <div className="flex flex-col gap-6">
+        <ClientProfileOverviewCard client={client} profile={profile} badges={badges} stats={stats} />
+        <ClientProfileCard client={client} profile={profile} mode={mode} title="بيانات النشاط" description="المعلومات التعريفية والتسويقية المسجلة للعميل." businessOnly actions={profileActions} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <ClientSummaryCard client={client} profile={profile} badges={badges} />

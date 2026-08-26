@@ -38,6 +38,29 @@ export class AssignManagerDto {
   reason: string;
 }
 
+export class QueryAdminClientsDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsIn(["active", "stopped", "inactive", "lead"])
+  status?: "active" | "stopped" | "inactive" | "lead";
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
+}
+
 export class QueryClientUsersDto {
   @IsOptional()
   @IsString()

@@ -1,497 +1,82 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Building2,
-  CalendarDays,
-  CircleDollarSign,
-  FolderKanban,
-  RefreshCw,
-  Search,
-  UserRound,
-  Users,
-} from "lucide-react";
-import { useGetClientsQuery } from "@/features/clients/clientsApi";
+import { ArrowUpRight, Building2, CircleDollarSign, RefreshCw, Search, Users } from "lucide-react";
+import { CLIENT_STATUS_AR, ClientStatus, BUSINESS_TYPE_AR } from "@hassad/shared";
+import { useGetAdminClientStatsQuery, useGetAdminClientsQuery } from "@/features/admin/adminClientsApi";
+import { adminErrorMessage } from "@/lib/i18n";
+import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
+import { Card, CardContent } from "@/components/ui/card";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
-import {
-  BUSINESS_TYPE_AR,
-  CLIENT_STATUS_AR,
-  ClientKind,
-  ClientStatus,
-} from "@hassad/shared";
-import type { Client } from "@hassad/shared";
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { CreateClientDialog } from "./create-client-dialog";
 
+type ClientFilter = "all" | "active" | "stopped" | "lead";
+
 function getInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
+  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 }
 
-function statusVariant(status: ClientStatus) {
-  switch (status) {
-    case ClientStatus.ACTIVE:
-      return "secondary";
-    case ClientStatus.SUSPENDED:
-      return "destructive";
-    default:
-      return "outline";
-  }
+function statusVariant(status: string) {
+  return status === ClientStatus.ACTIVE ? "secondary" : status === ClientStatus.SUSPENDED ? "destructive" : "outline";
 }
 
-function ClientsPageLoading() {
-  return (
-    <div className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-9 w-56" />
-            <Skeleton className="h-4 w-full max-w-xl" />
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-28" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </CardHeader>
-      </Card>
+function statusLabel(status: string) {
+  return CLIENT_STATUS_AR[status as ClientStatus] ?? status;
+}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index}>
-            <CardContent className="flex items-start justify-between gap-4 p-6">
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-              <Skeleton className="size-10 rounded-lg" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader className="gap-2">
-          <Skeleton className="h-6 w-36" />
-          <Skeleton className="h-4 w-72" />
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Skeleton className="h-11 w-full max-w-md" />
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {Array.from({ length: 8 }).map((_, index) => (
-                    <TableHead key={index}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Array.from({ length: 6 }).map((_, row) => (
-                  <TableRow key={row}>
-                    {Array.from({ length: 8 }).map((_, cell) => (
-                      <TableCell key={cell}>
-                        <Skeleton className="h-5 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+function LoadingState() {
+  return <div className="flex flex-col gap-6" dir="rtl"><PageHeader title="العملاء" description="جارٍ تحميل بيانات العملاء." icon={Users} /><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <Card key={index}><CardContent className="flex flex-col gap-3 p-6"><Skeleton className="h-4 w-24" /><Skeleton className="h-8 w-20" /></CardContent></Card>)}</div><Card><CardContent className="flex flex-col gap-4 p-6"><Skeleton className="h-10 w-full" /><Skeleton className="h-64 w-full" /></CardContent></Card></div>;
 }
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<"ALL" | ClientStatus>("ALL");
+  const [filter, setFilter] = useState<ClientFilter>("all");
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
+  const limit = 20;
+  const queryStatus = filter === "all" ? undefined : filter;
+  const query = useGetAdminClientsQuery({ search: search.trim() || undefined, status: queryStatus, page, limit });
+  const statsQuery = useGetAdminClientStatsQuery();
 
-  const { data, isLoading, isError, isFetching, refetch } = useGetClientsQuery({
-    limit: 1000,
-  });
 
-  const clients = data?.items ?? [];
-
-  const filteredClients = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return clients.filter((client) => {
-      const matchesStatus = status === "ALL" ? true : client.status === status;
-      const matchesSearch = !query
-        ? true
-        : [
-            client.companyName,
-            client.businessName,
-            client.status,
-            client.businessType,
-            client.manager?.name,
-            client.user?.name,
-            client.user?.email,
-            client.id,
-          ]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(query));
-
-      return matchesStatus && matchesSearch;
-    });
-  }, [clients, search, status]);
-
-  const metrics = useMemo(() => {
-    const total = clients.length;
-    const active = clients.filter(
-      (client) => client.status === ClientStatus.ACTIVE,
-    ).length;
-    const leads = clients.filter(
-      (client) => client.kind === ClientKind.LEAD,
-    ).length;
-    const linkedUsers = clients.filter((client) =>
-      Boolean(client.userId),
-    ).length;
-    const totalRevenue = clients.reduce(
-      (sum, client) => sum + (client.totalPaid || 0),
-      0,
-    );
-
-    return { total, active, leads, linkedUsers, totalRevenue };
-  }, [clients]);
-
-  if (isLoading) {
-    return <ClientsPageLoading />;
+  if (query.isLoading || statsQuery.isLoading) return <LoadingState />;
+  if (query.isError || statsQuery.isError) {
+    return <div className="flex flex-col gap-6" dir="rtl"><PageHeader title="العملاء" description="تعذر تحميل قائمة العملاء." icon={Users} /><Card><CardContent className="p-8"><Empty><EmptyMedia variant="icon"><Users /></EmptyMedia><EmptyHeader><EmptyTitle>تعذر تحميل العملاء</EmptyTitle><EmptyDescription>{adminErrorMessage(query.error ?? statsQuery.error)}</EmptyDescription></EmptyHeader><EmptyContent><Button variant="outline" onClick={() => { query.refetch(); statsQuery.refetch(); }}>إعادة المحاولة</Button></EmptyContent></Empty></CardContent></Card></div>;
   }
 
-  if (isError) {
-    return (
-      <div dir="rtl" className="  ">
-        <Card>
-          <CardContent className="p-8">
-            <Empty>
-              <EmptyMedia variant="icon">
-                <Users />
-              </EmptyMedia>
-              <EmptyHeader>
-                <EmptyTitle>تعذر تحميل العملاء</EmptyTitle>
-                <EmptyDescription>
-                  حدث خطأ أثناء جلب قائمة العملاء. حاول مرة أخرى.
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button onClick={() => refetch()}>إعادة المحاولة</Button>
-              </EmptyContent>
-            </Empty>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const clients = query.data?.items ?? [];
+  const stats = statsQuery.data;
+  const totalPages = query.data?.totalPages ?? 1;
 
-  return (
-    <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>العملاء</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+  return <div className="flex flex-col gap-6" dir="rtl">
+    <PageHeader title="العملاء" description="إدارة حسابات العملاء ومتابعة نشاطهم المالي والتشغيلي." icon={Building2} actions={<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => { query.refetch(); statsQuery.refetch(); }}><RefreshCw data-icon="inline-start" />{query.isFetching ? "جاري التحديث" : "تحديث"}</Button><Button onClick={() => setCreateOpen(true)}>إضافة عميل</Button></div>} />
 
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Building2 />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <CardTitle className="text-2xl">قائمة العملاء</CardTitle>
-                  <CardDescription>
-                    تصفح جميع العملاء المرتبطين بالنظام مع ملخص سريع لكل حساب.
-                  </CardDescription>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw data-icon="inline-start" />
-              {isFetching ? "جاري التحديث" : "تحديث"}
-            </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <UserRound data-icon="inline-start" />
-              إضافة عميل
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            label: "إجمالي العملاء",
-            value: metrics.total,
-            hint: "كل الحسابات المسجلة",
-            icon: Users,
-          },
-          {
-            label: "العملاء النشطون",
-            value: metrics.active,
-            hint: "حسابات قيد التشغيل",
-            icon: CircleDollarSign,
-          },
-          {
-            label: "العملاء المحتملون",
-            value: metrics.leads,
-            hint: "فرص قيد المتابعة",
-            icon: FolderKanban,
-          },
-          {
-            label: "إجمالي المدفوعات",
-            value: formatCurrency(metrics.totalRevenue),
-            hint: "المبالغ المحصلة عبر العملاء",
-            icon: CalendarDays,
-          },
-        ].map((item) => (
-          <Card key={item.label}>
-            <CardContent className="flex items-start justify-between gap-4 p-6">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {item.label}
-                </span>
-                <span className="text-2xl font-semibold tracking-tight">
-                  {item.value}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {item.hint}
-                </span>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                <item.icon />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader className="gap-2">
-          <CardTitle>سجل العملاء</CardTitle>
-          <CardDescription>
-            اضغط على اسم العميل لفتح صفحة التفاصيل الكاملة.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px] max-w-2xl">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="ابحث باسم الشركة أو النشاط أو المدير"
-                className="pr-10"
-              />
-            </div>
-            <Select
-              value={status}
-              onValueChange={(value) =>
-                setStatus(value as "ALL" | ClientStatus)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="كل الحالات" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">كل الحالات</SelectItem>
-                {(Object.values(ClientStatus) as ClientStatus[]).map(
-                  (value) => (
-                    <SelectItem key={value} value={value}>
-                      {CLIENT_STATUS_AR[value]}
-                    </SelectItem>
-                  ),
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {filteredClients.length === 0 ? (
-            <div className="rounded-lg border p-8">
-              <Empty>
-                <EmptyMedia variant="icon">
-                  <Users />
-                </EmptyMedia>
-                <EmptyHeader>
-                  <EmptyTitle>لا توجد نتائج</EmptyTitle>
-                  <EmptyDescription>
-                    لم نعثر على عملاء يطابقون البحث أو الفلتر الحالي.
-                  </EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearch("");
-                      setStatus("ALL");
-                    }}
-                  >
-                    مسح الفلاتر
-                  </Button>
-                </EmptyContent>
-              </Empty>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>العميل</TableHead>
-                    <TableHead>النشاط</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>المدير</TableHead>
-                    <TableHead>المشاريع</TableHead>
-                    <TableHead>المدفوع</TableHead>
-                    <TableHead>المستخدم</TableHead>
-                    <TableHead className="text-left">التفاصيل</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredClients.map((client: Client) => (
-                    <TableRow key={client.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="size-9">
-                            <AvatarFallback>
-                              {getInitials(client.companyName)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex min-w-0 flex-col gap-1">
-                            <Link
-                              href={`/dashboard/admin/clients/${client.id}`}
-                              className="font-medium transition-colors hover:text-primary"
-                            >
-                              {client.companyName}
-                            </Link>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDateTime(client.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {BUSINESS_TYPE_AR[client.businessType]}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusVariant(client.status)}>
-                          {CLIENT_STATUS_AR[client.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {client.manager?.name || "غير محدد"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span>{formatNumber(client.totalProjects || 0)}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatNumber(client.activeProjects || 0)} نشط
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(client.totalPaid || 0)}
-                      </TableCell>
-                      <TableCell>
-                        {client.user ? (
-                          <div className="flex flex-col gap-1">
-                            <span>{client.user.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {client.user.email}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            غير مرتبط
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-left">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/admin/clients/${client.id}`}>
-                            <ArrowUpRight data-icon="inline-start" />
-                            فتح
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <CreateClientDialog open={createOpen} onOpenChange={setCreateOpen} />
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <MetricCard label="إجمالي العملاء" value={stats?.total ?? 0} hint="كل حسابات العملاء" icon={Users} />
+      <MetricCard label="العملاء النشطون" value={stats?.active ?? 0} hint="حسابات قيد التشغيل" icon={CircleDollarSign} />
+      <MetricCard label="العملاء المحتملون" value={stats?.lead ?? 0} hint="فرص قيد المتابعة" icon={Building2} />
+      <MetricCard label="إجمالي المدفوعات" value={formatCurrency(stats?.totalRevenue ?? 0)} hint="المبالغ المحصلة" icon={CircleDollarSign} />
     </div>
-  );
+
+    <div className="flex flex-col gap-4">
+        <div className="grid max-w-3xl gap-3 md:grid-cols-[minmax(0,1fr)_220px]"><div className="relative"><Search className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="ابحث باسم العميل أو الشركة أو المدير" className="pr-10" /></div><Select value={filter} onValueChange={(value) => { setFilter(value as ClientFilter); setPage(1); }}><SelectTrigger><SelectValue placeholder="كل الحالات" /></SelectTrigger><SelectContent><SelectItem value="all">كل الحالات</SelectItem><SelectItem value="active">{statusLabel(ClientStatus.ACTIVE)}</SelectItem><SelectItem value="stopped">{statusLabel(ClientStatus.SUSPENDED)}</SelectItem><SelectItem value="lead">عميل محتمل</SelectItem></SelectContent></Select></div>
+        {clients.length === 0 ? <div className="rounded-lg border p-8"><Empty><EmptyMedia variant="icon"><Users /></EmptyMedia><EmptyHeader><EmptyTitle>لا توجد نتائج</EmptyTitle><EmptyDescription>لم نعثر على عملاء يطابقون البحث أو الفلتر الحالي.</EmptyDescription></EmptyHeader><EmptyContent><Button variant="outline" onClick={() => { setSearch(""); setFilter("all"); }}>مسح الفلاتر</Button></EmptyContent></Empty></div> : <div className="overflow-x-auto rounded-lg border"><Table><TableHeader><TableRow><TableHead>العميل</TableHead><TableHead>النشاط</TableHead><TableHead>الحالة</TableHead><TableHead>المدير</TableHead><TableHead>آخر نشاط</TableHead><TableHead>المشاريع</TableHead><TableHead>المدفوع</TableHead><TableHead>البوابة</TableHead><TableHead className="text-left">التفاصيل</TableHead></TableRow></TableHeader><TableBody>{clients.map((client) => <TableRow key={client.id}><TableCell><div className="flex items-center gap-3"><Avatar className="size-9"><AvatarFallback>{getInitials(client.name)}</AvatarFallback></Avatar><div className="flex min-w-0 flex-col gap-1"><Link href={`/dashboard/admin/clients/${client.id}`} className="font-medium hover:text-primary">{client.name}</Link><span className="text-xs text-muted-foreground">{client.companyName} · {client.email ?? "لا يوجد بريد"}</span></div></div></TableCell><TableCell>{BUSINESS_TYPE_AR[client.businessType as keyof typeof BUSINESS_TYPE_AR] ?? client.businessType}</TableCell><TableCell><Badge variant={statusVariant(client.status)}>{statusLabel(client.status)}</Badge></TableCell><TableCell>{client.manager?.name ?? "غير محدد"}</TableCell><TableCell>{client.lastActiveAt ? formatDateTime(client.lastActiveAt) : "لم يسجل الدخول"}</TableCell><TableCell><div className="flex flex-col gap-1"><span>{formatNumber(client.projectsCount)}</span><span className="text-xs text-muted-foreground">{formatNumber(client.activeProjects)} نشط</span></div></TableCell><TableCell>{formatCurrency(client.totalRevenue)}</TableCell><TableCell><Badge variant={client.portalAccess ? "secondary" : "outline"}>{client.portalAccess ? "مفعلة" : "غير مفعلة"}</Badge></TableCell><TableCell className="text-left"><Button variant="ghost" size="sm" asChild><Link href={`/dashboard/admin/clients/${client.id}`}><ArrowUpRight data-icon="inline-start" />فتح</Link></Button></TableCell></TableRow>)}</TableBody></Table></div>}
+      {totalPages > 1 ? <Pagination><PaginationContent><PaginationItem><PaginationPrevious direction="rtl" text="السابق" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} /></PaginationItem><PaginationItem><span className="px-3 text-sm text-muted-foreground">صفحة {page} من {totalPages}</span></PaginationItem><PaginationItem><PaginationNext direction="rtl" text="التالي" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} /></PaginationItem></PaginationContent></Pagination> : null}
+    </div>
+    <CreateClientDialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) { query.refetch(); statsQuery.refetch(); } }} />
+  </div>;
+}
+
+function MetricCard({ label, value, hint, icon: Icon }: { label: string; value: string | number; hint: string; icon: typeof Users }) {
+  return <Card><CardContent className="flex items-start justify-between gap-4 p-6"><div className="flex flex-col gap-2"><span className="text-sm text-muted-foreground">{label}</span><span className="text-2xl font-semibold tracking-tight">{value}</span><span className="text-sm text-muted-foreground">{hint}</span></div><div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Icon /></div></CardContent></Card>;
 }

@@ -4,12 +4,18 @@ import type { ClientProfile } from "@hassad/shared";
 
 export interface AdminClientItem {
   id: string;
+  userId: string | null;
   name: string;
   email: string | null;
   isActive: boolean;
+  lastActiveAt: string | null;
   status: string;
+  kind: string;
+  businessType: string;
+  businessName: string | null;
   createdAt: string;
   companyName: string;
+  manager: { id: string; name: string; email: string } | null;
   portalAccess: boolean;
   contractsCount: number;
   projectsCount: number;
@@ -31,7 +37,7 @@ export interface PaginatedAdminClients {
 
 export interface AdminClientFilters {
   search?: string;
-  status?: string;
+  status?: "active" | "stopped" | "inactive" | "lead";
   page?: number;
   limit?: number;
 }
@@ -42,12 +48,13 @@ export interface AdminClientStats {
   active: number;
   inactive: number;
   newThisMonth: number;
+  totalRevenue: number;
 }
 
 export interface AdminClientDetail {
   id: string;
   companyName: string;
-  businessName: string;
+  businessName: string | null;
   businessType: string;
   status: string;
   contactName: string | null;
@@ -55,6 +62,7 @@ export interface AdminClientDetail {
   phone: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
+  lastSeenAt: string | null;
   portalAccess: boolean;
   createdAt: string;
   updatedAt: string;
@@ -103,6 +111,7 @@ export interface AdminClientFullDetail extends AdminClientDetail {
   avatarUrl?: string | null;
   avgSatisfactionScore?: number | null;
   totalContractValue?: number | null;
+  signedContractValue?: number | null;
   totalInvoiced?: number | null;
   totalPaid?: number | null;
   activeProjects?: number | null;
@@ -196,7 +205,7 @@ export const adminClientsApi = createApi({
         url: `/admin/clients/${id}/suspend`,
         method: "POST",
       }),
-      invalidatesTags: (_result, _error, id) => [{ type: "AdminClient", id }, "AdminClients"],
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminClient", id }, "AdminClients", "AdminClientStats"],
     }),
 
     reactivateAdminClient: builder.mutation<void, string>({
@@ -204,7 +213,7 @@ export const adminClientsApi = createApi({
         url: `/admin/clients/${id}/reactivate`,
         method: "POST",
       }),
-      invalidatesTags: (_result, _error, id) => [{ type: "AdminClient", id }, "AdminClients"],
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminClient", id }, "AdminClients", "AdminClientStats"],
     }),
 
     assignAdminClientManager: builder.mutation<void, { id: string; managerId: string }>({
