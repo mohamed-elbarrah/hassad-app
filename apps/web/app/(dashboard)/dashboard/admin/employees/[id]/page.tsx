@@ -1,527 +1,112 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use } from "react";
 import Link from "next/link";
+import { ArrowLeft, CalendarDays, CheckSquare, Mail, ShieldCheck, Users } from "lucide-react";
 import {
-  ArrowLeft,
-  BadgeCheck,
-  Building2,
-  CalendarDays,
-  ClipboardList,
-  Link2,
-  Mail,
-  Shield,
-  UserCog,
-  Wallet,
-} from "lucide-react";
-import type { Employee } from "@hassad/shared";
-import { useGetEmployeeByIdQuery } from "@/features/finance/financeApi";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+  CAMPAIGN_PLATFORM_AR,
+  CAMPAIGN_STATUS_AR,
+  PROJECT_STATUS_AR,
+  TASK_DEPARTMENT_AR,
+  TASK_STATUS_AR,
+  USER_ROLE_AR,
+} from "@hassad/shared";
+import { useGetAdminUserOverviewQuery } from "@/features/admin/adminUsersApi";
+import { adminEmployeeMetricLabel, adminEmployeeSectionTitle, adminErrorMessage } from "@/lib/i18n";
+import { formatDateTime } from "@/lib/format";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency, formatDateTime, formatPortalDate } from "@/lib/format";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-function getPayTypeLabel(payType?: string | null) {
-  switch (payType) {
-    case "FIXED":
-      return "ثابت";
-    case "COMMISSION":
-      return "عمولة";
-    case "HOURLY":
-      return "بالساعة";
-    case "HYBRID":
-      return "مختلط";
-    default:
-      return "غير محدد";
-  }
+function getInitials(name: string) {
+  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 }
 
-function getEmployeeInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
-function EmployeeDetailLoading() {
+function LoadingState() {
   return (
-    <div className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-9 w-60" />
-            <Skeleton className="h-4 w-full max-w-xl" />
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-28" />
-          </div>
-        </CardHeader>
-      </Card>
-
+    <div className="flex flex-col gap-6" dir="rtl">
+      <PageHeader title="تفاصيل الموظف" description="جارٍ تحميل بيانات الموظف." icon={Users} />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <Skeleton className="size-20 rounded-full" />
-            <div className="flex flex-1 flex-col gap-3">
-              <Skeleton className="h-7 w-48" />
-              <Skeleton className="h-4 w-40" />
-              <div className="flex flex-wrap gap-2">
-                <Skeleton className="h-8 w-28" />
-                <Skeleton className="h-8 w-32" />
-                <Skeleton className="h-8 w-24" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index}>
-              <CardContent className="flex items-start justify-between gap-4 p-5">
-                <div className="flex flex-col gap-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-7 w-20" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
-                <Skeleton className="size-10 rounded-lg" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card><CardContent className="flex items-center gap-4 p-6"><Skeleton className="size-20 rounded-full" /><div className="flex flex-1 flex-col gap-3"><Skeleton className="h-7 w-48" /><Skeleton className="h-4 w-64" /><Skeleton className="h-8 w-32" /></div></CardContent></Card>
+        <div className="grid gap-4 sm:grid-cols-2">{Array.from({ length: 4 }).map((_, index) => <Card key={index}><CardContent className="flex flex-col gap-3 p-5"><Skeleton className="h-4 w-24" /><Skeleton className="h-7 w-20" /></CardContent></Card>)}</div>
       </div>
-
-      <Card>
-        <CardHeader className="gap-2">
-          <Skeleton className="h-6 w-36" />
-          <Skeleton className="h-4 w-72" />
-        </CardHeader>
-        <CardContent className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <TableHead key={index}>
-                    <Skeleton className="h-4 w-full" />
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 4 }).map((_, row) => (
-                <TableRow key={row}>
-                  {Array.from({ length: 5 }).map((_, cell) => (
-                    <TableCell key={cell}>
-                      <Skeleton className="h-5 w-full" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <Card><CardContent className="flex flex-col gap-4 p-6"><Skeleton className="h-6 w-40" /><Skeleton className="h-48 w-full" /></CardContent></Card>
     </div>
   );
 }
 
-export default function EmployeeDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: employee, isLoading, isError } = useGetEmployeeByIdQuery(id);
+  const { data, isLoading, isError, error } = useGetAdminUserOverviewQuery(id);
 
-  const salaryHistory = useMemo(() => {
-    return [...(employee?.salaries || [])].sort((a, b) => {
-      if (a.year !== b.year) return b.year - a.year;
-      return b.month - a.month;
-    });
-  }, [employee]);
+  if (isLoading) return <LoadingState />;
 
-  if (isLoading) {
-    return <EmployeeDetailLoading />;
-  }
-
-  if (isError || !employee) {
+  if (isError || !data) {
     return (
-      <div dir="rtl" className="  ">
-        <Card>
-          <CardContent className="p-8">
-            <Empty>
-              <EmptyMedia variant="icon">
-                <Building2 />
-              </EmptyMedia>
-              <EmptyHeader>
-                <EmptyTitle>الموظف غير موجود</EmptyTitle>
-                <EmptyDescription>
-                  لم نتمكن من العثور على هذا الموظف.
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button asChild>
-                  <Link href="/dashboard/admin/employees">
-                    <ArrowLeft data-icon="inline-start" />
-                    العودة إلى القائمة
-                  </Link>
-                </Button>
-              </EmptyContent>
-            </Empty>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col gap-6" dir="rtl">
+        <PageHeader title="تفاصيل الموظف" description="تعذر تحميل بيانات الموظف." icon={Users} />
+        <Card><CardContent className="p-8"><Empty><EmptyMedia variant="icon"><Users /></EmptyMedia><EmptyHeader><EmptyTitle>تعذر تحميل الموظف</EmptyTitle><EmptyDescription>{adminErrorMessage(error)}</EmptyDescription></EmptyHeader><EmptyContent><Button variant="outline" asChild><Link href="/dashboard/admin/employees"><ArrowLeft data-icon="inline-start" />العودة للموظفين</Link></Button></EmptyContent></Empty></CardContent></Card>
       </div>
     );
   }
 
-  const title = employee.name;
+  const employee = data.profile;
+  const roleLabel = USER_ROLE_AR[employee.role as keyof typeof USER_ROLE_AR] ?? employee.role;
+  const departmentLabel = employee.department
+    ? TASK_DEPARTMENT_AR[employee.department as keyof typeof TASK_DEPARTMENT_AR] ?? employee.department
+    : "غير محدد";
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard/admin/employees">الموظفون</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{title}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Building2 />
-              </div>
-              <div className="flex flex-col gap-1">
-                <CardTitle className="text-2xl">تفاصيل الموظف</CardTitle>
-                <CardDescription>
-                  بطاقة تعريفية ومالية مختصرة لحساب الموظف.
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard/admin/employees">
-                <ArrowLeft data-icon="inline-start" />
-                العودة
-              </Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href={`/dashboard/admin/employees/${employee.id}`}>
-                <BadgeCheck data-icon="inline-start" />
-                تحديث العرض
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
+    <div className="flex flex-col gap-6" dir="rtl">
+      <PageHeader
+        title={employee.name}
+        description={`${roleLabel} · ${departmentLabel}`}
+        icon={Users}
+        actions={<Button variant="outline" asChild><Link href="/dashboard/admin/employees"><ArrowLeft data-icon="inline-start" />العودة للموظفين</Link></Button>}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <Card>
-          <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-start">
-            <Avatar className="size-20">
-              <AvatarFallback className="text-lg font-semibold">
-                {getEmployeeInitials(employee.name)}
-              </AvatarFallback>
-            </Avatar>
-
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-2xl font-semibold tracking-tight">
-                  {employee.name}
-                </h2>
-                <Badge
-                  variant={employee.isActive ? "secondary" : "destructive"}
-                >
-                  {employee.isActive ? "نشط" : "غير نشط"}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{employee.role}</p>
-
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">
-                  {getPayTypeLabel(employee.payType)}
-                </Badge>
-                <Badge variant="outline">
-                  <Wallet data-icon="inline-start" />
-                  {formatCurrency(employee.baseSalary, employee.currency)}
-                </Badge>
-                {employee.userId ? (
-                  <Badge variant="outline">
-                    <Link2 data-icon="inline-start" />
-                    حساب مستخدم مرتبط
-                  </Badge>
-                ) : (
-                  <Badge variant="outline">غير مرتبط بحساب</Badge>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {[
-            {
-              label: "الراتب الأساسي",
-              value: formatCurrency(employee.baseSalary, employee.currency),
-              icon: Wallet,
-            },
-            {
-              label: "نوع الدفع",
-              value: getPayTypeLabel(employee.payType),
-              icon: ClipboardList,
-            },
-            {
-              label: "المستخدم المرتبط",
-              value: employee.userId
-                ? employee.userId.slice(0, 8)
-                : "غير مرتبط",
-              icon: Link2,
-            },
-            {
-              label: "آخر تحديث",
-              value: formatDateTime(employee.updatedAt),
-              icon: CalendarDays,
-            },
-          ].map((item) => (
-            <Card key={item.label}>
-              <CardContent className="flex items-start justify-between gap-4 p-5">
-                <div className="flex flex-col gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {item.label}
-                  </span>
-                  <span className="text-lg font-semibold">{item.value}</span>
-                </div>
-                <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                  <item.icon />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <ProfileCard employee={employee} roleLabel={roleLabel} departmentLabel={departmentLabel} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          {data.kpis.map((metric) => <Card key={metric.key}><CardContent className="flex min-h-28 flex-col justify-between gap-3 p-5"><span className="text-sm text-muted-foreground">{adminEmployeeMetricLabel(metric.key)}</span><span className="text-2xl font-semibold">{metric.value}</span></CardContent></Card>)}
         </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <Card>
-          <CardHeader className="gap-2">
-            <CardTitle>المعلومات الأساسية</CardTitle>
-            <CardDescription>
-              تفاصيل الحساب والروابط والبيانات الإدارية.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <UserCog />
-                <span>المعرف الداخلي</span>
-              </div>
-              <p className="mt-2 font-mono text-sm">{employee.id}</p>
-            </div>
-            <div className="rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail />
-                <span>حساب المستخدم</span>
-              </div>
-              <p className="mt-2 text-sm">
-                {employee.userId ? employee.userId : "لا يوجد حساب مرتبط"}
-              </p>
-            </div>
-            <div className="rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Shield />
-                <span>الحالة</span>
-              </div>
-              <p className="mt-2 text-sm">
-                {employee.isActive ? "الحساب فعّال" : "الحساب متوقف"}
-              </p>
-            </div>
-            <div className="rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Building2 />
-                <span>تاريخ الإنشاء</span>
-              </div>
-              <p className="mt-2 text-sm">
-                {formatPortalDate(employee.createdAt) ?? "—"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="gap-2">
-            <CardTitle>إعدادات التعويض</CardTitle>
-            <CardDescription>
-              معلومات الراتب والمتغيرات المرتبطة بالموظف.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <span className="text-sm text-muted-foreground">
-                الراتب الأساسي
-              </span>
-              <span className="font-medium">
-                {formatCurrency(employee.baseSalary, employee.currency)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <span className="text-sm text-muted-foreground">نوع الدفع</span>
-              <span className="font-medium">
-                {getPayTypeLabel(employee.payType)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <span className="text-sm text-muted-foreground">العمولة</span>
-              <span className="font-medium">
-                {employee.commissionRate
-                  ? `${Math.round(employee.commissionRate * 100)}%`
-                  : "—"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <span className="text-sm text-muted-foreground">
-                الأجر بالساعة
-              </span>
-              <span className="font-medium">
-                {employee.hourlyRate
-                  ? formatCurrency(employee.hourlyRate, employee.currency)
-                  : "—"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <span className="text-sm text-muted-foreground">
-                الهدف الشهري
-              </span>
-              <span className="font-medium">
-                {employee.monthlyTarget
-                  ? formatCurrency(employee.monthlyTarget, employee.currency)
-                  : "—"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <PerformanceSection sectionCode={data.performance.sectionCode} metrics={data.performance.metrics} />
+        <ProfileDetails employee={employee} />
       </div>
 
-      <Card>
-        <CardHeader className="gap-2">
-          <CardTitle>سجل الرواتب</CardTitle>
-          <CardDescription>
-            آخر الرواتب المنشأة لهذا الموظف إن وجدت.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {salaryHistory.length === 0 ? (
-            <div className="rounded-lg border p-8">
-              <Empty>
-                <EmptyMedia variant="icon">
-                  <Wallet />
-                </EmptyMedia>
-                <EmptyHeader>
-                  <EmptyTitle>لا يوجد سجل رواتب</EmptyTitle>
-                  <EmptyDescription>
-                    لم يتم العثور على رواتب منشأة لهذا الموظف بعد.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>الفترة</TableHead>
-                    <TableHead>المبلغ</TableHead>
-                    <TableHead>الأساسي</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>تاريخ الدفع</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {salaryHistory.map((salary) => (
-                    <TableRow key={salary.id}>
-                      <TableCell>
-                        {salary.month}/{salary.year}
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(salary.amount, employee.currency)}
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(salary.baseSalary, employee.currency)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            salary.status === "PAID" ? "secondary" : "outline"
-                          }
-                        >
-                          {salary.status === "PAID"
-                            ? "مدفوع"
-                            : salary.status === "PENDING"
-                              ? "قيد الانتظار"
-                              : salary.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {formatPortalDate(salary.paymentDate) ?? "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {data.work.campaigns.length > 0 ? <WorkTable title="الحملات التي أنشأها الموظف" description="الحملات المرتبطة بهذا الموظف بصفته المنشئ." headers={["الحملة", "العميل", "المنصة", "الحالة"]} rows={data.work.campaigns.map((campaign) => [campaign.name, campaign.clientName, CAMPAIGN_PLATFORM_AR[campaign.platform as keyof typeof CAMPAIGN_PLATFORM_AR] ?? campaign.platform, CAMPAIGN_STATUS_AR[campaign.status as keyof typeof CAMPAIGN_STATUS_AR] ?? campaign.status])} /> : null}
+      {data.work.projects.length > 0 ? <WorkTable title="المشاريع المرتبطة" description="المشاريع المرتبطة بهذا الموظف." headers={["المشروع", "العميل", "الحالة"]} rows={data.work.projects.map((project) => [project.name, project.clientName, PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] ?? project.status])} /> : null}
+      {data.work.tasks.length > 0 ? <WorkTable title="المهام المرتبطة" description="المهام المرتبطة بهذا الموظف." headers={["المهمة", "المشروع", "الحالة"]} rows={data.work.tasks.map((task) => [task.title, task.projectName, TASK_STATUS_AR[task.status as keyof typeof TASK_STATUS_AR] ?? task.status])} /> : null}
+
+      <div className="flex flex-wrap gap-2"><Button variant="outline" asChild><Link href={`/dashboard/admin/employees/${employee.id}/activity`}><CheckSquare data-icon="inline-start" />سجل النشاط</Link></Button><Button variant="outline" asChild><Link href={`/dashboard/admin/employees/${employee.id}/permissions`}><ShieldCheck data-icon="inline-start" />الصلاحيات</Link></Button></div>
     </div>
   );
+}
+
+function ProfileCard({ employee, roleLabel, departmentLabel }: { employee: { name: string; email: string; phoneWhatsapp?: string | null; avatarUrl?: string | null; isActive: boolean }; roleLabel: string; departmentLabel: string }) {
+  return <Card><CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-start"><Avatar className="size-20"><AvatarImage src={employee.avatarUrl ?? undefined} alt="" /><AvatarFallback className="text-lg font-semibold">{getInitials(employee.name)}</AvatarFallback></Avatar><div className="flex min-w-0 flex-1 flex-col gap-4"><div className="flex flex-wrap items-center gap-2"><h2 className="text-2xl font-semibold tracking-tight">{employee.name}</h2><Badge variant={employee.isActive ? "secondary" : "destructive"}>{employee.isActive ? "نشط" : "غير نشط"}</Badge></div><div className="flex flex-wrap gap-2"><Badge variant="outline">{roleLabel}</Badge><Badge variant="outline">{departmentLabel}</Badge></div><div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-5"><span className="inline-flex items-center gap-2"><Mail aria-hidden="true" />{employee.email}</span>{employee.phoneWhatsapp ? <span>{employee.phoneWhatsapp}</span> : null}</div></div></CardContent></Card>;
+}
+
+function ProfileDetails({ employee }: { employee: { email: string; phoneWhatsapp?: string | null; lastLoginAt?: string | null; twoFactorEnabled?: boolean; createdAt: string } }) {
+  return <Card><CardHeader className="gap-2"><CardTitle>الملف الشخصي</CardTitle><CardDescription>بيانات الحساب والحالة الأمنية للموظف.</CardDescription></CardHeader><CardContent className="grid gap-x-8 gap-y-5 sm:grid-cols-2"><DetailItem icon={Mail} label="البريد الإلكتروني" value={employee.email} /><DetailItem icon={Users} label="رقم التواصل" value={employee.phoneWhatsapp ?? "غير محدد"} /><DetailItem icon={CalendarDays} label="آخر دخول" value={employee.lastLoginAt ? formatDateTime(employee.lastLoginAt) : "لم يسجل الدخول"} /><DetailItem icon={ShieldCheck} label="المصادقة الثنائية" value={employee.twoFactorEnabled ? "مفعلة" : "غير مفعلة"} /><DetailItem icon={CalendarDays} label="تاريخ الإنشاء" value={formatDateTime(employee.createdAt)} /></CardContent></Card>;
+}
+
+function DetailItem({ icon: Icon, label, value }: { icon: typeof Mail; label: string; value: string }) {
+  return <div className="flex flex-col gap-2 border-b pb-3"><span className="flex items-center gap-2 text-sm text-muted-foreground"><Icon aria-hidden="true" />{label}</span><span className="text-sm font-medium">{value}</span></div>;
+}
+
+function PerformanceSection({ sectionCode, metrics }: { sectionCode: string; metrics: Array<{ key: string; value: number }> }) {
+  return <Card><CardHeader className="gap-2"><CardTitle>{adminEmployeeSectionTitle(sectionCode)}</CardTitle><CardDescription>المؤشرات التشغيلية الخاصة بدور هذا الموظف.</CardDescription></CardHeader><CardContent className="flex flex-col gap-3">{metrics.map((metric) => <div key={metric.key} className="flex items-center justify-between gap-4 border-b py-3 last:border-b-0"><span className="text-sm text-muted-foreground">{adminEmployeeMetricLabel(metric.key)}</span><span className="font-semibold">{metric.value}</span></div>)}</CardContent></Card>;
+}
+
+function WorkTable({ title, description, headers, rows }: { title: string; description: string; headers: string[]; rows: string[][] }) {
+  return <Card><CardHeader className="gap-2"><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader><CardContent><div className="overflow-x-auto rounded-md border"><Table><TableHeader><TableRow>{headers.map((header) => <TableHead key={header}>{header}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.map((row, index) => <TableRow key={`${title}-${index}`}>{row.map((cell, cellIndex) => <TableCell key={`${title}-${index}-${cellIndex}`}>{cell}</TableCell>)}</TableRow>)}</TableBody></Table></div></CardContent></Card>;
 }

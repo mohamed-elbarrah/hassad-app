@@ -35,9 +35,19 @@ export interface AdminUserFilters {
 }
 
 export interface AdminUserDetail extends AdminUserItem {
+  phoneWhatsapp?: string | null;
+  avatarUrl?: string | null;
+  twoFactorEnabled?: boolean;
+  failedLoginAttempts?: number;
+  lockedUntil?: string | null;
+  activeRequestsCount?: number;
+  activeTasksCount?: number;
+  activeProjectsCount?: number;
+  updatedAt?: string;
   activeSessionsCount?: number;
   securityEventsCount?: number;
   performance?: {
+    workloadStatus: string;
     avgCompletionSpeedDays: number;
     avgQualityScore: number;
     tasksCompleted: number;
@@ -50,6 +60,46 @@ export interface AdminUserActivity {
   entityType: string;
   entityLabel: string;
   createdAt: string;
+}
+
+export interface PaginatedAdminUserActivity {
+  items: AdminUserActivity[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface AdminUserWork {
+  projects: Array<{ id: string; name: string; status: string; clientName: string }>;
+  tasks: Array<{ id: string; title: string; status: string; projectName: string }>;
+  disputes: Array<{ id: string; title: string; status: string; priority: string }>;
+  campaigns: Array<{
+    id: string;
+    name: string;
+    platform: string;
+    status: string;
+    startDate: string;
+    endDate: string | null;
+    clientName: string;
+    projectName: string | null;
+  }>;
+}
+
+export interface AdminUserMetric {
+  key: string;
+  value: number;
+  format: "number";
+}
+
+export interface AdminUserOverview {
+  profile: AdminUserDetail;
+  kpis: AdminUserMetric[];
+  performance: {
+    sectionCode: string;
+    metrics: AdminUserMetric[];
+  };
+  work: AdminUserWork;
 }
 
 export interface AdminSession {
@@ -191,10 +241,15 @@ export const adminUsersApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
     }),
 
-    getAdminUserActivity: builder.query<AdminUserActivity[], string>({
-      query: (id) => `/admin/users/${id}/activity`,
-      providesTags: (_result, _error, id) => [
-        { type: "AdminUserActivity", id },
+    getAdminUserOverview: builder.query<AdminUserOverview, string>({
+      query: (id) => `/admin/users/${id}/overview`,
+      providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
+    }),
+
+    getAdminUserActivity: builder.query<PaginatedAdminUserActivity, { id: string; page?: number; limit?: number }>({
+      query: ({ id, page = 1, limit = 20 }) => `/admin/users/${id}/activity?page=${page}&limit=${limit}`,
+      providesTags: (_result, _error, params) => [
+        { type: "AdminUserActivity", id: params.id },
       ],
     }),
 
@@ -203,6 +258,11 @@ export const adminUsersApi = createApi({
       string
     >({
       query: (id) => `/admin/users/${id}/performance`,
+      providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
+    }),
+
+    getAdminUserWork: builder.query<AdminUserWork, string>({
+      query: (id) => `/admin/users/${id}/work`,
       providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
     }),
 
@@ -354,8 +414,10 @@ export const adminUsersApi = createApi({
 export const {
   useGetAdminUsersQuery,
   useGetAdminUserByIdQuery,
+  useGetAdminUserOverviewQuery,
   useGetAdminUserActivityQuery,
   useGetAdminUserPerformanceQuery,
+  useGetAdminUserWorkQuery,
   useCreateAdminUserMutation,
   useUpdateAdminUserMutation,
   useResetAdminUserPasswordMutation,

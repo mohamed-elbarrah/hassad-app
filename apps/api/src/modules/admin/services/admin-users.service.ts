@@ -138,6 +138,81 @@ export class AdminUsersService {
     return this.toResponse(user);
   }
 
+  async getOverview(userId: string) {
+    const profile = await this.findOne(userId);
+    const role = profile.role;
+
+    const [requests, proposals, contracts, projects, tasks, campaigns, invoices, securityEvents, disputes, activeSessions, workload] = await Promise.all([
+      this.prisma.request.count({ where: { assignedSalesId: userId, status: { in: ["SUBMITTED", "QUALIFYING"] } } }),
+      this.prisma.proposal.count({ where: { createdBy: userId } }),
+      this.prisma.contract.count({ where: { createdBy: userId } }),
+      this.prisma.project.count({ where: { projectManagerId: userId } }),
+      this.prisma.task.count({ where: { assignedTo: userId } }),
+      this.prisma.campaign.count({ where: { createdBy: userId } }),
+      this.prisma.invoice.count({ where: { createdBy: userId } }),
+      this.prisma.securityEvent.count({ where: { userId } }),
+      this.prisma.disputeTicket.count({ where: { pmId: userId, status: { not: "CLOSED" } } }),
+      this.prisma.session.count({ where: { userId, revokedAt: null, expiresAt: { gte: new Date() } } }),
+      this.prisma.staffWorkload.findUnique({ where: { userId }, select: { avgQualityScore: true } }),
+    ]);
+
+    const activeTasks = await this.prisma.task.count({
+      where: { assignedTo: userId, status: { in: ["TODO", "IN_PROGRESS", "IN_REVIEW"] } },
+    });
+    const completedTasks = await this.prisma.task.count({ where: { assignedTo: userId, status: "DONE" } });
+    const activeCampaigns = await this.prisma.campaign.count({ where: { createdBy: userId, status: "ACTIVE", isArchived: false } });
+    const activeProjects = await this.prisma.project.count({ where: { projectManagerId: userId, status: { in: ["ACTIVE", "PLANNING"] } } });
+
+    const roleMetrics: Record<string, Array<{ key: string; value: number; format: "number" }>> = {
+      SALES: [
+        { key: "ACTIVE_REQUESTS", value: requests, format: "number" },
+        { key: "PROPOSALS_CREATED", value: proposals, format: "number" },
+        { key: "CONTRACTS_CREATED", value: contracts, format: "number" },
+        { key: "ACTIVE_TASKS", value: activeTasks, format: "number" },
+      ],
+      PM: [
+        { key: "MANAGED_PROJECTS", value: projects, format: "number" },
+        { key: "ACTIVE_PROJECTS", value: activeProjects, format: "number" },
+        { key: "ACTIVE_TASKS", value: activeTasks, format: "number" },
+        { key: "OPEN_DISPUTES", value: disputes, format: "number" },
+      ],
+      TEAM: [
+        { key: "ASSIGNED_TASKS", value: tasks, format: "number" },
+        { key: "ACTIVE_TASKS", value: activeTasks, format: "number" },
+        { key: "COMPLETED_TASKS", value: completedTasks, format: "number" },
+        { key: "QUALITY_SCORE", value: workload?.avgQualityScore ?? 0, format: "number" },
+      ],
+      MARKETING: [
+        { key: "CAMPAIGNS_CREATED", value: campaigns, format: "number" },
+        { key: "ACTIVE_CAMPAIGNS", value: activeCampaigns, format: "number" },
+        { key: "MARKETING_TASKS", value: tasks, format: "number" },
+        { key: "COMPLETED_TASKS", value: completedTasks, format: "number" },
+      ],
+      ACCOUNTANT: [
+        { key: "INVOICES_CREATED", value: invoices, format: "number" },
+        { key: "ACTIVE_TASKS", value: activeTasks, format: "number" },
+        { key: "COMPLETED_TASKS", value: completedTasks, format: "number" },
+        { key: "SECURITY_EVENTS", value: securityEvents, format: "number" },
+      ],
+      ADMIN: [
+        { key: "MANAGED_USERS", value: await this.prisma.user.count(), format: "number" },
+        { key: "ACTIVE_TASKS", value: activeTasks, format: "number" },
+        { key: "SECURITY_EVENTS", value: securityEvents, format: "number" },
+        { key: "ACTIVE_SESSIONS", value: activeSessions, format: "number" },
+      ],
+    };
+
+    return {
+      profile,
+      kpis: roleMetrics[role] ?? roleMetrics.TEAM,
+      performance: {
+        sectionCode: `${role}_PERFORMANCE`,
+        metrics: roleMetrics[role] ?? roleMetrics.TEAM,
+      },
+      work: await this.getWork(userId),
+    };
+  }
+
   async getActivity(userId: string, page = 1, limit = 20) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException("User not found");
@@ -177,15 +252,17 @@ export class AdminUsersService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException("المستخدم غير موجود");
 
-    const workload = await this.prisma.staffWorkload.findUnique({
-      where: { userId },
-    });
+    const [workload, tasksCompleted] = await Promise.all([
+      this.prisma.staffWorkload.findUnique({ where: { userId } }),
+      this.prisma.task.count({ where: { assignedTo: userId, status: "DONE" } }),
+    ]);
 
     return {
       activeTasksCount: workload?.activeTasksCount ?? 0,
       workloadStatus: workload?.workloadStatus ?? "AVAILABLE",
       avgCompletionSpeedDays: workload?.avgCompletionSpeedDays ?? 0,
       avgQualityScore: workload?.avgQualityScore ?? 0,
+      tasksCompleted,
     };
   }
 
@@ -193,7 +270,7 @@ export class AdminUsersService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException("المستخدم غير موجود");
 
-    const [projects, tasks, disputes] = await Promise.all([
+    const [projects, tasks, disputes, campaigns] = await Promise.all([
       this.prisma.project.findMany({
         where: { projectManagerId: userId },
         select: {
@@ -221,6 +298,20 @@ export class AdminUsersService {
           priority: true,
         },
       }),
+      this.prisma.campaign.findMany({
+        where: { createdBy: userId },
+        select: {
+          id: true,
+          name: true,
+          platform: true,
+          status: true,
+          startDate: true,
+          endDate: true,
+          client: { select: { companyName: true } },
+          project: { select: { name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
 
     return {
@@ -241,6 +332,16 @@ export class AdminUsersService {
         title: d.title,
         status: d.status,
         priority: d.priority,
+      })),
+      campaigns: campaigns.map((campaign) => ({
+        id: campaign.id,
+        name: campaign.name,
+        platform: campaign.platform,
+        status: campaign.status,
+        startDate: campaign.startDate.toISOString(),
+        endDate: campaign.endDate?.toISOString() ?? null,
+        clientName: campaign.client.companyName,
+        projectName: campaign.project?.name ?? null,
       })),
     };
   }

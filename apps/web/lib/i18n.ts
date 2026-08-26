@@ -200,6 +200,43 @@ export function adminErrorMessage(error: unknown): string {
   return (code && ADMIN_ERROR_MESSAGES[code]) || ADMIN_ERROR_MESSAGES.UNKNOWN_ERROR;
 }
 
+const ADMIN_EMPLOYEE_METRIC_LABELS: Record<string, string> = {
+  ACTIVE_REQUESTS: "الطلبات النشطة",
+  PROPOSALS_CREATED: "العروض المنشأة",
+  CONTRACTS_CREATED: "العقود المنشأة",
+  MANAGED_PROJECTS: "المشاريع المُدارة",
+  ACTIVE_PROJECTS: "المشاريع النشطة",
+  ACTIVE_TASKS: "المهام النشطة",
+  OPEN_DISPUTES: "النزاعات المفتوحة",
+  ASSIGNED_TASKS: "المهام المسندة",
+  COMPLETED_TASKS: "المهام المكتملة",
+  QUALITY_SCORE: "تقييم الجودة",
+  CAMPAIGNS_CREATED: "الحملات المنشأة",
+  ACTIVE_CAMPAIGNS: "الحملات النشطة",
+  MARKETING_TASKS: "مهام التسويق",
+  INVOICES_CREATED: "الفواتير المنشأة",
+  SECURITY_EVENTS: "أحداث الأمان",
+  MANAGED_USERS: "المستخدمون المُدارون",
+  ACTIVE_SESSIONS: "الجلسات النشطة",
+};
+
+const ADMIN_EMPLOYEE_SECTION_TITLES: Record<string, string> = {
+  SALES_PERFORMANCE: "أداء المبيعات",
+  PM_PERFORMANCE: "أداء إدارة المشاريع",
+  TEAM_PERFORMANCE: "أداء عضو الفريق",
+  MARKETING_PERFORMANCE: "أداء التسويق",
+  ACCOUNTANT_PERFORMANCE: "الأداء المالي",
+  ADMIN_PERFORMANCE: "الأداء الإداري",
+};
+
+export function adminEmployeeMetricLabel(key: string): string {
+  return ADMIN_EMPLOYEE_METRIC_LABELS[key] ?? key;
+}
+
+export function adminEmployeeSectionTitle(code: string): string {
+  return ADMIN_EMPLOYEE_SECTION_TITLES[code] ?? "الأداء ومؤشرات العمل";
+}
+
 const PORTAL_REQUEST_STATUS_LABELS: Record<string, string> = {
   SUBMITTED: "مستلم",
   QUALIFYING: "قيد التأهيل",

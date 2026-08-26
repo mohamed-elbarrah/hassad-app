@@ -51,6 +51,12 @@ export class AdminUsersController {
     return this.adminUsersService.findOne(id);
   }
 
+  @Get(":id/overview")
+  @RequirePermissions("admin.users.read")
+  getOverview(@Param("id") id: string) {
+    return this.adminUsersService.getOverview(id);
+  }
+
   @Get(":id/workspace")
   @RequirePermissions("admin.users.read")
   getWorkspace(@Param("id") id: string) {
