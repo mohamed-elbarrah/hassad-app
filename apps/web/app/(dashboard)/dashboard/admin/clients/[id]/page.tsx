@@ -97,7 +97,7 @@ export default function ClientDetailPage({
         backLabel="العملاء"
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <ClientContextPanel
           client={client}
           profile={client.profile}

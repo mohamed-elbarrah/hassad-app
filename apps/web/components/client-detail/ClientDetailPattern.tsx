@@ -1066,7 +1066,7 @@ export function ClientProfileCard({
   const businessSections = buildClientBusinessSections(client, profile, mode);
 
   return (
-    <Card>
+    <Card className="min-w-0 max-w-full overflow-hidden">
       <CardHeader className="gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-2">
@@ -1078,8 +1078,8 @@ export function ClientProfileCard({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {businessOnly ? (
-          <Tabs defaultValue={businessSections[0]?.key} dir="rtl">
-            <div className="overflow-x-auto pb-1">
+          <Tabs defaultValue={businessSections[0]?.key} dir="rtl" className="min-w-0 max-w-full">
+            <div className="max-w-full overflow-x-auto pb-1">
               <TabsList className="min-w-max">
                 {businessSections.map((section) => (
                   <TabsTrigger key={section.key} value={section.key}>
@@ -1173,13 +1173,13 @@ export function ClientRecordsTabs({
   const visibleTabs = tabs.filter((tab) => Boolean(tab));
 
   return (
-    <Card>
+    <Card className="min-w-0 max-w-full overflow-hidden">
       <CardHeader className="gap-2">
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Tabs defaultValue={defaultValue ?? visibleTabs[0]?.value} dir="rtl">
+        <Tabs defaultValue={defaultValue ?? visibleTabs[0]?.value} dir="rtl" className="min-w-0 max-w-full">
           <TabsList
             className={`grid h-auto w-full justify-start rounded-none border-b bg-transparent p-0 ${visibleTabs.length === 5 ? "grid-cols-2 md:grid-cols-5" : visibleTabs.length === 4 ? "grid-cols-2 md:grid-cols-4" : visibleTabs.length === 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}
           >
@@ -1644,7 +1644,7 @@ export function ClientContextPanel({
 }) {
   if (unifiedProfile) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex min-w-0 flex-col gap-6">
         <ClientProfileOverviewCard client={client} profile={profile} badges={badges} stats={stats} />
         <ClientProfileCard client={client} profile={profile} mode={mode} title="بيانات النشاط" description="المعلومات التعريفية والتسويقية المسجلة للعميل." businessOnly actions={profileActions} />
       </div>
@@ -1652,7 +1652,7 @@ export function ClientContextPanel({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       <ClientSummaryCard client={client} profile={profile} badges={badges} />
       {stats && stats.length > 0 ? <ClientStatsGrid stats={stats} /> : null}
       {profileContent ?? (
