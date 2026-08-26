@@ -81,7 +81,7 @@ function PaginationPrevious({
   const Icon = direction === "rtl" ? ChevronRight : ChevronLeft;
   return (
     <PaginationLink
-      aria-label="Go to previous page"
+      aria-label={text}
       className={cn("gap-1", className)}
       {...props}
     >
@@ -100,7 +100,7 @@ function PaginationNext({
   const Icon = direction === "rtl" ? ChevronLeft : ChevronRight;
   return (
     <PaginationLink
-      aria-label="Go to next page"
+      aria-label={text}
       className={cn("gap-1", className)}
       {...props}
     >

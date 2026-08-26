@@ -41,13 +41,17 @@ export class AdminUsersService {
       ];
     }
     if (query.roles) {
-      const roleNames = query.roles.split(",").map((r) => r.trim());
+      const roleNames = query.roles.split(",").map((r) => r.trim()).filter(Boolean);
       const roles = await this.prisma.role.findMany({
         where: { name: { in: roleNames } },
       });
-      if (roles.length > 0) {
-        where.roleId = { in: roles.map((r) => r.id) };
-      }
+      const excludedRole = query.excludeRole
+        ? await this.prisma.role.findFirst({ where: { name: query.excludeRole } })
+        : null;
+      const roleIds = roles
+        .map((role) => role.id)
+        .filter((roleId) => roleId !== excludedRole?.id);
+      where.roleId = { in: roleIds };
     } else if (query.excludeRole) {
       const excludeRole = await this.prisma.role.findFirst({
         where: { name: query.excludeRole },

@@ -1,74 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Building2,
-  Link2,
-  RefreshCw,
-  Search,
-  UserCheck,
-  Users,
-  Wallet,
-} from "lucide-react";
-import { useGetEmployeesQuery } from "@/features/finance/financeApi";
-import type { Employee } from "@hassad/shared";
+import { RefreshCw, Search, UserRound, Users } from "lucide-react";
+import { UserRole, USER_ROLE_AR, TaskDepartment, TASK_DEPARTMENT_AR } from "@hassad/shared";
+import { useGetAdminUsersQuery } from "@/features/admin/adminUsersApi";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency, formatDateTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { formatDateTime } from "@/lib/format";
+import { adminErrorMessage } from "@/lib/i18n";
 
-function getPayTypeLabel(payType?: string | null) {
-  switch (payType) {
-    case "FIXED":
-      return "ثابت";
-    case "COMMISSION":
-      return "عمولة";
-    case "HOURLY":
-      return "بالساعة";
-    case "HYBRID":
-      return "مختلط";
-    default:
-      return "غير محدد";
-  }
-}
+const employeeRoles = Object.values(UserRole).filter((role) => role !== UserRole.CLIENT);
 
-function getEmployeeInitials(name: string) {
+function getInitials(name: string) {
   return name
     .split(" ")
     .filter(Boolean)
@@ -78,63 +31,31 @@ function getEmployeeInitials(name: string) {
     .toUpperCase();
 }
 
-function EmployeesPageLoading() {
+function LoadingState() {
   return (
-    <div className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-9 w-56" />
-            <Skeleton className="h-4 w-full max-w-xl" />
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-28" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </CardHeader>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Card key={index}>
-            <CardContent className="flex items-start justify-between gap-4 p-6">
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-              <Skeleton className="size-10 rounded-lg" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
+    <div className="flex flex-col gap-6" dir="rtl">
+      <PageHeader title="الموظفون" description="إدارة ومراجعة حسابات الموظفين في النظام." icon={Users} />
       <Card>
         <CardHeader className="gap-2">
-          <Skeleton className="h-6 w-36" />
+          <Skeleton className="h-6 w-32" />
           <Skeleton className="h-4 w-72" />
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Skeleton className="h-11 w-full max-w-md" />
-          <div className="rounded-lg border">
+          <div className="overflow-hidden rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  {Array.from({ length: 7 }).map((_, index) => (
-                    <TableHead key={index}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableHead>
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <TableHead key={index}><Skeleton className="h-4 w-full" /></TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {Array.from({ length: 6 }).map((_, row) => (
                   <TableRow key={row}>
-                    {Array.from({ length: 7 }).map((_, cell) => (
-                      <TableCell key={cell}>
-                        <Skeleton className="h-5 w-full" />
-                      </TableCell>
+                    {Array.from({ length: 5 }).map((_, cell) => (
+                      <TableCell key={cell}><Skeleton className="h-5 w-full" /></TableCell>
                     ))}
                   </TableRow>
                 ))}
@@ -149,63 +70,43 @@ function EmployeesPageLoading() {
 
 export default function EmployeesPage() {
   const [search, setSearch] = useState("");
-  const { data, isLoading, isError, refetch, isFetching } =
-    useGetEmployeesQuery();
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [role, setRole] = useState<string>("ALL");
+  const [department, setDepartment] = useState<"ALL" | TaskDepartment>("ALL");
+  const [status, setStatus] = useState<"ALL" | "active" | "inactive">("ALL");
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
-  const employees = data ?? [];
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
 
-  const filteredEmployees = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return employees;
-    return employees.filter((employee) => {
-      return (
-        employee.name.toLowerCase().includes(query) ||
-        employee.role.toLowerCase().includes(query) ||
-        employee.id.toLowerCase().includes(query) ||
-        (employee.userId ?? "").toLowerCase().includes(query)
-      );
-    });
-  }, [employees, search]);
+  const { data, isLoading, isFetching, isError, error, refetch } = useGetAdminUsersQuery({
+    search: debouncedSearch || undefined,
+    roles: role === "ALL" ? undefined : role,
+    department: department === "ALL" ? undefined : department,
+    status: status === "ALL" ? undefined : status,
+    excludeRole: UserRole.CLIENT,
+    page,
+    limit,
+  });
 
-  const metrics = useMemo(() => {
-    const total = employees.length;
-    const active = employees.filter((employee) => employee.isActive).length;
-    const linked = employees.filter((employee) =>
-      Boolean(employee.userId),
-    ).length;
-    const avgSalary =
-      total > 0
-        ? employees.reduce(
-            (sum, employee) => sum + (employee.baseSalary || 0),
-            0,
-          ) / total
-        : 0;
-
-    return { total, active, linked, avgSalary };
-  }, [employees]);
-
-  if (isLoading) {
-    return <EmployeesPageLoading />;
-  }
+  if (isLoading) return <LoadingState />;
 
   if (isError) {
     return (
-      <div className="  ">
+      <div className="flex flex-col gap-6" dir="rtl">
+        <PageHeader title="الموظفون" description="إدارة ومراجعة حسابات الموظفين في النظام." icon={Users} />
         <Card>
           <CardContent className="p-8">
             <Empty>
-              <EmptyMedia variant="icon">
-                <Users />
-              </EmptyMedia>
+              <EmptyMedia variant="icon"><Users /></EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل الموظفين</EmptyTitle>
-                <EmptyDescription>
-                  حدث خطأ أثناء جلب قائمة الموظفين. حاول مرة أخرى.
-                </EmptyDescription>
+                <EmptyDescription>{adminErrorMessage(error)}</EmptyDescription>
               </EmptyHeader>
-              <EmptyContent>
-                <Button onClick={() => refetch()}>إعادة المحاولة</Button>
-              </EmptyContent>
+              <EmptyContent><Button onClick={() => refetch()}>إعادة المحاولة</Button></EmptyContent>
             </Empty>
           </CardContent>
         </Card>
@@ -213,227 +114,144 @@ export default function EmployeesPage() {
     );
   }
 
+  const employees = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 1;
+
+  function resetPage() {
+    setPage(1);
+  }
+
   return (
-    <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>الموظفون</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+    <div className="flex flex-col gap-6" dir="rtl">
+      <PageHeader
+        title="الموظفون"
+        description="عرض جميع الموظفين في النظام. حسابات العملاء مستبعدة من هذه القائمة."
+        icon={Users}
+        actions={(
+          <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw data-icon="inline-start" />
+            {isFetching ? "جاري التحديث" : "تحديث"}
+          </Button>
+        )}
+      />
 
+      <div className="flex flex-col gap-4">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_200px_200px_160px]">
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Building2 />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <CardTitle className="text-2xl">قائمة الموظفين</CardTitle>
-                  <CardDescription>
-                    عرض جميع الموظفين المرتبطين بالنظام — العملاء غير مشمولين في
-                    هذه الصفحة.
-                  </CardDescription>
-                </div>
+              <div className="relative">
+                <Search className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  id="employee-search"
+                  value={search}
+                  onChange={(event) => { setSearch(event.target.value); resetPage(); }}
+                  placeholder="ابحث بالاسم أو البريد الإلكتروني"
+                  aria-label="البحث عن موظف"
+                  className="pr-10"
+                />
               </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Select value={role} onValueChange={(value) => { setRole(value); resetPage(); }}>
+                <SelectTrigger id="employee-role" aria-label="تصفية حسب الدور"><SelectValue placeholder="كل الأدوار" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">كل الأدوار</SelectItem>
+                  {employeeRoles.map((value) => <SelectItem key={value} value={value}>{USER_ROLE_AR[value]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Select value={department} onValueChange={(value) => { setDepartment(value as "ALL" | TaskDepartment); resetPage(); }}>
+                <SelectTrigger id="employee-department" aria-label="تصفية حسب القسم"><SelectValue placeholder="كل الأقسام" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">كل الأقسام</SelectItem>
+                  {Object.values(TaskDepartment).map((value) => <SelectItem key={value} value={value}>{TASK_DEPARTMENT_AR[value]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Select value={status} onValueChange={(value) => { setStatus(value as "ALL" | "active" | "inactive"); resetPage(); }}>
+                <SelectTrigger id="employee-status" aria-label="تصفية حسب الحالة"><SelectValue placeholder="كل الحالات" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">كل الحالات</SelectItem>
+                  <SelectItem value="active">نشط</SelectItem>
+                  <SelectItem value="inactive">غير نشط</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw data-icon="inline-start" />
-              {isFetching ? "جاري التحديث" : "تحديث"}
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/dashboard/admin/employees">
-                <ArrowUpRight data-icon="inline-start" />
-                فتح القائمة
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            label: "إجمالي الموظفين",
-            value: metrics.total,
-            hint: "جميع الموظفين المسجلين",
-            icon: Users,
-          },
-          {
-            label: "النشطون",
-            value: metrics.active,
-            hint: "الموظفون الفعّالون",
-            icon: UserCheck,
-          },
-          {
-            label: "الحسابات المرتبطة",
-            value: metrics.linked,
-            hint: "موظفون مرتبطون بحساب مستخدم",
-            icon: Link2,
-          },
-          {
-            label: "متوسط الراتب الأساسي",
-            value: formatCurrency(metrics.avgSalary),
-            hint: "متوسط الراتب لجميع الموظفين",
-            icon: Wallet,
-          },
-        ].map((item) => (
-          <Card key={item.label}>
-            <CardContent className="flex items-start justify-between gap-4 p-6">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {item.label}
-                </span>
-                <span className="text-2xl font-semibold tracking-tight">
-                  {item.value}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {item.hint}
-                </span>
-              </div>
-              <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                <item.icon />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader className="gap-2">
-          <CardTitle>سجل الموظفين</CardTitle>
-          <CardDescription>
-            اضغط على اسم الموظف لفتح صفحته التفصيلية.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="max-w-md">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="ابحث باسم الموظف أو الدور أو رقم الحساب"
-                className="pr-10"
-              />
-            </div>
-          </div>
-
-          {filteredEmployees.length === 0 ? (
-            <div className="rounded-lg border p-8">
-              <Empty>
-                <EmptyMedia variant="icon">
-                  <Users />
-                </EmptyMedia>
-                <EmptyHeader>
-                  <EmptyTitle>لا توجد نتائج</EmptyTitle>
-                  <EmptyDescription>
-                    لم نتمكن من العثور على موظفين يطابقون البحث الحالي.
-                  </EmptyDescription>
-                </EmptyHeader>
-                <EmptyContent>
-                  <Button variant="outline" onClick={() => setSearch("")}>
-                    مسح البحث
-                  </Button>
-                </EmptyContent>
-              </Empty>
-            </div>
+          {employees.length === 0 ? (
+            <Empty className="rounded-md border py-12">
+              <EmptyMedia variant="icon"><UserRound /></EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle>لا توجد نتائج</EmptyTitle>
+                <EmptyDescription>لا يوجد موظفون يطابقون معايير البحث الحالية.</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button variant="outline" onClick={() => { setSearch(""); setRole("ALL"); setDepartment("ALL"); setStatus("ALL"); resetPage(); }}>
+                  مسح التصفية
+                </Button>
+              </EmptyContent>
+            </Empty>
           ) : (
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>الموظف</TableHead>
-                    <TableHead>الدور</TableHead>
-                    <TableHead>نوع الدفع</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>الراتب الأساسي</TableHead>
-                    <TableHead>الحساب المرتبط</TableHead>
-                    <TableHead className="text-left">التفاصيل</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEmployees.map((employee: Employee) => (
-                    <TableRow key={employee.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="size-9">
-                            <AvatarFallback>
-                              {getEmployeeInitials(employee.name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex min-w-0 flex-col gap-1">
-                            <Link
-                              href={`/dashboard/admin/employees/${employee.id}`}
-                              className="font-medium transition-colors hover:text-primary"
-                            >
-                              {employee.name}
-                            </Link>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDateTime(employee.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{employee.role}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {getPayTypeLabel(employee.payType)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            employee.isActive ? "secondary" : "destructive"
-                          }
-                        >
-                          {employee.isActive ? "نشط" : "غير نشط"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(employee.baseSalary, employee.currency)}
-                      </TableCell>
-                      <TableCell>
-                        {employee.userId ? (
-                          <span className="font-mono text-xs">
-                            {employee.userId.slice(0, 8)}…
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            غير مرتبط
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-left">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link
-                            href={`/dashboard/admin/employees/${employee.id}`}
-                          >
-                            <ArrowUpRight data-icon="inline-start" />
-                            فتح
-                          </Link>
-                        </Button>
-                      </TableCell>
+            <>
+              <div className="overflow-x-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>الموظف</TableHead>
+                      <TableHead>الدور</TableHead>
+                      <TableHead>القسم</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>آخر دخول</TableHead>
+                      <TableHead className="text-left">الإجراء</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {employees.map((employee) => (
+                      <TableRow key={employee.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="size-9"><AvatarFallback>{getInitials(employee.name)}</AvatarFallback></Avatar>
+                            <div className="flex min-w-0 flex-col gap-1">
+                              <Link className="truncate font-medium hover:text-primary" href={`/dashboard/admin/employees/${employee.id}`}>
+                                {employee.name}
+                              </Link>
+                              <span className="truncate text-xs text-muted-foreground">{employee.email}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell><Badge variant="outline">{USER_ROLE_AR[employee.role] ?? employee.role}</Badge></TableCell>
+                        <TableCell>{employee.department ? TASK_DEPARTMENT_AR[employee.department] : "غير محدد"}</TableCell>
+                        <TableCell><Badge variant={employee.isActive ? "secondary" : "destructive"}>{employee.isActive ? "نشط" : "غير نشط"}</Badge></TableCell>
+                        <TableCell>{employee.lastLoginAt ? formatDateTime(employee.lastLoginAt) : "لم يسجل الدخول"}</TableCell>
+                        <TableCell className="text-left">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/dashboard/admin/employees/${employee.id}`}>عرض التفاصيل</Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {totalPages > 1 ? (
+                <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+                  <p className="text-sm text-muted-foreground">إجمالي الموظفين: {data?.total ?? 0}</p>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem><PaginationPrevious direction="rtl" text="السابق" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} /></PaginationItem>
+                      {Array.from({ length: totalPages }, (_, index) => index + 1).slice(Math.max(0, page - 2), page + 1).map((pageNumber) => (
+                        <PaginationItem key={pageNumber}><PaginationLink isActive={pageNumber === page} onClick={() => setPage(pageNumber)}>{pageNumber}</PaginationLink></PaginationItem>
+                      ))}
+                      <PaginationItem><PaginationNext direction="rtl" text="التالي" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} /></PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              ) : null}
+            </>
           )}
-        </CardContent>
-      </Card>
+      </div>
     </div>
   );
 }

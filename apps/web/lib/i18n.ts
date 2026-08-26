@@ -186,6 +186,20 @@ export function projectErrorMessage(error: unknown): string {
   );
 }
 
+const ADMIN_ERROR_MESSAGES: Record<string, string> = {
+  AUTHENTICATION_REQUIRED: "يلزم تسجيل الدخول.",
+  PERMISSION_DENIED: "ليس لديك صلاحية لعرض الموظفين.",
+  VALIDATION_ERROR: "تحقق من معايير البحث وحاول مرة أخرى.",
+  REQUEST_FAILED: "تعذر تحميل الموظفين. حاول مرة أخرى.",
+  UNKNOWN_ERROR: "حدث خطأ أثناء تحميل الموظفين.",
+};
+
+export function adminErrorMessage(error: unknown): string {
+  const code = (error as { data?: { error?: { code?: string } } })?.data?.error
+    ?.code;
+  return (code && ADMIN_ERROR_MESSAGES[code]) || ADMIN_ERROR_MESSAGES.UNKNOWN_ERROR;
+}
+
 const PORTAL_REQUEST_STATUS_LABELS: Record<string, string> = {
   SUBMITTED: "مستلم",
   QUALIFYING: "قيد التأهيل",
