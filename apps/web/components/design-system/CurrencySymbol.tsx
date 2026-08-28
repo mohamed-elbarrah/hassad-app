@@ -8,6 +8,7 @@ export type { CurrencyConfig };
 /** @deprecated Use CurrencyConfig from useCurrency. */
 export type CurrencySymbolConfig = CurrencyConfig;
 
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const MIN_DIMENSION = 8;
 const MAX_DIMENSION = 96;
 const MAX_INLINE_SVG_BYTES = 1024 * 1024;
@@ -38,6 +39,7 @@ const UNSAFE_STYLE_VALUE = /(?:[a-z-]+\s*\(|\\|[<>"'{}]|\/\*|!important)/i;
 const SAFE_COLOR_VALUE = /^(?:currentcolor|inherit|#[0-9a-f]{3,8}|[a-z]+)$/i;
 const SAFE_NUMBER_VALUE =
   /^(?:0|(?:0|[1-9]\d*)(?:\.\d+)?)(?:px|pt|em|rem|%)?$/i;
+const SAFE_TRANSFORM = /^(?:(?:matrix|translate|scale|rotate|skewX|skewY)\(\s*[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[\s,]+[-+]?(?:\d+(?:\.\d*)?|\.\d+))*\s*\)\s*)+$/;
 const SAFE_STYLE_VALUES: Record<string, RegExp> = {
   fill: /^(?:none|currentcolor|inherit|#[0-9a-f]{3,8}|[a-z]+)$/i,
   stroke: /^(?:none|currentcolor|inherit|#[0-9a-f]{3,8}|[a-z]+)$/i,
@@ -56,6 +58,13 @@ const SAFE_STYLE_VALUES: Record<string, RegExp> = {
   "enable-background": /^new(?:\s+(?:0|(?:0|[1-9]\d*)(?:\.\d+)?)){0,4}$/i,
 };
 const subscribeToHydration = () => () => {};
+const getMaskSupport = () =>
+  typeof CSS !== "undefined" &&
+  (CSS.supports("mask-image", "url(\"data:image/svg+xml,%3Csvg/%3E\")") ||
+    CSS.supports(
+      "-webkit-mask-image",
+      "url(\"data:image/svg+xml,%3Csvg/%3E\")",
+    ));
 
 function hasUnsafeStyleCharacters(value: string): boolean {
   return [...value].some((character) => {
@@ -114,7 +123,9 @@ function safeSvgUrl(value: string | null | undefined, allowBlob = false) {
       (!isHttp && !(allowBlob && url.protocol === "blob:")) ||
       (!/^https?:\/\//i.test(value) &&
         !value.startsWith("/") &&
-        !value.startsWith("blob:"))
+        !value.startsWith("blob:")) ||
+      // Keep the value safe to embed in a quoted CSS url() for masking.
+      /["'\\\n\r()]/.test(value)
     )
       return null;
     return /^https?:\/\//i.test(value) || value.startsWith("blob:")
@@ -141,7 +152,12 @@ export function sanitizeInlineSvg(
   const document = new DOMParser().parseFromString(value, "image/svg+xml");
   if (document.querySelector("parsererror")) return null;
   const root = document.documentElement;
-  if (!root || root.localName.toLowerCase() !== "svg") return null;
+  if (
+    !root ||
+    root.localName.toLowerCase() !== "svg" ||
+    root.namespaceURI !== SVG_NAMESPACE
+  )
+    return null;
 
   const allowedElements = new Set([
     "svg",
@@ -256,7 +272,10 @@ export function sanitizeInlineSvg(
   }
 
   for (const element of elements) {
-    if (!allowedElements.has(element.localName.toLowerCase())) {
+    if (
+      element.namespaceURI !== SVG_NAMESPACE ||
+      !allowedElements.has(element.localName.toLowerCase())
+    ) {
       element.remove();
       continue;
     }
@@ -286,6 +305,7 @@ export function sanitizeInlineSvg(
         (isReferenceAttribute && !isLocalReference) ||
         (isPresentationAttribute &&
           !isSafePresentationValue(name, attributeValue)) ||
+        (name === "transform" && !SAFE_TRANSFORM.test(attributeValue)) ||
         hasUnsafeNamespace
       ) {
         element.removeAttribute(attribute.name);
@@ -317,6 +337,59 @@ export function sanitizeInlineSvg(
         element.setAttribute(canonicalName, attributeValue);
       }
     }
+  }
+
+  // The source may contain safe presentation attributes, but currency symbols
+  // are deliberately monochrome. Preserve `none` (which is geometry, not a
+  // color) while making every actual paint use the inherited currentColor.
+  for (const element of elements) {
+    for (const attribute of ["fill", "stroke"]) {
+      const value = element.getAttribute(attribute);
+      if (value && value.toLowerCase() !== "none") {
+        element.setAttribute(attribute, "currentColor");
+      }
+    }
+    element.removeAttribute("color");
+    const style = element.getAttribute("style");
+    if (style) {
+      const declarations = style
+        .split(";")
+        .map((declaration) => declaration.trim());
+      // Preserve intentional unpainted geometry such as `fill: none` while
+      // removing all source-controlled color values.
+      for (const declaration of declarations) {
+        const separator = declaration.indexOf(":");
+        if (separator <= 0) continue;
+        const property = declaration.slice(0, separator).trim().toLowerCase();
+        const value = declaration.slice(separator + 1).trim().toLowerCase();
+        if (property === "fill" || property === "stroke") {
+          element.setAttribute(
+            property,
+            value === "none" ? "none" : "currentColor",
+          );
+        }
+      }
+      const monochromeStyle = declarations
+        .filter((declaration) => {
+          const property = declaration.split(":", 1)[0]?.trim().toLowerCase();
+          return (
+            property !== "fill" &&
+            property !== "stroke" &&
+            property !== "color"
+          );
+        })
+        .join("; ");
+      if (monochromeStyle) element.setAttribute("style", monochromeStyle);
+      else element.removeAttribute("style");
+    }
+    // A source class could reintroduce a fill/stroke rule from application CSS.
+    element.removeAttribute("class");
+  }
+
+  // SVG defaults `fill` to black when no paint attribute is present. Set the
+  // root explicitly so descendants inherit the theme-aware currentColor.
+  if (root.getAttribute("fill") !== "none") {
+    root.setAttribute("fill", "currentColor");
   }
 
   if (dimensions) {
@@ -390,7 +463,7 @@ export function SymbolRenderer({
         fallback={symbol}
       />
     ) : (
-      <span className={className}>{symbol}</span>
+      <FallbackSymbol className={className} symbol={symbol} />
     );
   }
 
@@ -407,7 +480,7 @@ export function SymbolRenderer({
         fallback={symbol}
       />
     ) : (
-      <span className={className}>{symbol}</span>
+      <FallbackSymbol className={className} symbol={symbol} />
     );
   }
 
@@ -416,7 +489,7 @@ export function SymbolRenderer({
     if (sanitized) {
       return (
         <span
-          className={className}
+          className={["text-foreground", className].filter(Boolean).join(" ")}
           role="img"
           aria-label={symbol}
           dangerouslySetInnerHTML={{ __html: sanitized }}
@@ -432,7 +505,26 @@ export function SymbolRenderer({
     }
   }
 
-  return <span className={className}>{symbol}</span>;
+  return <FallbackSymbol className={className} symbol={symbol} />;
+}
+
+function FallbackSymbol({
+  className,
+  symbol,
+}: {
+  className?: string;
+  symbol: string;
+}) {
+  const fallback = symbol || "—";
+  return (
+    <span
+      role="img"
+      aria-label={fallback}
+      className={["text-foreground", className].filter(Boolean).join(" ")}
+    >
+      {fallback}
+    </span>
+  );
 }
 
 function RemoteSymbol({
@@ -451,18 +543,60 @@ function RemoteSymbol({
   fallback: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const maskSupported = useSyncExternalStore(
+    subscribeToHydration,
+    getMaskSupport,
+    () => false,
+  );
 
-  if (failed) return <span className={className}>{fallback || "—"}</span>;
+  if (failed || maskSupported !== true) {
+    return <FallbackSymbol className={className} symbol={fallback} />;
+  }
+
   return (
-    <img
-      src={src}
-      alt={alt}
-      width={width}
-      height={height}
-      className={className}
-      referrerPolicy="no-referrer"
-      style={{ display: "inline-block", objectFit: "contain" }}
-      onError={() => setFailed(true)}
-    />
+    <span
+      role="img"
+      aria-label={alt || fallback || "—"}
+      className={[
+        "inline-block shrink-0 bg-current text-foreground",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={{
+        width,
+        height,
+        maskImage: `url("${src}")`,
+        maskPosition: "center",
+        maskRepeat: "no-repeat",
+        maskSize: "contain",
+        WebkitMaskImage: `url("${src}")`,
+        WebkitMaskPosition: "center",
+        WebkitMaskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+      }}
+    >
+      {/* CSS mask sources must remain a plain image so browser decode errors
+          can be observed without adding Next Image remote-host configuration. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        width={width}
+        height={height}
+        className="sr-only"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        onLoad={(event) => {
+          // `load` only proves that the resource was fetched. Decode as well
+          // so malformed SVG/image data falls back instead of leaving an
+          // empty mask. Do not inspect pixels: cross-origin SVGs are not
+          // safely readable, and a transparent successful image remains an
+          // unavoidable limitation of CSS mask rendering.
+          void event.currentTarget.decode().catch(() => setFailed(true));
+        }}
+      />
+    </span>
   );
 }
