@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 import {
   ProjectStatus,
   TaskStatus,
@@ -177,37 +178,37 @@ function resolveBadgeKey(domain: AdminDomain, status: string): string {
 function resolveLabel(domain: AdminDomain, status: string): string {
   switch (domain) {
     case "project":
-      return PROJECT_STATUS_AR[status as ProjectStatus] || status;
+      return PROJECT_STATUS_AR[status as ProjectStatus] || UNKNOWN_STATUS_LABEL;
     case "task":
-      return TASK_STATUS_AR[status as TaskStatus] || status;
+      return TASK_STATUS_AR[status as TaskStatus] || UNKNOWN_STATUS_LABEL;
     case "revision":
-      return REVISION_STATUS_LABELS[status] || status;
+      return REVISION_STATUS_LABELS[status] || UNKNOWN_STATUS_LABEL;
     case "dispute":
-      return DISPUTE_STATUS_AR[status as DisputeStatus] || status;
+      return DISPUTE_STATUS_AR[status as DisputeStatus] || UNKNOWN_STATUS_LABEL;
     case "client":
-      return CLIENT_STATUS_AR[status] || status;
+      return CLIENT_STATUS_AR[status] || UNKNOWN_STATUS_LABEL;
     case "contract":
-      return CONTRACT_STATUS_AR[status] || status;
+      return CONTRACT_STATUS_AR[status] || UNKNOWN_STATUS_LABEL;
     case "lead":
-      return LEAD_STAGE_AR[status] || status;
+      return LEAD_STAGE_AR[status] || UNKNOWN_STATUS_LABEL;
     case "request":
-      return REQUEST_STATUS_AR[status] || status;
+      return REQUEST_STATUS_AR[status] || UNKNOWN_STATUS_LABEL;
     case "invoice":
-      return INVOICE_STATUS_AR[status] || status;
+      return INVOICE_STATUS_AR[status] || UNKNOWN_STATUS_LABEL;
     case "payment":
-      return PAYMENT_STATUS_AR[status] || status;
+      return PAYMENT_STATUS_AR[status] || UNKNOWN_STATUS_LABEL;
     case "user":
-      return USER_ROLE_AR[status] || status;
+      return USER_ROLE_AR[status] || UNKNOWN_STATUS_LABEL;
     case "team":
-      return WORKLOAD_STATUS_AR[status] || status;
+      return WORKLOAD_STATUS_AR[status] || UNKNOWN_STATUS_LABEL;
     case "campaign":
-      return CAMPAIGN_STATUS_AR[status] || status;
+      return CAMPAIGN_STATUS_AR[status] || UNKNOWN_STATUS_LABEL;
     case "proposal":
-      return PROPOSAL_STATUS_AR[status] || status;
+      return PROPOSAL_STATUS_AR[status] || UNKNOWN_STATUS_LABEL;
     case "audit":
-      return status;
+      return UNKNOWN_STATUS_LABEL;
     default:
-      return status;
+      return UNKNOWN_STATUS_LABEL;
   }
 }
 

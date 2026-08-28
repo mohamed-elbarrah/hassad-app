@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { Fragment } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowLeft,
-  FileText,
   History,
   MessageSquare,
   Paperclip,
@@ -17,7 +17,8 @@ import {
   DISPUTE_PRIORITY_AR,
   DISPUTE_STATUS_AR,
 } from "@hassad/shared";
-import { disputeHistoryMessage } from "@/lib/i18n";
+import { disputeHistoryMessage, UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,7 +88,8 @@ type DisputeHistoryEntry = {
   fromStatus?: string | null;
   toStatus: string;
   changedAt: string;
-  note?: string | null;
+  eventCode?: string | null;
+  metadata?: Record<string, unknown> | null;
   changer: { id: string; name: string };
 };
 
@@ -155,6 +157,7 @@ export interface DisputeDetailPatternProps {
   onSendMessage?: (content: string, files?: File[]) => void | Promise<void>;
   isSendingMessage?: boolean;
   canSendMessage?: boolean;
+  allowAttachments?: boolean;
   showInternalMessages?: boolean;
   messagesDescription?: string;
   attachmentsDescription?: string;
@@ -188,11 +191,12 @@ export function DisputeDetailPattern({
   onSendMessage,
   isSendingMessage = false,
   canSendMessage = false,
+  allowAttachments = true,
   showInternalMessages = false,
   messagesDescription = "سجل النقاش المرتبط بالنزاع.",
   attachmentsDescription = "الملفات المرفقة داخل هذا النزاع.",
-  emptyTitle = "النزاع غير موجود",
-  emptyDescription = "لم نتمكن من العثور على بيانات هذا النزاع.",
+  emptyTitle: _emptyTitle = "النزاع غير موجود",
+  emptyDescription: _emptyDescription = "لم نتمكن من العثور على بيانات هذا النزاع.",
 }: DisputeDetailPatternProps) {
   const messages = dispute.messages ?? [];
   const attachments = dispute.attachments ?? [];
@@ -206,7 +210,7 @@ export function DisputeDetailPattern({
           value:
             DISPUTE_STATUS_AR[
               dispute.status as keyof typeof DISPUTE_STATUS_AR
-            ] || dispute.status,
+            ] || UNKNOWN_STATUS_LABEL,
           icon: <ShieldAlert className="text-muted-foreground" />,
         },
         {
@@ -243,66 +247,41 @@ export function DisputeDetailPattern({
 
   return (
     <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            {breadcrumbs?.length ? (
-              <Breadcrumb>
-                <BreadcrumbList>
-                  {breadcrumbs.map((item, index) => (
-                    <div
-                      key={`${item.label}-${index}`}
-                      className="flex items-center gap-2"
-                    >
-                      <BreadcrumbItem>
-                        {item.href ? (
-                          <BreadcrumbLink asChild>
-                            <Link href={item.href}>{item.label}</Link>
-                          </BreadcrumbLink>
-                        ) : (
-                          <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                        )}
-                      </BreadcrumbItem>
-                      {index < breadcrumbs.length - 1 ? (
-                        <BreadcrumbSeparator />
-                      ) : null}
-                    </div>
-                  ))}
-                </BreadcrumbList>
-              </Breadcrumb>
-            ) : null}
-
-            <div className="flex items-start gap-3">
-              <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <ShieldAlert />
-              </div>
-              <div className="flex min-w-0 flex-col gap-1">
-                <CardTitle className="text-2xl">{title}</CardTitle>
-                <CardDescription>
-                  مساحة موحدة لمتابعة النزاع، الرسائل، والإجراءات حسب الدور.
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
+      {breadcrumbs?.length ? (
+        <Breadcrumb>
+          <BreadcrumbList>
+            {breadcrumbs.map((item, index) => (
+              <Fragment key={`${item.label}-${index}`}>
+                <BreadcrumbItem>
+                  {item.href ? (
+                    <BreadcrumbLink asChild>
+                      <Link href={item.href}>{item.label}</Link>
+                    </BreadcrumbLink>
+                  ) : <BreadcrumbPage>{item.label}</BreadcrumbPage>}
+                </BreadcrumbItem>
+                {index < breadcrumbs.length - 1 ? <BreadcrumbSeparator /> : null}
+              </Fragment>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+      ) : null}
+      <PageHeader
+        title={title}
+        description="مساحة موحدة لمتابعة النزاع، الرسائل، والإجراءات حسب الدور."
+        icon={ShieldAlert}
+        actions={
+          <>
             <Button variant="outline" size="sm" asChild>
-              <Link href={backHref}>
-                <ArrowLeft />
-                {backLabel}
-              </Link>
+              <Link href={backHref}><ArrowLeft />{backLabel}</Link>
             </Button>
             {projectHref ? (
               <Button variant="outline" size="sm" asChild>
-                <Link href={projectHref}>
-                  <Users />
-                  {projectLabel}
-                </Link>
+                <Link href={projectHref}><Users />{projectLabel}</Link>
               </Button>
             ) : null}
-          </div>
-        </CardHeader>
-      </Card>
+          </>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <Card>
@@ -465,6 +444,7 @@ export function DisputeDetailPattern({
                     onSendMessage={onSendMessage || (() => undefined)}
                     isLoading={isSendingMessage}
                     canSendMessage={canSendMessage}
+                    allowAttachments={allowAttachments}
                     showInternalBadge={showInternalMessages}
                     currentAudience={audience}
                   />
@@ -574,11 +554,12 @@ export function DisputeDetailPattern({
                                     entry.toStatus as keyof typeof DISPUTE_STATUS_AR
                                   ] || entry.toStatus}
                                 </div>
-                                {entry.note ? (
-                                  <p className="text-sm leading-6 text-foreground">
-                                    {disputeHistoryMessage(entry.note)}
-                                  </p>
-                                ) : null}
+                                <p className="text-sm leading-6 text-foreground">
+                                  {disputeHistoryMessage(
+                                    entry.eventCode ?? "DISPUTE_HISTORY_UPDATED",
+                                    entry.metadata,
+                                  )}
+                                </p>
                               </div>
                             </div>
                             {index < history.length - 1 ? <Separator /> : null}

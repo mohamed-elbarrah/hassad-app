@@ -87,7 +87,12 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadTaskFile } from "@/lib/downloadFile";
-import { marketingErrorMessage, pmErrorMessage, pmSuccessMessage } from "@/lib/i18n";
+import {
+  marketingErrorMessage,
+  pmErrorMessage,
+  pmSuccessMessage,
+  UNKNOWN_STATUS_LABEL,
+} from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
 import { formatDateTime, formatShortDate } from "@/lib/format";
 import {
@@ -761,6 +766,7 @@ export function TaskWorkspaceDetail({
                     <Badge variant="outline">{user.name}</Badge>
                   </div>
                   <Textarea
+                    id="task-private-note"
                     rows={4}
                     placeholder="اكتب ملاحظتك هنا..."
                     aria-label="نص الملاحظة الخاصة"
@@ -820,6 +826,7 @@ export function TaskWorkspaceDetail({
               <Badge variant="outline">{user.name}</Badge>
             </div>
             <Textarea
+              id="task-comment"
               rows={4}
               placeholder="اكتب تعليقك هنا..."
               aria-label="نص التعليق"
@@ -860,6 +867,7 @@ export function TaskWorkspaceDetail({
                 onValueChange={(value) => setFilePurpose(value as FilePurpose)}
               >
                 <SelectTrigger
+                  id="task-file-purpose"
                   className="w-full sm:w-44"
                   aria-label="نوع الملف"
                 >
@@ -873,7 +881,9 @@ export function TaskWorkspaceDetail({
                   ))}
                 </SelectContent>
               </Select>
+              <label htmlFor="task-file-upload" className="sr-only">ملف المهمة</label>
               <input
+                id="task-file-upload"
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
@@ -1073,10 +1083,10 @@ export function TaskWorkspaceDetail({
         />
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
-            {TASK_STATUS_LABELS[task.status as TaskStatus]}
+            {TASK_STATUS_LABELS[task.status as TaskStatus] ?? UNKNOWN_STATUS_LABEL}
           </Badge>
           <Badge variant="outline">
-            {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
+            {TASK_PRIORITY_LABELS[task.priority as TaskPriority] ?? UNKNOWN_STATUS_LABEL}
           </Badge>
           {task.project?.name ? (
             <Badge variant="outline">المشروع: {task.project.name}</Badge>
@@ -1135,10 +1145,10 @@ export function TaskWorkspaceDetail({
               />
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
-                  {TASK_STATUS_LABELS[task.status as TaskStatus]}
+                  {TASK_STATUS_LABELS[task.status as TaskStatus] ?? UNKNOWN_STATUS_LABEL}
                 </Badge>
                 <Badge variant="outline">
-                  {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
+                  {TASK_PRIORITY_LABELS[task.priority as TaskPriority] ?? UNKNOWN_STATUS_LABEL}
                 </Badge>
                 {task.dueDate ? (
                   <Badge variant="outline">

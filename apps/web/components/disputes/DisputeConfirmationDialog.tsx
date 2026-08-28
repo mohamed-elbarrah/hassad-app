@@ -104,7 +104,11 @@ export function DisputeConfirmationDialog({
                     ? "ملاحظاتك على الحل (اختياري)"
                     : "سبب عدم الحل (اختياري)"}
                 </p>
+                <label htmlFor="dispute-feedback" className="text-sm font-medium text-foreground">
+                  {showFeedback === "confirm" ? "ملاحظاتك على الحل (اختياري)" : "سبب عدم الحل (اختياري)"}
+                </label>
                 <Textarea
+                  id="dispute-feedback"
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder={

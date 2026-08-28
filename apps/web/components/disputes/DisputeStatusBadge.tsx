@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import type { DisputeStatus } from "@hassad/shared";
 import { DISPUTE_STATUS_AR } from "@hassad/shared";
 import { Badge } from "@/components/ui/badge";
+import { UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 
 const STATUS_CLASSES: Record<DisputeStatus, string> = {
   PENDING_APPROVAL: "border-warning-200 bg-warning-100 text-warning-800",
@@ -15,7 +16,7 @@ const STATUS_CLASSES: Record<DisputeStatus, string> = {
 };
 
 interface DisputeStatusBadgeProps {
-  status: DisputeStatus;
+  status: string;
   className?: string;
 }
 
@@ -26,10 +27,10 @@ export function DisputeStatusBadge({
   return (
     <Badge
       variant="outline"
-      className={cn(STATUS_CLASSES[status], className)}
+      className={cn(STATUS_CLASSES[status as DisputeStatus], className)}
       dir="rtl"
     >
-      {DISPUTE_STATUS_AR[status]}
+      {DISPUTE_STATUS_AR[status as DisputeStatus] || UNKNOWN_STATUS_LABEL}
     </Badge>
   );
 }

@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import type { TaskStatus } from "@hassad/shared";
 
 export interface AdminTaskItem {
   id: string;
@@ -22,6 +23,14 @@ export interface PaginatedAdminTasks {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface AdminTaskStats {
+  total: number;
+  overdue: number;
+  inProgress: number;
+  inReview: number;
+  done: number;
 }
 
 export interface AdminTaskFilters {
@@ -51,6 +60,13 @@ export interface AdminTaskFile {
   uploadedAt: string;
 }
 
+export interface AdminTaskActionResult {
+  code: string;
+}
+export interface AdminTaskActorCapabilities {
+  canIntervene: boolean;
+}
+
 export interface AdminTaskDetail {
   id: string;
   projectId: string;
@@ -75,14 +91,15 @@ export interface AdminTaskDetail {
   project: { id: string; name: string };
   assignee: { id: string; name: string; email: string } | null;
   creator: { id: string; name: string };
-  department: { name: string };
+  department: { name: string } | null;
+  availableTransitionTargets: TaskStatus[];
   statusHistory: Array<{
     id: string;
     fromStatus: string | null;
     toStatus: string;
     changedBy: string;
     changedAt: string;
-    changer: { id: string; name: string };
+    changer: { id?: string; name: string } | null;
   }>;
   comments: AdminTaskComment[];
   files: AdminTaskFile[];
@@ -111,12 +128,70 @@ export const adminTasksApi = createApi({
       providesTags: ["AdminTasks"],
     }),
 
+    getAdminTaskStats: builder.query<AdminTaskStats, AdminTaskFilters | void>({
+      query: (filters) => {
+        const params = new URLSearchParams();
+        if (filters) {
+          if (filters.search) params.set("search", filters.search);
+          if (filters.assigneeId) params.set("assigneeId", filters.assigneeId);
+          if (filters.projectId) params.set("projectId", filters.projectId);
+          if (filters.department) params.set("department", filters.department);
+          if (filters.status) params.set("status", filters.status);
+          if (filters.priority) params.set("priority", filters.priority);
+          if (filters.overdueOnly) params.set("overdueOnly", "true");
+        }
+        return `/admin/tasks/stats?${params.toString()}`;
+      },
+      providesTags: ["AdminTasks"],
+    }),
+
+    getAdminTaskActorCapabilities: builder.query<
+      AdminTaskActorCapabilities,
+      void
+    >({
+      query: () => "/admin/tasks/capabilities",
+      providesTags: ["AdminTasks"],
+    }),
     getAdminTaskById: builder.query<AdminTaskDetail, string>({
       query: (id) => `/admin/tasks/${id}`,
       providesTags: (_result, _error, id) => [{ type: "AdminTask", id }],
     }),
+    reassignAdminTask: builder.mutation<
+      AdminTaskActionResult,
+      { id: string; assigneeId: string; reason: string }
+    >({
+      query: ({ id, assigneeId, reason }) => ({
+        url: `/admin/tasks/${id}/reassign`,
+        method: "POST",
+        body: { assigneeId, reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminTask", id },
+        "AdminTasks",
+      ],
+    }),
+    forceTransitionAdminTask: builder.mutation<
+      AdminTaskActionResult,
+      { id: string; status: TaskStatus; reason: string }
+    >({
+      query: ({ id, status, reason }) => ({
+        url: `/admin/tasks/${id}/force-transition`,
+        method: "POST",
+        body: { status, reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminTask", id },
+        "AdminTasks",
+      ],
+    }),
   }),
 });
 
-export const { useGetAdminTasksQuery, useGetAdminTaskByIdQuery } =
-  adminTasksApi;
+export const {
+  useGetAdminTasksQuery,
+  useGetAdminTaskStatsQuery,
+  useGetAdminTaskByIdQuery,
+  useGetAdminTaskActorCapabilitiesQuery,
+  useReassignAdminTaskMutation,
+  useForceTransitionAdminTaskMutation,
+} = adminTasksApi;

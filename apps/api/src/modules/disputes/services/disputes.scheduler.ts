@@ -211,7 +211,8 @@ export class DisputesScheduler {
         ticketId: dispute.id,
         toStatus: DisputeStatus.PENDING_CLIENT,
         changedBy: systemUserId,
-        note: `تم إرسال التذكير ${reminderNumber} للعميل`,
+        eventCode: "DISPUTE_REMINDER_SENT",
+        metadata: { reminderNumber, recipientRole: "CLIENT" },
       },
     });
   }
@@ -236,7 +237,8 @@ export class DisputesScheduler {
             fromStatus: DisputeStatus.PENDING_CLIENT,
             toStatus: DisputeStatus.ESCALATED,
             changedBy: systemUserId,
-            note: reason,
+            eventCode: "DISPUTE_ESCALATED_TIMEOUT",
+            metadata: { reason },
           },
         },
       },

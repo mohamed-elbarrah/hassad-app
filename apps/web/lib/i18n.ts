@@ -96,6 +96,8 @@ const CLIENT_ACTIVITY_DETAILS: Record<string, string> = {
   PAYMENT_RECEIVED: "تم استلام دفعة من العميل.",
 };
 
+export const UNKNOWN_STATUS_LABEL = "حالة غير معروفة";
+
 const INVOICE_STATUS_LABELS: Record<string, string> = {
   DUE: "مستحقة",
   SENT: "مرسلة",
@@ -116,13 +118,13 @@ const PAYMENT_PLAN_TRIGGER_LABELS: Record<string, string> = {
 export function contractStatusLabel(status: string | null | undefined): string {
   if (!status) return "غير محدد";
   return (
-    CONTRACT_STATUS_AR[status as keyof typeof CONTRACT_STATUS_AR] ?? status
+    CONTRACT_STATUS_AR[status as keyof typeof CONTRACT_STATUS_AR] ?? UNKNOWN_STATUS_LABEL
   );
 }
 
 export function invoiceStatusLabel(status: string | null | undefined): string {
   if (!status) return "غير محددة";
-  return INVOICE_STATUS_LABELS[status] ?? status;
+  return INVOICE_STATUS_LABELS[status] ?? UNKNOWN_STATUS_LABEL;
 }
 
 export function paymentMethodLabel(method: string | null | undefined): string {
@@ -226,12 +228,27 @@ export function projectErrorMessage(error: unknown): string {
 
 const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   AUTHENTICATION_REQUIRED: "يلزم تسجيل الدخول.",
+  PROJECT_NOT_FOUND: "لم يتم العثور على المشروع.",
+  PROJECT_NOT_ARCHIVED: "المشروع غير مؤرشف.",
+  PROJECT_MANAGER_NOT_ELIGIBLE: "مدير المشروع المحدد غير نشط أو غير مؤهل.",
+  PROJECT_ACTION_FAILED: "تعذر تنفيذ إجراء المشروع.",
+  PROJECT_ACTION_COMPLETED: "تم تنفيذ إجراء المشروع.",
+  PROPOSAL_NOT_FOUND: "لم يتم العثور على العرض.",
+  PROPOSAL_MUST_BE_APPROVED: "لا يمكن تحويل إلا العروض المقبولة.",
+  PROPOSAL_ALREADY_CONVERTED: "تم تحويل هذا العرض إلى عقد مسبقاً.",
+  PROPOSAL_CLIENT_REQUIRED: "يجب ربط العرض بعميل قبل تحويله إلى عقد.",
+  PROPOSAL_CONVERTED_TO_CONTRACT: "تم تحويل العرض إلى عقد بنجاح.",
   ACCOUNT_INACTIVE: "هذا الحساب غير نشط.",
   ACCOUNT_SUSPENDED: "هذا الحساب موقوف.",
   USER_ALREADY_SUSPENDED: "الموظف موقوف بالفعل.",
   USER_NOT_SUSPENDED: "الموظف غير موقوف.",
   USER_NOT_FOUND: "لم يتم العثور على الموظف.",
+  TASK_NOT_FOUND: "لم يتم العثور على المهمة.",
   CLIENT_NOT_FOUND: "لم يتم العثور على العميل.",
+  CONTRACT_NOT_FOUND: "لم يتم العثور على العقد.",
+  CONTRACT_MUST_BE_ACTIVE: "لا يمكن تحويل إلا العقود النشطة إلى مشاريع.",
+  CONTRACT_ALREADY_CONVERTED: "تم تحويل هذا العقد إلى مشروع مسبقاً.",
+  INVALID_CONTRACT_STATUS: "حالة العقد غير صالحة.",
   EMAIL_ALREADY_IN_USE: "البريد الإلكتروني مستخدم بالفعل.",
   PERMISSION_ASSIGNMENT_NOT_ALLOWED: "لا يمكنك منح هذه الصلاحية.",
   SELF_PERMISSION_ESCALATION_NOT_ALLOWED: "لا يمكنك تعديل صلاحيات حسابك.",
@@ -240,8 +257,40 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
   VALIDATION_ERROR: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
   REQUEST_FAILED: "تعذر تنفيذ الطلب. حاول مرة أخرى.",
+  REQUEST_NOT_FOUND: "لم يتم العثور على الطلب.",
+  DISPUTE_NOT_FOUND: "لم يتم العثور على النزاع.",
+  DISPUTE_INVALID_STATUS: "لا يمكن تنفيذ العملية في حالة النزاع الحالية.",
+  DISPUTE_PM_CHANGE_NOT_ALLOWED: "لا يمكن تغيير المدير في حالة النزاع الحالية.",
+  DISPUTE_MESSAGES_NOT_ALLOWED: "لا يمكن إضافة رسائل في حالة النزاع الحالية.",
+  DISPUTE_THREAD_ACCESS_DENIED: "ليس لديك صلاحية للوصول إلى هذه المحادثة.",
+  FILE_TOO_LARGE: "حجم الملف أكبر من الحد المسموح.",
+  FILE_TYPE_NOT_ALLOWED: "نوع الملف غير مسموح.",
   UNKNOWN_ERROR: "حدث خطأ. يرجى المحاولة مرة أخرى.",
 };
+
+const ADMIN_SUCCESS_MESSAGES: Record<string, string> = {
+  PROJECT_ACTION_COMPLETED: "تم تنفيذ إجراء المشروع بنجاح.",
+  TASK_REASSIGNED: "تمت إعادة تعيين المهمة.",
+  TASK_STATUS_UPDATED: "تم تحديث حالة المهمة.",
+  DISPUTE_APPROVED: "تمت الموافقة على النزاع.",
+  DISPUTE_REJECTED: "تم رفض النزاع.",
+  DISPUTE_PM_CHANGED: "تم تغيير مدير المشروع.",
+  DISPUTE_CLOSED: "تم إغلاق النزاع.",
+  DISPUTE_MESSAGE_ADDED: "تمت إضافة الملاحظة الداخلية.",
+  REQUEST_REASSIGNED: "تمت إعادة تعيين الطلب.",
+  REQUEST_STATUS_FORCED: "تم تحديث مرحلة الطلب.",
+  REQUEST_CONTACT_LOGGED: "تم تسجيل التواصل.",
+  PROPOSAL_CONVERTED_TO_CONTRACT: "تم تحويل العرض إلى عقد.",
+  CONTRACT_CANCELLED: "تم إلغاء العقد.",
+  CONTRACT_RENEWAL_ALERT_TRIGGERED: "تم جدولة تنبيه التجديد.",
+  CONTRACT_RENEWAL_ALERT_ALREADY_PENDING: "يوجد تنبيه تجديد مجدول بالفعل.",
+  CONTRACT_STATUS_UPDATED: "تم تحديث حالة العقد.",
+  CONTRACT_CONVERTED_TO_PROJECT: "تم تحويل العقد إلى مشروع بنجاح.",
+};
+
+export function adminSuccessMessage(code: string | undefined): string {
+  return (code && ADMIN_SUCCESS_MESSAGES[code]) || "تمت العملية بنجاح.";
+}
 
 export function adminErrorMessage(error: unknown): string {
   const code = (error as { data?: { error?: { code?: string } } })?.data?.error
@@ -1298,10 +1347,39 @@ const DISPUTE_HISTORY_MESSAGES: Record<string, string> = {
   DISPUTE_ACKNOWLEDGED: "بدأ مدير المشروع في معالجة التذكرة.",
   DISPUTE_RESOLVED_BY_PM: "أشار مدير المشروع إلى حل المشكلة.",
   DISPUTE_ESCALATED_TIMEOUT: "تم تصعيد النزاع بعد انتهاء المهلة.",
+  DISPUTE_CLIENT_CONFIRMED: "أكد العميل حل المشكلة.",
+  DISPUTE_CLIENT_ESCALATED: "صعّد العميل النزاع لعدم حل المشكلة.",
+  DISPUTE_APPROVED: "تمت الموافقة على النزاع.",
+  DISPUTE_REJECTED: "تم رفض النزاع.",
+  DISPUTE_PM_CHANGED: "تم تغيير مدير المشروع.",
+  DISPUTE_CLOSED: "تم إغلاق النزاع.",
+  DISPUTE_APPROVAL_NOTIFICATION_SENT: "تم إرسال إشعار الموافقة.",
+  DISPUTE_REMINDER_SENT: "تم إرسال تذكير للعميل.",
+  DISPUTE_HISTORY_UPDATED: "تم تحديث حالة النزاع.",
 };
 
-export function disputeHistoryMessage(code: string): string {
-  return DISPUTE_HISTORY_MESSAGES[code] ?? "تم تحديث حالة النزاع.";
+export function disputeHistoryMessage(
+  code: string,
+  metadata?: Record<string, unknown> | null,
+): string {
+  const base = DISPUTE_HISTORY_MESSAGES[code] ?? DISPUTE_HISTORY_MESSAGES.DISPUTE_HISTORY_UPDATED;
+  const detail = metadata && ["reason", "feedback", "notes", "resolution"]
+    .map((key) => metadata[key])
+    .find((value): value is string => typeof value === "string" && value.trim().length > 0);
+  return detail ? `${base} التفاصيل: ${detail}` : base;
+}
+
+const DISPUTE_THREAD_MESSAGES: Record<string, string> = {
+  DISPUTE_THREAD_CLIENT_PM: "العميل ↔ مدير المشروع",
+  DISPUTE_THREAD_CLIENT_PM_DESCRIPTION: "محادثة معالجة النزاع بين العميل ومدير المشروع.",
+  DISPUTE_THREAD_ADMIN_CLIENT: "الإدارة ↔ العميل",
+  DISPUTE_THREAD_ADMIN_CLIENT_DESCRIPTION: "محادثة خاصة تظهر للإدارة والعميل.",
+  DISPUTE_THREAD_ADMIN_PM: "الإدارة ↔ مدير المشروع",
+  DISPUTE_THREAD_ADMIN_PM_DESCRIPTION: "محادثة خاصة تظهر للإدارة ومدير المشروع.",
+};
+
+export function disputeThreadMessage(code: string): string {
+  return DISPUTE_THREAD_MESSAGES[code] ?? "محادثة النزاع";
 }
 
 const PM_SUCCESS_MESSAGES: Record<string, string> = {

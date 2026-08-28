@@ -17,12 +17,14 @@ import {
 } from "lucide-react";
 import {
   INVOICE_STATUS_AR,
+  MEETING_STATUS_AR,
   PROJECT_STATUS_AR,
   TASK_PRIORITY_AR,
   TASK_STATUS_AR,
   TaskPriority,
 } from "@hassad/shared";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -49,6 +51,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDateTime, formatPortalDate, formatNumber } from "@/lib/format";
+import { invoiceStatusLabel, paymentStatusLabel, UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 
 type NullableString = string | null | undefined;
 
@@ -105,6 +108,7 @@ export interface ProjectTaskRecord {
   priority: string;
   dueDate?: NullableString;
   assignedTo?: NullableString;
+  assigneeName?: NullableString;
 }
 
 export interface ProjectMemberRecord {
@@ -298,7 +302,7 @@ export function ProjectDetailLoading() {
   );
 }
 
-export function ProjectSummaryCard({
+export function ProjectDetailHeader({
   project,
   badges = [],
   actions,
@@ -308,46 +312,21 @@ export function ProjectSummaryCard({
   actions?: ReactNode;
 }) {
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-5 p-6">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-          <div className="flex gap-4">
-            <div className="flex size-20 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-              <FolderKanban className="size-10" />
-            </div>
-
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="truncate text-2xl font-semibold tracking-tight">
-                  {project.name}
-                </h2>
-                <Badge variant={statusVariant(project.status)}>
-                  {PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] ||
-                    project.status}
-                </Badge>
-                {project.isArchived ? <Badge variant="outline">مؤرشف</Badge> : null}
-              </div>
-
-              <p className="text-sm text-muted-foreground">
-                {project.description || "ملخص واضح للتنفيذ التجاري والتشغيلي لهذا المشروع."}
-              </p>
-            </div>
-          </div>
-
-          {actions ? <div className="flex shrink-0 items-start gap-2">{actions}</div> : null}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">
-            العميل: {project.client.companyName}
-          </Badge>
-          <Badge variant="outline">
-            مدير المشروع: {project.manager?.name || "غير محدد"}
-          </Badge>
-          {badges}
-          </div>
-      </CardContent>
-    </Card>
+    <PageHeader
+      title={project.name}
+      description={project.description || "ملخص واضح للتنفيذ التجاري والتشغيلي لهذا المشروع."}
+      icon={FolderKanban}
+      actions={actions}
+      badges={[
+        <Badge key="status" variant={statusVariant(project.status)}>
+          {PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] || UNKNOWN_STATUS_LABEL}
+        </Badge>,
+        project.isArchived ? <Badge key="archived" variant="outline">مؤرشف</Badge> : null,
+        <Badge key="client" variant="outline">العميل: {project.client.companyName}</Badge>,
+        <Badge key="manager" variant="outline">مدير المشروع: {project.manager?.name || "غير محدد"}</Badge>,
+        ...badges,
+      ].filter(Boolean)}
+    />
   );
 }
 
@@ -664,7 +643,7 @@ export function ProjectTasksTable({ tasks }: { tasks: ProjectTaskRecord[] }) {
               <TableCell className="font-medium">{task.title}</TableCell>
               <TableCell>
                 <Badge variant={statusVariant(task.status)}>
-                  {TASK_STATUS_AR[task.status as keyof typeof TASK_STATUS_AR] || task.status}
+                  {TASK_STATUS_AR[task.status as keyof typeof TASK_STATUS_AR] || UNKNOWN_STATUS_LABEL}
                 </Badge>
               </TableCell>
               <TableCell>
@@ -677,7 +656,7 @@ export function ProjectTasksTable({ tasks }: { tasks: ProjectTaskRecord[] }) {
                   {formatPortalDate(task.dueDate) || "—"}
                 </span>
               </TableCell>
-              <TableCell>{task.assignedTo || "غير مسندة"}</TableCell>
+              <TableCell>{task.assigneeName || (task.assignedTo ? "مسندة" : "غير مسندة")}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -751,7 +730,7 @@ export function ProjectPeriodsTable({ periods }: { periods: ProjectPeriodRecord[
             <TableRow key={period.id}>
               <TableCell>الفترة {formatNumber(period.periodNumber)}</TableCell>
               <TableCell>
-                <Badge variant={statusVariant(period.status)}>{period.status}</Badge>
+                <Badge variant={statusVariant(period.status)}>{MEETING_STATUS_AR[period.status as keyof typeof MEETING_STATUS_AR] || UNKNOWN_STATUS_LABEL}</Badge>
               </TableCell>
               <TableCell>
                 {formatPortalDate(period.startDate) || "—"} إلى{" "}
@@ -800,7 +779,7 @@ export function ProjectInvoicesTable({
               <TableCell>
                 <Badge variant={statusVariant(invoice.status)}>
                   {INVOICE_STATUS_AR[invoice.status as keyof typeof INVOICE_STATUS_AR] ||
-                    invoice.status}
+                    UNKNOWN_STATUS_LABEL}
                 </Badge>
               </TableCell>
               <TableCell>{formatCurrency(invoice.amount)}</TableCell>
@@ -844,7 +823,7 @@ export function ProjectPaymentsTable({
               <TableCell>{formatCurrency(payment.amount)}</TableCell>
               <TableCell>{payment.paymentMethod}</TableCell>
               <TableCell>
-                <Badge variant={statusVariant(payment.status)}>{payment.status}</Badge>
+                <Badge variant={statusVariant(payment.status)}>{paymentStatusLabel(payment.status)}</Badge>
               </TableCell>
               <TableCell>{formatDateTime(payment.createdAt)}</TableCell>
             </TableRow>

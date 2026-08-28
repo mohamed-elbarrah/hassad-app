@@ -15,8 +15,26 @@ export class AdminProjectsService {
     private readonly actionLog: AdminActionLogService,
   ) {}
 
-  async findAll(query: any) {
-    const where: any = {};
+  async getActorCapabilities(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: { select: { name: true, permissions: { select: { permission: { select: { name: true } } } } } },
+        permissions: { select: { permission: { select: { name: true } } } },
+      },
+    });
+    const permissions = new Set([
+      ...(user?.role?.permissions.map(({ permission }) => permission.name) ?? []),
+      ...(user?.permissions.map(({ permission }) => permission.name) ?? []),
+    ]);
+    return { canIntervene: user?.role?.name === "ADMIN" || permissions.has("admin.projects.intervene") };
+  }
+
+  async findAll(query: {
+    search?: string; pmId?: string; clientId?: string; status?: string;
+    priority?: string; overdueOnly?: boolean; page?: number; limit?: number;
+  }) {
+    const where: any = {}; // Prisma relation filters are scoped to this service query.
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: "insensitive" } },
@@ -25,13 +43,18 @@ export class AdminProjectsService {
             companyName: { contains: query.search, mode: "insensitive" },
           },
         },
+        {
+          manager: {
+            name: { contains: query.search, mode: "insensitive" },
+          },
+        },
       ];
     }
     if (query.pmId) where.projectManagerId = query.pmId;
     if (query.clientId) where.clientId = query.clientId;
     if (query.status) where.status = query.status;
     if (query.priority) where.priority = query.priority;
-    if (query.overdueOnly === "true") {
+    if (query.overdueOnly === true) {
       where.tasks = {
         some: {
           dueDate: { lt: new Date() },
@@ -40,8 +63,8 @@ export class AdminProjectsService {
       };
     }
 
-    const page = query.page ? parseInt(query.page, 10) : 1;
-    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(100, Math.max(1, query.limit ?? 20));
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
@@ -82,10 +105,10 @@ export class AdminProjectsService {
         const totalPeriods = p.periods?.length ?? 0;
         const totalInvoiced =
           p.invoiceItems?.reduce(
-            (sum: number, item: any) => sum + (item.total ?? 0),
+            (sum: number, item: any) => sum + Number(item.total ?? 0),
             0,
           ) ?? 0;
-        const remainingValue = (p.contract?.totalValue ?? 0) - totalInvoiced;
+        const remainingValue = Number(p.contract?.totalValue ?? 0) - totalInvoiced;
 
         return {
           id: p.id,
@@ -97,7 +120,7 @@ export class AdminProjectsService {
           completionPercentage: p.completionPercentage,
           overdueTasksCount: p.tasks?.length ?? 0,
           priority: p.priority,
-          totalValue: p.contract?.totalValue ?? 0,
+          totalValue: Number(p.contract?.totalValue ?? 0),
           startDate: p.startDate?.toISOString() ?? null,
           endDate: p.endDate?.toISOString() ?? null,
           createdAt: p.createdAt.toISOString(),
@@ -155,13 +178,11 @@ export class AdminProjectsService {
             },
           },
           orderBy: { createdAt: "desc" },
-          take: 50,
         },
         files: {
           select: {
             id: true,
             fileName: true,
-            filePath: true,
             uploadedBy: true,
             uploadedAt: true,
             uploader: {
@@ -220,7 +241,7 @@ export class AdminProjectsService {
         },
       },
     });
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
 
     const invoices = new Map<string, any>();
     const payments: any[] = [];
@@ -247,12 +268,20 @@ export class AdminProjectsService {
     const { invoiceItems, ...rest } = project;
     return {
       ...rest,
-      totalValue: project.contract?.totalValue ?? 0,
-      monthlyValue: project.contract?.monthlyValue ?? 0,
+      // Prisma Decimal values must be converted before the response reaches JSON.
+      contract: project.contract
+        ? {
+            ...project.contract,
+            totalValue: Number(project.contract.totalValue),
+            monthlyValue: Number(project.contract.monthlyValue),
+          }
+        : null,
+      totalValue: Number(project.contract?.totalValue ?? 0),
+      monthlyValue: Number(project.contract?.monthlyValue ?? 0),
       invoices: Array.from(invoices.values()).map((inv) => ({
         id: inv.id,
         invoiceNumber: inv.invoiceNumber,
-        amount: inv.amount,
+        amount: Number(inv.amount),
         status: inv.status,
         dueDate: inv.dueDate?.toISOString() ?? null,
         createdAt: inv.createdAt.toISOString(),
@@ -260,7 +289,7 @@ export class AdminProjectsService {
       })),
       payments: payments.map((p) => ({
         id: p.id,
-        amount: p.amount,
+        amount: Number(p.amount),
         paymentMethod: p.method,
         status: p.status,
         createdAt: p.createdAt.toISOString(),
@@ -280,16 +309,22 @@ export class AdminProjectsService {
 
   async getPeriods(projectId: string) {
     await this.assertProject(projectId);
-    return this.prisma.projectPeriod.findMany({
+    const periods = await this.prisma.projectPeriod.findMany({
       where: { projectId },
       orderBy: { periodNumber: "asc" },
-      include: {
-        invoice: {
-          select: { id: true, invoiceNumber: true, status: true, amount: true },
-        },
+      select: {
+        id: true, periodNumber: true, startDate: true, endDate: true,
+        status: true, completionPercentage: true,
+        invoice: { select: { id: true, invoiceNumber: true, status: true, amount: true } },
         _count: { select: { tasks: true, deliverables: true, meetings: true } },
       },
     });
+    return periods.map((period) => ({
+      ...period,
+      invoice: period.invoice
+        ? { ...period.invoice, amount: Number(period.invoice.amount) }
+        : null,
+    }));
   }
 
   async getTeam(projectId: string) {
@@ -326,16 +361,60 @@ export class AdminProjectsService {
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
-        include: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          createdAt: true,
           task: { select: { id: true, title: true } },
           period: { select: { id: true, periodNumber: true } },
-          approver: { select: { id: true, name: true } },
-          _count: { select: { revisionRequests: true } },
         },
       }),
       this.prisma.deliverable.count({ where }),
     ]);
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async getTasks(
+    projectId: string,
+    query: { status?: string; priority?: string; page?: number; limit?: number },
+  ) {
+    await this.assertProject(projectId);
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
+    const where: any = { projectId };
+    if (query.status) where.status = query.status;
+    if (query.priority) where.priority = query.priority;
+    const [items, total] = await Promise.all([
+      this.prisma.task.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          priority: true,
+          dueDate: true,
+          assignedTo: true,
+          assignee: { select: { name: true } },
+        },
+      }),
+      this.prisma.task.count({ where }),
+    ]);
+    return {
+      items: items.map((task) => ({
+        ...task,
+        dueDate: task.dueDate?.toISOString() ?? null,
+        assigneeName: task.assignee?.name ?? "—",
+        isOverdue: !!task.dueDate && task.dueDate < new Date() && task.status !== "DONE",
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async getTimeline(projectId: string) {
@@ -344,7 +423,7 @@ export class AdminProjectsService {
       where: { entity: "project", entityId: projectId },
       orderBy: { createdAt: "desc" },
       take: 100,
-      include: { user: { select: { id: true, name: true } } },
+      select: { id: true, action: true, createdAt: true, user: { select: { id: true, name: true } } },
     });
   }
 
@@ -353,7 +432,7 @@ export class AdminProjectsService {
       where: { id: projectId },
       select: { id: true },
     });
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
   }
 
   async reassignPm(
@@ -364,10 +443,12 @@ export class AdminProjectsService {
   ) {
     const [project, user] = await Promise.all([
       this.prisma.project.findUnique({ where: { id: projectId } }),
-      this.prisma.user.findUnique({ where: { id: pmUserId } }),
+      this.prisma.user.findFirst({
+        where: { id: pmUserId, isActive: true, role: { name: "PM" } },
+      }),
     ]);
-    if (!project) throw new NotFoundException("Project not found");
-    if (!user) throw new NotFoundException("User not found");
+    if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
+    if (!user) throw new NotFoundException({ code: "PROJECT_MANAGER_NOT_ELIGIBLE", details: {} });
 
     const before = { projectManagerId: project.projectManagerId };
     const after = { projectManagerId: pmUserId, reason };
@@ -399,14 +480,14 @@ export class AdminProjectsService {
       afterState: after,
     });
 
-    return { success: true };
+    return { code: "PROJECT_ACTION_COMPLETED" };
   }
 
   async archive(projectId: string, adminId: string, reason?: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
 
     const before = { isArchived: project.isArchived };
     const after = { isArchived: true, archivedAt: new Date(), reason };
@@ -438,7 +519,7 @@ export class AdminProjectsService {
       afterState: after,
     });
 
-    return { success: true };
+    return { code: "PROJECT_ACTION_COMPLETED" };
   }
 
   async forceStatus(
@@ -450,7 +531,7 @@ export class AdminProjectsService {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
 
     const before = { status: project.status };
     const after = { status, reason };
@@ -491,16 +572,16 @@ export class AdminProjectsService {
       afterState: after,
     });
 
-    return { success: true };
+    return { code: "PROJECT_ACTION_COMPLETED" };
   }
 
   async unarchive(projectId: string, adminId: string, reason?: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
     if (!project.isArchived)
-      throw new BadRequestException("Project is not archived");
+      throw new BadRequestException({ code: "PROJECT_NOT_ARCHIVED", details: {} });
 
     const before = {
       isArchived: project.isArchived,
@@ -544,7 +625,7 @@ export class AdminProjectsService {
       afterState: after,
     });
 
-    return { success: true };
+    return { code: "PROJECT_ACTION_COMPLETED" };
   }
 
   async create(
@@ -619,8 +700,8 @@ export class AdminProjectsService {
       this.prisma.project.findUnique({ where: { id: projectId } }),
       this.prisma.user.findUnique({ where: { id: userId } }),
     ]);
-    if (!project) throw new NotFoundException("Project not found");
-    if (!user) throw new NotFoundException("User not found");
+    if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const member = await this.prisma.$transaction(async (tx) => {
       const created = await tx.projectMember.create({
@@ -666,7 +747,7 @@ export class AdminProjectsService {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
 
     let defaultDept = await this.prisma.department.findFirst({
       orderBy: { createdAt: "asc" },

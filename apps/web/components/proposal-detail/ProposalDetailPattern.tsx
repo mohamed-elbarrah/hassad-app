@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { PROPOSAL_STATUS_AR, ProposalStatus } from "@hassad/shared";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -39,9 +40,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PageHeader } from "@/components/common/PageHeader";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
+import { UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 
 export interface ProposalDetailEntity {
   id: string;
@@ -205,53 +206,27 @@ export function ProposalDetailView({
         />
       ) : null}
       {!isClientAudience ? (
-        <Card>
-          <CardContent className="flex flex-col gap-5 p-6">
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-            <div className="flex gap-4">
-              <div className="flex size-20 items-center justify-center  rounded-xl bg-muted text-muted-foreground">
-                <FileText className="size-10" />
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="truncate text-2xl font-semibold tracking-tight">
-                    {proposal.title}
-                  </h2>
-                  <Badge variant={proposalVariant(proposal.status)}>
-                    {PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] ||
-                      proposal.status}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {companyLabel}
-                  {contactLabel !== "—" ? ` — ${contactLabel}` : ""}
-                </p>
-              </div>
-            </div>
-
-            {!isClientAudience ? (
-              <div className="flex shrink-0 flex-wrap gap-2">
-                <Button asChild variant="outline">
-                  <Link href={backHref}>{backLabel}</Link>
-                </Button>
-                {actions}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">
-              القيمة: {formatCurrency(proposal.totalPrice)}
-            </Badge>
-            <Badge variant="outline">
-              الخدمات: {formatNumber(services.length)}
-            </Badge>
-            <Badge variant="outline">
-              الإنشاء: {formatDateTime(proposal.createdAt)}
-            </Badge>
-          </div>
-          </CardContent>
-        </Card>
+        <PageHeader
+          title={proposal.title}
+          description={`${companyLabel}${contactLabel !== "—" ? ` — ${contactLabel}` : ""}`}
+          icon={FileText}
+          actions={
+            <>
+              <Button asChild variant="outline">
+                <Link href={backHref}>{backLabel}</Link>
+              </Button>
+              {actions}
+            </>
+          }
+          badges={[
+            <Badge key="status" variant={proposalVariant(proposal.status)}>
+              {PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] || UNKNOWN_STATUS_LABEL}
+            </Badge>,
+            <Badge key="value" variant="outline">القيمة: {formatCurrency(proposal.totalPrice)}</Badge>,
+            <Badge key="services" variant="outline">الخدمات: {formatNumber(services.length)}</Badge>,
+            <Badge key="created" variant="outline">الإنشاء: {formatDateTime(proposal.createdAt)}</Badge>,
+          ]}
+        />
       ) : null}
 
       {!isClientAudience ? (
@@ -267,7 +242,7 @@ export function ProposalDetailView({
               label: "الحالة",
               value:
                 PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] ||
-                proposal.status,
+                UNKNOWN_STATUS_LABEL,
               hint: "مرحلة العرض الحالية",
               icon: CheckCircle2,
             },
@@ -319,7 +294,7 @@ export function ProposalDetailView({
                 label="الحالة"
                 value={
                   PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] ||
-                  proposal.status
+                  UNKNOWN_STATUS_LABEL
                 }
               />
               <InfoField
@@ -480,7 +455,7 @@ export function ProposalClientResponseArea({
   const canRespond = status === ProposalStatus.SENT;
 
   if (!canRespond) {
-    const label = PROPOSAL_STATUS_AR[status as ProposalStatus] || status;
+    const label = PROPOSAL_STATUS_AR[status as ProposalStatus] || UNKNOWN_STATUS_LABEL;
     return (
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium">حالة الاستجابة الحالية</p>
@@ -497,7 +472,9 @@ export function ProposalClientResponseArea({
         <MessageSquare className="size-4 text-muted-foreground" />
         <p className="text-sm font-medium">ردّ العميل على العرض</p>
       </div>
+      <label htmlFor="proposal-response-notes" className="text-sm font-medium">ملاحظات الرد</label>
       <Textarea
+        id="proposal-response-notes"
         value={notes}
         onChange={(event) => onNotesChange(event.target.value)}
         placeholder="اكتب ملاحظاتك هنا..."

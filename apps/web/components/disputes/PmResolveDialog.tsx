@@ -61,10 +61,11 @@ export function PmResolveDialog({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">
+          <label htmlFor="dispute-resolution-message" className="text-sm font-medium text-foreground">
             رسالة الحل <span className="text-red-500">*</span>
           </label>
           <Textarea
+            id="dispute-resolution-message"
             className="min-h-[120px]"
             placeholder="اشرح كيف تم حل المشكلة للعميل..."
             value={message}

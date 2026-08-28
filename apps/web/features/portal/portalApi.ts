@@ -53,7 +53,8 @@ export interface DisputeHistory {
   fromStatus?: DisputeStatus | null;
   toStatus: DisputeStatus;
   changedAt: string;
-  note?: string | null;
+  eventCode?: string | null;
+  metadata?: Record<string, unknown> | null;
   changer: { id: string; name: string };
 }
 

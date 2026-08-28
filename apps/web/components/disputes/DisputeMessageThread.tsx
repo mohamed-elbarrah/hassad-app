@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useId, useState, useRef, useEffect } from "react";
 import { Send, User, EyeOff, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,7 @@ interface DisputeMessageThreadProps {
   canSendMessage?: boolean;
   showInternalBadge?: boolean;
   currentAudience?: "admin" | "pm" | "client";
+  allowAttachments?: boolean;
 }
 
 export function DisputeMessageThread({
@@ -39,8 +41,10 @@ export function DisputeMessageThread({
   canSendMessage = true,
   showInternalBadge = false,
   currentAudience = "client",
+  allowAttachments = true,
 }: DisputeMessageThreadProps) {
   const [newMessage, setNewMessage] = useState("");
+  const messageInputId = useId();
   const [attachFiles, setAttachFiles] = useState<File[]>([]);
   const [showAttach, setShowAttach] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -102,7 +106,7 @@ export function DisputeMessageThread({
 
       {canSendMessage && (
         <div className="flex flex-col gap-2">
-          {showAttach && (
+          {allowAttachments && showAttach && (
             <Card>
               <CardContent className="p-3">
               <FileDropzone
@@ -116,15 +120,19 @@ export function DisputeMessageThread({
           )}
           <Card>
             <CardContent className="flex items-end gap-2 p-3">
+            {allowAttachments ? (
               <Button
                 type="button"
                 variant={showAttach ? "secondary" : "outline"}
                 size="icon"
                 onClick={() => setShowAttach(!showAttach)}
+                aria-label="إرفاق ملفات"
               >
                 <Paperclip />
               </Button>
+            ) : null}
             <Textarea
+              id={messageInputId}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -132,15 +140,19 @@ export function DisputeMessageThread({
               className="min-h-[44px] max-h-[120px] flex-1 resize-none"
               rows={1}
               disabled={isLoading}
+              aria-label={
+                currentAudience === "admin" ? "الملاحظة الداخلية" : "رسالة النزاع"
+              }
             />
             <Button
               onClick={handleSend}
+              aria-label="إرسال الرسالة"
               disabled={
                 (!newMessage.trim() && !attachFiles.length) || isLoading
               }
               size="icon"
             >
-              <Send />
+              <Send aria-hidden="true" />
             </Button>
             </CardContent>
           </Card>
@@ -205,10 +217,7 @@ function MessageBubble({
           )}
           <span>•</span>
           <span>
-            {new Date(message.createdAt).toLocaleTimeString("ar-SA", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {formatDateTime(message.createdAt)}
           </span>
         </div>
         <p className="text-sm leading-relaxed whitespace-pre-wrap">

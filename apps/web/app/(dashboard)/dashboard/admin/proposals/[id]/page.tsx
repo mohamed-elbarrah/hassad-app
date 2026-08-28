@@ -2,8 +2,10 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { useGetAdminProposalByIdQuery } from "@/features/admin/adminProposalsApi";
+import { ArrowLeft, FileText } from "lucide-react";
+import { useGetAdminProposalByIdQuery, useGetAdminProposalActorCapabilitiesQuery, useConvertAdminProposalToContractMutation } from "@/features/admin/adminProposalsApi";
+import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
+import { ErrorState } from "@/components/design-system/EmptyState";
 import {
   ProposalDetailLoading,
   ProposalDetailView,
@@ -25,36 +27,43 @@ export default function AdminProposalDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { data: proposal, isLoading, isError, error, refetch } = useGetAdminProposalByIdQuery(id);
   const {
-    data: proposal,
-    isLoading,
-    isError,
-  } = useGetAdminProposalByIdQuery(id);
+    data: capabilities,
+    error: capabilitiesError,
+    isError: isCapabilitiesError,
+    refetch: refetchCapabilities,
+  } = useGetAdminProposalActorCapabilitiesQuery();
+  const [convert, { isLoading: isConverting, error: convertError, data: convertResult }] = useConvertAdminProposalToContractMutation();
+  const canIntervene = capabilities?.canIntervene === true;
 
   if (isLoading) return <ProposalDetailLoading />;
 
   if (isError || !proposal) {
     return (
-      <div dir="rtl" className="  ">
+      <div dir="rtl" className="flex flex-col gap-6">
         <Card>
           <CardContent className="p-8">
             <Empty>
               <EmptyMedia variant="icon">
-                <Sparkles />
+                <FileText />
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>العرض غير موجود</EmptyTitle>
                 <EmptyDescription>
-                  لم نتمكن من العثور على بيانات هذا العرض.
+                  {adminErrorMessage(error)}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
-                <Button asChild>
-                  <Link href="/dashboard/admin/proposals">
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button variant="outline" onClick={() => refetch()}>إعادة المحاولة</Button>
+                  <Button asChild>
+                    <Link href="/dashboard/admin/proposals">
                     <ArrowLeft data-icon="inline-start" />
-                    العودة إلى عروض الأسعار
-                  </Link>
-                </Button>
+                      العودة إلى عروض الأسعار
+                    </Link>
+                  </Button>
+                </div>
               </EmptyContent>
             </Empty>
           </CardContent>
@@ -64,12 +73,24 @@ export default function AdminProposalDetailPage({
   }
 
   return (
-    <ProposalDetailView
+    <div className="flex flex-col gap-6" dir="rtl">
+      <ProposalDetailView
       proposal={proposal}
       backHref="/dashboard/admin/proposals"
       backLabel="العودة إلى عروض الأسعار"
+      actions={canIntervene && proposal.status === "APPROVED" && !proposal.contract ? <Button onClick={() => convert(id)} disabled={isConverting}>{isConverting ? "جارٍ التحويل..." : "تحويل إلى عقد"}</Button> : null}
       relatedAction={
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2">
+          {isCapabilitiesError ? (
+            <ErrorState
+              title="تعذّر تحميل صلاحيات الإدارة"
+              message={adminErrorMessage(capabilitiesError)}
+              onRetry={() => refetchCapabilities()}
+            />
+          ) : null}
+          {convertError ? <p role="alert" className="text-sm text-destructive">{adminErrorMessage(convertError)}</p> : null}
+          {convertResult ? <p role="status" className="text-sm text-success-600">{adminSuccessMessage(convertResult.code)}</p> : null}
+          <div className="flex flex-wrap gap-2">
           {proposal.client ? (
             <Button asChild variant="outline" size="sm">
               <Link href={`/dashboard/admin/clients/${proposal.client.id}`}>
@@ -91,8 +112,10 @@ export default function AdminProposalDetailPage({
               </Link>
             </Button>
           ) : null}
+          </div>
         </div>
       }
-    />
+      />
+    </div>
   );
 }

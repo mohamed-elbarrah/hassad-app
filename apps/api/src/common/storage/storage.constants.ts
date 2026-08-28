@@ -175,6 +175,8 @@ export const STORAGE_CONFIG: Record<
 
 export const PRESIGNED_URL_EXPIRY_SECONDS = {
   DOWNLOAD: 3600,
+  /** Short-lived URLs for privileged admin contract access. */
+  ADMIN_CONTRACT_DOWNLOAD: 300,
   UPLOAD: 300,
 } as const;
 

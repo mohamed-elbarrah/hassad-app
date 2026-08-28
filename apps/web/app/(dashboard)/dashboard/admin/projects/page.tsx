@@ -54,10 +54,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
+import { formatCurrency, formatNumber } from "@/lib/format";
+import { PageHeader } from "@/components/common/PageHeader";
 import { PROJECT_STATUS_AR, ProjectStatus, TaskPriority } from "@hassad/shared";
 import { useGetAdminProjectsQuery } from "@/features/admin/adminProjectsApi";
 import type { AdminProjectItem } from "@/features/admin/adminProjectsApi";
+import { UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 
 function badgeVariant(status: string) {
   switch (status) {
@@ -89,19 +91,12 @@ function priorityLabel(priority: string) {
 function ProjectsLoading() {
   return (
     <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-9 w-56" />
-            <Skeleton className="h-4 w-full max-w-xl" />
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-28" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        title="قائمة المشاريع"
+        description="لوحة تشغيلية لمتابعة التقدم، التأخير، والقيمة الإجمالية لكل مشروع."
+        icon={FolderKanban}
+        actions={<Skeleton className="h-10 w-28" />}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
@@ -163,45 +158,24 @@ export default function ProjectsPage() {
   const [status, setStatus] = useState<"ALL" | ProjectStatus>("ALL");
   const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { data, isLoading, isError, isFetching, refetch } =
     useGetAdminProjectsQuery({
-      limit: 1000,
+      search: search.trim() || undefined,
+      status: status === "ALL" ? undefined : status,
+      priority: priority === "ALL" ? undefined : priority,
+      overdueOnly,
+      page,
+      limit,
     });
 
-  const projects = data?.items ?? [];
-
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return projects.filter((project) => {
-      const matchesStatus = status === "ALL" ? true : project.status === status;
-      const matchesPriority =
-        priority === "ALL" ? true : project.priority === priority;
-      const matchesOverdue = overdueOnly
-        ? project.isBehindSchedule || project.overdueTasksCount > 0
-        : true;
-      const matchesSearch = !query
-        ? true
-        : [
-            project.name,
-            project.clientName,
-            project.pmName,
-            project.status,
-            project.priority,
-            project.id,
-          ]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(query));
-
-      return (
-        matchesStatus && matchesPriority && matchesOverdue && matchesSearch
-      );
-    });
-  }, [projects, search, status, priority, overdueOnly]);
+  const projects = useMemo(() => data?.items ?? [], [data?.items]);
 
   const metrics = useMemo(() => {
     return {
-      total: projects.length,
+      total: data?.total ?? 0,
       active: projects.filter((item) => item.status === ProjectStatus.ACTIVE)
         .length,
       completed: projects.filter(
@@ -212,7 +186,7 @@ export default function ProjectsPage() {
       ).length,
       value: projects.reduce((sum, item) => sum + (item.totalValue || 0), 0),
     };
-  }, [projects]);
+  }, [projects, data?.total]);
 
   if (isLoading) return <ProjectsLoading />;
 
@@ -243,45 +217,32 @@ export default function ProjectsPage() {
 
   return (
     <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>المشاريع</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <FolderKanban />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <CardTitle className="text-2xl">قائمة المشاريع</CardTitle>
-                  <CardDescription>
-                    لوحة تشغيلية لمتابعة التقدم، التأخير، والقيمة الإجمالية لكل
-                    مشروع.
-                  </CardDescription>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">الرئيسية</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>المشاريع</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <PageHeader
+          title="قائمة المشاريع"
+          description="لوحة تشغيلية لمتابعة التقدم، التأخير، والقيمة الإجمالية لكل مشروع."
+          icon={FolderKanban}
+          actions={
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw />
               {isFetching ? "جاري التحديث" : "تحديث"}
             </Button>
-          </div>
-        </CardHeader>
-      </Card>
+          }
+        />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
@@ -292,21 +253,21 @@ export default function ProjectsPage() {
             icon: FolderKanban,
           },
           {
-            label: "النشطة",
+            label: "النشطة في الصفحة",
             value: formatNumber(metrics.active),
-            hint: "مشاريع قيد التنفيذ",
+            hint: "من النتائج المعروضة",
             icon: Users,
           },
           {
-            label: "المكتملة",
+            label: "المكتملة في الصفحة",
             value: formatNumber(metrics.completed),
-            hint: "مشاريع منتهية",
+            hint: "من النتائج المعروضة",
             icon: CalendarDays,
           },
           {
-            label: "إجمالي القيمة",
+            label: "قيمة الصفحة",
             value: formatCurrency(metrics.value),
-            hint: "القيمة التقديرية الإجمالية",
+            hint: "القيمة التقديرية للنتائج المعروضة",
             icon: CircleDollarSign,
           },
         ].map((item) => (
@@ -344,18 +305,21 @@ export default function ProjectsPage() {
               <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => { setSearch(event.target.value); setPage(1); }}
                 placeholder="ابحث باسم المشروع أو العميل أو المدير"
                 className="pr-10"
+                id="admin-project-search"
+                aria-label="البحث في المشاريع"
               />
             </div>
             <Select
               value={status}
-              onValueChange={(value) =>
-                setStatus(value as "ALL" | ProjectStatus)
-              }
+              onValueChange={(value) => {
+                setStatus(value as "ALL" | ProjectStatus);
+                setPage(1);
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="admin-project-status-filter" aria-label="تصفية حسب حالة المشروع">
                 <SelectValue placeholder="كل الحالات" />
               </SelectTrigger>
               <SelectContent>
@@ -371,11 +335,12 @@ export default function ProjectsPage() {
             </Select>
             <Select
               value={priority}
-              onValueChange={(value) =>
-                setPriority(value as "ALL" | TaskPriority)
-              }
+              onValueChange={(value) => {
+                setPriority(value as "ALL" | TaskPriority);
+                setPage(1);
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="admin-project-priority-filter" aria-label="تصفية حسب أولوية المشروع">
                 <SelectValue placeholder="كل الأولويات" />
               </SelectTrigger>
               <SelectContent>
@@ -396,14 +361,14 @@ export default function ProjectsPage() {
             </Select>
             <Button
               variant={overdueOnly ? "default" : "outline"}
-              onClick={() => setOverdueOnly((value) => !value)}
+              onClick={() => { setOverdueOnly((value) => !value); setPage(1); }}
             >
               <AlertTriangle />
               {overdueOnly ? "عرض المتأخرة فقط" : "المتأخرة فقط"}
             </Button>
           </div>
 
-          {filtered.length === 0 ? (
+          {projects.length === 0 ? (
             <div className="rounded-lg border p-8">
               <Empty>
                 <EmptyMedia variant="icon">
@@ -423,6 +388,7 @@ export default function ProjectsPage() {
                       setStatus("ALL");
                       setPriority("ALL");
                       setOverdueOnly(false);
+                      setPage(1);
                     }}
                   >
                     مسح الفلاتر
@@ -446,7 +412,7 @@ export default function ProjectsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((project: AdminProjectItem) => (
+                  {projects.map((project: AdminProjectItem) => (
                     <TableRow key={project.id}>
                       <TableCell>
                         <div className="flex flex-col gap-1">
@@ -466,7 +432,7 @@ export default function ProjectsPage() {
                       <TableCell>
                         <Badge variant={badgeVariant(project.status)}>
                           {PROJECT_STATUS_AR[project.status as ProjectStatus] ||
-                            project.status}
+                            UNKNOWN_STATUS_LABEL}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -501,6 +467,15 @@ export default function ProjectsPage() {
               </Table>
             </div>
           )}
+          {data && data.totalPages > 1 ? (
+            <div className="flex items-center justify-between gap-3 border-t pt-4" aria-label="ترقيم صفحات المشاريع">
+              <span className="text-sm text-muted-foreground">صفحة {data.page} من {data.totalPages}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page <= 1 || isFetching} onClick={() => setPage((value) => value - 1)}>السابق</Button>
+                <Button variant="outline" size="sm" disabled={page >= data.totalPages || isFetching} onClick={() => setPage((value) => value + 1)}>التالي</Button>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

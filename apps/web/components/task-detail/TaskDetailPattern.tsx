@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { TaskPriority, TaskStatus } from "@hassad/shared";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/common/PageHeader";
 import {
   Card,
   CardContent,
@@ -48,6 +49,7 @@ import {
   TASK_PRIORITY_LABELS,
   TASK_STATUS_LABELS,
 } from "@/lib/utils/task-status";
+import { UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 
 export interface TaskDetailEntity {
   id: string;
@@ -118,8 +120,10 @@ export interface TaskTabItem {
   content: ReactNode;
 }
 
-function toTaskStatus(status?: string | null) {
-  return status as TaskStatus | undefined;
+function toTaskStatus(status?: string | null): TaskStatus | undefined {
+  return status && Object.values(TaskStatus).includes(status as TaskStatus)
+    ? (status as TaskStatus)
+    : undefined;
 }
 
 function toTaskPriority(priority?: string | null) {
@@ -225,7 +229,7 @@ export function TaskDetailLoading() {
   );
 }
 
-export function TaskSummaryCard({
+export function TaskDetailHeader({
   task,
   badges = [],
   actions,
@@ -238,60 +242,25 @@ export function TaskSummaryCard({
   const priority = toTaskPriority(task.priority);
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-5 p-6">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-          <div className="flex gap-4">
-            <div className="flex size-20 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-              <SquareCheckBig className="size-10" />
-            </div>
-
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="truncate text-2xl font-semibold tracking-tight">
-                  {task.title}
-                </h2>
-                <Badge variant={taskStatusVariant(task.status)}>
-                  {status ? TASK_STATUS_LABELS[status] : task.status}
-                </Badge>
-                <Badge variant={taskPriorityVariant(task.priority)}>
-                  {priority ? TASK_PRIORITY_LABELS[priority] : task.priority}
-                </Badge>
-              </div>
-
-              <p className="text-sm text-muted-foreground">
-                {task.description ||
-                  "تفاصيل التنفيذ والمراجعة والتسليم لهذه المهمة."}
-              </p>
-            </div>
-          </div>
-
-          {actions ? (
-            <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {task.project?.name ? (
-            <Badge variant="outline">المشروع: {task.project.name}</Badge>
-          ) : null}
-          {task.assigneeName ? (
-            <Badge variant="outline">المكلّف: {task.assigneeName}</Badge>
-          ) : null}
-          {typeof task.revisionCount === "number" ? (
-            <Badge variant="outline">
-              التعديلات: {formatNumber(task.revisionCount)}
-            </Badge>
-          ) : null}
-          {typeof task.isVisibleToClient === "boolean" ? (
-            <Badge variant="outline">
-              مرئي للعميل: {task.isVisibleToClient ? "نعم" : "لا"}
-            </Badge>
-          ) : null}
-          {badges}
-        </div>
-      </CardContent>
-    </Card>
+    <PageHeader
+      title={task.title}
+      description={task.description || "تفاصيل التنفيذ والمراجعة والتسليم لهذه المهمة."}
+      icon={SquareCheckBig}
+      actions={actions}
+      badges={[
+        <Badge key="status" variant={taskStatusVariant(task.status)}>
+          {status ? TASK_STATUS_LABELS[status] : UNKNOWN_STATUS_LABEL}
+        </Badge>,
+        <Badge key="priority" variant={taskPriorityVariant(task.priority)}>
+          {priority ? TASK_PRIORITY_LABELS[priority] ?? UNKNOWN_STATUS_LABEL : UNKNOWN_STATUS_LABEL}
+        </Badge>,
+        task.project?.name ? <Badge key="project" variant="outline">المشروع: {task.project.name}</Badge> : null,
+        task.assigneeName ? <Badge key="assignee" variant="outline">المكلّف: {task.assigneeName}</Badge> : null,
+        typeof task.revisionCount === "number" ? <Badge key="revisions" variant="outline">التعديلات: {formatNumber(task.revisionCount)}</Badge> : null,
+        typeof task.isVisibleToClient === "boolean" ? <Badge key="visibility" variant="outline">مرئي للعميل: {task.isVisibleToClient ? "نعم" : "لا"}</Badge> : null,
+        ...badges,
+      ].filter(Boolean)}
+    />
   );
 }
 
@@ -365,13 +334,15 @@ export function buildTaskStats({
   return [
     {
       label: "الحالة",
-      value: taskStatus ? TASK_STATUS_LABELS[taskStatus] : status,
+      value: taskStatus ? TASK_STATUS_LABELS[taskStatus] : UNKNOWN_STATUS_LABEL,
       hint: "وضع التنفيذ الحالي",
       icon: SquareCheckBig,
     },
     {
       label: "الأولوية",
-      value: taskPriority ? TASK_PRIORITY_LABELS[taskPriority] : priority,
+      value: taskPriority
+        ? TASK_PRIORITY_LABELS[taskPriority] ?? UNKNOWN_STATUS_LABEL
+        : UNKNOWN_STATUS_LABEL,
       hint: "درجة الأهمية",
       icon: Clock3,
     },
@@ -484,12 +455,16 @@ export function TaskHistoryTable({
         <TableBody>
           {history.map((entry) => (
             <TableRow key={entry.id}>
-              <TableCell>{entry.fromStatus || "—"}</TableCell>
+              <TableCell>
+                {toTaskStatus(entry.fromStatus)
+                  ? TASK_STATUS_LABELS[toTaskStatus(entry.fromStatus)!]
+                  : UNKNOWN_STATUS_LABEL}
+              </TableCell>
               <TableCell>
                 <Badge variant={taskStatusVariant(entry.toStatus)}>
                   {toTaskStatus(entry.toStatus)
                     ? TASK_STATUS_LABELS[toTaskStatus(entry.toStatus)!]
-                    : entry.toStatus}
+                    : UNKNOWN_STATUS_LABEL}
                 </Badge>
               </TableCell>
               <TableCell>{entry.changerName || "—"}</TableCell>

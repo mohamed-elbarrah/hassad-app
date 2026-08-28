@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import type { ContractStatus } from "@hassad/shared";
 
 export interface AdminContractItem {
   id: string;
@@ -12,10 +13,12 @@ export interface AdminContractItem {
   currency: string;
   startDate: string | null;
   endDate: string | null;
+  signedAt: string | null;
   versionNumber: number;
   eSigned: boolean;
   pendingRenewalAlerts: number;
   invoiceCount: number;
+  project: { id: string; name: string; status: string } | null;
   createdAt: string;
 }
 
@@ -25,6 +28,7 @@ export interface PaginatedAdminContracts {
   page: number;
   limit: number;
   totalPages: number;
+  stats?: { active: number; signed: number; eSigned: number; totalValue: number };
 }
 
 export interface AdminContractFilters {
@@ -37,12 +41,33 @@ export interface AdminContractFilters {
   limit?: number;
 }
 
+export interface AdminContractActionResult {
+  code: string;
+}
+
+export interface AdminContractActorCapabilities {
+  canIntervene: boolean;
+}
+
+export interface AdminContractProjectConversionResult extends AdminContractActionResult {
+  project: {
+    id: string;
+    name: string;
+    status: string;
+    clientId: string;
+    contractId: string;
+    projectManagerId: string | null;
+    startDate: string;
+    endDate: string;
+  };
+}
+
 export interface AdminContractDetail {
   id: string;
   clientId: string;
   proposalId: string | null;
-  createdBy: string;
-  salesPersonId: string | null;
+  createdBy?: string;
+  salesPersonId?: string | null;
   title: string;
   type: string;
   status: string;
@@ -50,12 +75,12 @@ export interface AdminContractDetail {
   endDate: string;
   monthlyValue: number;
   totalValue: number;
-  filePath: string | null;
+  fileUrl: string | null;
   versionNumber: number;
   eSigned: boolean;
   signedAt: string | null;
   createdAt: string;
-  shareLinkToken: string | null;
+  shareLinkToken?: string | null;
   currency: string;
   requestId: string | null;
   servicesList: unknown | null;
@@ -69,16 +94,23 @@ export interface AdminContractDetail {
     status: string;
     startDate: string;
     endDate: string;
-    manager: { id: string; name: string };
+    manager: { id: string; name: string } | null;
   } | null;
   invoices: Array<{
     id: string;
     invoiceNumber: string;
     amount: number;
     status: string;
-    dueDate: string;
+    dueDate: string | null;
     createdAt: string;
     paidAt: string | null;
+    payments: Array<{
+      id: string;
+      amount: number;
+      status: string;
+      date: string | null;
+      createdAt: string;
+    }>;
   }>;
   statusHistory: Array<{
     id: string;
@@ -92,9 +124,24 @@ export interface AdminContractDetail {
   versions: Array<{
     id: string;
     versionNumber: number;
-    filePath: string | null;
+    fileUrl: string | null;
     createdAt: string;
   }>;
+  paymentPlans: Array<{
+    id: string;
+    label: string;
+    sequence: number;
+    triggerType: string;
+    amountType: string;
+    amountValue: number;
+    isRecurring: boolean;
+    dueOffsetDays: number | null;
+    isActive: boolean;
+  }>;
+}
+
+export interface AdminContractFileResult {
+  fileUrl: string | null;
 }
 
 export const adminContractsApi = createApi({
@@ -102,31 +149,34 @@ export const adminContractsApi = createApi({
   baseQuery,
   tagTypes: ["AdminContracts", "AdminContract"],
   endpoints: (builder) => ({
-    cancelAdminContract: builder.mutation<void, string>({
-      query: (id) => ({
+    cancelAdminContract: builder.mutation<AdminContractActionResult, { id: string; reason?: string }>({
+      query: ({ id, reason }) => ({
         url: `/admin/contracts/${id}/cancel`,
         method: "POST",
+        body: { reason },
       }),
-      invalidatesTags: (_result, _error, id) => [{ type: "AdminContract", id }, "AdminContracts"],
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminContract", id }, "AdminContracts"],
     }),
 
-    triggerAdminContractRenewalAlert: builder.mutation<void, string>({
+    triggerAdminContractRenewalAlert: builder.mutation<AdminContractActionResult, string>({
       query: (id) => ({
         url: `/admin/contracts/${id}/trigger-renewal-alert`,
         method: "POST",
+        body: {},
       }),
       invalidatesTags: (_result, _error, id) => [{ type: "AdminContract", id }],
     }),
 
-    convertAdminContractToProject: builder.mutation<void, string>({
-      query: (id) => ({
+    convertAdminContractToProject: builder.mutation<AdminContractProjectConversionResult, { id: string; name?: string; pmId?: string }>({
+      query: ({ id, name, pmId }) => ({
         url: `/admin/contracts/${id}/convert-to-project`,
         method: "POST",
+        body: { name, pmId },
       }),
-      invalidatesTags: (_result, _error, id) => [{ type: "AdminContract", id }, "AdminContracts"],
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminContract", id }, "AdminContracts"],
     }),
 
-    updateAdminContractStatus: builder.mutation<void, { id: string; status: string; reason?: string }>({
+    updateAdminContractStatus: builder.mutation<AdminContractActionResult, { id: string; status: ContractStatus; reason?: string }>({
       query: ({ id, status, reason }) => ({
         url: `/admin/contracts/${id}/status`,
         method: "POST",
@@ -154,6 +204,15 @@ export const adminContractsApi = createApi({
       providesTags: ["AdminContracts"],
     }),
 
+    getAdminContractActorCapabilities: builder.query<AdminContractActorCapabilities, void>({
+      query: () => "/admin/contracts/capabilities",
+      providesTags: ["AdminContracts"],
+    }),
+
+    getAdminContractFile: builder.query<AdminContractFileResult, string>({
+      query: (id) => `/admin/contracts/${id}/file`,
+    }),
+
     getAdminContractById: builder.query<AdminContractDetail, string>({
       query: (id) => `/admin/contracts/${id}`,
       providesTags: (_result, _error, id) => [{ type: "AdminContract", id }],
@@ -164,6 +223,8 @@ export const adminContractsApi = createApi({
 export const {
   useGetAdminContractsQuery,
   useGetAdminContractByIdQuery,
+  useGetAdminContractActorCapabilitiesQuery,
+  useLazyGetAdminContractFileQuery,
   useCancelAdminContractMutation,
   useTriggerAdminContractRenewalAlertMutation,
   useConvertAdminContractToProjectMutation,

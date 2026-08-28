@@ -2,7 +2,11 @@
 
 import { useId, useState } from "react";
 import { ContactLogResult, ContactLogType } from "@hassad/shared";
-import type { CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
+export interface RequestContactLogPayload {
+  type: ContactLogType;
+  result: ContactLogResult;
+  notes?: string;
+}
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +36,7 @@ interface RequestContactLogDialogProps {
   size?: ButtonProps["size"];
   className?: string;
   allowedTypes?: readonly ContactLogType[];
-  onSubmit: (payload: CreateRequestContactLogPayload) => Promise<void>;
+  onSubmit: (payload: RequestContactLogPayload) => Promise<void>;
 }
 
 export function RequestContactLogDialog({

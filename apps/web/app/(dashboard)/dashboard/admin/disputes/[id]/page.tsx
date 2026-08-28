@@ -1,7 +1,10 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useState } from "react";
 import { toast } from "sonner";
+import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
+import { AdminDetailSkeleton } from "@/components/dashboard/admin/shared/AdminDetailSkeleton";
+import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageError";
 import { CheckCircle2, RefreshCw, UserCog, XCircle } from "lucide-react";
 import {
   useAddAdminDisputeMessageMutation,
@@ -13,7 +16,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { DisputeApprovalDialog } from "@/components/disputes/DisputeApprovalDialog";
 import { PmChangeDialog } from "@/components/disputes/PmChangeDialog";
-import { DisputeDetailEmptyState, DisputeDetailPattern } from "@/components/disputes/DisputeDetailPattern";
+import { DisputeDetailPattern } from "@/components/disputes/DisputeDetailPattern";
+import { formatDateTime, formatNumber } from "@/lib/format";
 
 export default function DisputeDetailPage({
   params,
@@ -26,17 +30,10 @@ export default function DisputeDetailPage({
   const [changePmDialogOpen, setChangePmDialogOpen] = useState(false);
   const [closeNote, setCloseNote] = useState("");
 
-  const { data: dispute, isLoading, isError, refetch } = useGetAdminDisputeByIdQuery(id);
+  const { data: dispute, isLoading, isError, refetch, error } = useGetAdminDisputeByIdQuery(id);
   const [addInternalMessage, { isLoading: isSendingMessage }] =
     useAddAdminDisputeMessageMutation();
   const [closeDispute, { isLoading: isClosing }] = useCloseDisputeMutation();
-
-  const canClose = useMemo(
-    () =>
-      dispute &&
-      ["ESCALATED", "IN_PROGRESS", "APPROVED", "PENDING_CLIENT"].includes(dispute.status),
-    [dispute],
-  );
 
   const handleSendMessage = async (content: string) => {
     try {
@@ -44,47 +41,35 @@ export default function DisputeDetailPage({
         disputeId: id,
         input: { content },
       }).unwrap();
-      toast.success("تمت إضافة الملاحظة الداخلية");
+      toast.success(adminSuccessMessage("DISPUTE_MESSAGE_ADDED"));
       refetch();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
-      toast.error(message);
+    } catch (error: unknown) {
+      toast.error(adminErrorMessage(error));
     }
   };
 
   const handleCloseDispute = async () => {
-    if (closeNote.trim().length < 10) {
-      toast.error("سبب الإغلاق مطلوب", {
-        description: "اكتب خلاصة لا تقل عن 10 أحرف قبل الإغلاق.",
-      });
-      return;
-    }
-
     try {
       await closeDispute({
         id,
         input: { resolution: closeNote.trim() },
       }).unwrap();
-      toast.success("تم إغلاق النزاع");
+      toast.success(adminSuccessMessage("DISPUTE_CLOSED"));
       setCloseNote("");
       refetch();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إغلاق النزاع";
-      toast.error(message);
+    } catch (error: unknown) {
+      toast.error(adminErrorMessage(error));
     }
   };
 
-  if (isLoading) {
-    return null;
-  }
+  if (isLoading) return <AdminDetailSkeleton />;
 
   if (isError || !dispute) {
     return (
-      <DisputeDetailEmptyState
-        title="حدث خطأ أثناء تحميل بيانات النزاع"
-        description="تعذر فتح النزاع المطلوب. حاول مرة أخرى من القائمة."
-        backHref="/dashboard/admin/disputes"
-        backLabel="العودة إلى النزاعات"
+      <AdminPageError
+        title="تعذر تحميل بيانات النزاع"
+        description={adminErrorMessage(error)}
+        onRetry={refetch}
       />
     );
   }
@@ -100,14 +85,18 @@ export default function DisputeDetailPage({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setApproveDialogOpen(true)}>
-              <CheckCircle2 data-icon="inline-start" />
-              موافقة
-            </Button>
-            <Button variant="destructive" onClick={() => setRejectDialogOpen(true)}>
-              <XCircle data-icon="inline-start" />
-              رفض
-            </Button>
+            {dispute.capabilities.approve ? (
+              <Button onClick={() => setApproveDialogOpen(true)}>
+                <CheckCircle2 data-icon="inline-start" />
+                موافقة
+              </Button>
+            ) : null}
+            {dispute.capabilities.reject ? (
+              <Button variant="destructive" onClick={() => setRejectDialogOpen(true)}>
+                <XCircle data-icon="inline-start" />
+                رفض
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -130,29 +119,31 @@ export default function DisputeDetailPage({
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-wrap gap-2">
-          {dispute.status === "PENDING_APPROVAL" ? (
-            <>
-              <Button onClick={() => setApproveDialogOpen(true)}>
-                <CheckCircle2 data-icon="inline-start" />
-                موافقة
-              </Button>
-              <Button variant="destructive" onClick={() => setRejectDialogOpen(true)}>
-                <XCircle data-icon="inline-start" />
-                رفض
-              </Button>
-            </>
+          {dispute.capabilities.approve ? (
+            <Button onClick={() => setApproveDialogOpen(true)}>
+              <CheckCircle2 data-icon="inline-start" />
+              موافقة
+            </Button>
           ) : null}
-          <Button variant="outline" onClick={() => setChangePmDialogOpen(true)}>
-            <UserCog data-icon="inline-start" />
-            تغيير مدير المشروع
-          </Button>
+          {dispute.capabilities.reject ? (
+            <Button variant="destructive" onClick={() => setRejectDialogOpen(true)}>
+              <XCircle data-icon="inline-start" />
+              رفض
+            </Button>
+          ) : null}
+          {dispute.capabilities.changePm ? (
+            <Button variant="outline" onClick={() => setChangePmDialogOpen(true)}>
+              <UserCog data-icon="inline-start" />
+              تغيير مدير المشروع
+            </Button>
+          ) : null}
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw data-icon="inline-start" />
             تحديث البيانات
           </Button>
         </div>
 
-        {canClose ? (
+        {dispute.capabilities.close ? (
           <div className="flex flex-col gap-3 rounded-xl border p-4">
             <div>
               <p className="font-medium">إغلاق النزاع</p>
@@ -160,7 +151,9 @@ export default function DisputeDetailPage({
                 أضف خلاصة مختصرة قبل إغلاق الملف نهائياً.
               </p>
             </div>
+            <label htmlFor="admin-dispute-close-note" className="text-sm font-medium">خلاصة الإغلاق</label>
             <Textarea
+              id="admin-dispute-close-note"
               value={closeNote}
               onChange={(e) => setCloseNote(e.target.value)}
               placeholder="اكتب ملخص القرار أو الحل النهائي..."
@@ -178,13 +171,13 @@ export default function DisputeDetailPage({
         {dispute.pmStats ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: "كل نزاعات المدير", value: String(dispute.pmStats.totalDisputes) },
-              { label: "تم حلها", value: String(dispute.pmStats.resolvedDisputes) },
-              { label: "تم تصعيدها", value: String(dispute.pmStats.escalatedDisputes) },
+              { label: "كل نزاعات المدير", value: formatNumber(dispute.pmStats.totalDisputes) },
+              { label: "تم حلها", value: formatNumber(dispute.pmStats.resolvedDisputes) },
+              { label: "تم تصعيدها", value: formatNumber(dispute.pmStats.escalatedDisputes) },
               {
                 label: "متوسط الحل",
                 value: dispute.pmStats.avgResolutionDays
-                  ? `${Math.round(dispute.pmStats.avgResolutionDays)} يوم`
+                  ? `${formatNumber(Math.round(dispute.pmStats.avgResolutionDays))} يوم`
                   : "—",
               },
             ].map((item) => (
@@ -217,7 +210,8 @@ export default function DisputeDetailPage({
         actionTab={actionTab}
         onSendMessage={handleSendMessage}
         isSendingMessage={isSendingMessage}
-        canSendMessage
+        canSendMessage={dispute.capabilities.message}
+        allowAttachments={false}
         showInternalMessages
         overviewFields={[
           { label: "العميل", value: dispute.client.companyName || "—" },
@@ -227,12 +221,12 @@ export default function DisputeDetailPage({
           { label: "المعالج", value: dispute.resolver?.name || "—" },
         ]}
         timelineFields={[
-          { label: "تاريخ الموافقة", value: dispute.approvedAt || "—" },
-          { label: "تاريخ التصعيد", value: dispute.escalatedAt || "—" },
-          { label: "تاريخ الحل", value: dispute.resolvedAt || "—" },
-          { label: "تاريخ الإغلاق", value: dispute.closedAt || "—" },
-          { label: "إشعار العميل", value: dispute.clientNotifiedAt || "—" },
-          { label: "رد العميل", value: dispute.clientRespondedAt || "—" },
+          { label: "تاريخ الموافقة", value: dispute.approvedAt ? formatDateTime(dispute.approvedAt) : "—" },
+          { label: "تاريخ التصعيد", value: dispute.escalatedAt ? formatDateTime(dispute.escalatedAt) : "—" },
+          { label: "تاريخ الحل", value: dispute.resolvedAt ? formatDateTime(dispute.resolvedAt) : "—" },
+          { label: "تاريخ الإغلاق", value: dispute.closedAt ? formatDateTime(dispute.closedAt) : "—" },
+          { label: "إشعار العميل", value: dispute.clientNotifiedAt ? formatDateTime(dispute.clientNotifiedAt) : "—" },
+          { label: "رد العميل", value: dispute.clientRespondedAt ? formatDateTime(dispute.clientRespondedAt) : "—" },
         ]}
         messagesDescription="تظهر هنا المراسلات والملاحظات الداخلية الخاصة بالإدارة."
         attachmentsDescription="كل الملفات المرفوعة ضمن هذا النزاع."

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
 import {
   useApproveDisputeMutation,
   useRejectDisputeMutation,
@@ -19,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -46,6 +48,7 @@ export function DisputeApprovalDialog({
   );
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
+  const id = useId();
 
   const [approveDispute, { isLoading: isApproving }] =
     useApproveDisputeMutation();
@@ -62,16 +65,12 @@ export function DisputeApprovalDialog({
 
     try {
       await approveDispute({ id: disputeId, input }).unwrap();
-      toast.success("تمت الموافقة على التذكرة", {
-        description: "تم إشعار مدير المشروع بالتذكرة الجديدة.",
-      });
+      toast.success(adminSuccessMessage("DISPUTE_APPROVED"));
       onOpenChange(false);
       onSuccess?.();
       resetForm();
-    } catch (error: any) {
-      const message =
-        error?.data?.error?.message || "حدث خطأ أثناء الموافقة على التذكرة";
-      toast.error(message);
+    } catch (error: unknown) {
+      toast.error(adminErrorMessage(error));
     }
   };
 
@@ -88,16 +87,12 @@ export function DisputeApprovalDialog({
         id: disputeId,
         input: { reason: reason.trim() },
       }).unwrap();
-      toast.success("تم رفض التذكرة", {
-        description: "تم إشعار العميل بقرار الرفض.",
-      });
+      toast.success(adminSuccessMessage("DISPUTE_REJECTED"));
       onOpenChange(false);
       onSuccess?.();
       resetForm();
-    } catch (error: any) {
-      const message =
-        error?.data?.error?.message || "حدث خطأ أثناء رفض التذكرة";
-      toast.error(message);
+    } catch (error: unknown) {
+      toast.error(adminErrorMessage(error));
     }
   };
 
@@ -124,11 +119,11 @@ export function DisputeApprovalDialog({
         {mode === "approve" ? (
           <>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
+              <Label htmlFor={`${id}-priority`}>
                 الأولوية
-              </label>
+              </Label>
               <Select value={priority} onValueChange={(v) => setPriority(v as DisputePriority)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id={`${id}-priority`} className="w-full" aria-label="أولوية النزاع">
                   <SelectValue placeholder="اختر الأولوية" />
                 </SelectTrigger>
                 <SelectContent>
@@ -142,12 +137,14 @@ export function DisputeApprovalDialog({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
+              <Label htmlFor={`${id}-approval-notes`}>
                 ملاحظات (اختياري)
-              </label>
+              </Label>
               <Input
+                id={`${id}-approval-notes`}
                 placeholder="ملاحظات داخلية..."
                 value={notes}
+                aria-label="ملاحظات الموافقة"
                 onChange={(e) => setNotes(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
@@ -155,8 +152,8 @@ export function DisputeApprovalDialog({
               </p>
             </div>
 
-            <div className="p-3 bg-blue-50 rounded-xl border border-blue-200">
-              <p className="text-sm text-blue-800">
+            <div className="rounded-xl border border-info/20 bg-info/10 p-3">
+              <p className="text-sm text-info">
                 بعد الموافقة، سيتم إشعار مدير المشروع وسيكون لديه 3 أيام لحل
                 المشكلة.
               </p>
@@ -165,10 +162,11 @@ export function DisputeApprovalDialog({
         ) : (
           <>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                سبب الرفض <span className="text-red-500">*</span>
-              </label>
+              <Label htmlFor={`${id}-rejection-reason`}>
+                سبب الرفض <span className="text-destructive">*</span>
+              </Label>
               <Textarea
+                id={`${id}-rejection-reason`}
                 className="min-h-[120px]"
                 placeholder="اشرح سبب رفض التذكرة..."
                 value={reason}
@@ -180,8 +178,8 @@ export function DisputeApprovalDialog({
               </p>
             </div>
 
-            <div className="p-3 bg-red-50 rounded-xl border border-red-200">
-              <p className="text-sm text-red-800">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+              <p className="text-sm text-destructive">
                 سيتم إشعار العميل برفض التذكرة مع السبب المذكور.
               </p>
             </div>

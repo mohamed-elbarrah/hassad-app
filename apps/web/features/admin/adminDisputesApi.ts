@@ -36,7 +36,7 @@ export interface AdminDisputeItem {
 }
 
 export interface AdminDisputeResponse {
-  data: AdminDisputeItem[];
+  items: AdminDisputeItem[];
   meta: {
     total: number;
     page: number;
@@ -49,6 +49,7 @@ export interface AdminDisputeFilters {
   status?: string;
   category?: string;
   priority?: string;
+  search?: string;
   projectId?: string;
   clientId?: string;
   pmId?: string;
@@ -56,6 +57,11 @@ export interface AdminDisputeFilters {
   toDate?: string;
   page?: number;
   limit?: number;
+}
+
+export interface AdminPmOption {
+  id: string;
+  name: string;
 }
 
 export interface AdminDisputeStats {
@@ -72,8 +78,10 @@ export interface AdminDisputeMessage {
   authorId: string;
   content: string;
   isInternal: boolean;
+  threadType: string;
   createdAt: string;
   author: { id: string; name: string; avatarUrl: string | null };
+  attachments?: AdminDisputeAttachment[];
 }
 
 export interface AdminDisputeAttachment {
@@ -82,7 +90,7 @@ export interface AdminDisputeAttachment {
   messageId: string | null;
   uploadedBy: string;
   fileName: string;
-  filePath: string;
+  filePath?: string;
   fileSize: number;
   mimeType: string;
   uploadedAt: string;
@@ -96,8 +104,17 @@ export interface AdminDisputeHistoryEntry {
   toStatus: string;
   changedBy: string;
   changedAt: string;
-  note: string | null;
+  eventCode: string | null;
+  metadata: Record<string, unknown> | null;
   changer: { id: string; name: string };
+}
+
+export interface AdminDisputeActionCapabilities {
+  approve: boolean;
+  reject: boolean;
+  close: boolean;
+  changePm: boolean;
+  message: boolean;
 }
 
 export interface AdminDisputeDetail {
@@ -138,6 +155,7 @@ export interface AdminDisputeDetail {
   messages: AdminDisputeMessage[];
   attachments: AdminDisputeAttachment[];
   history: AdminDisputeHistoryEntry[];
+  capabilities: AdminDisputeActionCapabilities;
   _count?: { messages?: number };
   pmStats?: {
     userId: string;
@@ -147,6 +165,11 @@ export interface AdminDisputeDetail {
     pmChangedCount: number;
     avgResolutionDays: number;
   };
+}
+
+export interface AdminDisputeActionResult {
+  id: string;
+  status: string;
 }
 
 export interface ApproveDisputeInput {
@@ -196,6 +219,7 @@ export const adminDisputesApi = createApi({
         if (filters.status) params.set("status", filters.status);
         if (filters.category) params.set("category", filters.category);
         if (filters.priority) params.set("priority", filters.priority);
+        if (filters.search) params.set("search", filters.search);
         if (filters.projectId) params.set("projectId", filters.projectId);
         if (filters.clientId) params.set("clientId", filters.clientId);
         if (filters.pmId) params.set("pmId", filters.pmId);
@@ -205,6 +229,17 @@ export const adminDisputesApi = createApi({
         if (filters.limit) params.set("limit", String(filters.limit));
         return `/admin/disputes?${params.toString()}`;
       },
+      transformResponse: (
+        response: AdminDisputeItem[],
+        meta: unknown,
+      ): AdminDisputeResponse => {
+        const pagination = (meta as { apiMeta?: AdminDisputeResponse["meta"] })
+          ?.apiMeta;
+        if (!pagination) {
+          throw new Error("Missing admin disputes pagination metadata");
+        }
+        return { items: response, meta: pagination };
+      },
       providesTags: ["AdminDisputes"],
     }),
 
@@ -213,13 +248,20 @@ export const adminDisputesApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "AdminDispute", id }],
     }),
 
-    getAdminDisputeStats: builder.query<AdminDisputeStats, void>({
-      query: () => "/admin/disputes/stats",
+    getAdminPmOptions: builder.query<AdminPmOption[], void>({
+      query: () => "/admin/disputes/pm-options",
+    }),
+
+    getAdminDisputeStats: builder.query<AdminDisputeStats, AdminDisputeFilters | void>({
+      query: (filters) => ({
+        url: "/admin/disputes/stats",
+        params: filters ? { ...filters } : {},
+      }),
       providesTags: ["AdminDisputeStats"],
     }),
 
     approveDispute: builder.mutation<
-      void,
+      AdminDisputeActionResult,
       { id: string; input: ApproveDisputeInput }
     >({
       query: ({ id, input }) => ({
@@ -235,7 +277,7 @@ export const adminDisputesApi = createApi({
     }),
 
     rejectDispute: builder.mutation<
-      void,
+      AdminDisputeActionResult,
       { id: string; input: RejectDisputeInput }
     >({
       query: ({ id, input }) => ({
@@ -251,7 +293,7 @@ export const adminDisputesApi = createApi({
     }),
 
     changePm: builder.mutation<
-      void,
+      AdminDisputeActionResult,
       { id: string; input: ChangePmInput }
     >({
       query: ({ id, input }) => ({
@@ -267,7 +309,7 @@ export const adminDisputesApi = createApi({
     }),
 
     closeDispute: builder.mutation<
-      void,
+      AdminDisputeActionResult,
       { id: string; input: CloseDisputeInput }
     >({
       query: ({ id, input }) => ({
@@ -302,6 +344,7 @@ export const {
   useGetAdminDisputesQuery,
   useGetAdminDisputeByIdQuery,
   useGetAdminDisputeStatsQuery,
+  useGetAdminPmOptionsQuery,
   useApproveDisputeMutation,
   useRejectDisputeMutation,
   useChangePmMutation,

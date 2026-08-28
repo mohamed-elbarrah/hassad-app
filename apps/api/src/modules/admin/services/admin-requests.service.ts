@@ -1,19 +1,28 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { RequestStatus } from "@hassad/shared";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
+import { RequestsService } from "../../requests/requests.service";
+import type { AdminRequestContactLogDto } from "../dto/admin-requests.dto";
+import type { AdminRequestQueryDto } from "../dto/admin-requests.dto";
 
 @Injectable()
 export class AdminRequestsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly actionLog: AdminActionLogService,
+    private readonly requestsService: RequestsService,
   ) {}
 
-  async findAll(query: any) {
-    const where: any = {};
+  async findAll(query: AdminRequestQueryDto) {
+    const where: Prisma.RequestWhereInput = {};
     if (query.search) {
       where.OR = [
         { id: { contains: query.search, mode: "insensitive" } },
+        { contactName: { contains: query.search, mode: "insensitive" } },
+        { companyName: { contains: query.search, mode: "insensitive" } },
+        { email: { contains: query.search, mode: "insensitive" } },
         {
           client: {
             companyName: { contains: query.search, mode: "insensitive" },
@@ -21,12 +30,12 @@ export class AdminRequestsService {
         },
       ];
     }
-    if (query.assigneeId) where.assignedTo = query.assigneeId;
+    if (query.assigneeId) where.assignedSalesId = query.assigneeId;
     if (query.status) where.status = query.status;
     if (query.clientId) where.clientId = query.clientId;
 
-    const page = query.page ? parseInt(query.page, 10) : 1;
-    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
@@ -49,6 +58,7 @@ export class AdminRequestsService {
       items: items.map((r) => ({
         id: r.id,
         clientName: r.client?.companyName ?? "—",
+        contactName: r.contactName,
         assigneeId: r.assignedSalesId ?? null,
         assigneeName: r.assignee?.name ?? "—",
         status: r.status,
@@ -65,18 +75,35 @@ export class AdminRequestsService {
     };
   }
 
-  async findOne(id: string) {
-    const request = await this.prisma.request.findUnique({
-      where: { id },
-      include: {
-        client: { select: { id: true, companyName: true } },
-        assignee: { select: { id: true, name: true, email: true } },
-        services: { include: { service: true } },
-        statusHistory: { orderBy: { changedAt: "desc" } },
-      },
+  async findOne(id: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: adminId },
+      select: { role: { select: { name: true, permissions: { select: { permission: { select: { name: true } } } } } }, permissions: { select: { permission: { select: { name: true } } } } },
     });
-    if (!request) throw new NotFoundException("Request not found");
-    return request;
+    const canIntervene = user?.role?.name === "ADMIN" || Boolean(user?.role?.permissions.some(({ permission }) => permission.name === "admin.requests.intervene") || user?.permissions.some(({ permission }) => permission.name === "admin.requests.intervene"));
+    const request = await this.requestsService.findOne(id, {
+      canLogContact: canIntervene,
+      canUpdateStatus: canIntervene,
+    });
+
+    // The shared request service returns Prisma Decimal instances for related
+    // financial records; normalize them at the Admin API boundary.
+    return {
+      ...request,
+      proposals: request.proposals.map((proposal) => ({
+        ...proposal,
+        totalPrice: Number(proposal.totalPrice),
+      })),
+      contracts: request.contracts.map((contract) => ({
+        ...contract,
+        totalValue: Number(contract.totalValue),
+      })),
+    };
+  }
+
+  async addContactLog(requestId: string, adminId: string, dto: AdminRequestContactLogDto) {
+    await this.requestsService.addContactLog(requestId, adminId, dto);
+    return { code: "REQUEST_CONTACT_LOGGED", requestId };
   }
 
   async reassign(
@@ -89,8 +116,8 @@ export class AdminRequestsService {
       this.prisma.request.findUnique({ where: { id: requestId } }),
       this.prisma.user.findUnique({ where: { id: assigneeId } }),
     ]);
-    if (!request) throw new NotFoundException("Request not found");
-    if (!user) throw new NotFoundException("User not found");
+    if (!request) throw new NotFoundException({ code: "REQUEST_NOT_FOUND", details: { id: requestId } });
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: { id: assigneeId } });
 
     const before = { assignedSalesId: request.assignedSalesId };
     const after = { assignedSalesId: assigneeId, reason };
@@ -131,19 +158,19 @@ export class AdminRequestsService {
       afterState: after,
     });
 
-    return { success: true };
+    return { code: "REQUEST_REASSIGNED", requestId };
   }
 
   async forceStatus(
     requestId: string,
-    status: any,
+    status: RequestStatus,
     reason: string,
     adminId: string,
   ) {
     const request = await this.prisma.request.findUnique({
       where: { id: requestId },
     });
-    if (!request) throw new NotFoundException("Request not found");
+    if (!request) throw new NotFoundException({ code: "REQUEST_NOT_FOUND", details: { id: requestId } });
 
     const before = { status: request.status };
     const after = { status, reason };
@@ -151,13 +178,13 @@ export class AdminRequestsService {
     await this.prisma.$transaction([
       this.prisma.request.update({
         where: { id: requestId },
-        data: { status: status as any },
+        data: { status: status as RequestStatus },
       }),
       this.prisma.requestStatusHistory.create({
         data: {
           requestId,
           fromStatus: request.status,
-          toStatus: status,
+          toStatus: status as RequestStatus,
           changedBy: adminId,
           note: reason,
         },
@@ -184,14 +211,14 @@ export class AdminRequestsService {
       afterState: after,
     });
 
-    return { success: true };
+    return { code: "REQUEST_STATUS_FORCED", requestId };
   }
 
   async getStaleRequests(days = 7, page = 1, limit = 20) {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: Prisma.RequestWhereInput = {
       OR: [
         { assignedSalesId: null },
         {
@@ -237,7 +264,7 @@ export class AdminRequestsService {
     const request = await this.prisma.request.findUnique({
       where: { id: requestId },
     });
-    if (!request) throw new NotFoundException("Request not found");
+    if (!request) throw new NotFoundException({ code: "REQUEST_NOT_FOUND", details: { id: requestId } });
 
     const before = { internalNotes: request.internalNotes };
     const after = { internalNotes: notes };

@@ -13,6 +13,7 @@ import {
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { DisputeThreadType } from "@prisma/client";
 import { DisputesService } from "../services/disputes.service";
+import { UsersService } from "../../core/services/users.service";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
@@ -30,16 +31,24 @@ import {
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @RequirePermissions("disputes.admin")
 export class AdminDisputesController {
-  constructor(private readonly disputesService: DisputesService) {}
+  constructor(
+    private readonly disputesService: DisputesService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Get()
   async getAllDisputes(@Query() filter: DisputeFilterDto) {
     return this.disputesService.getAllDisputes(filter);
   }
 
+  @Get("pm-options")
+  async getPmOptions() {
+    return this.usersService.getActivePmOptions();
+  }
+
   @Get("stats")
-  async getDisputeStats() {
-    return this.disputesService.getAdminStats();
+  async getDisputeStats(@Query() filter: DisputeFilterDto) {
+    return this.disputesService.getAdminStats(filter);
   }
 
   @Get("pm/:pmId/stats")
@@ -113,8 +122,8 @@ export class AdminDisputesController {
       id,
       dto.threadType ?? DisputeThreadType.ADMIN_PM,
       {
-      ...dto,
-      isInternal: false,
+        ...dto,
+        isInternal: true,
       },
     );
   }

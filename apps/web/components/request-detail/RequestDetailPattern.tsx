@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Fragment } from "react";
 import {
   Building2,
   ClipboardList,
@@ -20,12 +21,53 @@ import {
   REQUEST_STATUS_AR,
   RequestStatus,
 } from "@hassad/shared";
-import type {
-  CreateRequestContactLogPayload,
-  RequestContactLogItem,
-  RequestDetail,
-  RequestStatusHistoryItem,
-} from "@/features/requests/requestsApi";
+import type { RequestContactLogPayload } from "@/components/request-detail/RequestContactLogDialog";
+
+interface RequestContactLogItem {
+  id: string;
+  type: ContactLogType;
+  result: ContactLogResult;
+  notes?: string | null;
+  contactedAt: string;
+  user: { name: string };
+}
+
+interface RequestStatusHistoryItem {
+  id: string;
+  fromStatus?: RequestStatus | null;
+  toStatus: RequestStatus;
+  changedAt: string;
+  changer?: { name: string } | null;
+  note?: string | null;
+}
+
+interface RequestDetail {
+  id: string;
+  clientId: string;
+  companyName: string;
+  contactName: string;
+  phoneWhatsapp: string;
+  email?: string | null;
+  businessName: string;
+  businessType: string;
+  source: string;
+  notes?: string | null;
+  status: RequestStatus;
+  contactAttemptCount: number;
+  lastContactAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  client?: { id: string; companyName: string } | null;
+  assignee?: { id: string; name: string; email?: string } | null;
+  services?: Array<{ id: string; serviceId: string; quantity: number; notes?: string | null; service?: { id: string; name: string; nameAr?: string | null } }>;
+  capabilities?: { canLogContact: boolean; canUpdateStatus: boolean; allowedNextStatuses: RequestStatus[] };
+  statusHistory: RequestStatusHistoryItem[];
+  contactLogs: RequestContactLogItem[];
+  currentStageSince: string;
+  proposals: Array<{ id: string; title: string; status: string; totalPrice?: number; createdAt: string }>;
+  contracts: Array<{ id: string; title: string; status: string; totalValue?: number; createdAt: string }>;
+  project?: { id: string; name: string; status: string; startDate?: string; endDate?: string; createdAt: string } | null;
+}
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -68,6 +110,16 @@ import {
   formatNumber,
   formatRelativeTime,
 } from "@/lib/format";
+import { contractStatusLabel, portalProjectStatusLabel, proposalStatusLabel, UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
+import { PageHeader } from "@/components/common/PageHeader";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 type DetailMode = "admin" | "sales";
 
@@ -291,7 +343,7 @@ function RelatedRecords({
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={statusVariant(proposal.status)}>
-              {proposal.status}
+              {proposalStatusLabel(proposal.status)}
             </Badge>
             {mode === "admin" ? (
               <Button asChild size="sm" variant="outline">
@@ -324,7 +376,7 @@ function RelatedRecords({
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={statusVariant(contract.status)}>
-              {contract.status}
+              {contractStatusLabel(contract.status)}
             </Badge>
             <Button asChild size="sm" variant="outline">
               <Link
@@ -354,7 +406,7 @@ function RelatedRecords({
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={statusVariant(request.project.status)}>
-              {request.project.status}
+              {portalProjectStatusLabel(request.project.status)}
             </Badge>
             {mode === "admin" ? (
               <Button asChild size="sm" variant="outline">
@@ -475,6 +527,7 @@ export function RequestDetailView({
   mode,
   backHref,
   backLabel,
+  breadcrumbs,
   onStageChange,
   onAddContactLog,
   isUpdatingStage,
@@ -484,8 +537,9 @@ export function RequestDetailView({
   mode: DetailMode;
   backHref: string;
   backLabel: string;
+  breadcrumbs?: { label: string; href?: string }[];
   onStageChange?: (status: RequestStatus) => Promise<void>;
-  onAddContactLog?: (payload: CreateRequestContactLogPayload) => Promise<void>;
+  onAddContactLog?: (payload: RequestContactLogPayload) => Promise<void>;
   isUpdatingStage?: boolean;
   isAddingContactLog?: boolean;
 }) {
@@ -505,7 +559,7 @@ export function RequestDetailView({
   const sourceLabel = CLIENT_SOURCE_AR[request.source] || request.source;
   const businessTypeLabel =
     BUSINESS_TYPE_AR[request.businessType] || request.businessType;
-  const stageLabel = REQUEST_STATUS_AR[request.status] || request.status;
+  const stageLabel = REQUEST_STATUS_AR[request.status] || UNKNOWN_STATUS_LABEL;
 
   const primaryFields = [
     { label: "اسم جهة الاتصال", value: request.contactName || "—" },
@@ -540,55 +594,48 @@ export function RequestDetailView({
 
   return (
     <div className="flex flex-col gap-6   " dir="rtl">
-      <Card>
-        <CardContent className="flex flex-col gap-5 p-6">
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-            <div className="flex gap-4">
-              <div className="flex size-20 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                <Building2 className="size-10" />
-              </div>
-
-              <div className="flex min-w-0 flex-1 flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="truncate text-2xl font-semibold tracking-tight">
-                    {request.companyName}
-                  </h2>
-                  <Badge variant={statusVariant(request.status)}>
-                    {stageLabel}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  جهة الاتصال: {request.contactName || "—"}
-                  {request.businessName
-                    ? ` • النشاط: ${request.businessName}`
-                    : ""}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex shrink-0 flex-wrap gap-2">
+      {breadcrumbs?.length ? (
+        <Breadcrumb>
+          <BreadcrumbList>
+            {breadcrumbs.map((item, index) => (
+              <Fragment key={`${item.label}-${index}`}>
+                <BreadcrumbItem>
+                  {item.href ? (
+                    <BreadcrumbLink asChild>
+                      <Link href={item.href}>{item.label}</Link>
+                    </BreadcrumbLink>
+                  ) : <BreadcrumbPage>{item.label}</BreadcrumbPage>}
+                </BreadcrumbItem>
+                {index < breadcrumbs.length - 1 ? <BreadcrumbSeparator /> : null}
+              </Fragment>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
+      ) : null}
+      <PageHeader
+        title={request.companyName}
+        description={`جهة الاتصال: ${request.contactName || "—"}${request.businessName ? ` • النشاط: ${request.businessName}` : ""}`}
+        icon={Building2}
+        actions={
+          <>
+            <Badge variant={statusVariant(request.status)}>{stageLabel}</Badge>
+            <Button asChild variant="outline">
+              <Link href={backHref}>{backLabel}</Link>
+            </Button>
+            {request.client ? (
               <Button asChild variant="outline">
-                <Link href={backHref}>{backLabel}</Link>
+                <Link href={`/dashboard/${mode === "admin" ? "admin" : "sales"}/clients/${request.client.id}`}>
+                  فتح ملف العميل
+                </Link>
               </Button>
-              {request.client ? (
-                <Button asChild variant="outline">
-                  <Link
-                    href={`/dashboard/${mode === "admin" ? "admin" : "sales"}/clients/${request.client.id}`}
-                  >
-                    فتح ملف العميل
-                  </Link>
-                </Button>
-              ) : null}
-              {onAddContactLog && request.capabilities?.canLogContact ? (
-                <RequestContactLogDialog
-                  onSubmit={onAddContactLog}
-                  isSubmitting={isAddingContactLog}
-                />
-              ) : null}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
+            ) : null}
+            {onAddContactLog && request.capabilities?.canLogContact ? (
+              <RequestContactLogDialog onSubmit={onAddContactLog} isSubmitting={isAddingContactLog} />
+            ) : null}
+          </>
+        }
+      />
+      <div className="flex flex-wrap gap-2">
             <Badge variant="outline">
               الخدمات: {formatNumber(services.length)}
             </Badge>
@@ -605,8 +652,6 @@ export function RequestDetailView({
               آخر نشاط: {formatRelativeTime(request.updatedAt)}
             </Badge>
           </div>
-        </CardContent>
-      </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[

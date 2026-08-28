@@ -12,10 +12,7 @@ export default function Error({
   return (
     <AdminPageError
       title="حدث خطأ في تحميل الطلبات"
-      description={
-        error.message ||
-        "تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى."
-      }
+      description="تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى."
     />
   );
 }

@@ -31,7 +31,7 @@ export default function Error({
             <EmptyHeader>
               <EmptyTitle>حدث خطأ في تحميل المهام</EmptyTitle>
               <EmptyDescription>
-                {error.message || "تعذر تحميل البيانات. حاول مرة أخرى."}
+                تعذر تحميل البيانات. حاول مرة أخرى.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BadgeAlert, FolderKanban } from "lucide-react";
 import {
@@ -25,7 +25,7 @@ import {
   ProjectPreviewHeader,
   ProjectRecordsTabs,
   ProjectSignalsCard,
-  ProjectSummaryCard,
+  ProjectDetailHeader,
   ProjectTasksTable,
   ProjectTeamTable,
   ProjectStatsGrid,
@@ -53,10 +53,11 @@ import {
   formatPortalDate,
   formatNumber,
 } from "@/lib/format";
+import { UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 
-function isOverdue(date?: string | null) {
+function isOverdue(date: string | null | undefined, now: number) {
   if (!date) return false;
-  return new Date(date).getTime() < Date.now();
+  return new Date(date).getTime() < now;
 }
 
 function sortByDateAsc<
@@ -79,6 +80,7 @@ export default function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const [now] = useState(() => Date.now());
   const { data: project, isLoading, isError } = useGetAdminProjectByIdQuery(id);
 
   if (isLoading) {
@@ -116,7 +118,7 @@ export default function ProjectDetailPage({
   }
 
   const overdueTasks = project.tasks.filter(
-    (task) => task.status !== "DONE" && isOverdue(task.dueDate),
+    (task) => task.status !== "DONE" && isOverdue(task.dueDate, now),
   );
   const unassignedTasks = project.tasks.filter((task) => !task.assignedTo);
   const inReviewTasks = project.tasks.filter(
@@ -137,7 +139,7 @@ export default function ProjectDetailPage({
   const nextDueTask = sortedOpenTasks.find((task) => task.dueDate);
   const upcomingMeetings = sortByDateAsc(
     project.meetings.filter(
-      (meeting) => new Date(meeting.scheduledAt).getTime() >= Date.now(),
+      (meeting) => new Date(meeting.scheduledAt).getTime() >= now,
     ),
     "scheduledAt",
   );
@@ -149,7 +151,7 @@ export default function ProjectDetailPage({
   const tasksPreview = [...project.tasks]
     .sort((a, b) => {
       const overdueDiff =
-        Number(isOverdue(b.dueDate)) - Number(isOverdue(a.dueDate));
+        Number(isOverdue(b.dueDate, now)) - Number(isOverdue(a.dueDate, now));
       if (overdueDiff !== 0) return overdueDiff;
       return (
         new Date(a.dueDate || "2999-12-31").getTime() -
@@ -239,7 +241,7 @@ export default function ProjectDetailPage({
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      <ProjectSummaryCard
+      <ProjectDetailHeader
         project={project}
         badges={[
           <Badge key="priority" variant="outline">
@@ -441,7 +443,7 @@ export default function ProjectDetailPage({
               value:
                 PROJECT_STATUS_AR[
                   project.status as keyof typeof PROJECT_STATUS_AR
-                ] || project.status,
+                ] || UNKNOWN_STATUS_LABEL,
               hint: project.isArchived
                 ? "المشروع مؤرشف حاليًا"
                 : "المشروع داخل الدورة النشطة",

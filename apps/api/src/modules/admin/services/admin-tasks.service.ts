@@ -1,6 +1,13 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { TaskStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
+import { AdminTasksQueryDto } from "../dto/admin-tasks.dto";
 
 @Injectable()
 export class AdminTasksService {
@@ -9,26 +16,36 @@ export class AdminTasksService {
     private readonly actionLog: AdminActionLogService,
   ) {}
 
-  async findAll(query: any) {
-    const where: any = {};
-    if (query.search) {
-      where.OR = [
-        { title: { contains: query.search, mode: "insensitive" } },
-        { project: { name: { contains: query.search, mode: "insensitive" } } },
-      ];
+  private buildWhere(query: AdminTasksQueryDto): Prisma.TaskWhereInput {
+    const and: Prisma.TaskWhereInput[] = [];
+    const search = query.search?.trim();
+    if (search) {
+      and.push({
+        OR: [
+          { id: { contains: search, mode: "insensitive" } },
+          { title: { contains: search, mode: "insensitive" } },
+          { project: { name: { contains: search, mode: "insensitive" } } },
+          { assignee: { name: { contains: search, mode: "insensitive" } } },
+          { department: { name: { contains: search, mode: "insensitive" } } },
+        ],
+      });
     }
-    if (query.assigneeId) where.assignedTo = query.assigneeId;
-    if (query.projectId) where.projectId = query.projectId;
-    if (query.department) where.departmentId = query.department;
-    if (query.status) where.status = query.status;
-    if (query.priority) where.priority = query.priority;
-    if (query.overdueOnly === "true") {
-      where.dueDate = { lt: new Date() };
-      where.status = { notIn: ["DONE", "REVISION"] };
+    if (query.assigneeId) and.push({ assignedTo: query.assigneeId });
+    if (query.projectId) and.push({ projectId: query.projectId });
+    if (query.department) and.push({ departmentId: query.department });
+    if (query.status) and.push({ status: query.status });
+    if (query.priority) and.push({ priority: query.priority });
+    if (query.overdueOnly === true) {
+      and.push({ dueDate: { lt: new Date() } });
+      and.push({ status: { notIn: ["DONE", "REVISION"] } });
     }
+    return and.length ? { AND: and } : {};
+  }
 
-    const page = query.page ? parseInt(query.page, 10) : 1;
-    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+  async findAll(query: AdminTasksQueryDto) {
+    const where = this.buildWhere(query);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
@@ -57,7 +74,7 @@ export class AdminTasksService {
             },
           },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       }),
       this.prisma.task.count({ where }),
     ]);
@@ -79,10 +96,11 @@ export class AdminTasksService {
         isVisibleToClient: t.isVisibleToClient,
         periodNumber: t.period?.periodNumber ?? null,
         isArchived: !!t.archivedAt,
-        isOverdue:
+        isOverdue: Boolean(
           t.dueDate &&
           t.dueDate < new Date() &&
           !["DONE", "REVISION"].includes(t.status),
+        ),
         revisionCount: t.revisionCount,
         createdAt: t.createdAt.toISOString(),
       })),
@@ -91,6 +109,70 @@ export class AdminTasksService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  /** Aggregate over the complete filtered result set, never just the current page. */
+  async getStats(query: AdminTasksQueryDto) {
+    const where = this.buildWhere(query);
+    const [total, overdue, inProgress, inReview, done] = await Promise.all([
+      this.prisma.task.count({ where }),
+      this.prisma.task.count({
+        where: {
+          AND: [
+            where,
+            { dueDate: { lt: new Date() } },
+            { status: { notIn: ["DONE", "REVISION"] } },
+          ],
+        },
+      }),
+      this.prisma.task.count({
+        where: { AND: [where, { status: "IN_PROGRESS" }] },
+      }),
+      this.prisma.task.count({
+        where: { AND: [where, { status: "IN_REVIEW" }] },
+      }),
+      this.prisma.task.count({ where: { AND: [where, { status: "DONE" }] } }),
+    ]);
+    return { total, overdue, inProgress, inReview, done };
+  }
+
+  async getActorCapabilities(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: {
+          select: {
+            name: true,
+            permissions: { select: { permission: { select: { name: true } } } },
+          },
+        },
+        permissions: { select: { permission: { select: { name: true } } } },
+      },
+    });
+    const names = new Set([
+      ...(user?.role?.permissions.map((item) => item.permission.name) ?? []),
+      ...(user?.permissions.map((item) => item.permission.name) ?? []),
+    ]);
+    return {
+      canIntervene:
+        user?.role?.name === "ADMIN" || names.has("admin.tasks.intervene"),
+    };
+  }
+
+  private getValidTransitionTargets(status: TaskStatus): TaskStatus[] {
+    switch (status) {
+      case TaskStatus.TODO:
+        return [TaskStatus.IN_PROGRESS];
+      case TaskStatus.IN_PROGRESS:
+        return [TaskStatus.IN_REVIEW];
+      case TaskStatus.IN_REVIEW:
+        return [TaskStatus.DONE, TaskStatus.REVISION];
+      case TaskStatus.REVISION:
+        return [TaskStatus.IN_PROGRESS];
+      case TaskStatus.DONE:
+      default:
+        return [];
+    }
   }
 
   async findOne(id: string) {
@@ -165,10 +247,14 @@ export class AdminTasksService {
         },
       },
     });
-    if (!task) throw new NotFoundException("Task not found");
+    if (!task)
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
 
     return {
       ...task,
+      availableTransitionTargets: this.getValidTransitionTargets(
+        task.status as TaskStatus,
+      ),
       comments: task.comments.map((comment) => ({
         ...comment,
         userRole: comment.user?.role?.name ?? null,
@@ -191,7 +277,7 @@ export class AdminTasksService {
     page?: number;
     limit?: number;
   }) {
-    const where: any = {};
+    const where: Prisma.TaskDelayAlertWhereInput = {};
     if (query.acknowledged !== undefined)
       where.isAcknowledged = query.acknowledged;
 
@@ -248,8 +334,10 @@ export class AdminTasksService {
       this.prisma.task.findUnique({ where: { id: taskId } }),
       this.prisma.user.findUnique({ where: { id: assigneeId } }),
     ]);
-    if (!task) throw new NotFoundException("Task not found");
-    if (!user) throw new NotFoundException("User not found");
+    if (!task)
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const before = { assignedTo: task.assignedTo };
     const after = { assignedTo: assigneeId, reason };
@@ -289,17 +377,28 @@ export class AdminTasksService {
       afterState: after,
     });
 
-    return { success: true };
+    return { code: "TASK_REASSIGNED" };
   }
 
   async forceTransition(
     taskId: string,
-    status: any,
+    status: TaskStatus,
     reason: string,
     adminId: string,
   ) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
-    if (!task) throw new NotFoundException("Task not found");
+    if (!task)
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
+
+    const validTargets = this.getValidTransitionTargets(
+      task.status as TaskStatus,
+    );
+    if (!validTargets.includes(status)) {
+      throw new BadRequestException({
+        code: "TASK_INVALID_TRANSITION",
+        details: { fromStatus: task.status, toStatus: status },
+      });
+    }
 
     const before = { status: task.status };
     const after = { status, reason };
@@ -336,6 +435,6 @@ export class AdminTasksService {
       afterState: after,
     });
 
-    return { success: true };
+    return { code: "TASK_STATUS_UPDATED" };
   }
 }

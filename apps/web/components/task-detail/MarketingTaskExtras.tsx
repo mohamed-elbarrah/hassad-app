@@ -68,7 +68,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatNumber } from "@/lib/format";
-import { marketingErrorMessage } from "@/lib/i18n";
+import { marketingErrorMessage, UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 import {
   CAMPAIGN_STATUS_LABELS,
   PLATFORM_LABELS,
@@ -166,7 +166,9 @@ function StrategyTab({
             </EmptyHeader>
             {canManage ? (
               <EmptyContent>
+                <label htmlFor="marketing-strategy-upload" className="sr-only">الدراسة التسويقية</label>
                 <input
+                  id="marketing-strategy-upload"
                   ref={uploadRef}
                   type="file"
                   accept=".pdf"
@@ -205,7 +207,7 @@ function StrategyTab({
             </CardDescription>
           </div>
           <Badge variant={statusVariant(status)}>
-            {MARKETING_STRATEGY_STATUS_AR[status] || status}
+            {MARKETING_STRATEGY_STATUS_AR[status] || UNKNOWN_STATUS_LABEL}
           </Badge>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -245,7 +247,9 @@ function StrategyTab({
                 ) : null}
                 {canManage && status === MarketingStrategyStatus.REVISION_REQUESTED ? (
                   <>
+                    <label htmlFor="marketing-strategy-revision-upload" className="sr-only">النسخة المعدلة من الدراسة التسويقية</label>
                     <input
+                      id="marketing-strategy-revision-upload"
                       ref={reviseRef}
                       type="file"
                       accept=".pdf"
@@ -276,7 +280,10 @@ function StrategyTab({
           ) : null}
 
           <div className="grid gap-4 md:grid-cols-3">
-            <MiniMetric title="الحالة" value={MARKETING_STRATEGY_STATUS_AR[status] || status} />
+            <MiniMetric
+              title="الحالة"
+              value={MARKETING_STRATEGY_STATUS_AR[status] || UNKNOWN_STATUS_LABEL}
+            />
             <MiniMetric title="أُنشئت" value={new Date(strategy.createdAt).toLocaleDateString("ar-SA")} />
             <MiniMetric
               title="أُرسلت"
@@ -352,9 +359,9 @@ function CampaignCreateDialog({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>المنصة</Label>
+            <Label htmlFor="campaign-platform">المنصة</Label>
             <Select value={platform} onValueChange={(value) => setPlatform(value as CampaignPlatform)}>
-              <SelectTrigger>
+              <SelectTrigger id="campaign-platform">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -495,11 +502,11 @@ function CampaignsTab({
                     <div className="space-y-1">
                       <CardTitle className="text-base">{campaign.name}</CardTitle>
                       <CardDescription>
-                        {PLATFORM_LABELS[campaign.platform] || campaign.platform}
+                        {PLATFORM_LABELS[campaign.platform] || UNKNOWN_STATUS_LABEL}
                       </CardDescription>
                     </div>
                     <Badge variant={campaignStatusVariant(campaign.status)}>
-                      {CAMPAIGN_STATUS_LABELS[campaign.status] || campaign.status}
+                      {CAMPAIGN_STATUS_LABELS[campaign.status] || UNKNOWN_STATUS_LABEL}
                     </Badge>
                   </div>
                 </CardHeader>

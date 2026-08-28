@@ -166,7 +166,8 @@ export class DisputesNotificationsService {
         ticketId: payload.disputeId,
         toStatus: "APPROVED" as any,
         changedBy: payload.pmId,
-        note: "تم إرسال إشعار لمدير المشروع",
+        eventCode: "DISPUTE_APPROVAL_NOTIFICATION_SENT",
+        metadata: { recipientRole: "PM" },
       },
     });
   }

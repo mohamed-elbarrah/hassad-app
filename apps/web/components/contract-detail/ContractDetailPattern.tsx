@@ -44,7 +44,6 @@ import {
   invoiceStatusLabel,
   paymentPlanTriggerLabel,
 } from "@/lib/i18n";
-import { buildPortalFileUrl } from "@/lib/portal-files";
 
 export interface ContractDetailEntity {
   id: string;
@@ -110,7 +109,7 @@ export interface ContractDetailEntity {
   versions?: Array<{
     id: string;
     versionNumber: number;
-    filePath?: string | null;
+    fileUrl?: string | null;
     createdAt: string;
   }> | null;
   paymentPlans?: Array<{
@@ -245,10 +244,10 @@ export function ContractDetailView({
           {contractStatusLabel(contract.status)}
         </Badge>
         <Badge variant="outline">
-          القيمة الإجمالية: {formatCurrency(contract.totalValue)}
+          القيمة الإجمالية: {formatCurrency(contract.totalValue, contract.currency ?? undefined)}
         </Badge>
         <Badge variant="outline">
-          القيمة الشهرية: {formatCurrency(contract.monthlyValue)}
+          القيمة الشهرية: {formatCurrency(contract.monthlyValue, contract.currency ?? undefined)}
         </Badge>
         <Badge variant="outline">
           الفواتير: {formatNumber(invoices.length)}
@@ -329,7 +328,7 @@ export function ContractDetailView({
                 {contract.downPaymentValue != null ? (
                   <InfoField
                     label="خطة الدفع"
-                    value={`دفعة أولى ${formatCurrency(contract.downPaymentValue)}${contract.numberOfMonths ? ` • ${formatNumber(contract.numberOfMonths)} أشهر` : ""}`}
+                    value={`دفعة أولى ${formatCurrency(contract.downPaymentValue, contract.currency ?? undefined)}${contract.numberOfMonths ? ` • ${formatNumber(contract.numberOfMonths)} أشهر` : ""}`}
                   />
                 ) : null}
               </dl>
@@ -414,7 +413,7 @@ export function ContractDetailView({
                               {paymentPlanTriggerLabel(plan.triggerType)}
                             </TableCell>
                             <TableCell>
-                              {formatCurrency(plan.amountValue)}
+                              {formatCurrency(plan.amountValue, contract.currency ?? undefined)}
                             </TableCell>
                             <TableCell>
                               {plan.dueOffsetDays != null
@@ -461,7 +460,7 @@ export function ContractDetailView({
                           <TableRow key={invoice.id}>
                             <TableCell>{invoice.invoiceNumber}</TableCell>
                             <TableCell>
-                              {formatCurrency(invoice.amount)}
+                              {formatCurrency(invoice.amount, contract.currency ?? undefined)}
                             </TableCell>
                             <TableCell>
                               <Badge
@@ -556,12 +555,10 @@ export function ContractDetailView({
                                 {formatNumber(version.versionNumber)}
                               </TableCell>
                               <TableCell>
-                                {version.filePath ? (
+                                {version.fileUrl ? (
                                   <Button asChild variant="ghost" size="sm">
                                     <a
-                                      href={buildPortalFileUrl(
-                                        version.filePath,
-                                      )}
+                                      href={version.fileUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                     >

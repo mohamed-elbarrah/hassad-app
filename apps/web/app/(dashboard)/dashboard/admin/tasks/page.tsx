@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -11,7 +11,10 @@ import {
   SquareCheckBig,
   TimerReset,
 } from "lucide-react";
-import { useGetAdminTasksQuery } from "@/features/admin/adminTasksApi";
+import {
+  useGetAdminTasksQuery,
+  useGetAdminTaskStatsQuery,
+} from "@/features/admin/adminTasksApi";
 import type { AdminTaskItem } from "@/features/admin/adminTasksApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,6 +65,8 @@ import {
   TaskStatus,
 } from "@hassad/shared";
 import { formatDateTime, formatNumber } from "@/lib/format";
+import { PageHeader } from "@/components/common/PageHeader";
+import { adminErrorMessage, UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 
 function statusVariant(status: string) {
   switch (status) {
@@ -88,19 +93,12 @@ function priorityVariant(priority: string) {
 function LoadingState() {
   return (
     <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-9 w-56" />
-            <Skeleton className="h-4 w-full max-w-xl" />
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-28" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader
+        title="قائمة المهام"
+        description="متابعة التنفيذ والتأخير والتصحيح في مكان واحد."
+        icon={SquareCheckBig}
+        actions={<Skeleton className="h-10 w-28" />}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
@@ -164,53 +162,30 @@ export default function TasksPage() {
   const [status, setStatus] = useState<"ALL" | TaskStatus>("ALL");
   const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError, isFetching, refetch } =
-    useGetAdminTasksQuery({
-      limit: 100,
-    });
+  const taskFilters = {
+    search: search.trim() || undefined,
+    status: status === "ALL" ? undefined : status,
+    priority: priority === "ALL" ? undefined : priority,
+    overdueOnly: overdueOnly || undefined,
+  };
+  const { data, isLoading, isError, isFetching, refetch, error } =
+    useGetAdminTasksQuery({ ...taskFilters, page, limit: 20 });
+  const { data: stats, isError: isStatsError } =
+    useGetAdminTaskStatsQuery(taskFilters);
 
   const tasks = data?.items ?? [];
 
-  const filteredTasks = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return tasks.filter((task) => {
-      const matchesStatus = status === "ALL" ? true : task.status === status;
-      const matchesPriority =
-        priority === "ALL" ? true : task.priority === priority;
-      const matchesOverdue = overdueOnly ? task.isOverdue : true;
-      const matchesSearch = !query
-        ? true
-        : [
-            task.title,
-            task.projectName,
-            task.assigneeName,
-            task.department,
-            task.status,
-            task.priority,
-            task.id,
-          ]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(query));
-
-      return (
-        matchesStatus && matchesPriority && matchesOverdue && matchesSearch
-      );
-    });
-  }, [tasks, search, status, priority, overdueOnly]);
-
-  const metrics = useMemo(
-    () => ({
-      total: tasks.length,
-      overdue: tasks.filter((task) => task.isOverdue).length,
-      inProgress: tasks.filter((task) => task.status === TaskStatus.IN_PROGRESS)
-        .length,
-      inReview: tasks.filter((task) => task.status === TaskStatus.IN_REVIEW)
-        .length,
-      done: tasks.filter((task) => task.status === TaskStatus.DONE).length,
-    }),
-    [tasks],
-  );
+  // Filtering and aggregate counts are server-owned; this page only renders the
+  // requested page and the complete filtered totals returned by the API.
+  const metrics = {
+    total: stats?.total,
+    overdue: stats?.overdue,
+    inProgress: stats?.inProgress,
+    inReview: stats?.inReview,
+    done: stats?.done,
+  };
 
   if (isLoading) return <LoadingState />;
 
@@ -225,9 +200,7 @@ export default function TasksPage() {
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل المهام</EmptyTitle>
-                <EmptyDescription>
-                  حدث خطأ أثناء جلب بيانات المهام. حاول مرة أخرى.
-                </EmptyDescription>
+                <EmptyDescription>{adminErrorMessage(error)}</EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <Button onClick={() => refetch()}>إعادة المحاولة</Button>
@@ -241,69 +214,66 @@ export default function TasksPage() {
 
   return (
     <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>المهام</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+      <div className="flex flex-col gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">الرئيسية</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>المهام</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <SquareCheckBig />
-              </div>
-              <div className="flex flex-col gap-1">
-                <CardTitle className="text-2xl">قائمة المهام</CardTitle>
-                <CardDescription>
-                  متابعة التنفيذ والتأخير والتصحيح في مكان واحد.
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
+        <PageHeader
+          title="قائمة المهام"
+          description="متابعة التنفيذ والتأخير والتصحيح في مكان واحد."
+          icon={SquareCheckBig}
+          actions={
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw />
               {isFetching ? "جاري التحديث" : "تحديث"}
             </Button>
-          </div>
-        </CardHeader>
-      </Card>
+          }
+        />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
           {
             label: "إجمالي المهام",
-            value: formatNumber(metrics.total),
-            hint: "كل المهام",
+            value:
+              metrics.total === undefined ? "—" : formatNumber(metrics.total),
+            hint: isStatsError ? "تعذر تحميل الإحصاءات" : "كل المهام",
             icon: SquareCheckBig,
           },
           {
             label: "المتأخرة",
-            value: formatNumber(metrics.overdue),
-            hint: "تحتاج تدخل",
+            value:
+              metrics.overdue === undefined
+                ? "—"
+                : formatNumber(metrics.overdue),
+            hint: isStatsError ? "تعذر تحميل الإحصاءات" : "تحتاج تدخل",
             icon: CircleAlert,
           },
           {
             label: "قيد التنفيذ",
-            value: formatNumber(metrics.inProgress),
-            hint: "عمل جاري",
+            value:
+              metrics.inProgress === undefined
+                ? "—"
+                : formatNumber(metrics.inProgress),
+            hint: isStatsError ? "تعذر تحميل الإحصاءات" : "عمل جاري",
             icon: Clock3,
           },
           {
             label: "منجزة",
-            value: formatNumber(metrics.done),
-            hint: "مهام مكتملة",
+            value:
+              metrics.done === undefined ? "—" : formatNumber(metrics.done),
+            hint: isStatsError ? "تعذر تحميل الإحصاءات" : "مهام مكتملة",
             icon: TimerReset,
           },
         ].map((item) => (
@@ -339,16 +309,24 @@ export default function TasksPage() {
               <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="ابحث بعنوان المهمة أو المشروع أو المكلّف"
                 className="pr-10"
+                id="admin-task-search"
+                aria-label="البحث في المهام"
               />
             </div>
             <Select
               value={status}
-              onValueChange={(v) => setStatus(v as "ALL" | TaskStatus)}
+              onValueChange={(v) => {
+                setStatus(v as "ALL" | TaskStatus);
+                setPage(1);
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="admin-task-status-filter" aria-label="تصفية حسب حالة المهمة">
                 <SelectValue placeholder="كل الحالات" />
               </SelectTrigger>
               <SelectContent>
@@ -362,9 +340,12 @@ export default function TasksPage() {
             </Select>
             <Select
               value={priority}
-              onValueChange={(v) => setPriority(v as "ALL" | TaskPriority)}
+              onValueChange={(v) => {
+                setPriority(v as "ALL" | TaskPriority);
+                setPage(1);
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="admin-task-priority-filter" aria-label="تصفية حسب أولوية المهمة">
                 <SelectValue placeholder="كل الأولويات" />
               </SelectTrigger>
               <SelectContent>
@@ -380,13 +361,44 @@ export default function TasksPage() {
             </Select>
             <Button
               variant={overdueOnly ? "default" : "outline"}
-              onClick={() => setOverdueOnly((value) => !value)}
+              onClick={() => {
+                setOverdueOnly((value) => !value);
+                setPage(1);
+              }}
             >
               <CircleAlert />
               {overdueOnly ? "عرض المتأخرة فقط" : "المتأخرة فقط"}
             </Button>
           </div>
 
+          {data && data.totalPages > 1 ? (
+            <div
+              className="flex items-center justify-between gap-3"
+              aria-label="تنقل صفحات المهام"
+            >
+              <span className="text-sm text-muted-foreground">
+                صفحة {data.page} من {data.totalPages}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1 || isFetching}
+                  onClick={() => setPage((value) => value - 1)}
+                >
+                  السابقة
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= data.totalPages || isFetching}
+                  onClick={() => setPage((value) => value + 1)}
+                >
+                  التالية
+                </Button>
+              </div>
+            </div>
+          ) : null}
           <div className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
@@ -402,7 +414,7 @@ export default function TasksPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTasks.length === 0 ? (
+                {tasks.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={8}
@@ -412,7 +424,7 @@ export default function TasksPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTasks.map((task: AdminTaskItem) => (
+                  tasks.map((task: AdminTaskItem) => (
                     <TableRow key={task.id}>
                       <TableCell>
                         <Link
@@ -431,7 +443,7 @@ export default function TasksPage() {
                       <TableCell>
                         <Badge variant={statusVariant(task.status)}>
                           {TASK_STATUS_AR[task.status as TaskStatus] ||
-                            task.status}
+                            UNKNOWN_STATUS_LABEL}
                         </Badge>
                       </TableCell>
                       <TableCell>

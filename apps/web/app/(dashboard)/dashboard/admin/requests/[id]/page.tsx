@@ -5,13 +5,13 @@ import Link from "next/link";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import type { RequestStatus } from "@hassad/shared";
-import { salesWorkflowErrorMessage } from "@/lib/i18n";
+import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
 import {
-  useAddRequestContactLogMutation,
-  useGetRequestByIdQuery,
-  useUpdateRequestStatusMutation,
-  type CreateRequestContactLogPayload,
-} from "@/features/requests/requestsApi";
+  useAddAdminRequestContactLogMutation,
+  useGetAdminRequestByIdQuery,
+  useUpdateAdminRequestStatusMutation,
+  type AdminRequestContactLogPayload,
+} from "@/features/admin/adminRequestsApi";
 import {
   RequestDetailLoading,
   RequestDetailView,
@@ -33,11 +33,9 @@ export default function AdminRequestDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: request, isLoading, isError } = useGetRequestByIdQuery(id);
-  const [updateStatus, { isLoading: isUpdatingStage }] =
-    useUpdateRequestStatusMutation();
-  const [addContactLog, { isLoading: isAddingContactLog }] =
-    useAddRequestContactLogMutation();
+  const { data: request, isLoading, isError, error, refetch } = useGetAdminRequestByIdQuery(id);
+  const [updateStatus, { isLoading: isUpdatingStage }] = useUpdateAdminRequestStatusMutation();
+  const [addContactLog, { isLoading: isAddingContactLog }] = useAddAdminRequestContactLogMutation();
 
   if (isLoading) {
     return <RequestDetailLoading />;
@@ -55,11 +53,11 @@ export default function AdminRequestDetailPage({
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل تفاصيل السجل</EmptyTitle>
                 <EmptyDescription>
-                  لم نتمكن من العثور على بيانات هذا العميل المحتمل من مسار
-                  الطلبات.
+                  {adminErrorMessage(error)}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
+                <Button variant="outline" onClick={() => refetch()}>إعادة المحاولة</Button>
                 <Button asChild>
                   <Link href="/dashboard/admin/requests">
                     <ArrowLeft data-icon="inline-start" />
@@ -78,19 +76,19 @@ export default function AdminRequestDetailPage({
     if (status === request.status) return;
 
     try {
-      await updateStatus({ id: request.id, toStatus: status }).unwrap();
-      toast.success("تم تحديث مرحلة الطلب");
+      const result = await updateStatus({ id: request.id, status, reason: "ADMIN_STATUS_UPDATE" }).unwrap();
+      toast.success(adminSuccessMessage(result.code));
     } catch (error) {
-      toast.error(salesWorkflowErrorMessage(error));
+      toast.error(adminErrorMessage(error));
     }
   }
 
-  async function handleAddContactLog(payload: CreateRequestContactLogPayload) {
+  async function handleAddContactLog(payload: AdminRequestContactLogPayload) {
     try {
-      await addContactLog({ id: request.id, body: payload }).unwrap();
-      toast.success("تم تسجيل التواصل");
+      const result = await addContactLog({ id: request.id, body: payload }).unwrap();
+      toast.success(adminSuccessMessage(result.code));
     } catch (error) {
-      toast.error(salesWorkflowErrorMessage(error));
+      toast.error(adminErrorMessage(error));
       throw error;
     }
   }
@@ -101,6 +99,11 @@ export default function AdminRequestDetailPage({
       mode="admin"
       backHref="/dashboard/admin/requests"
       backLabel="العودة إلى الطلبات"
+      breadcrumbs={[
+        { label: "الرئيسية", href: "/dashboard" },
+        { label: "الطلبات", href: "/dashboard/admin/requests" },
+        { label: request.companyName },
+      ]}
       onStageChange={handleStageChange}
       onAddContactLog={handleAddContactLog}
       isUpdatingStage={isUpdatingStage}

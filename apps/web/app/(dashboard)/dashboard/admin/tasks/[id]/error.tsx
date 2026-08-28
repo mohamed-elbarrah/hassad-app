@@ -31,7 +31,7 @@ export default function Error({
             <EmptyHeader>
               <EmptyTitle>حدث خطأ أثناء تحميل بيانات المهمة</EmptyTitle>
               <EmptyDescription>
-                {error.message || "تعذر جلب التفاصيل. حاول مرة أخرى."}
+                تعذر جلب التفاصيل. حاول مرة أخرى.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

@@ -6,6 +6,7 @@ interface PageHeaderProps {
   description?: string;
   icon?: LucideIcon;
   actions?: ReactNode;
+  badges?: ReactNode;
 }
 
 export function PageHeader({
@@ -13,6 +14,7 @@ export function PageHeader({
   description,
   icon: Icon,
   actions,
+  badges,
 }: PageHeaderProps) {
   return (
     <header className="flex flex-col gap-1.5">
@@ -34,6 +36,7 @@ export function PageHeader({
       {description ? (
         <p className="text-sm text-muted-foreground">{description}</p>
       ) : null}
+      {badges ? <div className="flex flex-wrap gap-2">{badges}</div> : null}
     </header>
   );
 }

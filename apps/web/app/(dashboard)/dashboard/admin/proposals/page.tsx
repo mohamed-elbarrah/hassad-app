@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -23,14 +23,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import {
   Empty,
   EmptyContent,
@@ -58,6 +50,9 @@ import {
 } from "@/components/ui/table";
 import { PROPOSAL_STATUS_AR, ProposalStatus } from "@hassad/shared";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
+import { adminErrorMessage, UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 function statusVariant(status: string) {
   switch (status) {
@@ -72,19 +67,7 @@ function statusVariant(status: string) {
 function LoadingState() {
   return (
     <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-9 w-56" />
-            <Skeleton className="h-4 w-full max-w-xl" />
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-28" />
-            <Skeleton className="h-10 w-32" />
-          </div>
-        </CardHeader>
-      </Card>
+      <PageHeader title="عروض الأسعار" description="جارٍ تحميل بيانات العروض." icon={Sparkles} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i}>
@@ -142,33 +125,24 @@ function LoadingState() {
 export default function ProposalsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ALL" | ProposalStatus>("ALL");
-  const { data: isStats } = useGetAdminProposalStatsQuery();
-  const { data, isLoading, isError, isFetching, refetch } =
-    useGetAdminProposalsQuery({
-      limit: 1000,
-      search: search || undefined,
-      status: status === "ALL" ? undefined : status,
-    });
+  const [page, setPage] = useState(1);
+  const limit = 20;
+  const statsQuery = useGetAdminProposalStatsQuery();
+  const query = useGetAdminProposalsQuery({ limit, page, search: search.trim() || undefined, status: status === "ALL" ? undefined : status });
+  const { data, isLoading, isError, isFetching, refetch } = query;
   const proposals = data?.items ?? [];
-  const stats = isStats;
-  const metrics = useMemo(
-    () => ({
-      total: stats?.total ?? proposals.length,
-      sent:
-        stats?.sent ??
-        proposals.filter((i) => i.status === ProposalStatus.SENT).length,
-      approved:
-        stats?.approved ??
-        proposals.filter((i) => i.status === ProposalStatus.APPROVED).length,
-      conversion: stats?.conversionRate ?? 0,
-      value: proposals.reduce((s, i) => s + (i.totalPrice || 0), 0),
-    }),
-    [proposals, stats],
-  );
+  const stats = statsQuery.data;
+  const metrics = {
+    total: statsQuery.isError ? "—" : stats?.total ?? proposals.length,
+    sent: statsQuery.isError ? "—" : stats?.sent ?? proposals.filter((i) => i.status === ProposalStatus.SENT).length,
+    approved: statsQuery.isError ? "—" : stats?.approved ?? proposals.filter((i) => i.status === ProposalStatus.APPROVED).length,
+    conversion: statsQuery.isError ? "—" : stats?.conversionRate ?? 0,
+    value: statsQuery.isError ? "—" : stats?.value ?? proposals.reduce((sum, item) => sum + (item.totalPrice || 0), 0),
+  };
   if (isLoading) return <LoadingState />;
   if (isError)
     return (
-      <div dir="rtl" className="  ">
+      <div dir="rtl" className="flex flex-col gap-6">
         <Card>
           <CardContent className="p-8">
             <Empty>
@@ -178,7 +152,7 @@ export default function ProposalsPage() {
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل عروض الأسعار</EmptyTitle>
                 <EmptyDescription>
-                  حدث خطأ أثناء جلب البيانات. حاول مرة أخرى.
+                  {adminErrorMessage(query.error)}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
@@ -190,66 +164,31 @@ export default function ProposalsPage() {
       </div>
     );
   return (
-    <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>عروض الأسعار</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Sparkles />
-              </div>
-              <div className="flex flex-col gap-1">
-                <CardTitle className="text-2xl">قائمة عروض الأسعار</CardTitle>
-                <CardDescription>
-                  العروض المرسلة ومعدلات التحويل من الطلب إلى العقد.
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw />
-              {isFetching ? "جاري التحديث" : "تحديث"}
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
+    <div dir="rtl" className="flex flex-col gap-6">
+      <PageHeader title="عروض الأسعار" description="متابعة العروض ومعدلات التحويل من الطلب إلى العقد." icon={Sparkles} actions={<Button variant="outline" onClick={() => refetch()} disabled={isFetching}><RefreshCw data-icon="inline-start" />{isFetching ? "جاري التحديث" : "تحديث"}</Button>} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
           {
             label: "إجمالي العروض",
-            value: formatNumber(metrics.total),
+            value: typeof metrics.total === "number" ? formatNumber(metrics.total) : metrics.total,
             hint: "كل العروض",
             icon: Sparkles,
           },
           {
             label: "مرسلة",
-            value: formatNumber(metrics.sent),
+            value: typeof metrics.sent === "number" ? formatNumber(metrics.sent) : metrics.sent,
             hint: "بانتظار رد العميل",
             icon: TrendingUp,
           },
           {
             label: "مقبولة",
-            value: formatNumber(metrics.approved),
+            value: typeof metrics.approved === "number" ? formatNumber(metrics.approved) : metrics.approved,
             hint: "تحولت لفرص فعلية",
             icon: TrendingUp,
           },
           {
             label: "إجمالي القيمة",
-            value: formatCurrency(metrics.value),
+            value: typeof metrics.value === "number" ? formatCurrency(metrics.value) : metrics.value,
             hint: "القيمة الإجمالية",
             icon: Sparkles,
           },
@@ -285,16 +224,18 @@ export default function ProposalsPage() {
               <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 placeholder="ابحث بعنوان العرض أو العميل"
                 className="pr-10"
+                id="admin-proposal-search"
+                aria-label="البحث في عروض الأسعار"
               />
             </div>
             <Select
               value={status}
-              onValueChange={(v) => setStatus(v as "ALL" | ProposalStatus)}
+              onValueChange={(v) => { setStatus(v as "ALL" | ProposalStatus); setPage(1); }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="admin-proposal-status-filter" aria-label="تصفية حسب حالة العرض">
                 <SelectValue placeholder="كل الحالات" />
               </SelectTrigger>
               <SelectContent>
@@ -349,13 +290,11 @@ export default function ProposalsPage() {
                         <Badge variant={statusVariant(proposal.status)}>
                           {PROPOSAL_STATUS_AR[
                             proposal.status as ProposalStatus
-                          ] || proposal.status}
+                          ] || UNKNOWN_STATUS_LABEL}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {proposal.client?.companyName ||
-                          proposal.lead?.companyName ||
-                          "—"}
+                        {proposal.client?.companyName || proposal.request?.companyName || "—"}
                       </TableCell>
                       <TableCell>
                         {formatCurrency(proposal.totalPrice)}
@@ -379,6 +318,9 @@ export default function ProposalsPage() {
               </TableBody>
             </Table>
           </div>
+          {data && data.totalPages > 1 ? (
+            <Pagination aria-label="ترقيم صفحات العروض"><PaginationContent><PaginationItem><PaginationPrevious direction="rtl" text="السابق" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} /></PaginationItem><PaginationItem><span className="px-3 text-sm text-muted-foreground">صفحة {page} من {data.totalPages}</span></PaginationItem><PaginationItem><PaginationNext direction="rtl" text="التالي" disabled={page >= data.totalPages} onClick={() => setPage((current) => Math.min(data.totalPages, current + 1))} /></PaginationItem></PaginationContent></Pagination>
+          ) : null}
         </CardContent>
       </Card>
     </div>

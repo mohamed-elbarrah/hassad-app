@@ -85,7 +85,17 @@ function unwrap(result: RawResult): RawResult {
       ? { ...(envelope.data as Record<string, unknown>), meta: envelope.meta }
       : envelope.data;
 
-  return { data: unwrappedData, meta: result.meta };
+  // Keep application metadata in the transport metadata channel. Feature APIs
+  // can opt into it without treating the response envelope as feature data.
+  const transportMeta =
+    envelope.meta === undefined
+      ? result.meta
+      : ({
+          ...(result.meta ?? {}),
+          apiMeta: envelope.meta,
+        } as FetchBaseQueryMeta);
+
+  return { data: unwrappedData, meta: transportMeta };
 }
 
 function normalizeError(result: RawResult): RawResult {

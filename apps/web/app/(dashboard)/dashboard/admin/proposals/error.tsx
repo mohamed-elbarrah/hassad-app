@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageError";
+import { adminErrorMessage } from "@/lib/i18n";
 
 export default function Error({
   error,
@@ -12,10 +13,7 @@ export default function Error({
   return (
     <AdminPageError
       title="حدث خطأ في تحميل عروض الأسعار"
-      description={
-        error.message ||
-        "تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى."
-      }
+      description={adminErrorMessage(error)}
     />
   );
 }

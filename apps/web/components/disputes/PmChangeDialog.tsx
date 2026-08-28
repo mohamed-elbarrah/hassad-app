@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useId, useState } from "react";
 import { AlertTriangle, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
-import { UserRole } from "@hassad/shared";
-import { useChangePmMutation } from "@/features/admin/adminDisputesApi";
-import { useSearchUsersQuery } from "@/features/users/usersApi";
+import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
+import {
+  useChangePmMutation,
+  useGetAdminPmOptionsQuery,
+} from "@/features/admin/adminDisputesApi";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 interface PmChangeDialogProps {
@@ -42,21 +45,13 @@ export function PmChangeDialog({
 }: PmChangeDialogProps) {
   const [newPmId, setNewPmId] = useState("");
   const [reason, setReason] = useState("");
+  const id = useId();
   const [changePm, { isLoading: isChanging }] = useChangePmMutation();
 
-  const { data: pmsData, isLoading: isLoadingPms } = useSearchUsersQuery(
-    { role: UserRole.PM, limit: 100 },
-    { skip: !open },
-  );
+  const { data: pmOptions = [], isLoading: isLoadingPms } =
+    useGetAdminPmOptionsQuery(undefined, { skip: !open });
 
-  const availablePms = (pmsData?.items ?? []).filter((pm) => pm.id !== currentPmId);
-
-  useEffect(() => {
-    if (open) {
-      setNewPmId("");
-      setReason("");
-    }
-  }, [open]);
+  const availablePms = pmOptions.filter((pm) => pm.id !== currentPmId);
 
   const handleSubmit = async () => {
     if (!newPmId) {
@@ -76,19 +71,24 @@ export function PmChangeDialog({
         id: disputeId,
         input: { newPmId, reason: reason.trim() },
       }).unwrap();
-      toast.success("تم تغيير مدير المشروع", {
-        description: "تم إشعار جميع الأطراف بالتغيير.",
-      });
-      onOpenChange(false);
+      toast.success(adminSuccessMessage("DISPUTE_PM_CHANGED"));
+      handleOpenChange(false);
       onSuccess?.();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء تغيير المدير";
-      toast.error(message);
+    } catch (error: unknown) {
+      toast.error(adminErrorMessage(error));
     }
   };
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setNewPmId("");
+      setReason("");
+    }
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent dir="rtl">
         <DialogHeader>
           <DialogTitle>تغيير مدير المشروع</DialogTitle>
@@ -108,16 +108,16 @@ export function PmChangeDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">
+            <Label htmlFor={`${id}-new-pm`}>
               المدير الجديد <span className="text-destructive">*</span>
-            </label>
+            </Label>
             {isLoadingPms ? (
               <Skeleton className="h-10 w-full" />
             ) : availablePms.length === 0 ? (
               <p className="text-sm text-destructive">لا يوجد مديرون آخرون متاحون</p>
             ) : (
               <Select value={newPmId} onValueChange={setNewPmId}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id={`${id}-new-pm`} className="w-full" aria-label="مدير المشروع الجديد">
                   <SelectValue placeholder="اختر المدير الجديد" />
                 </SelectTrigger>
                 <SelectContent>
@@ -132,20 +132,22 @@ export function PmChangeDialog({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">
+            <Label htmlFor={`${id}-change-reason`}>
               سبب التغيير <span className="text-destructive">*</span>
-            </label>
+            </Label>
             <Textarea
+              id={`${id}-change-reason`}
               className="min-h-[100px]"
               placeholder="اشرح سبب تغيير المدير..."
               value={reason}
+              aria-label="سبب تغيير مدير المشروع"
               onChange={(e) => setReason(e.target.value)}
               dir="rtl"
             />
             <p className="text-xs text-muted-foreground">{reason.trim().length}/10 أحرف على الأقل</p>
           </div>
 
-          <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-900">
+          <div className="flex gap-3 rounded-xl border border-warning/20 bg-warning/10 p-3 text-warning-foreground">
             <AlertTriangle className="mt-0.5 shrink-0" />
             <div className="text-sm">
               <p className="mb-1 font-medium">تنبيه</p>
@@ -159,7 +161,7 @@ export function PmChangeDialog({
         </div>
 
         <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isChanging}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isChanging}>
             إلغاء
           </Button>
           <Button

@@ -26,7 +26,12 @@ import {
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { ProjectsService } from "../../projects/services/projects.service";
 import { StorageService } from "../../../common/storage/storage.service";
-import { StorageCategory } from "../../../common/storage/storage.constants";
+import {
+  StorageCategory,
+  STORAGE_CONFIG,
+  EXTENSION_MIME_MAP,
+} from "../../../common/storage/storage.constants";
+import { extname } from "path";
 
 type DisputeAudience = "admin" | "pm" | "client";
 
@@ -137,7 +142,7 @@ export class DisputesService {
             create: {
               toStatus: DisputeStatus.PENDING_APPROVAL,
               changedBy: userId,
-              note: "DISPUTE_CREATED",
+              eventCode: "DISPUTE_CREATED",
             },
           },
         },
@@ -258,7 +263,10 @@ export class DisputesService {
       throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
     }
 
-    return dispute;
+    return {
+      ...dispute,
+      history: this.historyResponse(dispute.history),
+    };
   }
 
   /**
@@ -417,7 +425,7 @@ export class DisputesService {
           authorId,
           content: dto.content,
           threadType,
-          isInternal: false,
+          isInternal: audience === "admin",
         },
         include: {
           author: { select: { id: true, name: true, avatarUrl: true } },
@@ -496,7 +504,8 @@ export class DisputesService {
             create: {
               toStatus: DisputeStatus.RESOLVED,
               changedBy: userId,
-              note: dto.feedback || "أكد العميل حل المشكلة",
+              eventCode: "DISPUTE_CLIENT_CONFIRMED",
+              metadata: dto.feedback ? { feedback: dto.feedback } : undefined,
             },
           },
         },
@@ -527,7 +536,8 @@ export class DisputesService {
               fromStatus: DisputeStatus.PENDING_CLIENT,
               toStatus: DisputeStatus.ESCALATED,
               changedBy: userId,
-              note: dto.feedback || "العميل يؤكد عدم حل المشكلة",
+              eventCode: "DISPUTE_CLIENT_ESCALATED",
+              metadata: dto.feedback ? { feedback: dto.feedback } : undefined,
             },
           },
         },
@@ -697,7 +707,10 @@ export class DisputesService {
       });
     }
 
-    return dispute;
+    return {
+      ...dispute,
+      history: this.historyResponse(dispute.history),
+    };
   }
 
   async getPmDisputeWorkspace(pmId: string, disputeId: string) {
@@ -745,7 +758,7 @@ export class DisputesService {
             fromStatus: DisputeStatus.APPROVED,
             toStatus: DisputeStatus.IN_PROGRESS,
             changedBy: pmId,
-            note: "DISPUTE_ACKNOWLEDGED",
+            eventCode: "DISPUTE_ACKNOWLEDGED",
           },
         },
       },
@@ -794,7 +807,7 @@ export class DisputesService {
               fromStatus: dispute.status,
               toStatus: DisputeStatus.PENDING_CLIENT,
               changedBy: pmId,
-              note: "DISPUTE_RESOLVED_BY_PM",
+              eventCode: "DISPUTE_RESOLVED_BY_PM",
             },
           },
         },
@@ -827,7 +840,8 @@ export class DisputesService {
    * Get all disputes (admin)
    */
   async getAllDisputes(filter: DisputeFilterDto) {
-    const { page = 1, limit = 20, ...where } = filter;
+    const { page = 1, limit = 20, search, ...where } = filter;
+    const normalizedSearch = search?.trim();
 
     const whereClause: Prisma.DisputeTicketWhereInput = {
       ...(where.status && { status: where.status as DisputeStatus }),
@@ -836,8 +850,19 @@ export class DisputesService {
       ...(where.projectId && { projectId: where.projectId }),
       ...(where.clientId && { clientId: where.clientId }),
       ...(where.pmId && { pmId: where.pmId }),
-      ...(where.fromDate && { openedAt: { gte: new Date(where.fromDate) } }),
-      ...(where.toDate && { openedAt: { lte: new Date(where.toDate) } }),
+      ...(normalizedSearch
+        ? { OR: [
+            { title: { contains: normalizedSearch, mode: "insensitive" } },
+            { project: { name: { contains: normalizedSearch, mode: "insensitive" } } },
+            { client: { companyName: { contains: normalizedSearch, mode: "insensitive" } } },
+          ] }
+        : {}),
+      ...((where.fromDate || where.toDate) && {
+        openedAt: {
+          ...(where.fromDate && { gte: new Date(where.fromDate) }),
+          ...(where.toDate && { lte: new Date(where.toDate) }),
+        },
+      }),
     };
 
     const [disputes, total] = await Promise.all([
@@ -859,6 +884,7 @@ export class DisputesService {
     ]);
 
     return {
+      __standardResponse: true as const,
       data: disputes,
       meta: {
         total,
@@ -881,7 +907,6 @@ export class DisputesService {
           select: {
             id: true,
             companyName: true,
-            userId: true,
             user: { select: { id: true, name: true, avatarUrl: true } },
           },
         },
@@ -891,13 +916,39 @@ export class DisputesService {
         newPm: { select: { id: true, name: true } },
         messages: {
           orderBy: { createdAt: "asc" },
-          include: {
+          select: {
+            id: true,
+            ticketId: true,
+            authorId: true,
+            content: true,
+            isInternal: true,
+            threadType: true,
+            createdAt: true,
             author: { select: { id: true, name: true, avatarUrl: true } },
-            attachments: true,
+            attachments: {
+              select: {
+                id: true,
+                fileName: true,
+                fileSize: true,
+                mimeType: true,
+                uploadedAt: true,
+                uploader: { select: { id: true, name: true } },
+              },
+            },
           },
         },
         attachments: {
-          include: { uploader: { select: { id: true, name: true } } },
+          select: {
+            id: true,
+            ticketId: true,
+            messageId: true,
+            uploadedBy: true,
+            fileName: true,
+            fileSize: true,
+            mimeType: true,
+            uploadedAt: true,
+            uploader: { select: { id: true, name: true } },
+          },
         },
         history: {
           orderBy: { changedAt: "asc" },
@@ -913,7 +964,48 @@ export class DisputesService {
     // Get PM stats
     const pmStats = await this.getPmStats(dispute.pmId);
 
-    return { ...dispute, pmStats };
+    return {
+      ...dispute,
+      history: this.historyResponse(dispute.history),
+      pmStats,
+      // Keep the UI aligned with the same server-side workflow rules enforced by
+      // the mutation methods below. The controller guard still protects the
+      // entire admin resource; these capabilities only describe this record.
+      capabilities: this.getAdminActionCapabilities(dispute.status),
+    };
+  }
+
+  private getAdminActionCapabilities(status: DisputeStatus) {
+    const pendingApproval = status === DisputeStatus.PENDING_APPROVAL;
+    const canMessage = (
+      [
+        DisputeStatus.APPROVED,
+        DisputeStatus.IN_PROGRESS,
+        DisputeStatus.PENDING_CLIENT,
+        DisputeStatus.ESCALATED,
+      ] as DisputeStatus[]
+    ).includes(status);
+
+    return {
+      approve: pendingApproval,
+      reject: pendingApproval,
+      changePm: (
+        [
+          DisputeStatus.ESCALATED,
+          DisputeStatus.IN_PROGRESS,
+          DisputeStatus.APPROVED,
+        ] as DisputeStatus[]
+      ).includes(status),
+      close: (
+        [
+          DisputeStatus.ESCALATED,
+          DisputeStatus.IN_PROGRESS,
+          DisputeStatus.APPROVED,
+          DisputeStatus.PENDING_CLIENT,
+        ] as DisputeStatus[]
+      ).includes(status),
+      message: canMessage,
+    };
   }
 
   /**
@@ -956,7 +1048,8 @@ export class DisputesService {
             fromStatus: DisputeStatus.PENDING_APPROVAL,
             toStatus: DisputeStatus.APPROVED,
             changedBy: adminId,
-            note: dto.notes || "تمت الموافقة على التذكرة",
+            eventCode: "DISPUTE_APPROVED",
+            metadata: dto.notes ? { notes: dto.notes } : undefined,
           },
         },
       },
@@ -1014,7 +1107,8 @@ export class DisputesService {
             fromStatus: DisputeStatus.PENDING_APPROVAL,
             toStatus: DisputeStatus.REJECTED,
             changedBy: adminId,
-            note: dto.reason,
+            eventCode: "DISPUTE_REJECTED",
+            metadata: { reason: dto.reason },
           },
         },
       },
@@ -1065,7 +1159,6 @@ export class DisputesService {
 
     const now = new Date();
     const oldPmId = dispute.pmId;
-    const oldPmName = dispute.pm?.name || "مدير المشروع السابق";
 
     // Use transaction for atomic operation
     const result = await this.prisma.$transaction(async (tx) => {
@@ -1087,13 +1180,14 @@ export class DisputesService {
           resolvedBy: adminId,
           resolvedAt: now,
           closedAt: now,
-          resolution: `تم تغيير مدير المشروع. السبب: ${dto.reason}`,
+          resolution: dto.reason,
           history: {
             create: {
               fromStatus: dispute.status,
               toStatus: DisputeStatus.RESOLVED,
               changedBy: adminId,
-              note: `تم تغيير مدير المشروع من ${oldPmName} إلى ${pmChangeResult.newPm.name}. السبب: ${dto.reason}`,
+              eventCode: "DISPUTE_PM_CHANGED",
+              metadata: { reason: dto.reason },
             },
           },
         },
@@ -1160,7 +1254,8 @@ export class DisputesService {
             fromStatus: dispute.status,
             toStatus: DisputeStatus.CLOSED,
             changedBy: adminId,
-            note: dto.resolution,
+            eventCode: "DISPUTE_CLOSED",
+            metadata: { resolution: dto.resolution },
           },
         },
       },
@@ -1227,36 +1322,57 @@ export class DisputesService {
   /**
    * Get admin dispute statistics
    */
-  async getAdminStats() {
+  async getAdminStats(filter: DisputeFilterDto = {}) {
+    const { search, ...where } = filter;
+    const normalizedSearch = search?.trim();
+    const whereClause: Prisma.DisputeTicketWhereInput = {
+      ...(where.status && { status: where.status as DisputeStatus }),
+      ...(where.category && { category: where.category as DisputeCategory }),
+      ...(where.priority && { priority: where.priority as DisputePriority }),
+      ...(where.projectId && { projectId: where.projectId }),
+      ...(where.clientId && { clientId: where.clientId }),
+      ...(where.pmId && { pmId: where.pmId }),
+      ...(where.fromDate || where.toDate ? { openedAt: {
+        ...(where.fromDate ? { gte: new Date(where.fromDate) } : {}),
+        ...(where.toDate ? { lte: new Date(where.toDate) } : {}),
+      } } : {}),
+      ...(normalizedSearch ? { OR: [
+        { title: { contains: normalizedSearch, mode: "insensitive" } },
+        { project: { name: { contains: normalizedSearch, mode: "insensitive" } } },
+        { client: { companyName: { contains: normalizedSearch, mode: "insensitive" } } },
+      ] } : {}),
+    };
+    const statusCountWhere = (
+      statuses: DisputeStatus[],
+    ): Prisma.DisputeTicketWhereInput => ({
+      ...whereClause,
+      ...(where.status
+        ? statuses.includes(where.status as DisputeStatus)
+          ? { status: where.status as DisputeStatus }
+          : { id: "__no_matching_dispute__" }
+        : { status: { in: statuses } }),
+    });
+
     const [pendingApproval, active, escalated, resolved, closed] =
       await Promise.all([
-        // Pending approval
         this.prisma.disputeTicket.count({
-          where: { status: DisputeStatus.PENDING_APPROVAL },
+          where: statusCountWhere([DisputeStatus.PENDING_APPROVAL]),
         }),
-        // Active (approved or in progress)
         this.prisma.disputeTicket.count({
-          where: {
-            status: {
-              in: [
-                DisputeStatus.APPROVED,
-                DisputeStatus.IN_PROGRESS,
-                DisputeStatus.PENDING_CLIENT,
-              ],
-            },
-          },
+          where: statusCountWhere([
+            DisputeStatus.APPROVED,
+            DisputeStatus.IN_PROGRESS,
+            DisputeStatus.PENDING_CLIENT,
+          ]),
         }),
-        // Escalated
         this.prisma.disputeTicket.count({
-          where: { status: DisputeStatus.ESCALATED },
+          where: statusCountWhere([DisputeStatus.ESCALATED]),
         }),
-        // Resolved
         this.prisma.disputeTicket.count({
-          where: { status: DisputeStatus.RESOLVED },
+          where: statusCountWhere([DisputeStatus.RESOLVED]),
         }),
-        // Closed
         this.prisma.disputeTicket.count({
-          where: { status: DisputeStatus.CLOSED },
+          where: statusCountWhere([DisputeStatus.CLOSED]),
         }),
       ]);
 
@@ -1341,9 +1457,10 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException(
-        "التذكرة غير موجودة أو ليس لديك صلاحية للوصول إليها",
-      );
+      throw new NotFoundException({
+        code: "DISPUTE_NOT_FOUND",
+        details: {},
+      });
     }
 
     return dispute;
@@ -1382,34 +1499,35 @@ export class DisputesService {
     dispute: Awaited<ReturnType<DisputesService["getAdminThreadContext"]>>,
     threadType: DisputeThreadType,
   ) {
-    const clientName =
-      dispute.client?.companyName ?? dispute.client?.user?.name ?? "Client";
-    const pmName = dispute.pm?.name ?? "PM";
+    const clientName = dispute.client?.companyName ?? dispute.client?.user?.name;
+    const pmName = dispute.pm?.name;
 
     if (threadType === DisputeThreadType.CLIENT_PM) {
       return {
         threadType,
-        title: "Client ↔ PM",
-        description:
-          "Private resolution thread between the client and the assigned PM.",
-        participantsLabel: `${clientName} and ${pmName}`,
+        titleCode: "DISPUTE_THREAD_CLIENT_PM",
+        descriptionCode: "DISPUTE_THREAD_CLIENT_PM_DESCRIPTION",
+        participantIds: [dispute.client?.userId, dispute.pmId].filter(Boolean),
+        participantNames: [clientName, pmName].filter(Boolean),
       };
     }
 
     if (threadType === DisputeThreadType.ADMIN_CLIENT) {
       return {
         threadType,
-        title: "Admin ↔ Client",
-        description: "Private thread visible only to admins and the client.",
-        participantsLabel: `Admins and ${clientName}`,
+        titleCode: "DISPUTE_THREAD_ADMIN_CLIENT",
+        descriptionCode: "DISPUTE_THREAD_ADMIN_CLIENT_DESCRIPTION",
+        participantIds: [dispute.client?.userId].filter(Boolean),
+        participantNames: [clientName].filter(Boolean),
       };
     }
 
     return {
       threadType,
-      title: "Admin ↔ PM",
-      description: "Private thread visible only to admins and the assigned PM.",
-      participantsLabel: `Admins and ${pmName}`,
+      titleCode: "DISPUTE_THREAD_ADMIN_PM",
+      descriptionCode: "DISPUTE_THREAD_ADMIN_PM_DESCRIPTION",
+      participantIds: [dispute.pmId].filter(Boolean),
+      participantNames: [pmName].filter(Boolean),
     };
   }
 
@@ -1428,6 +1546,50 @@ export class DisputesService {
     return "ADMIN";
   }
 
+  private historyResponse(
+    history: Array<{
+      id: string;
+      ticketId: string;
+      fromStatus: DisputeStatus | null;
+      toStatus: DisputeStatus;
+      changedBy: string;
+      changedAt: Date;
+      eventCode: string | null;
+      metadata: Prisma.JsonValue | null;
+      note?: string | null;
+      changer: { id: string; name: string };
+    }>,
+  ) {
+    return history.map((entry) => {
+      const legacyNote = entry.note;
+      const eventCode =
+        typeof entry.eventCode === "string" && entry.eventCode.trim().length > 0
+          ? entry.eventCode
+          : typeof legacyNote === "string" && /^[A-Z0-9_]+$/.test(legacyNote)
+            ? legacyNote
+            : null;
+      const metadata =
+        entry.metadata &&
+        typeof entry.metadata === "object" &&
+        !Array.isArray(entry.metadata)
+          ? entry.metadata
+          : null;
+
+      // Never expose the legacy note: old rows may contain human-language text.
+      return {
+        id: entry.id,
+        ticketId: entry.ticketId,
+        fromStatus: entry.fromStatus,
+        toStatus: entry.toStatus,
+        changedBy: entry.changedBy,
+        changedAt: entry.changedAt,
+        eventCode,
+        metadata,
+        changer: entry.changer,
+      };
+    });
+  }
+
   private async attachDisputeUrls(attachments: Array<any>) {
     const keys = attachments.map((attachment) => attachment.filePath);
     const urlMap = await this.storageService.getMultiplePresignedUrls(keys);
@@ -1435,7 +1597,6 @@ export class DisputesService {
     return attachments.map((attachment) => ({
       id: attachment.id,
       fileName: attachment.fileName,
-      filePath: attachment.filePath,
       fileSize: attachment.fileSize,
       mimeType: attachment.mimeType,
       uploadedAt: attachment.uploadedAt?.toISOString?.() ?? null,
@@ -1559,6 +1720,21 @@ export class DisputesService {
     files: Express.Multer.File[],
     messageId?: string,
   ): Promise<void> {
+    const config = STORAGE_CONFIG[StorageCategory.DISPUTE_ATTACHMENT];
+    for (const file of files) {
+      const expectedMime = EXTENSION_MIME_MAP[extname(file.originalname).toLowerCase()];
+      if (file.size > config.maxFileSize) {
+        throw new BadRequestException({ code: "FILE_TOO_LARGE", details: {} });
+      }
+      if (
+        !expectedMime ||
+        file.mimetype !== expectedMime ||
+        !config.allowedMimeTypes.includes(file.mimetype)
+      ) {
+        throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
+      }
+    }
+
     const attachmentData = await Promise.all(
       files.map(async (file) => {
         const result = await this.storageService.upload({
@@ -1670,7 +1846,7 @@ export class DisputesService {
 
     if (!systemUser) {
       // No admin user found, skip this run
-      return { escalated: 0, error: "No admin user found for system actions" };
+      return { escalated: 0, code: "SYSTEM_USER_NOT_FOUND" };
     }
 
     const pastDeadline = await this.prisma.disputeTicket.findMany({
@@ -1691,7 +1867,7 @@ export class DisputesService {
               fromStatus: dispute.status as DisputeStatus,
               toStatus: DisputeStatus.ESCALATED,
               changedBy: systemUser.id,
-              note: "DISPUTE_ESCALATED_TIMEOUT",
+              eventCode: "DISPUTE_ESCALATED_TIMEOUT",
             },
           },
         },

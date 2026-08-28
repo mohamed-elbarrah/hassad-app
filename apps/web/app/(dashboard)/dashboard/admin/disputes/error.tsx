@@ -3,8 +3,8 @@
 import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageError";
 
 export default function Error({
-  error,
-  reset: _reset,
+  error: _error,
+  reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
@@ -12,10 +12,8 @@ export default function Error({
   return (
     <AdminPageError
       title="حدث خطأ في تحميل النزاعات"
-      description={
-        error.message ||
-        "تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى."
-      }
+      description="تعذر تحميل البيانات. يرجى المحاولة مرة أخرى."
+      onRetry={reset}
     />
   );
 }

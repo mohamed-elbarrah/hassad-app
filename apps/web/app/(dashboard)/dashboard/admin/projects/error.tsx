@@ -30,8 +30,7 @@ export default function Error({
             <EmptyHeader>
               <EmptyTitle>حدث خطأ في تحميل المشاريع</EmptyTitle>
               <EmptyDescription>
-                {error.message ||
-                  "تعذر تحميل البيانات. يرجى المحاولة مرة أخرى."}
+                تعذر تحميل البيانات. يرجى المحاولة مرة أخرى.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

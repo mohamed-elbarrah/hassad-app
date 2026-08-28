@@ -4,6 +4,7 @@ import { RequirePermissions } from "../../../common/decorators/permissions.decor
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { AdminProposalsQueryDto } from "../dto/admin-proposals.dto";
 
 @Controller("admin/proposals")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -12,7 +13,7 @@ export class AdminProposalsController {
 
   @Get()
   @RequirePermissions("admin.proposals.read")
-  findAll(@Query() q: any) {
+  findAll(@Query() q: AdminProposalsQueryDto) {
     return this.service.findAll(q);
   }
 
@@ -20,6 +21,13 @@ export class AdminProposalsController {
   @RequirePermissions("admin.proposals.read")
   getStats() {
     return this.service.getStats();
+  }
+
+  /** Capabilities describe the authenticated admin actor, not a proposal resource. */
+  @Get("capabilities")
+  @RequirePermissions("admin.proposals.read")
+  getActorCapabilities(@CurrentUser("id") userId: string) {
+    return this.service.getActorCapabilities(userId);
   }
 
   @Get(":id")
@@ -30,7 +38,7 @@ export class AdminProposalsController {
 
   @Post(":id/convert-to-contract")
   @RequirePermissions("admin.proposals.intervene")
-  convertToContract(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.service.convertToContract(id, user.id);
+  convertToContract(@Param("id") id: string, @CurrentUser("id") userId: string) {
+    return this.service.convertToContract(id, userId);
   }
 }

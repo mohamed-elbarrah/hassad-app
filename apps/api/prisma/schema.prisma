@@ -2442,7 +2442,10 @@ model DisputeHistory {
   toStatus   DisputeStatus  @map("to_status")
   changedBy  String         @map("changed_by")
   changedAt  DateTime       @default(now()) @map("changed_at")
-  note       String?
+  /// Machine-readable history event. Legacy rows may have this unset.
+  eventCode  String?        @map("event_code")
+  metadata   Json?
+  note       String? // Legacy compatibility; new writes use eventCode/metadata.
 
   ticket  DisputeTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   changer User          @relation(fields: [changedBy], references: [id])

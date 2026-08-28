@@ -31,14 +31,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -64,7 +56,10 @@ import {
   DisputePriority,
   DisputeStatus,
 } from "@hassad/shared";
-import { formatDateTime, formatNumber } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
+import { adminErrorMessage, UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
+import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageError";
+import { PageHeader } from "@/components/common/PageHeader";
 
 function statusVariant(status: string) {
   switch (status) {
@@ -158,128 +153,95 @@ export default function DisputesPage() {
   const [status, setStatus] = useState<"ALL" | DisputeStatus>("ALL");
   const [category, setCategory] = useState<"ALL" | DisputeCategory>("ALL");
   const [priority, setPriority] = useState<"ALL" | DisputePriority>("ALL");
+  const [page, setPage] = useState(1);
+  const limit = 20;
+  const filters = {
+    limit,
+    page,
+    search: search.trim() || undefined,
+    status: status === "ALL" ? undefined : status,
+    category: category === "ALL" ? undefined : category,
+    priority: priority === "ALL" ? undefined : priority,
+  };
 
-  const { data: stats } = useGetAdminDisputeStatsQuery();
-  const { data, isLoading, isError, isFetching, refetch } =
-    useGetAdminDisputesQuery({
-      limit: 100,
-      status: status === "ALL" ? undefined : status,
-      category: category === "ALL" ? undefined : category,
-      priority: priority === "ALL" ? undefined : priority,
-    });
-
-  const disputes = data?.data ?? [];
-
-  const filteredDisputes = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return disputes;
-    return disputes.filter((dispute) =>
-      [
-        dispute.title,
-        dispute.project.name,
-        dispute.client.companyName,
-        dispute.ticketNumber,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query)),
-    );
-  }, [search, disputes]);
-
+  const { data: stats } = useGetAdminDisputeStatsQuery(filters);
+  const { data, isLoading, isError, isFetching, refetch, error } =
+    useGetAdminDisputesQuery(filters);
+  const disputes = useMemo(() => data?.items ?? [], [data?.items]);
+  const total = data?.meta.total ?? 0;
+  const totalPages = data?.meta.totalPages ?? 1;
   const metrics = useMemo(
     () => ({
-      total: filteredDisputes.length,
+      total,
       pendingApproval:
         stats?.pendingApproval ??
-        filteredDisputes.filter(
+        disputes.filter(
           (item) => item.status === DisputeStatus.PENDING_APPROVAL,
         ).length,
       escalated:
         stats?.escalated ??
-        filteredDisputes.filter(
+        disputes.filter(
           (item) => item.status === DisputeStatus.ESCALATED,
         ).length,
       resolved:
         stats?.resolved ??
-        filteredDisputes.filter(
+        disputes.filter(
           (item) => item.status === DisputeStatus.RESOLVED,
         ).length,
       open:
         stats?.active ??
-        filteredDisputes.filter(
+        disputes.filter(
           (item) =>
             item.status === DisputeStatus.APPROVED ||
             item.status === DisputeStatus.IN_PROGRESS ||
             item.status === DisputeStatus.PENDING_CLIENT,
         ).length,
     }),
-    [filteredDisputes, stats],
+    [disputes, stats, total],
   );
 
   if (isLoading) return <LoadingState />;
 
   if (isError) {
     return (
-      <div dir="rtl" className="  ">
-        <Card>
-          <CardContent className="p-8">
-            <Empty>
-              <EmptyMedia variant="icon">
-                <ShieldAlert />
-              </EmptyMedia>
-              <EmptyHeader>
-                <EmptyTitle>تعذر تحميل النزاعات</EmptyTitle>
-                <EmptyDescription>
-                  حدث خطأ أثناء جلب البيانات. حاول مرة أخرى.
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button onClick={() => refetch()}>إعادة المحاولة</Button>
-              </EmptyContent>
-            </Empty>
-          </CardContent>
-        </Card>
+      <div dir="rtl">
+        <AdminPageError
+          title="تعذر تحميل النزاعات"
+          description={adminErrorMessage(error)}
+          onRetry={refetch}
+        />
       </div>
     );
   }
 
   return (
     <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>النزاعات</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <ShieldAlert />
-              </div>
-              <div className="flex flex-col gap-1">
-                <CardTitle className="text-2xl">قائمة النزاعات</CardTitle>
-                <CardDescription>
-                  مراقبة ملفات التصعيد والحل وتأثيرها على المشاريع والعملاء.
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">الرئيسية</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>النزاعات</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <PageHeader
+          title="قائمة النزاعات"
+          description="مراقبة ملفات التصعيد والحل وتأثيرها على المشاريع والعملاء."
+          icon={ShieldAlert}
+          actions={
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw />
               {isFetching ? "جاري التحديث" : "تحديث"}
             </Button>
-          </div>
-        </CardHeader>
-      </Card>
+          }
+        />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
@@ -340,16 +302,24 @@ export default function DisputesPage() {
               <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="ابحث بعنوان النزاع أو المشروع أو العميل"
                 className="pr-10"
+                id="admin-dispute-search"
+                aria-label="البحث في النزاعات"
               />
             </div>
             <Select
               value={status}
-              onValueChange={(v) => setStatus(v as "ALL" | DisputeStatus)}
+              onValueChange={(v) => {
+                setStatus(v as "ALL" | DisputeStatus);
+                setPage(1);
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="admin-dispute-status-filter" aria-label="تصفية حسب الحالة">
                 <SelectValue placeholder="كل الحالات" />
               </SelectTrigger>
               <SelectContent>
@@ -365,9 +335,12 @@ export default function DisputesPage() {
             </Select>
             <Select
               value={category}
-              onValueChange={(v) => setCategory(v as "ALL" | DisputeCategory)}
+              onValueChange={(v) => {
+                setCategory(v as "ALL" | DisputeCategory);
+                setPage(1);
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="admin-dispute-category-filter" aria-label="تصفية حسب التصنيف">
                 <SelectValue placeholder="كل التصنيفات" />
               </SelectTrigger>
               <SelectContent>
@@ -383,9 +356,12 @@ export default function DisputesPage() {
             </Select>
             <Select
               value={priority}
-              onValueChange={(v) => setPriority(v as "ALL" | DisputePriority)}
+              onValueChange={(v) => {
+                setPriority(v as "ALL" | DisputePriority);
+                setPage(1);
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="admin-dispute-priority-filter" aria-label="تصفية حسب الأولوية">
                 <SelectValue placeholder="كل الأولويات" />
               </SelectTrigger>
               <SelectContent>
@@ -416,7 +392,7 @@ export default function DisputesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDisputes.length === 0 ? (
+                {disputes.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={8}
@@ -426,7 +402,7 @@ export default function DisputesPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredDisputes.map((dispute: AdminDisputeItem) => (
+                  disputes.map((dispute: AdminDisputeItem) => (
                     <TableRow key={dispute.id}>
                       <TableCell>
                         <Link
@@ -444,18 +420,18 @@ export default function DisputesPage() {
                       <TableCell>
                         <Badge variant={statusVariant(dispute.status)}>
                           {DISPUTE_STATUS_AR[dispute.status as DisputeStatus] ||
-                            dispute.status}
+                            UNKNOWN_STATUS_LABEL}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {DISPUTE_CATEGORY_AR[
                           dispute.category as DisputeCategory
-                        ] || dispute.category}
+                        ] || UNKNOWN_STATUS_LABEL}
                       </TableCell>
                       <TableCell>
                         {DISPUTE_PRIORITY_AR[
                           dispute.priority as DisputePriority
-                        ] || dispute.priority}
+                        ] || UNKNOWN_STATUS_LABEL}
                       </TableCell>
                       <TableCell>
                         {formatNumber(dispute._count.messages)}
@@ -476,6 +452,15 @@ export default function DisputesPage() {
               </TableBody>
             </Table>
           </div>
+          {totalPages > 1 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3" aria-label="ترقيم صفحات النزاعات">
+              <span className="text-sm text-muted-foreground">الصفحة {formatNumber(page)} من {formatNumber(totalPages)}</span>
+              <div className="flex gap-2">
+                <Button aria-label="الانتقال إلى الصفحة السابقة" variant="outline" size="sm" onClick={() => setPage((current) => current - 1)} disabled={page === 1 || isFetching}>السابق</Button>
+                <Button aria-label="الانتقال إلى الصفحة التالية" variant="outline" size="sm" onClick={() => setPage((current) => current + 1)} disabled={page >= totalPages || isFetching}>التالي</Button>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

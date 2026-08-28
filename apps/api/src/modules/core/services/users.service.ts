@@ -35,7 +35,10 @@ export class UsersService {
       where: { name: roleName },
     });
     if (!role) {
-      throw new BadRequestException(`Role "${roleName}" not found`);
+      throw new BadRequestException({
+        code: "ROLE_NOT_FOUND",
+        details: { role: roleName },
+      });
     }
     return role.id;
   }
@@ -45,7 +48,10 @@ export class UsersService {
       where: { name: deptName },
     });
     if (!dept) {
-      throw new BadRequestException(`Department "${deptName}" not found`);
+      throw new BadRequestException({
+        code: "DEPARTMENT_NOT_FOUND",
+        details: { department: deptName },
+      });
     }
     return dept.id;
   }
@@ -119,6 +125,17 @@ export class UsersService {
     }
 
     return this.normalise(user);
+  }
+
+  async getActivePmOptions() {
+    return this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        role: { name: UserRole.PM },
+      },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
   }
 
   async findAll(filters: UserListFilters = {}) {

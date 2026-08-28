@@ -54,8 +54,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { REQUEST_STATUS_AR, RequestStatus } from "@hassad/shared";
 import { formatDateTime, formatNumber } from "@/lib/format";
+import { adminErrorMessage, UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
+import { PageHeader } from "@/components/common/PageHeader";
 
 function statusVariant(status: string) {
   switch (status) {
@@ -142,16 +151,19 @@ function LoadingState() {
 export default function RequestsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ALL" | RequestStatus>("ALL");
-  const { data, isLoading, isError, isFetching, refetch } =
+  const [page, setPage] = useState(1);
+  const { data, isLoading, isError, error, isFetching, refetch } =
     useGetAdminRequestsQuery({
-      limit: 1000,
+      page,
+      limit: 20,
       search: search || undefined,
       status: status === "ALL" ? undefined : status,
     });
-  const requests = data?.items ?? [];
+  const requests = useMemo(() => data?.items ?? [], [data?.items]);
+  const total = data?.total ?? 0;
   const metrics = useMemo(
     () => ({
-      total: requests.length,
+      total,
       signed: requests.filter((i) => i.status === RequestStatus.SIGNED).length,
       projectCreated: requests.filter(
         (i) => i.status === RequestStatus.PROJECT_CREATED,
@@ -163,7 +175,7 @@ export default function RequestsPage() {
       ).length,
       services: requests.reduce((s, i) => s + (i.servicesCount || 0), 0),
     }),
-    [requests],
+    [requests, total],
   );
   if (isLoading) return <LoadingState />;
   if (isError)
@@ -178,7 +190,7 @@ export default function RequestsPage() {
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل الطلبات</EmptyTitle>
                 <EmptyDescription>
-                  حدث خطأ أثناء جلب بيانات الطلبات. حاول مرة أخرى.
+                  {adminErrorMessage(error)}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
@@ -191,42 +203,32 @@ export default function RequestsPage() {
     );
   return (
     <div dir="rtl" className="flex flex-col gap-6   ">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="/dashboard">الرئيسية</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>الطلبات</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <ClipboardList />
-              </div>
-              <div className="flex flex-col gap-1">
-                <CardTitle className="text-2xl">قائمة الطلبات</CardTitle>
-                <CardDescription>
-                  متابعة الطلبات قبل التحويل إلى عرض سعر أو عقد.
-                </CardDescription>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">الرئيسية</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>الطلبات</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <PageHeader
+          title="قائمة الطلبات"
+          description="متابعة الطلبات قبل التحويل إلى عرض سعر أو عقد."
+          icon={ClipboardList}
+          actions={
             <Button variant="outline" size="sm" onClick={() => refetch()}>
               <RefreshCw />
               {isFetching ? "جاري التحديث" : "تحديث"}
             </Button>
-          </div>
-        </CardHeader>
-      </Card>
+          }
+        />
+      </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
           {
@@ -238,19 +240,19 @@ export default function RequestsPage() {
           {
             label: "بانتظار المعالجة",
             value: formatNumber(metrics.waiting),
-            hint: "طلبات جديدة/تأهيل",
+            hint: "في الصفحة الحالية",
             icon: Users,
           },
           {
             label: "تم توقيعها",
             value: formatNumber(metrics.signed),
-            hint: "طلبات تحولت إلى عقد",
+            hint: "في الصفحة الحالية",
             icon: CheckCircle2,
           },
           {
             label: "عدد الخدمات",
             value: formatNumber(metrics.services),
-            hint: "إجمالي الخدمات المضافة",
+            hint: "في الصفحة الحالية",
             icon: ClipboardList,
           },
         ].map((item) => (
@@ -285,16 +287,24 @@ export default function RequestsPage() {
               <Search className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="ابحث باسم الشركة أو جهة الاتصال"
                 className="pr-10"
+                id="admin-request-search"
+                aria-label="البحث في الطلبات"
               />
             </div>
             <Select
               value={status}
-              onValueChange={(v) => setStatus(v as "ALL" | RequestStatus)}
+              onValueChange={(v) => {
+                setStatus(v as "ALL" | RequestStatus);
+                setPage(1);
+              }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="admin-request-status-filter" aria-label="تصفية حسب حالة الطلب">
                 <SelectValue placeholder="كل الحالات" />
               </SelectTrigger>
               <SelectContent>
@@ -346,11 +356,11 @@ export default function RequestsPage() {
                           {request.id}
                         </div>
                       </TableCell>
-                      <TableCell>{request.assigneeName || "—"}</TableCell>
+                      <TableCell>{request.contactName || "—"}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(request.status)}>
                           {REQUEST_STATUS_AR[request.status as RequestStatus] ||
-                            request.status}
+                            UNKNOWN_STATUS_LABEL}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -374,6 +384,33 @@ export default function RequestsPage() {
               </TableBody>
             </Table>
           </div>
+          {data && data.totalPages > 1 ? (
+            <Pagination aria-label="ترقيم صفحات الطلبات">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    direction="rtl"
+                    text="السابق"
+                    disabled={page <= 1 || isFetching}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="px-3 text-sm text-muted-foreground">
+                    صفحة {data.page} من {data.totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    direction="rtl"
+                    text="التالي"
+                    disabled={page >= data.totalPages || isFetching}
+                    onClick={() => setPage((current) => Math.min(data.totalPages, current + 1))}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          ) : null}
         </CardContent>
       </Card>
     </div>

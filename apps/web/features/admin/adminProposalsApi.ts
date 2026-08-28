@@ -6,8 +6,8 @@ export interface AdminProposalItem {
   title: string;
   status: string;
   totalPrice: number;
-  lead: { id: string; companyName: string } | null;
   client: { id: string; companyName: string } | null;
+  request: { id: string; companyName: string } | null;
   creator: { id: string; name: string } | null;
   createdAt: string;
 }
@@ -35,7 +35,17 @@ export interface AdminProposalStats {
   approved: number;
   rejected: number;
   revisionRequested: number;
+  value: number;
   conversionRate: number;
+}
+
+export interface AdminProposalActorCapabilities {
+  canIntervene: boolean;
+}
+
+export interface AdminProposalActionResult {
+  code: string;
+  contractId?: string;
 }
 
 export interface AdminProposalDetail {
@@ -43,7 +53,7 @@ export interface AdminProposalDetail {
   title: string;
   status: string;
   totalPrice: number;
-  lead: { id: string; companyName: string; contactName: string } | null;
+  lead?: { id: string; companyName: string; contactName: string } | null;
   client: { id: string; companyName: string } | null;
   creator: { id: string; name: string; email: string } | null;
   request: {
@@ -79,6 +89,11 @@ export const adminProposalsApi = createApi({
       providesTags: ["AdminProposals"],
     }),
 
+    getAdminProposalActorCapabilities: builder.query<AdminProposalActorCapabilities, void>({
+      query: () => "/admin/proposals/capabilities",
+      providesTags: ["AdminProposals"],
+    }),
+
     getAdminProposalById: builder.query<AdminProposalDetail, string>({
       query: (id) => `/admin/proposals/${id}`,
       providesTags: (_result, _error, id) => [{ type: "AdminProposal", id }],
@@ -89,7 +104,7 @@ export const adminProposalsApi = createApi({
       providesTags: ["AdminProposalStats"],
     }),
 
-    convertAdminProposalToContract: builder.mutation<void, string>({
+    convertAdminProposalToContract: builder.mutation<AdminProposalActionResult, string>({
       query: (id) => ({
         url: `/admin/proposals/${id}/convert-to-contract`,
         method: "POST",
@@ -102,6 +117,7 @@ export const adminProposalsApi = createApi({
 export const {
   useGetAdminProposalsQuery,
   useGetAdminProposalByIdQuery,
+  useGetAdminProposalActorCapabilitiesQuery,
   useGetAdminProposalStatsQuery,
   useConvertAdminProposalToContractMutation,
 } = adminProposalsApi;

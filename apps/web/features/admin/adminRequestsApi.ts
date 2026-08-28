@@ -1,9 +1,98 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import type {
+  BusinessType,
+  ClientSource,
+  ContactLogResult,
+  ContactLogType,
+  RequestStatus,
+} from "@hassad/shared";
+
+export interface AdminRequestContactLogPayload {
+  type: ContactLogType;
+  result: ContactLogResult;
+  notes?: string;
+}
+
+export interface AdminRequestDetail {
+  id: string;
+  clientId: string;
+  submittedBy?: string | null;
+  assignedSalesId?: string | null;
+  companyName: string;
+  contactName: string;
+  phoneWhatsapp: string;
+  email?: string | null;
+  businessName: string;
+  businessType: BusinessType;
+  source: ClientSource;
+  notes?: string | null;
+  status: RequestStatus;
+  contactAttemptCount: number;
+  lastContactAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  client: { id: string; companyName: string } | null;
+  assignee: { id: string; name: string; email: string } | null;
+  services: Array<{
+    id: string;
+    serviceId: string;
+    quantity: number;
+    notes?: string | null;
+    service: { id: string; name: string; nameAr?: string | null };
+  }>;
+  capabilities?: {
+    canLogContact: boolean;
+    canUpdateStatus: boolean;
+    allowedNextStatuses: RequestStatus[];
+  };
+  statusHistory: Array<{
+    id: string;
+    fromStatus?: RequestStatus | null;
+    toStatus: RequestStatus;
+    changedBy?: string | null;
+    changedAt: string;
+    changer?: { id: string; name: string; email: string } | null;
+    note?: string | null;
+  }>;
+  contactLogs: Array<{
+    id: string;
+    type: ContactLogType;
+    result: ContactLogResult;
+    notes?: string | null;
+    contactedAt: string;
+    userId: string;
+    user: { id: string; name: string; email: string };
+  }>;
+  currentStageSince: string;
+  proposals: Array<{
+    id: string;
+    title: string;
+    status: string;
+    totalPrice?: number;
+    createdAt: string;
+  }>;
+  contracts: Array<{
+    id: string;
+    title: string;
+    status: string;
+    totalValue?: number;
+    createdAt: string;
+  }>;
+  project?: {
+    id: string;
+    name: string;
+    status: string;
+    startDate?: string;
+    endDate?: string;
+    createdAt: string;
+  } | null;
+}
 
 export interface AdminRequestItem {
   id: string;
   clientName: string;
+  contactName: string;
   assigneeId: string | null;
   assigneeName: string;
   status: string;
@@ -37,37 +126,6 @@ export interface AdminRequestService {
   notes: string | null;
 }
 
-export interface AdminRequestDetail {
-  id: string;
-  clientId: string;
-  submittedBy: string | null;
-  assignedSalesId: string | null;
-  companyName: string;
-  contactName: string;
-  phoneWhatsapp: string;
-  email: string | null;
-  businessName: string;
-  businessType: string;
-  source: string;
-  notes: string | null;
-  internalNotes: string | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  client: { id: string; companyName: string } | null;
-  assignee: { id: string; name: string; email: string } | null;
-  services: AdminRequestService[];
-  statusHistory: Array<{
-    id: string;
-    fromStatus: string | null;
-    toStatus: string;
-    changedBy: string;
-    changedAt: string;
-    changer: { id: string; name: string };
-    note: string | null;
-  }>;
-}
-
 export const adminRequestsApi = createApi({
   reducerPath: "adminRequestsApi",
   baseQuery,
@@ -95,8 +153,20 @@ export const adminRequestsApi = createApi({
       query: (id) => `/admin/requests/${id}`,
       providesTags: (_result, _error, id) => [{ type: "AdminRequest", id }],
     }),
+    updateAdminRequestStatus: builder.mutation<{ code: string }, { id: string; status: RequestStatus; reason: string }>({
+      query: ({ id, status, reason }) => ({ url: `/admin/requests/${id}/force-status`, method: "POST", body: { status, reason } }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminRequest", id }, "AdminRequests"],
+    }),
+    addAdminRequestContactLog: builder.mutation<{ code: string }, { id: string; body: AdminRequestContactLogPayload }>({
+      query: ({ id, body }) => ({ url: `/admin/requests/${id}/contact-log`, method: "POST", body }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminRequest", id }, "AdminRequests"],
+    }),
   }),
 });
 
-export const { useGetAdminRequestsQuery, useGetAdminRequestByIdQuery } =
-  adminRequestsApi;
+export const {
+  useGetAdminRequestsQuery,
+  useGetAdminRequestByIdQuery,
+  useUpdateAdminRequestStatusMutation,
+  useAddAdminRequestContactLogMutation,
+} = adminRequestsApi;

@@ -19,9 +19,17 @@ import {
 import { AdminDetailBreadcrumb } from "@/components/dashboard/admin/shared/AdminDetailBreadcrumb";
 import { AdminDetailSkeleton } from "@/components/dashboard/admin/shared/AdminDetailSkeleton";
 import { AdminDetailError } from "@/components/dashboard/admin/shared/AdminDetailError";
+import { ErrorState } from "@/components/design-system/EmptyState";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { useGetAdminProjectByIdQuery, useArchiveAdminProjectMutation, useUnarchiveAdminProjectMutation } from "@/features/admin/adminProjectsApi";
+import {
+  useGetAdminProjectActorCapabilitiesQuery,
+  useGetAdminProjectByIdQuery,
+  useArchiveAdminProjectMutation,
+  useUnarchiveAdminProjectMutation,
+} from "@/features/admin/adminProjectsApi";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
 
 const TABS = [
   { key: "", label: "الملخص" },
@@ -49,8 +57,16 @@ export default function ProjectDetailLayout({
     refetch,
   } = useGetAdminProjectByIdQuery(id);
 
-  const [archive] = useArchiveAdminProjectMutation();
-  const [unarchive] = useUnarchiveAdminProjectMutation();
+  const {
+    data: capabilities,
+    error: capabilitiesError,
+    isError: isCapabilitiesError,
+    refetch: refetchCapabilities,
+  } = useGetAdminProjectActorCapabilitiesQuery();
+  const canIntervene = capabilities?.canIntervene === true;
+
+  const [archive, { isLoading: isArchiving }] = useArchiveAdminProjectMutation();
+  const [unarchive, { isLoading: isUnarchiving }] = useUnarchiveAdminProjectMutation();
 
   const [actionModal, setActionModal] = useState<{
     type: "archive" | "unarchive";
@@ -68,13 +84,16 @@ export default function ProjectDetailLayout({
     if (!actionModal || !reason.trim()) return;
     try {
       if (actionModal.type === "archive") {
-        await archive(id).unwrap();
-      } else if (actionModal.type === "unarchive") {
-        await unarchive(id).unwrap();
+        await archive({ id, reason: reason.trim() }).unwrap();
+      } else {
+        await unarchive({ id, reason: reason.trim() }).unwrap();
       }
-    } catch { /* best-effort */ }
-    setActionModal(null);
-    setReason("");
+      toast.success(adminSuccessMessage("PROJECT_ACTION_COMPLETED"));
+      setActionModal(null);
+      setReason("");
+    } catch (error) {
+      toast.error(adminErrorMessage(error));
+    }
   };
 
   if (isLoading) return <AdminDetailSkeleton />;
@@ -91,7 +110,7 @@ export default function ProjectDetailLayout({
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="flex flex-col gap-6" dir="rtl">
       <div className="flex items-center justify-between">
         <AdminDetailBreadcrumb
           backHref="/dashboard/admin/projects"
@@ -119,7 +138,14 @@ export default function ProjectDetailLayout({
             </Link>
           </Button>
         )}
-        {project.isArchived ? (
+        {isCapabilitiesError ? (
+          <ErrorState
+            title="تعذّر تحميل صلاحيات الإدارة"
+            message={adminErrorMessage(capabilitiesError)}
+            onRetry={() => refetchCapabilities()}
+            className="min-h-0 flex-row gap-2 rounded-md border-0 bg-transparent p-0"
+          />
+        ) : canIntervene ? project.isArchived ? (
           <Button
             variant="outline"
             size="sm"
@@ -135,7 +161,7 @@ export default function ProjectDetailLayout({
           >
             أرشفة
           </Button>
-        )}
+        ) : null}
       </div>
 
       <Tabs value={currentTab} className="w-full">
@@ -179,14 +205,16 @@ export default function ProjectDetailLayout({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
+            id="admin-project-archive-reason"
             placeholder="سبب الإجراء (مطلوب)"
+            aria-label="سبب الإجراء"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             className="min-h-[96px]"
           />
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setReason("")}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAction} disabled={!reason.trim()}>
+            <AlertDialogAction onClick={handleAction} disabled={!reason.trim() || isArchiving || isUnarchiving}>
               أرشفة
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -205,14 +233,16 @@ export default function ProjectDetailLayout({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
+            id="admin-project-unarchive-reason"
             placeholder="سبب الإجراء (مطلوب)"
+            aria-label="سبب الإجراء"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             className="min-h-[96px]"
           />
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setReason("")}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAction} disabled={!reason.trim()}>
+            <AlertDialogAction onClick={handleAction} disabled={!reason.trim() || isArchiving || isUnarchiving}>
               إلغاء الأرشفة
             </AlertDialogAction>
           </AlertDialogFooter>

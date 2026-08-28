@@ -21,8 +21,8 @@ export interface AdminProjectItem {
   remainingValue: number;
 }
 
-export interface PaginatedAdminProjects {
-  items: AdminProjectItem[];
+export interface PaginatedAdminProjects<T = AdminProjectItem> {
+  items: T[];
   total: number;
   page: number;
   limit: number;
@@ -38,6 +38,22 @@ export interface AdminProjectFilters {
   overdueOnly?: boolean;
   page?: number;
   limit?: number;
+}
+
+export interface AdminProjectActionResult {
+  code: string;
+}
+
+export interface AdminProjectActorCapabilities {
+  canIntervene: boolean;
+}
+
+export interface AdminProjectMemberMutationResult {
+  id: string;
+  projectId: string;
+  userId: string;
+  role: string;
+  joinedAt: string;
 }
 
 export interface AdminProjectMember {
@@ -56,12 +72,12 @@ export interface AdminProjectTask {
   priority: string;
   dueDate: string | null;
   assignedTo: string | null;
+  assigneeName?: string;
 }
 
 export interface AdminProjectFile {
   id: string;
   fileName: string;
-  filePath: string;
   uploadedBy: string;
   uploadedAt: string;
 }
@@ -111,6 +127,27 @@ export interface AdminProjectHistoryEntry {
   createdAt: string;
 }
 
+export interface AdminProjectDeliverable {
+  id: string;
+  title?: string;
+  status: string;
+  createdAt: string;
+  task?: { id: string; title: string } | null;
+  period?: { id: string; periodNumber: number } | null;
+}
+
+export interface AdminProjectPeriodDetails extends AdminProjectPeriod {
+  invoice?: { id: string; invoiceNumber: string; status: string; amount: number } | null;
+  _count?: { tasks: number; deliverables: number; meetings: number };
+}
+
+export interface AdminProjectTimelineEntry {
+  id: string;
+  action: string;
+  createdAt: string;
+  user?: { id: string; name: string } | null;
+}
+
 export interface AdminProjectDetail {
   id: string;
   clientId: string;
@@ -148,41 +185,43 @@ export const adminProjectsApi = createApi({
   baseQuery,
   tagTypes: ["AdminProjects", "AdminProject"],
   endpoints: (builder) => ({
-    reassignAdminProjectPM: builder.mutation<void, { id: string; projectManagerId: string }>({
-      query: ({ id, projectManagerId }) => ({
+    reassignAdminProjectPM: builder.mutation<AdminProjectActionResult, { id: string; pmUserId: string; reason?: string }>({
+      query: ({ id, pmUserId, reason }) => ({
         url: `/admin/projects/${id}/reassign-pm`,
         method: "POST",
-        body: { projectManagerId },
+        body: { pmUserId, reason },
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }, "AdminProjects"],
     }),
 
-    archiveAdminProject: builder.mutation<void, string>({
-      query: (id) => ({
+    archiveAdminProject: builder.mutation<AdminProjectActionResult, { id: string; reason: string }>({
+      query: ({ id, reason }) => ({
         url: `/admin/projects/${id}/archive`,
         method: "POST",
-      }),
-      invalidatesTags: (_result, _error, id) => [{ type: "AdminProject", id }, "AdminProjects"],
-    }),
-
-    unarchiveAdminProject: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/admin/projects/${id}/unarchive`,
-        method: "POST",
-      }),
-      invalidatesTags: (_result, _error, id) => [{ type: "AdminProject", id }, "AdminProjects"],
-    }),
-
-    forceAdminProjectStatus: builder.mutation<void, { id: string; status: string }>({
-      query: ({ id, status }) => ({
-        url: `/admin/projects/${id}/force-status`,
-        method: "POST",
-        body: { status },
+        body: { reason },
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }, "AdminProjects"],
     }),
 
-    addAdminProjectMember: builder.mutation<void, { id: string; userId: string; role: string }>({
+    unarchiveAdminProject: builder.mutation<AdminProjectActionResult, { id: string; reason: string }>({
+      query: ({ id, reason }) => ({
+        url: `/admin/projects/${id}/unarchive`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }, "AdminProjects"],
+    }),
+
+    forceAdminProjectStatus: builder.mutation<AdminProjectActionResult, { id: string; status: string; reason?: string }>({
+      query: ({ id, status, reason }) => ({
+        url: `/admin/projects/${id}/force-status`,
+        method: "POST",
+        body: { status, reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }, "AdminProjects"],
+    }),
+
+    addAdminProjectMember: builder.mutation<AdminProjectMemberMutationResult, { id: string; userId: string; role: string }>({
       query: ({ id, userId, role }) => ({
         url: `/admin/projects/${id}/members`,
         method: "POST",
@@ -210,8 +249,37 @@ export const adminProjectsApi = createApi({
       providesTags: ["AdminProjects"],
     }),
 
+    getAdminProjectActorCapabilities: builder.query<AdminProjectActorCapabilities, void>({
+      query: () => "/admin/projects/capabilities",
+      providesTags: ["AdminProjects"],
+    }),
+
     getAdminProjectById: builder.query<AdminProjectDetail, string>({
       query: (id) => `/admin/projects/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "AdminProject", id }],
+    }),
+    getAdminProjectPeriods: builder.query<AdminProjectPeriodDetails[], string>({
+      query: (id) => `/admin/projects/${id}/periods`,
+      providesTags: (_result, _error, id) => [{ type: "AdminProject", id }],
+    }),
+    getAdminProjectTeam: builder.query<AdminProjectMember[], string>({
+      query: (id) => `/admin/projects/${id}/team`,
+      providesTags: (_result, _error, id) => [{ type: "AdminProject", id }],
+    }),
+    addAdminProjectTask: builder.mutation<AdminProjectTask, { id: string; title: string; assigneeId?: string; priority?: string; dueDate?: string; status?: string }>({
+      query: ({ id, ...body }) => ({ url: `/admin/projects/${id}/tasks`, method: "POST", body }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }],
+    }),
+    getAdminProjectTasks: builder.query<PaginatedAdminProjects<AdminProjectTask>, { id: string; page?: number; limit?: number; status?: string; priority?: string }>({
+      query: ({ id, page = 1, limit = 20, status, priority }) => ({ url: `/admin/projects/${id}/tasks`, params: { page, limit, ...(status ? { status } : {}), ...(priority ? { priority } : {}) } }),
+      providesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }],
+    }),
+    getAdminProjectDeliverables: builder.query<PaginatedAdminProjects<AdminProjectDeliverable>, { id: string; page?: number; limit?: number; status?: string }>({
+      query: ({ id, page = 1, limit = 20, status }) => ({ url: `/admin/projects/${id}/deliverables`, params: { page, limit, ...(status ? { status } : {}) } }),
+      providesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }],
+    }),
+    getAdminProjectTimeline: builder.query<AdminProjectTimelineEntry[], string>({
+      query: (id) => `/admin/projects/${id}/timeline`,
       providesTags: (_result, _error, id) => [{ type: "AdminProject", id }],
     }),
   }),
@@ -220,9 +288,16 @@ export const adminProjectsApi = createApi({
 export const {
   useGetAdminProjectsQuery,
   useGetAdminProjectByIdQuery,
+  useGetAdminProjectActorCapabilitiesQuery,
   useReassignAdminProjectPMMutation,
   useArchiveAdminProjectMutation,
   useUnarchiveAdminProjectMutation,
   useForceAdminProjectStatusMutation,
   useAddAdminProjectMemberMutation,
+  useAddAdminProjectTaskMutation,
+  useGetAdminProjectPeriodsQuery,
+  useGetAdminProjectTeamQuery,
+  useGetAdminProjectTasksQuery,
+  useGetAdminProjectDeliverablesQuery,
+  useGetAdminProjectTimelineQuery,
 } = adminProjectsApi;

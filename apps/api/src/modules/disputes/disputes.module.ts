@@ -13,6 +13,7 @@ import {
 } from "./services";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { ProjectsModule } from "../projects/projects.module";
+import { CoreModule } from "../core/core.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ProjectsModule } from "../projects/projects.module";
     }),
     NotificationsModule,
     ProjectsModule,
+    CoreModule,
   ],
   controllers: [
     PortalDisputesController,

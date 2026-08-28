@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -11,7 +11,18 @@ import {
   Paperclip,
   SquareCheckBig,
 } from "lucide-react";
-import { useGetAdminTaskByIdQuery } from "@/features/admin/adminTasksApi";
+import {
+  useForceTransitionAdminTaskMutation,
+  useGetAdminTaskByIdQuery,
+  useGetAdminTaskActorCapabilitiesQuery,
+  useReassignAdminTaskMutation,
+  type AdminTaskDetail,
+} from "@/features/admin/adminTasksApi";
+import {
+  adminErrorMessage,
+  adminSuccessMessage,
+  UNKNOWN_STATUS_LABEL,
+} from "@/lib/i18n";
 import {
   buildTaskLifecycleFields,
   buildTaskOperationalFields,
@@ -22,12 +33,12 @@ import {
   TaskHistoryTable,
   TaskInfoGrid,
   TaskStatsGrid,
-  TaskSummaryCard,
+  TaskDetailHeader,
   TaskTabsCard,
   type TaskDetailEntity,
   type TaskTabItem,
 } from "@/components/task-detail/TaskDetailPattern";
-import { useMarketingTaskExtraTabs } from "@/components/task-detail/MarketingTaskExtras";
+import { ErrorState } from "@/components/design-system/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,9 +59,18 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { formatDateTime } from "@/lib/format";
-import { TaskDepartment } from "@hassad/shared";
+import { TaskStatus, TASK_STATUS_AR } from "@hassad/shared";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-function mapTask(task: any): TaskDetailEntity {
+function mapTask(task: AdminTaskDetail): TaskDetailEntity {
   return {
     id: task.id,
     title: task.title,
@@ -84,12 +104,35 @@ export default function TaskDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: task, isLoading, isError } = useGetAdminTaskByIdQuery(id);
-  const marketingTabs = useMarketingTaskExtraTabs({
-    taskId: id,
-    canManage: false,
-  });
-
+  const {
+    data: task,
+    isLoading,
+    isError,
+    error: loadError,
+    refetch,
+  } = useGetAdminTaskByIdQuery(id);
+  const [
+    forceTransition,
+    {
+      isLoading: isTransitioning,
+      error: transitionError,
+      data: transitionResult,
+    },
+  ] = useForceTransitionAdminTaskMutation();
+  const [
+    reassign,
+    { isLoading: isReassigning, error: reassignError, data: reassignResult },
+  ] = useReassignAdminTaskMutation();
+  const [nextStatus, setNextStatus] = useState<string>("");
+  const [reason, setReason] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
+  const {
+    data: capabilities,
+    error: capabilitiesError,
+    isError: isCapabilitiesError,
+    refetch: refetchCapabilities,
+  } = useGetAdminTaskActorCapabilitiesQuery();
+  const canIntervene = capabilities?.canIntervene === true;
   if (isLoading) return <TaskDetailLoading />;
 
   if (isError || !task) {
@@ -104,16 +147,21 @@ export default function TaskDetailPage({
               <EmptyHeader>
                 <EmptyTitle>المهمة غير موجودة</EmptyTitle>
                 <EmptyDescription>
-                  لم نتمكن من العثور على بيانات هذه المهمة.
+                  {loadError
+                    ? adminErrorMessage(loadError)
+                    : "لم نتمكن من العثور على بيانات هذه المهمة."}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
-                <Button asChild>
-                  <Link href="/dashboard/admin/tasks">
-                    <ArrowLeft data-icon="inline-start" />
-                    العودة إلى المهام
-                  </Link>
-                </Button>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button onClick={() => refetch()}>إعادة المحاولة</Button>
+                  <Button variant="outline" asChild>
+                    <Link href="/dashboard/admin/tasks">
+                      <ArrowLeft data-icon="inline-start" />
+                      العودة إلى المهام
+                    </Link>
+                  </Button>
+                </div>
               </EmptyContent>
             </Empty>
           </CardContent>
@@ -131,8 +179,6 @@ export default function TaskDetailPage({
     commentsCount: task.comments.length,
     filesCount: task.files.length,
   });
-  const isMarketingTask = task.department?.name === TaskDepartment.MARKETING;
-
   const tabs: TaskTabItem[] = [
     {
       value: "overview",
@@ -274,10 +320,6 @@ export default function TaskDetailPage({
     },
   ];
 
-  if (isMarketingTask) {
-    tabs.splice(1, 0, ...marketingTabs);
-  }
-
   return (
     <div className="flex flex-col gap-6   " dir="rtl">
       <Breadcrumb>
@@ -300,24 +342,117 @@ export default function TaskDetailPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <TaskSummaryCard
+      <TaskDetailHeader
         task={taskEntity}
         badges={[
           <Badge key="department" variant="outline">
-            {task.department.name}
+            {task.department?.name ?? "—"}
           </Badge>,
         ]}
         actions={
-          <Button variant="outline" asChild>
-            <Link href={`/dashboard/admin/projects/${task.project.id}`}>
-              <ArrowLeft data-icon="inline-start" />
-              المشروع
-            </Link>
-          </Button>
+          task.project ? (
+            <Button variant="outline" asChild>
+              <Link href={`/dashboard/admin/projects/${task.project.id}`}>
+                <ArrowLeft data-icon="inline-start" />
+                المشروع
+              </Link>
+            </Button>
+          ) : null
         }
       />
 
       <TaskStatsGrid stats={stats} />
+
+      {isCapabilitiesError ? (
+        <ErrorState
+          title="تعذّر تحميل صلاحيات الإدارة"
+          message={adminErrorMessage(capabilitiesError)}
+          onRetry={() => refetchCapabilities()}
+        />
+      ) : canIntervene ? (
+        <Card>
+          <CardContent className="flex flex-col gap-4 p-6">
+            <div>
+              <h2 className="font-semibold">إجراءات الإدارة</h2>
+              <p className="text-sm text-muted-foreground">
+                تتطلب الإجراءات سبباً وتُسجّل في سجل التدقيق.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="admin-task-assignee">
+                  معرّف المكلّف الجديد
+                </Label>
+                <Input
+                  id="admin-task-assignee"
+                  value={assigneeId}
+                  onChange={(event) => setAssigneeId(event.target.value)}
+                  placeholder="UUID"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="admin-task-status">الحالة الجديدة</Label>
+                <Select value={nextStatus} onValueChange={setNextStatus}>
+                  <SelectTrigger id="admin-task-status">
+                    <SelectValue placeholder="اختر الحالة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {task.availableTransitionTargets.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {TASK_STATUS_AR[value] ?? UNKNOWN_STATUS_LABEL}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="admin-task-reason">سبب الإجراء</Label>
+                <Input
+                  id="admin-task-reason"
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                />
+              </div>
+            </div>
+            {transitionError || reassignError ? (
+              <p role="alert" className="text-sm text-destructive">
+                {adminErrorMessage(transitionError || reassignError)}
+              </p>
+            ) : null}
+            {reassignResult ? (
+              <p role="status" className="text-sm text-success-600">
+                {adminSuccessMessage(reassignResult.code)}
+              </p>
+            ) : null}
+            {transitionResult ? (
+              <p role="status" className="text-sm text-success-600">
+                {adminSuccessMessage(transitionResult.code)}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                disabled={!assigneeId || !reason || isReassigning || isTransitioning}
+                onClick={() => reassign({ id, assigneeId, reason }).unwrap()}
+              >
+                إعادة تعيين المهمة
+              </Button>
+              <Button
+                variant="outline"
+                disabled={!nextStatus || !reason || isTransitioning || isReassigning}
+                onClick={() =>
+                  forceTransition({
+                    id,
+                    status: nextStatus as TaskStatus,
+                    reason,
+                  }).unwrap()
+                }
+              >
+                تغيير الحالة
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <TaskTabsCard defaultValue="overview" tabs={tabs} />
     </div>

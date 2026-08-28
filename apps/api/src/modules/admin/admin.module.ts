@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../../auth/auth.module";
+import { StorageModule } from "../../common/storage/storage.module";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { FinanceModule } from "../finance/finance.module";
 import { PaymentsModule } from "../payments/payments.module";
@@ -100,6 +101,7 @@ import { CrmModule } from "../crm/crm.module";
     CrmModule,
     TerminusModule,
     AuthModule,
+    StorageModule,
   ],
   controllers: [
     AdminController,
