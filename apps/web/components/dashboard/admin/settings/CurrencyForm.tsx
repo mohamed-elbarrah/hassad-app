@@ -3,7 +3,12 @@
 import { useState, useRef, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, Upload, Save, X, Ban } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/design-system/Select";
@@ -73,8 +78,15 @@ function LivePreview({ data }: { data: CurrencyFormData }) {
   const hasSymbol = data.symbol || data.svgKey;
 
   return (
-    <Card title="معاينة مباشرة" icon={Eye}>
-      <div className="space-y-5">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Eye aria-hidden="true" />
+          معاينة مباشرة
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-5">
         <div className="flex flex-wrap items-center gap-6">
           <div>
             <p className="text-xs text-portal-note-text mb-1">الرمز</p>
@@ -100,7 +112,7 @@ function LivePreview({ data }: { data: CurrencyFormData }) {
             معاينة المبلغ
           </p>
           {hasSymbol ? (
-            <div className="bg-neutral-50 rounded-xl p-4 space-y-3">
+            <div className="bg-neutral-50 rounded-xl p-4 flex flex-col gap-3">
               <div className="flex items-center gap-2 text-2xl font-semibold text-natural-100">
                 <span>{formatPreview(1500)}</span>
                 <SymbolRenderer currency={preview} width={28} height={28} />
@@ -128,7 +140,8 @@ function LivePreview({ data }: { data: CurrencyFormData }) {
             </span>
           </div>
         )}
-      </div>
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -258,13 +271,14 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
   const isSubmitting = isCreating || isUpdating;
 
   return (
-    <div className="page-shell" dir="rtl">
+    <div className="flex flex-col gap-6" dir="rtl">
       {/* Main form */}
-      <Card
-        title={mode === "create" ? "إضافة عملة جديدة" : "تعديل العملة"}
-        icon={mode === "create" ? undefined : undefined}
-      >
-        <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>{mode === "create" ? "إضافة عملة جديدة" : "تعديل العملة"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-6">
           {/* Basic info */}
           <div>
             <h3 className="text-base font-semibold text-natural-100 mb-4">
@@ -319,6 +333,7 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
               نوع الترميز
             </h3>
             <Select
+              id="currency-symbol-type"
               label="نوع الترميز"
               value={formData.symbolType}
               onValueChange={(val) =>
@@ -374,6 +389,7 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
                         type="button"
                         onClick={() => updateField("svgKey", "")}
                         className="text-danger-500 hover:text-danger-700"
+                        aria-label="إزالة ملف SVG"
                       >
                         <X className="size-4" />
                       </button>
@@ -450,7 +466,8 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
               </p>
             )}
           </div>
-        </div>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Live preview */}

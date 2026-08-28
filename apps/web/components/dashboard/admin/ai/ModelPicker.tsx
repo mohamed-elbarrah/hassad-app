@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { RefreshCw, AlertTriangle, Loader2, Search } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface ModelPickerProps {
@@ -47,7 +50,7 @@ export function ModelPicker({
     if (selected.length === 0 && defaultModels.length > 0) {
       onChange(defaultModels);
     }
-  }, []);
+  }, [defaultModels, onChange, selected.length]);
 
   async function handleFetch() {
     if (!apiKey || !onFetch) return;
@@ -61,7 +64,7 @@ export function ModelPicker({
       } else {
         setFetched(result.models);
         onChange(result.models);
-        setFetchError(result.message ?? "تعذر جلب النماذج");
+        setFetchError("تعذر جلب النماذج من المزود");
       }
     } catch {
       setFetchError("تعذر الاتصال بالمزود");
@@ -89,69 +92,50 @@ export function ModelPicker({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-secondary-500">
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-medium">
           النماذج المتاحة ({selected.length}/{displayModels.length})
-        </label>
-        <button
-          type="button"
-          onClick={handleFetch}
-          disabled={fetching || !apiKey}
-          className="flex items-center gap-1.5 px-3 h-8 rounded-lg border border-neutral-200 text-xs text-portal-note-text hover:bg-neutral-50 disabled:opacity-40 transition-colors"
-        >
+        </h3>
+        <Button type="button" variant="outline" size="sm" onClick={handleFetch} disabled={fetching || !apiKey}>
           {fetching ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
           ) : (
             <RefreshCw className="w-3.5 h-3.5" />
           )}
           {fetching ? "جاري الجلب..." : "جلب النماذج المتاحة"}
-        </button>
+        </Button>
       </div>
 
       {fetchError && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-alert-50 text-alert-700 text-xs">
-          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>{fetchError} — تم استخدام النماذج الافتراضية</span>
-        </div>
+        <Alert variant="destructive">
+          <AlertTriangle />
+          <AlertDescription>{fetchError} — تم استخدام النماذج الافتراضية</AlertDescription>
+        </Alert>
       )}
 
       {displayModels.length === 0 ? (
-        <p className="text-xs text-portal-note-text py-2">
+        <p className="py-2 text-xs text-muted-foreground">
           {apiKey
             ? 'اضغط "جلب النماذج المتاحة" لعرض النماذج'
             : "أدخل مفتاح API لجلب النماذج المتاحة"}
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-portal-note-text pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث عن نموذج..."
-              className="w-full h-10 pr-10 pl-4 text-sm text-secondary-500 bg-white border border-neutral-200 rounded-xl placeholder:text-neutral-200 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors text-right"
-            />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث عن نموذج..." className="pr-10 text-right" aria-label="البحث عن نموذج" />
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={selectAllVisible}
-              className="text-xs px-2.5 py-1 rounded-lg border border-neutral-200 text-portal-note-text hover:bg-neutral-50 transition-colors"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={selectAllVisible}>
               تحديد الكل ({filteredModels.length})
-            </button>
-            <button
-              type="button"
-              onClick={deselectAllVisible}
-              className="text-xs px-2.5 py-1 rounded-lg border border-neutral-200 text-portal-note-text hover:bg-neutral-50 transition-colors"
-            >
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={deselectAllVisible}>
               إلغاء تحديد الكل
-            </button>
+            </Button>
             {search && (
-              <span className="text-xs text-portal-note-text mr-auto">
+              <span className="text-xs text-muted-foreground mr-auto">
                 {filteredModels.length} من {displayModels.length}
               </span>
             )}
@@ -159,8 +143,8 @@ export function ModelPicker({
 
           <div
             className={cn(
-              "grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto rounded-xl border border-neutral-200 p-2",
-              fetched ? "bg-success-50/30" : "bg-badge-gray-bg/30",
+              "grid max-h-48 grid-cols-1 gap-1.5 overflow-y-auto rounded-xl border border-input p-2 sm:grid-cols-2",
+              fetched ? "bg-muted/30" : "bg-muted/20",
             )}
           >
             {filteredModels.map((model) => {
@@ -171,8 +155,8 @@ export function ModelPicker({
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm",
                     isSelected
-                      ? "bg-secondary-50 text-secondary-700"
-                      : "text-portal-note-text hover:bg-neutral-50",
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-muted-foreground hover:bg-muted",
                   )}
                 >
                   <Checkbox
@@ -184,7 +168,7 @@ export function ModelPicker({
               );
             })}
             {filteredModels.length === 0 && search && (
-              <p className="col-span-full text-xs text-portal-note-text text-center py-4">
+              <p className="col-span-full py-4 text-center text-xs text-muted-foreground">
                 لا توجد نماذج تطابق "{search}"
               </p>
             )}
