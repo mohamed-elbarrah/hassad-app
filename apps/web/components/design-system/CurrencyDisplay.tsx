@@ -28,7 +28,7 @@ export function CurrencyDisplay({
   if (isLoading) {
     return (
       <span className={cn("inline-flex items-center gap-1", className)}>
-        <span className="animate-pulse bg-neutral-200 rounded h-4 w-16" />
+        <span aria-hidden="true" className="h-4 w-16 animate-pulse rounded bg-muted" />
       </span>
     );
   }

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useCurrency } from "@/hooks/useCurrency";
+import { SymbolRenderer } from "@/components/design-system/CurrencySymbol";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -16,10 +17,10 @@ export const CurrencyInput = React.forwardRef<
       <Input
         ref={ref}
         {...props}
-        className={cn("pl-16 text-right", className)}
+        className={cn("min-h-11 pe-16 text-start", className)}
       />
-      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-input px-3 text-sm text-muted-foreground">
-        {currency.symbol}
+      <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 end-0 flex items-center border-s border-input px-3 text-sm text-muted-foreground">
+        <SymbolRenderer currency={currency} width={24} height={20} />
       </span>
     </div>
   );

@@ -20,13 +20,13 @@ export function AdminPageError({
     <Card className="border-destructive/30 bg-destructive/5">
       <CardHeader className="items-center text-center">
         <div className="rounded-full bg-destructive/10 p-3 text-destructive">
-          <AlertTriangle className="h-6 w-6" />
+          <AlertTriangle className="size-6" />
         </div>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex justify-center gap-2">
-        <Button variant="outline" onClick={onRetry}>
+        <Button variant="outline" className="min-h-11" onClick={onRetry}>
           <RefreshCcw className="h-4 w-4" />
           إعادة المحاولة
         </Button>

@@ -44,6 +44,7 @@ import { AdminBusinessGoalController } from "./controllers/admin-business-goal.c
 import { AdminWorkspacesController } from "./controllers/admin-workspaces.controller";
 import { AdminCrmOrdersController } from "./controllers/admin-crm-orders.controller";
 import { AdminContractMigrationReviewController } from "./controllers/admin-contract-migration-review.controller";
+import { AdminCurrencySettingsController } from "./controllers/admin-currency-settings.controller";
 
 import { AdminActionLogService } from "./services/admin-action-log.service";
 import { AdminKpiService } from "./services/admin-kpi.service";
@@ -88,6 +89,7 @@ import { HealthPersistenceService } from "../health/services/health-persistence.
 import { RobustErrorLoggerService } from "../health/services/robust-error-logger.service";
 import { RequestsModule } from "../requests/requests.module";
 import { CrmModule } from "../crm/crm.module";
+import { SettingsModule } from "../settings/settings.module";
 
 @Module({
   imports: [
@@ -99,6 +101,7 @@ import { CrmModule } from "../crm/crm.module";
     AiModule,
     RequestsModule,
     CrmModule,
+    SettingsModule,
     TerminusModule,
     AuthModule,
     StorageModule,
@@ -108,6 +111,7 @@ import { CrmModule } from "../crm/crm.module";
     AdminWorkspacesController,
     AdminCrmOrdersController,
     AdminContractMigrationReviewController,
+    AdminCurrencySettingsController,
     AdminKpiController,
     AdminAuditController,
     AdminSettingsController,

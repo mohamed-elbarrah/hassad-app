@@ -4,14 +4,14 @@ import {
   IsOptional,
   IsNumber,
   IsBoolean,
-  Min,
-  IsUUID,
+  IsPositive,
 } from "class-validator";
 import { SanitizeSvg } from "../../../common/security/sanitize-svg.decorator";
 
 export enum SymbolType {
   TEXT = "TEXT",
   SVG_URL = "SVG_URL",
+  SVG_UPLOAD = "SVG_UPLOAD",
   SVG_INLINE = "SVG_INLINE",
 }
 
@@ -53,7 +53,7 @@ export class CreateCurrencySettingDto {
   isActive?: boolean;
 
   @IsNumber()
-  @Min(0)
+  @IsPositive()
   @IsOptional()
   exchangeRate?: number;
 }
@@ -97,7 +97,7 @@ export class UpdateCurrencySettingDto {
   isActive?: boolean;
 
   @IsNumber()
-  @Min(0)
+  @IsPositive()
   @IsOptional()
   exchangeRate?: number;
 }

@@ -2328,6 +2328,7 @@ enum ServiceCategory {
 enum SymbolType {
   TEXT
   SVG_URL
+  SVG_UPLOAD
   SVG_INLINE
 }
 

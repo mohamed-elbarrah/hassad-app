@@ -11,9 +11,11 @@ import { Transform } from "class-transformer";
 import { cleanSvgContent } from "./svg-sanitizer";
 
 export function SanitizeSvg() {
-  return Transform(({ value }) => {
+  return Transform(({ value, obj }) => {
     if (value === undefined || value === null) return value;
     if (typeof value !== "string") return value;
-    return cleanSvgContent(value);
+    // URLs and storage keys are validated as references by the currency
+    // service; only inline SVG payloads should pass through the sanitizer.
+    return obj?.symbolType === "SVG_INLINE" ? cleanSvgContent(value) : value;
   });
 }

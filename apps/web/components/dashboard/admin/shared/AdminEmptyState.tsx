@@ -34,11 +34,11 @@ export function AdminEmptyState({
       {actionLabel && (
         <EmptyContent>
           {actionHref ? (
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" className="min-h-11" asChild>
               <Link href={actionHref}>{actionLabel}</Link>
             </Button>
           ) : onAction ? (
-            <Button variant="outline" size="sm" onClick={onAction}>
+            <Button variant="outline" size="sm" className="min-h-11" onClick={onAction}>
               {actionLabel}
             </Button>
           ) : null}

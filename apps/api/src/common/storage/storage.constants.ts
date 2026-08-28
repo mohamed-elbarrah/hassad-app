@@ -155,7 +155,7 @@ export const STORAGE_CONFIG: Record<
   },
   [StorageCategory.CURRENCY_SVG]: {
     keyPrefix: "currency-svgs",
-    maxFileSize: 5 * 1024 * 1024,
+    maxFileSize: 1024 * 1024,
     allowedMimeTypes: ["image/svg+xml"],
   },
   [StorageCategory.DISPUTE_ATTACHMENT]: {
