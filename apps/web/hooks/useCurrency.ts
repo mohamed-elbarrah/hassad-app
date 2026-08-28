@@ -1,26 +1,28 @@
 // apps/web/hooks/useCurrency.ts
 import { useMemo } from "react";
+import { useGetDefaultCurrencyQuery } from "@/features/settings/settingsApi";
+import type { CurrencySymbolType } from "@/features/settings/settingsApi";
 import {
-  useGetDefaultCurrencyQuery,
-  type CurrencySymbolType,
-} from "@/features/settings/settingsApi";
+  DEFAULT_LOCALE,
+  formatCurrencyAmount,
+  formatNumber,
+  type CurrencyPresentation,
+  type CurrencyReference,
+} from "@/lib/currency";
 
-export interface CurrencyConfig {
-  code: string;
+export interface CurrencyConfig extends CurrencyPresentation {
   name: string;
-  symbol: string;
   symbolType: CurrencySymbolType;
-  /** External URL for SVG_URL; storage keys are never renderable values. */
+  /** Durable source: URL, inline markup, or private upload reference. */
   svgKey?: string | null;
-  /** Resolved URL for an uploaded asset. */
+  /** Resolved presentation URL; never submitted as a source. */
   svgUrl?: string | null;
   svgWidth?: number | null;
   svgHeight?: number | null;
   isDefault: boolean;
+  /** Retained from settings metadata; display amounts are already denominated in code. */
   exchangeRate: number;
 }
-
-const LOCALE = "ar-SA-u-nu-latn";
 
 const DEFAULT_CURRENCY: CurrencyConfig = {
   code: "SAR",
@@ -36,7 +38,12 @@ const DEFAULT_CURRENCY: CurrencyConfig = {
 };
 
 export function useCurrency() {
-  const { data: setting, isLoading } = useGetDefaultCurrencyQuery(undefined);
+  const {
+    data: setting,
+    isLoading,
+    isError,
+    error,
+  } = useGetDefaultCurrencyQuery(undefined);
 
   const currency: CurrencyConfig = useMemo(
     () =>
@@ -60,28 +67,19 @@ export function useCurrency() {
     [setting],
   );
 
-  const fmtAmount = (amount: number | undefined | null): string => {
-    if (amount == null) return "—";
-    const value = amount * currency.exchangeRate;
-    return new Intl.NumberFormat(LOCALE, {
-      style: "decimal",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(value);
-  };
+  const fmtAmount = (
+    amount: number | undefined | null,
+    displayCurrency: CurrencyReference = currency,
+  ): string => formatCurrencyAmount(amount, displayCurrency);
 
-  const fmtNumber = (n: number | undefined | null): string => {
-    if (n == null) return "—";
-    try {
-      return new Intl.NumberFormat(LOCALE).format(n);
-    } catch {
-      return String(n);
-    }
-  };
+  const fmtNumber = (n: number | undefined | null): string =>
+    formatNumber(n, DEFAULT_LOCALE);
 
   return {
     currency,
     isLoading,
+    isError,
+    error,
     fmtAmount,
     fmtNumber,
   };

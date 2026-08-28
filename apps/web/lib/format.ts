@@ -1,44 +1,22 @@
 // apps/web/lib/format.ts
-// Shared currency, date, and locale formatting utilities.
+// Shared date, number, and locale formatting utilities.
+import {
+  formatCurrency as formatCanonicalCurrency,
+  DEFAULT_LOCALE,
+  type CurrencyReference,
+} from "@/lib/currency";
 
-const DEFAULT_CURRENCY = "SAR";
-export const DEFAULT_LOCALE = "ar-SA-u-nu-latn";
+export { DEFAULT_LOCALE } from "@/lib/currency";
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  SAR: "ر.س",
-  DZD: "دج",
-  USD: "$",
-  EUR: "€",
-};
-
-const CURRENCY_LOCALES: Record<string, string> = {
-  SAR: "ar-SA-u-nu-latn",
-  DZD: "ar-DZ",
-  USD: "en-US",
-  EUR: "en-EU",
-};
-
-function getCurrencySymbol(currency?: string): string {
-  return (
-    CURRENCY_SYMBOLS[currency || DEFAULT_CURRENCY] ||
-    CURRENCY_SYMBOLS[DEFAULT_CURRENCY]
-  );
-}
-
+/**
+ * Compatibility facade for existing consumers. Currency formatting is owned by
+ * the canonical currency module; keep this signature while callers migrate.
+ */
 export function formatCurrency(
   amount: number | undefined | null,
-  currency?: string,
+  currency?: CurrencyReference | null,
 ): string {
-  if (amount == null) return "—";
-  const cur = currency || DEFAULT_CURRENCY;
-  const symbol = getCurrencySymbol(cur);
-  const locale = CURRENCY_LOCALES[cur] || DEFAULT_LOCALE;
-  const formatted = new Intl.NumberFormat(locale, {
-    style: "decimal",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-  return `${formatted} ${symbol}`;
+  return formatCanonicalCurrency(amount, currency);
 }
 
 export function formatDate(

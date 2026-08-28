@@ -23,12 +23,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { SymbolRenderer } from "@/components/design-system/CurrencySymbol";
+import {
+  SymbolRenderer,
+  type CurrencySymbolConfig,
+} from "@/components/design-system/CurrencySymbol";
 import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
 import { toast } from "sonner";
@@ -41,7 +45,7 @@ import {
   type CreateCurrencySettingRequest,
   type UpdateCurrencySettingRequest,
 } from "@/features/settings/settingsApi";
-import type { CurrencyConfig } from "@/hooks/useCurrency";
+
 
 const symbolTypes: ReadonlyArray<{ value: CurrencySymbolType; label: string }> = [
   { value: "TEXT", label: "نص" },
@@ -52,6 +56,15 @@ const symbolTypes: ReadonlyArray<{ value: CurrencySymbolType; label: string }> =
 
 const currencyTextFields: Array<"code" | "name" | "symbol"> = ["code", "name", "symbol"];
 
+function isSupportedSvgUrl(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    return (url.protocol === "http:" || url.protocol === "https:") && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
 const currencySchema = z
   .object({
     code: z.string().trim().min(2, "رمز العملة مطلوب (حرفان على الأقل)."),
@@ -59,19 +72,15 @@ const currencySchema = z
     symbol: z.string().trim().min(1, "الترميز مطلوب."),
     symbolType: z.enum(["TEXT", "SVG_URL", "SVG_UPLOAD", "SVG_INLINE"]),
     svgKey: z.string().trim(),
-    svgWidth: z.number().positive("أبعاد SVG يجب أن تكون أكبر من 0.").optional(),
-    svgHeight: z.number().positive("أبعاد SVG يجب أن تكون أكبر من 0.").optional(),
-    exchangeRate: z.number().positive("سعر الصرف يجب أن يكون أكبر من 0."),
+    svgWidth: z.number({ error: "أبعاد SVG يجب أن تكون أكبر من 0." }).positive("أبعاد SVG يجب أن تكون أكبر من 0.").optional(),
+    svgHeight: z.number({ error: "أبعاد SVG يجب أن تكون أكبر من 0." }).positive("أبعاد SVG يجب أن تكون أكبر من 0.").optional(),
+    exchangeRate: z.number({ error: "سعر الصرف يجب أن يكون أكبر من 0." }).positive("سعر الصرف يجب أن يكون أكبر من 0."),
     isActive: z.boolean(),
     isDefault: z.boolean(),
   })
   .superRefine((value, ctx) => {
-    if (value.symbolType === "SVG_URL") {
-      const isAbsoluteUrl = /^https?:\/\//i.test(value.svgKey);
-      const isRelativeUrl = value.svgKey.startsWith("/");
-      if (!value.svgKey || (!isAbsoluteUrl && !isRelativeUrl)) {
-        ctx.addIssue({ code: "custom", path: ["svgKey"], message: "أدخل رابط SVG صالحاً." });
-      }
+    if (value.symbolType === "SVG_URL" && !isSupportedSvgUrl(value.svgKey)) {
+      ctx.addIssue({ code: "custom", path: ["svgKey"], message: "أدخل رابط SVG صالحاً." });
     }
     if (value.symbolType === "SVG_UPLOAD" && !value.svgKey) {
       ctx.addIssue({ code: "custom", path: ["svgKey"], message: "يرجى توفير مرجع الملف المرفوع." });
@@ -94,6 +103,7 @@ interface CurrencyFormProps {
   mode: "create" | "edit";
   onSuccess?: (currency: CurrencySetting) => void;
   onCancel?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 const validationMessages: Record<string, string> = {
@@ -117,14 +127,22 @@ function messageFor(code?: string) {
   return (code && validationMessages[code]) || (code ? adminErrorMessage({ data: { error: { code } } }) : "تحقق من البيانات المدخلة.");
 }
 
-function previewCurrency(data: CurrencyFormData, uploadedUrl?: string): CurrencyConfig {
+function previewCurrency(data: CurrencyFormData, uploadedUrl?: string): CurrencySymbolConfig & {
+  code: string;
+  name: string;
+  isDefault: boolean;
+  exchangeRate: number;
+} {
+  const isUpload = data.symbolType === "SVG_UPLOAD";
   return {
     code: data.code || "---",
     name: data.name || "---",
     symbol: data.symbol || "---",
     symbolType: data.symbolType,
+    // Inline markup and external/upload sources have different meanings for
+    // svgKey. Only expose the signed preview URL for an upload preview.
     svgKey: data.svgKey || null,
-    svgUrl: uploadedUrl || null,
+    svgUrl: isUpload ? uploadedUrl || null : null,
     svgWidth: data.svgWidth || 24,
     svgHeight: data.svgHeight || 20,
     isDefault: data.isDefault,
@@ -158,14 +176,18 @@ function LivePreview({ data, uploadedUrl }: { data: CurrencyFormData; uploadedUr
   );
 }
 
-export default function CurrencyForm({ initialData, mode, onSuccess, onCancel }: CurrencyFormProps) {
+export default function CurrencyForm({ initialData, mode, onSuccess, onCancel, onBusyChange }: CurrencyFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadError, setUploadError] = useState<string>();
-  // For uploads this is presentation-only: it can be a local object URL while
-  // uploading or the signed svgUrl returned by the API. svgKey remains the
-  // durable reference sent to create/update.
-  const [uploadPreview, setUploadPreview] = useState<string>(() => initialData?.svgUrl ?? "");
+  const uploadRequestId = useRef(0);
+  const [uploadFileName, setUploadFileName] = useState<string>();
+  const [uploadInFlight, setUploadInFlight] = useState(false);
+  // Upload previews are limited to the server-cleaned URL returned by the API.
+  // While an upload is pending, the UI shows text instead of rendering the
+  // local SVG file as an object URL.
+  const [uploadPreview, setUploadPreview] = useState<string>(() =>
+    initialData?.symbolType === "SVG_UPLOAD" ? initialData.svgUrl ?? "" : "",
+  );
   const [createCurrency, { isLoading: isCreating }] = useCreateCurrencySettingMutation();
   const [updateCurrency, { isLoading: isUpdating }] = useUpdateCurrencySettingMutation();
   const [uploadSvg, { isLoading: isUploading }] = useUploadSvgMutation();
@@ -180,11 +202,26 @@ export default function CurrencyForm({ initialData, mode, onSuccess, onCancel }:
   });
   const values = form.watch();
   const isSubmitting = isCreating || isUpdating;
+  const isUploadBusy = isUploading || uploadInFlight;
+  const isBusy = isSubmitting || isUploadBusy;
 
-  useEffect(() => () => {
-    // Never revoke a backend URL; only local previews are owned by this form.
-    if (uploadPreview.startsWith("blob:")) URL.revokeObjectURL(uploadPreview);
-  }, [uploadPreview]);
+  useEffect(() => {
+    onBusyChange?.(isBusy);
+  }, [isBusy, onBusyChange]);
+
+  useEffect(() => {
+    uploadRequestId.current += 1;
+    form.reset({
+      code: initialData?.code ?? "", name: initialData?.name ?? "", symbol: initialData?.symbol ?? "",
+      symbolType: initialData?.symbolType ?? "TEXT", svgKey: initialData?.svgKey ?? "",
+      svgWidth: initialData?.svgWidth ?? 24, svgHeight: initialData?.svgHeight ?? 20,
+      exchangeRate: initialData?.exchangeRate ?? 1, isActive: initialData?.isActive ?? true,
+      isDefault: initialData?.isDefault ?? false,
+    });
+    setUploadPreview(initialData?.symbolType === "SVG_UPLOAD" ? initialData.svgUrl ?? "" : "");
+    setUploadFileName(undefined);
+    form.clearErrors("svgKey");
+  }, [form, initialData, mode]);
 
   const handleSubmit: SubmitHandler<CurrencyFormData> = async (data) => {
     // The API DTO uses svgKey as the source for URL/inline content or the
@@ -218,35 +255,53 @@ export default function CurrencyForm({ initialData, mode, onSuccess, onCancel }:
   async function handleFileUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    setUploadError(undefined);
+    form.clearErrors("svgKey");
     if (file.type !== "image/svg+xml" && !file.name.toLowerCase().endsWith(".svg")) {
-      setUploadError(messageFor("FILE_TYPE_NOT_ALLOWED"));
+      form.setError("svgKey", { type: "upload", message: messageFor("FILE_TYPE_NOT_ALLOWED") });
+      event.target.value = "";
       return;
     }
     const previousPreview = uploadPreview;
-    setUploadPreview(URL.createObjectURL(file));
+    const previousFileName = uploadFileName;
+    const requestId = ++uploadRequestId.current;
+    // Notify the dialog before yielding to the mutation so Escape/close cannot
+    // race the upload state update. Do not render the local SVG file: it has
+    // not passed the server sanitizer yet.
+    setUploadInFlight(true);
+    setUploadPreview("");
+    setUploadFileName(file.name);
     try {
       const result = await uploadSvg({ file }).unwrap();
-      // Persist the durable storage reference; use the returned URL only for preview.
+      // Ignore a completion after the source has been reset or replaced.
+      if (requestId !== uploadRequestId.current) return;
+      // Persist the durable storage reference; use the server-cleaned URL only for preview.
       const uploadedReference = result.reference;
       if (!uploadedReference) {
         setUploadPreview(previousPreview);
-        setUploadError(messageFor("SVG_UPLOAD_REFERENCE_MISSING"));
+        setUploadFileName(previousFileName);
+        const message = messageFor("SVG_UPLOAD_REFERENCE_MISSING");
+        form.setError("svgKey", { type: "upload", message });
         return;
       }
       setUploadPreview(result.url);
       form.setValue("svgKey", uploadedReference, { shouldValidate: true, shouldDirty: true });
+      form.clearErrors("svgKey");
       toast.success(adminSuccessMessage("SVG_UPLOADED"));
     } catch (error) {
+      if (requestId !== uploadRequestId.current) return;
       // A failed replacement must not discard the existing durable upload.
       setUploadPreview(previousPreview);
-      setUploadError(adminErrorMessage(error));
+      setUploadFileName(previousFileName);
+      const message = adminErrorMessage(error);
+      form.setError("svgKey", { type: "upload", message });
     } finally {
+      if (requestId === uploadRequestId.current) setUploadInFlight(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
   function cancel() {
+    if (isBusy) return;
     onCancel?.();
     if (!onCancel) router.push("/dashboard/admin/settings/currencies");
   }
@@ -261,7 +316,7 @@ export default function CurrencyForm({ initialData, mode, onSuccess, onCancel }:
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {currencyTextFields.map((name) => (
                   <FormField key={name} control={form.control} name={name} render={({ field }) => (
-                    <FormItem><FormLabel>{name === "code" ? "رمز العملة" : name === "name" ? "اسم العملة" : "الترميز"}</FormLabel><FormControl><Input placeholder={name === "code" ? "مثال: USD" : name === "name" ? "مثال: دولار أمريكي" : "مثال: $"} {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>{name === "code" ? "رمز العملة" : name === "name" ? "اسم العملة" : "الترميز"}</FormLabel><FormControl><Input dir={name === "code" ? "ltr" : undefined} className={name === "code" ? "text-left uppercase" : undefined} placeholder={name === "code" ? "مثال: USD" : name === "name" ? "مثال: دولار أمريكي" : "مثال: $"} {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 ))}
               </div>
@@ -270,20 +325,22 @@ export default function CurrencyForm({ initialData, mode, onSuccess, onCancel }:
                   field.onChange(value);
                   // A source belongs to one symbol type. Clearing it here also
                   // clears an old upload when editing and switching types.
+                  uploadRequestId.current += 1;
                   form.setValue("svgKey", "", { shouldValidate: true, shouldDirty: true });
                   setUploadPreview("");
-                  setUploadError(undefined);
-                }}><FormControl><SelectTrigger><SelectValue placeholder="اختر نوع الترميز" /></SelectTrigger></FormControl><SelectContent><SelectGroup>{symbolTypes.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectGroup></SelectContent></Select><FormMessage /></FormItem>
+                  setUploadFileName(undefined);
+                  form.clearErrors("svgKey");
+                }} disabled={isBusy}><FormControl><SelectTrigger disabled={isBusy}><SelectValue placeholder="اختر نوع الترميز" /></SelectTrigger></FormControl><SelectContent><SelectGroup>{symbolTypes.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectGroup></SelectContent></Select><FormMessage /></FormItem>
               )} />
-              {values.symbolType === "SVG_URL" ? <FormField control={form.control} name="svgKey" render={({ field }) => <FormItem><FormLabel>رابط ملف SVG</FormLabel><FormControl><Input type="url" placeholder="https://example.com/icon.svg" {...field} /></FormControl><FormMessage /></FormItem>} /> : null}
-              {values.symbolType === "SVG_INLINE" ? <FormField control={form.control} name="svgKey" render={({ field }) => <FormItem><FormLabel>كود SVG المضمن</FormLabel><FormControl><Textarea placeholder="<svg ...>...</svg>" rows={6} {...field} /></FormControl><FormMessage /></FormItem>} /> : null}
-              {values.symbolType === "SVG_UPLOAD" ? <FormField control={form.control} name="svgKey" render={() => <FormItem><FormLabel htmlFor="currency-svg-upload">ملف SVG</FormLabel><input ref={fileInputRef} id="currency-svg-upload" type="file" accept="image/svg+xml,.svg" className="sr-only" aria-describedby={uploadError ? "currency-upload-error" : undefined} aria-invalid={Boolean(uploadError)} onChange={handleFileUpload} /><div className="flex flex-wrap items-center gap-3"><Button type="button" variant="outline" className="min-h-11" onClick={() => fileInputRef.current?.click()} disabled={isUploading}><Upload data-icon="inline-start" />{isUploading ? <><Loader2 data-icon="inline-start" className="animate-spin" />جارٍ الرفع</> : "اختيار ملف"}</Button>{values.svgKey ? <div className="flex items-center gap-2 text-sm text-muted-foreground">{uploadPreview ? <img src={uploadPreview} alt="معاينة ملف SVG" className="size-8 object-contain" /> : null}<span>تم رفع الملف</span><Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" onClick={() => { form.setValue("svgKey", "", { shouldValidate: true }); setUploadPreview(""); }} aria-label="إزالة ملف SVG"><X data-icon="inline-start" /></Button></div> : null}</div>{uploadError ? <Alert id="currency-upload-error" variant="destructive"><AlertCircle aria-hidden="true" /><AlertDescription>{uploadError}</AlertDescription></Alert> : null}<FormMessage /></FormItem>} /> : null}
+              {values.symbolType === "SVG_URL" ? <FormField control={form.control} name="svgKey" render={({ field }) => <FormItem><FormLabel>رابط ملف SVG</FormLabel><FormControl><Input dir="ltr" className="text-left" type="url" placeholder="https://example.com/icon.svg" {...field} /></FormControl><FormMessage /></FormItem>} /> : null}
+              {values.symbolType === "SVG_INLINE" ? <FormField control={form.control} name="svgKey" render={({ field }) => <FormItem><FormLabel>كود SVG المضمن</FormLabel><FormControl><Textarea dir="ltr" className="text-left font-mono" placeholder="<svg ...>...</svg>" rows={6} {...field} /></FormControl><FormMessage /></FormItem>} /> : null}
+              {values.symbolType === "SVG_UPLOAD" ? <FormField control={form.control} name="svgKey" render={() => <FormItem><FormLabel htmlFor="currency-svg-upload">ملف SVG</FormLabel><FormControl><input ref={fileInputRef} id="currency-svg-upload" type="file" accept="image/svg+xml,.svg" className="sr-only" onChange={handleFileUpload} /></FormControl><FormDescription>اختر ملف SVG لرفعه ومعاينته قبل الحفظ.</FormDescription><div className="flex flex-wrap items-center gap-3"><Button type="button" variant="outline" className="min-h-11" onClick={() => fileInputRef.current?.click()} disabled={isBusy} aria-invalid={!!form.formState.errors.svgKey}>{isUploadBusy ? <><Loader2 data-icon="inline-start" className="animate-spin" />جارٍ رفع الملف…</> : <><Upload data-icon="inline-start" />اختيار ملف SVG</>}</Button>{values.svgKey ? <div className="flex items-center gap-2 text-sm text-muted-foreground" role="status" aria-live="polite"><span className="flex size-8 shrink-0 items-center justify-center">{isUploadBusy ? <span aria-hidden="true">…</span> : uploadPreview ? <img src={uploadPreview} alt="معاينة ملف SVG" className="size-8 object-contain" /> : <span aria-hidden="true">✓</span>}</span><span dir="ltr" className="max-w-56 truncate text-left">{uploadFileName ?? "ملف SVG مرفوع"}</span><span className="sr-only">تم رفع الملف</span><Button type="button" variant="ghost" size="icon" className="min-h-11 min-w-11" onClick={() => { uploadRequestId.current += 1; form.setValue("svgKey", "", { shouldValidate: true, shouldDirty: true }); setUploadPreview(""); setUploadFileName(undefined); }} disabled={isBusy} aria-label="إزالة ملف SVG"><X data-icon="inline-start" /></Button></div> : null}</div><FormMessage /></FormItem>} /> : null}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <FormField control={form.control} name="exchangeRate" render={({ field }) => <FormItem><FormLabel>سعر الصرف</FormLabel><FormControl><Input type="number" min="0" step="0.0001" {...field} onChange={(event) => field.onChange(event.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>} />
+                <FormField control={form.control} name="exchangeRate" render={({ field }) => <FormItem><FormLabel>سعر الصرف</FormLabel><FormControl><Input dir="ltr" type="number" min="0" step="0.0001" {...field} onChange={(event) => field.onChange(event.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>} />
                 <div className="flex flex-col justify-end gap-3"><FormField control={form.control} name="isActive" render={({ field }) => <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>نشط</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>} /><FormField control={form.control} name="isDefault" render={({ field }) => <FormItem className="flex items-center justify-between rounded-lg border p-3"><FormLabel>العملة الافتراضية</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>} /></div>
               </div>
             </CardContent>
-            <CardFooter className="justify-end gap-3"><Button type="button" variant="outline" className="min-h-11" onClick={cancel}><Ban data-icon="inline-start" />إلغاء</Button><Button type="submit" className="min-h-11" disabled={isSubmitting || isUploading}>{isSubmitting ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />}{mode === "create" ? "إضافة العملة" : "حفظ التغييرات"}</Button></CardFooter>
+            <CardFooter className="justify-end gap-3"><Button type="button" variant="outline" className="min-h-11" onClick={cancel} disabled={isBusy}><Ban data-icon="inline-start" />إلغاء</Button><Button type="submit" className="min-h-11" disabled={isBusy}>{isSubmitting ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />}{mode === "create" ? "إضافة العملة" : "حفظ التغييرات"}</Button></CardFooter>
           </Card>
         </form>
       </Form>

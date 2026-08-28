@@ -124,6 +124,7 @@ export default function SettingsCurrenciesPage() {
   const [editingCurrency, setEditingCurrency] = useState<CurrencySetting>();
   const [currencyToDelete, setCurrencyToDelete] = useState<CurrencySetting>();
   const [updatingId, setUpdatingId] = useState<string>();
+  const [currencyFormBusy, setCurrencyFormBusy] = useState(false);
 
   if (isLoading) return <CurrencyListLoading />;
 
@@ -145,15 +146,34 @@ export default function SettingsCurrenciesPage() {
       <PageHeader title="إعدادات العملات" description="إدارة العملات والعملة الافتراضية للنظام." icon={Coins} actions={<div className="flex flex-wrap gap-2"><Button onClick={openCreate}><Plus data-icon="inline-start" />إضافة عملة</Button><Button variant="outline" onClick={() => refetch()} disabled={isFetching}><RefreshCw data-icon="inline-start" />{isFetching ? "جارٍ التحديث" : "تحديث"}</Button></div>} />
       {!currencies?.length ? <Card><CardContent className="p-8"><AdminEmptyState icon={Coins} title="لا توجد عملات" description="أضف أول عملة لاستخدامها في النظام." actionLabel="إضافة عملة" onAction={openCreate} /></CardContent></Card> : <CurrencyTable currencies={currencies} onEdit={openEdit} onDelete={setCurrencyToDelete} onSetDefault={(currency) => runUpdate(currency, { isDefault: true }, "CURRENCY_DEFAULT_SET")} onToggleActive={(currency) => runUpdate(currency, { isActive: !currency.isActive }, currency.isActive ? "CURRENCY_DEACTIVATED" : "CURRENCY_ACTIVATED")} updatingId={updatingId ?? (isUpdating ? "pending" : undefined)} deletingId={isDeleting ? currencyToDelete?.id : undefined} />}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent dir="rtl" className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-4xl">
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        // Dialog escape/close controls must not interrupt an in-flight upload.
+        if (!open && currencyFormBusy) return;
+        setDialogOpen(open);
+        if (!open) setEditingCurrency(undefined);
+      }}>
+        <DialogContent
+          dir="rtl"
+          showClose={!currencyFormBusy}
+          onEscapeKeyDown={(event) => {
+            if (currencyFormBusy) event.preventDefault();
+          }}
+          onPointerDownOutside={(event) => {
+            if (currencyFormBusy) event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            if (currencyFormBusy) event.preventDefault();
+          }}
+          className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-4xl"
+        >
           <DialogHeader><DialogTitle>{editingCurrency ? `تعديل ${editingCurrency.name}` : "إضافة عملة جديدة"}</DialogTitle><DialogDescription>أدخل بيانات العملة وإعدادات عرضها في النظام.</DialogDescription></DialogHeader>
           <CurrencyForm
             key={editingCurrency?.id ?? "create"}
             mode={editingCurrency ? "edit" : "create"}
             initialData={editingCurrency}
             onSuccess={() => { setDialogOpen(false); setEditingCurrency(undefined); }}
-            onCancel={() => { setDialogOpen(false); setEditingCurrency(undefined); }}
+            onCancel={() => { if (!currencyFormBusy) { setDialogOpen(false); setEditingCurrency(undefined); } }}
+            onBusyChange={setCurrencyFormBusy}
           />
         </DialogContent>
       </Dialog>

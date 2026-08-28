@@ -4,17 +4,11 @@ import { baseQuery } from "@/lib/baseQuery";
 
 export type CurrencySymbolType = "TEXT" | "SVG_URL" | "SVG_UPLOAD" | "SVG_INLINE";
 
-/** The public currency representation returned by the API. */
-export interface CurrencySetting {
+type CurrencySettingBase = {
   id: string;
   code: string;
   name: string;
   symbol: string;
-  symbolType: CurrencySymbolType;
-  /** Durable source/reference; never a presigned URL. */
-  svgKey: string | null;
-  /** Fresh short-lived presentation URL for uploaded SVGs. */
-  svgUrl: string | null;
   svgWidth: number | null;
   svgHeight: number | null;
   isDefault: boolean;
@@ -22,7 +16,21 @@ export interface CurrencySetting {
   exchangeRate: number;
   createdAt: string;
   updatedAt: string;
-}
+};
+
+/**
+ * The API deliberately separates the durable source (`svgKey`) from the
+ * short-lived presentation URL (`svgUrl`). The discriminated union keeps
+ * inline markup, external URLs, and uploaded assets from being interchanged.
+ * The default read route redacts an upload's key, hence its nullable key.
+ */
+export type CurrencySetting = CurrencySettingBase &
+  (
+    | { symbolType: "TEXT"; svgKey: null; svgUrl: null }
+    | { symbolType: "SVG_INLINE"; svgKey: string; svgUrl: null }
+    | { symbolType: "SVG_URL"; svgKey: string; svgUrl: string | null }
+    | { symbolType: "SVG_UPLOAD"; svgKey: string | null; svgUrl: string | null }
+  );
 
 export interface CreateCurrencySettingRequest {
   code: string;
@@ -63,12 +71,12 @@ export const settingsApi = createApi({
   endpoints: (builder) => ({
     getCurrencySettings: builder.query<CurrencySetting[], void>({
       query: () => "/admin/settings/currencies",
-      providesTags: ["CurrencySetting"],
+      providesTags: [{ type: "CurrencySetting", id: "LIST" }],
     }),
 
     getDefaultCurrency: builder.query<CurrencySetting | null, void>({
       query: () => "/currency-settings/default",
-      providesTags: ["CurrencySetting"],
+      providesTags: [{ type: "CurrencySetting", id: "DEFAULT" }],
     }),
 
     getCurrencySetting: builder.query<CurrencySetting, string>({
@@ -78,7 +86,10 @@ export const settingsApi = createApi({
 
     createCurrencySetting: builder.mutation<CurrencySetting, CreateCurrencySettingRequest>({
       query: (body) => ({ url: "/admin/settings/currencies", method: "POST", body }),
-      invalidatesTags: ["CurrencySetting"],
+      invalidatesTags: [
+        { type: "CurrencySetting", id: "LIST" },
+        { type: "CurrencySetting", id: "DEFAULT" },
+      ],
     }),
 
     updateCurrencySetting: builder.mutation<
@@ -90,12 +101,20 @@ export const settingsApi = createApi({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: ["CurrencySetting"],
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "CurrencySetting", id },
+        { type: "CurrencySetting", id: "LIST" },
+        { type: "CurrencySetting", id: "DEFAULT" },
+      ],
     }),
 
     deleteCurrencySetting: builder.mutation<{ id: string }, string>({
       query: (id) => ({ url: `/admin/settings/currencies/${id}`, method: "DELETE" }),
-      invalidatesTags: ["CurrencySetting"],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "CurrencySetting", id },
+        { type: "CurrencySetting", id: "LIST" },
+        { type: "CurrencySetting", id: "DEFAULT" },
+      ],
     }),
 
     uploadSvg: builder.mutation<
@@ -111,7 +130,9 @@ export const settingsApi = createApi({
           body: formData,
         };
       },
-      invalidatesTags: ["CurrencySetting"],
+      // Uploading stages an asset; it does not change a currency setting.
+      // Avoid refreshing unrelated queries and rotating signed URLs here.
+      invalidatesTags: [],
     }),
   }),
 });
