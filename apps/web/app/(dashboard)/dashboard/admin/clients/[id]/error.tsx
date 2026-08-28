@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/empty";
 
 export default function Error({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -31,7 +30,7 @@ export default function Error({
             <EmptyHeader>
               <EmptyTitle>تعذر تحميل تفاصيل العميل</EmptyTitle>
               <EmptyDescription>
-                {error.message || "حدث خطأ أثناء جلب بيانات العميل."}
+                تعذر الاتصال بالخدمة. يرجى المحاولة مرة أخرى.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

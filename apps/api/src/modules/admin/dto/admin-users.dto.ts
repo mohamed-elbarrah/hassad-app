@@ -6,8 +6,12 @@ import {
   Max,
   IsUUID,
   IsArray,
+  ArrayUnique,
   IsEnum,
   IsBoolean,
+  IsEmail,
+  IsIn,
+  IsDateString,
   MinLength,
 } from "class-validator";
 import { Type } from "class-transformer";
@@ -31,7 +35,7 @@ export class QueryUsersDto {
   department?: TaskDepartment;
 
   @IsOptional()
-  @IsString()
+  @IsIn(["active", "inactive"])
   status?: "active" | "inactive";
 
   @IsOptional()
@@ -48,12 +52,26 @@ export class QueryUsersDto {
   limit?: number = 20;
 }
 
+export class QueryUserActivityDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit = 20;
+}
+
 export class BulkUserActionDto {
   @IsArray()
   @IsUUID("4", { each: true })
   userIds: string[];
 
-  @IsString()
+  @IsIn(["activate", "deactivate", "changeRole", "reassignDepartment", "export"])
   action:
     | "activate"
     | "deactivate"
@@ -72,12 +90,29 @@ export class ImpersonateDto {
   reason: string;
 }
 
+export class SuspendUserDto {
+  @IsString()
+  @MinLength(1)
+  reason: string;
+
+  @IsOptional()
+  @IsDateString()
+  suspendedUntil?: string;
+}
+
+export class ReactivateUserDto {
+  @IsString()
+  @MinLength(1)
+  reason: string;
+}
+
 export class ResetPasswordDto {
   // No body needed — password is generated server-side
 }
 
 export class AssignPermissionsDto {
   @IsArray()
+  @ArrayUnique()
   @IsUUID("4", { each: true })
   permissionIds: string[];
 }
@@ -94,7 +129,7 @@ export class UpdateUserDto {
   name?: string;
 
   @IsOptional()
-  @IsString()
+  @IsEmail()
   email?: string;
 
   @IsOptional()
@@ -115,7 +150,7 @@ export class CreateAdminUserDto {
   @MinLength(2)
   name: string;
 
-  @IsString()
+  @IsEmail()
   email: string;
 
   @IsString()

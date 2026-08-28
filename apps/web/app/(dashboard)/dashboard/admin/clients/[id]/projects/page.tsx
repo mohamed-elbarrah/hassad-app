@@ -1,7 +1,10 @@
-export default function ClientsDetailProjects() {
-  return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <h1 className="text-2xl font-bold text-muted-foreground">Client / Projects</h1>
-    </div>
-  );
+import { redirect } from "next/navigation";
+
+export default async function AdminClientProjectsRedirect({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  redirect(`/dashboard/admin/clients/${id}`);
 }

@@ -46,6 +46,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   formatCurrency,
@@ -54,6 +55,7 @@ import {
   formatNumber,
 } from "@/lib/format";
 import {
+  clientActivityDetails,
   clientActivityLabel,
   contractStatusLabel,
   invoiceStatusLabel,
@@ -192,6 +194,7 @@ interface ClientHistoryRecord {
   id: string;
   eventType: string;
   description?: string | null;
+  metadata?: unknown;
   userName?: string | null;
   occurredAt: string;
 }
@@ -1547,11 +1550,18 @@ export function ClientHistoryTable({
   history,
   emptyTitle = "لا يوجد سجل نشاط",
   emptyDescription = "لم يتم تسجيل أحداث على هذا العميل بعد.",
+  loading = false,
+  pagination,
 }: {
   history: ClientHistoryRecord[];
   emptyTitle?: string;
   emptyDescription?: string;
+  loading?: boolean;
+  pagination?: { page: number; totalPages: number; onPageChange: (page: number) => void };
 }) {
+  if (loading) {
+    return <div className="flex flex-col gap-3"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div>;
+  }
   if (history.length === 0) {
     return (
       <ClientRelatedEmpty title={emptyTitle} description={emptyDescription} />
@@ -1564,7 +1574,7 @@ export function ClientHistoryTable({
         <TableHeader>
           <TableRow>
             <TableHead>الحدث</TableHead>
-            <TableHead>الوصف</TableHead>
+            <TableHead>التفاصيل</TableHead>
             <TableHead>بواسطة</TableHead>
             <TableHead>التاريخ</TableHead>
           </TableRow>
@@ -1577,13 +1587,14 @@ export function ClientHistoryTable({
                   {clientActivityLabel(item.eventType)}
                 </Badge>
               </TableCell>
-              <TableCell>{item.description || "—"}</TableCell>
+              <TableCell>{clientActivityDetails(item.eventType, item.metadata)}</TableCell>
               <TableCell>{item.userName || "—"}</TableCell>
               <TableCell>{formatDateTime(item.occurredAt)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+      {pagination ? <Pagination className="mt-4"><PaginationContent><PaginationItem><PaginationPrevious direction="rtl" text="السابق" disabled={pagination.page <= 1} onClick={() => pagination.onPageChange(Math.max(1, pagination.page - 1))} /></PaginationItem><PaginationItem><span className="px-3 text-sm text-muted-foreground">صفحة {pagination.page} من {pagination.totalPages}</span></PaginationItem><PaginationItem><PaginationNext direction="rtl" text="التالي" disabled={pagination.page >= pagination.totalPages} onClick={() => pagination.onPageChange(Math.min(pagination.totalPages, pagination.page + 1))} /></PaginationItem></PaginationContent></Pagination> : null}
     </div>
   );
 }

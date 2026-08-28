@@ -58,18 +58,38 @@ export class AdminSessionsService {
     };
   }
 
-  async revoke(sessionId: string): Promise<void> {
+  async revoke(sessionId: string, adminId: string): Promise<{ revoked: true }> {
     const session = await this.prisma.session.findUnique({
       where: { id: sessionId },
     });
 
     if (!session) {
-      throw new NotFoundException("Session not found");
+      throw new NotFoundException({ code: "SESSION_NOT_FOUND", details: {} });
     }
 
-    await this.prisma.session.update({
-      where: { id: sessionId },
-      data: { revokedAt: new Date() },
-    });
+    await this.prisma.$transaction([
+      this.prisma.session.update({
+        where: { id: sessionId },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.securityEvent.create({
+        data: {
+          userId: session.userId,
+          type: "SESSION_REVOKED",
+          metadata: { triggeredBy: adminId, sessionId },
+        },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.sessions.revoke",
+          entity: "session",
+          entityId: sessionId,
+          userId: adminId,
+          after: { revokedUserId: session.userId },
+        },
+      }),
+    ]);
+
+    return { revoked: true };
   }
 }

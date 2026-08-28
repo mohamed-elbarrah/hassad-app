@@ -1,4 +1,7 @@
 import { z } from "zod";
+
+const optionalText = (schema: z.ZodString) =>
+  z.preprocess((value) => (value === "" ? undefined : value), schema.optional());
 import { ClientKind, ClientStatus, BusinessType } from "../enums/client";
 
 /**
@@ -6,30 +9,28 @@ import { ClientKind, ClientStatus, BusinessType } from "../enums/client";
  * Matches the DB `Client` model's writable fields.
  */
 export const CreateClientSchema = z.object({
-  companyName: z
-    .string()
-    .min(2, "Company name must be at least 2 characters")
-    .optional(),
-  contactName: z
-    .string()
-    .min(2, "Contact name must be at least 2 characters")
-    .optional(),
-  phoneWhatsapp: z
-    .string()
-    .min(5, "Phone must be at least 5 characters")
-    .optional(),
-  email: z.string().email("Invalid email address").optional().nullable(),
-  businessName: z
-    .string()
-    .min(2, "Business name must be at least 2 characters")
-    .optional(),
+  companyName: optionalText(
+    z.string().min(2, "Company name must be at least 2 characters"),
+  ),
+  contactName: optionalText(
+    z.string().min(2, "Contact name must be at least 2 characters"),
+  ),
+  phoneWhatsapp: optionalText(
+    z.string().min(5, "Phone must be at least 5 characters"),
+  ),
+  email: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().email("Invalid email address").optional().nullable(),
+  ),
+  businessName: optionalText(
+    z.string().min(2, "Business name must be at least 2 characters"),
+  ),
   businessType: z.nativeEnum(BusinessType).optional(),
   kind: z.nativeEnum(ClientKind).optional(),
   accountManager: z.string().uuid("Invalid user ID format").optional(),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .optional(),
+  password: optionalText(
+    z.string().min(8, "Password must be at least 8 characters"),
+  ),
 });
 
 export type CreateClientInput = z.infer<typeof CreateClientSchema>;

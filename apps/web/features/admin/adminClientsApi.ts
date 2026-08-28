@@ -1,6 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { ClientProfile } from "@hassad/shared";
+import type { ClientProfile, CreateClientInput } from "@hassad/shared";
 
 export interface AdminClientItem {
   id: string;
@@ -69,6 +69,21 @@ export interface AdminClientDetail {
   manager: { id: string; name: string; email: string } | null;
 }
 
+export interface PaginatedAdminClientHistory {
+  items: Array<{
+    id: string;
+    eventType: string;
+    userId: string;
+    userName: string | null;
+    userEmail: string | null;
+    occurredAt: string;
+  }>;
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface ClientUserItem {
   id: string;
   clientId: string | null;
@@ -104,8 +119,6 @@ export interface ClientUserFilters {
 export interface AdminClientFullDetail extends AdminClientDetail {
   source: string | null;
   managerName: string | null;
-  portalToken: string | null;
-  portalTokenExpiresAt: string | null;
   hasPortalAccess: boolean;
   intakeCompleted?: boolean;
   avatarUrl?: string | null;
@@ -183,6 +196,7 @@ export interface AdminClientFullDetail extends AdminClientDetail {
     id: string;
     eventType: string;
     description: string | null;
+    metadata: unknown;
     userId: string | null;
     userName: string | null;
     occurredAt: string;
@@ -200,6 +214,11 @@ export const adminClientsApi = createApi({
   baseQuery,
   tagTypes: ["AdminClients", "AdminClient", "AdminClientStats", "AdminClientUsers"],
   endpoints: (builder) => ({
+    createAdminClient: builder.mutation<{ id: string }, CreateClientInput>({
+      query: (body) => ({ url: "/admin/clients", method: "POST", body }),
+      invalidatesTags: ["AdminClients", "AdminClientStats", "AdminClientUsers"],
+    }),
+
     suspendAdminClient: builder.mutation<void, string>({
       query: (id) => ({
         url: `/admin/clients/${id}/suspend`,
@@ -261,6 +280,11 @@ export const adminClientsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "AdminClient", id }],
     }),
 
+    getAdminClientHistory: builder.query<PaginatedAdminClientHistory, { id: string; page?: number; limit?: number }>({
+      query: ({ id, page = 1, limit = 20 }) => `/admin/clients/${id}/history?page=${page}&limit=${limit}`,
+      providesTags: (_result, _error, { id }) => [{ type: "AdminClient", id }],
+    }),
+
     getAdminClientStats: builder.query<AdminClientStats, void>({
       query: () => "/admin/clients/stats",
       providesTags: ["AdminClientStats"],
@@ -286,8 +310,10 @@ export const adminClientsApi = createApi({
 });
 
 export const {
+  useCreateAdminClientMutation,
   useGetAdminClientsQuery,
   useGetAdminClientByIdQuery,
+  useGetAdminClientHistoryQuery,
   useGetAdminClientStatsQuery,
   useGetAdminClientUsersQuery,
   useSuspendAdminClientMutation,

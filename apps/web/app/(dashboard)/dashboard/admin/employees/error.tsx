@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/empty";
 
 export default function Error({
-  error,
   reset,
 }: {
   error: Error & { digest?: string };
@@ -30,7 +29,7 @@ export default function Error({
             <EmptyHeader>
               <EmptyTitle>تعذر تحميل قائمة الموظفين</EmptyTitle>
               <EmptyDescription>
-                {error.message || "حدث خطأ غير متوقع أثناء جلب البيانات."}
+                تعذر الاتصال بالخدمة. يرجى المحاولة مرة أخرى.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

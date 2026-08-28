@@ -4,8 +4,9 @@ import {
   BadRequestException,
   ForbiddenException,
 } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
+import { AuthService } from "../../../auth/auth.service";
+import { randomInt } from "node:crypto";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
 import { UserRole } from "@hassad/shared";
@@ -25,7 +26,7 @@ const IMPERSONATION_EXPIRY_MINUTES = 15;
 export class AdminUsersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
     private readonly actionLog: AdminActionLogService,
   ) {}
 
@@ -132,7 +133,7 @@ export class AdminUsersService {
     });
 
     if (!user) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
     }
 
     return this.toResponse(user);
@@ -213,9 +214,50 @@ export class AdminUsersService {
     };
   }
 
+  async getPermissions(userId: string, adminId: string) {
+    const [user, actor, permissions] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, permissions: { select: { permissionId: true } } },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: adminId },
+        include: {
+          role: { include: { permissions: { select: { permissionId: true } } } },
+          permissions: { select: { permissionId: true } },
+        },
+      }),
+      this.prisma.permission.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!actor) throw new ForbiddenException({ code: "PERMISSION_DENIED", details: {} });
+
+    if (!actor.role) {
+      throw new ForbiddenException({ code: "PERMISSION_DENIED", details: {} });
+    }
+
+    const canAssignPermissionIds =
+      actor.role.name === "ADMIN"
+        ? permissions.map(({ id }) => id)
+        : [
+            ...actor.role.permissions.map(({ permissionId }) => permissionId),
+            ...actor.permissions.map(({ permissionId }) => permissionId),
+          ];
+
+    return {
+      permissions,
+      assignedPermissionIds: user.permissions.map(({ permissionId }) => permissionId),
+      canAssignPermissionIds: [...new Set(canAssignPermissionIds)],
+    };
+  }
+
   async getActivity(userId: string, page = 1, limit = 20) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("User not found");
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const skip = (page - 1) * limit;
 
@@ -224,7 +266,7 @@ export class AdminUsersService {
         where: { userId },
         skip,
         take: limit,
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       }),
       this.prisma.ledger.count({ where: { userId } }),
     ]);
@@ -250,7 +292,7 @@ export class AdminUsersService {
 
   async getPerformance(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const [workload, tasksCompleted] = await Promise.all([
       this.prisma.staffWorkload.findUnique({ where: { userId } }),
@@ -268,7 +310,7 @@ export class AdminUsersService {
 
   async getWork(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const [projects, tasks, disputes, campaigns] = await Promise.all([
       this.prisma.project.findMany({
@@ -351,14 +393,14 @@ export class AdminUsersService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
+      throw new BadRequestException({ code: "EMAIL_ALREADY_IN_USE", details: {} });
     }
 
     const role = await this.prisma.role.findFirst({
       where: { name: dto.role },
     });
     if (!role) {
-      throw new BadRequestException("الدور غير موجود");
+      throw new BadRequestException({ code: "ROLE_NOT_FOUND", details: { role: dto.role } });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -399,14 +441,14 @@ export class AdminUsersService {
 
   async update(id: string, dto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.prisma.user.findUnique({
         where: { email: dto.email },
       });
       if (existing)
-        throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
+        throw new BadRequestException({ code: "EMAIL_ALREADY_IN_USE", details: {} });
     }
 
     const data: any = {};
@@ -418,7 +460,7 @@ export class AdminUsersService {
         where: { name: dto.role },
       });
       if (!role) {
-        throw new BadRequestException("الدور غير موجود");
+        throw new BadRequestException({ code: "ROLE_NOT_FOUND", details: { role: dto.role } });
       }
       data.roleId = role.id;
     }
@@ -583,7 +625,7 @@ export class AdminUsersService {
 
   async resetPassword(userId: string): Promise<{ temporaryPassword: string }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("User not found");
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     // Generate a secure random password
     const temporaryPassword = this.generatePassword();
@@ -597,6 +639,10 @@ export class AdminUsersService {
           resetToken: null,
           resetTokenExpiresAt: null,
         },
+      }),
+      this.prisma.session.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
       }),
       this.prisma.securityEvent.create({
         data: {
@@ -623,7 +669,7 @@ export class AdminUsersService {
     reason: string,
     ip?: string,
     userAgent?: string,
-  ): Promise<{ token: string; expiresAt: string }> {
+  ): Promise<{ accessToken: string; refreshToken: string; expiresAt: Date }> {
     const [admin, target] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: adminId },
@@ -636,37 +682,49 @@ export class AdminUsersService {
     ]);
 
     if (!admin || !target) {
-      throw new NotFoundException("User not found");
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    }
+
+    if (!target.isActive) {
+      throw new ForbiddenException({ code: "ACCOUNT_INACTIVE", details: {} });
+    }
+    if (
+      target.suspendedAt &&
+      (!target.suspendedUntil || target.suspendedUntil > new Date())
+    ) {
+      throw new ForbiddenException({ code: "ACCOUNT_SUSPENDED", details: {} });
     }
 
     // Cannot impersonate another admin
     if (target.role.name === "ADMIN") {
-      throw new ForbiddenException("Cannot impersonate another admin user");
+      throw new ForbiddenException({ code: "ADMIN_IMPERSONATION_NOT_ALLOWED", details: {} });
     }
 
     // Cannot impersonate self
     if (adminId === targetUserId) {
-      throw new BadRequestException("Cannot impersonate yourself");
+      throw new BadRequestException({ code: "SELF_IMPERSONATION_NOT_ALLOWED", details: {} });
     }
 
-    // Create short-lived JWT with impersonation flag
+    // Impersonation is a normal sid-backed session, so it can be revoked and
+    // carries its audit metadata through every authenticated request.
     const expiresAt = new Date(
       Date.now() + IMPERSONATION_EXPIRY_MINUTES * 60 * 1000,
     );
-
-    const token = this.jwtService.sign(
+    const { accessToken, refreshToken } = await this.authService.createSessionTokens(
       {
-        sub: targetUserId,
         id: targetUserId,
         name: target.name,
         email: target.email,
-        role: target.role.name,
+        role: target.role.name as UserRole,
         impersonator: adminId,
         impersonatorName: admin.name,
         reason,
         type: "impersonation",
       },
-      { expiresIn: `${IMPERSONATION_EXPIRY_MINUTES}m` },
+      ip,
+      userAgent,
+      false,
+      IMPERSONATION_EXPIRY_MINUTES * 60,
     );
 
     // Write security event + audit log
@@ -695,12 +753,12 @@ export class AdminUsersService {
       }),
     ]);
 
-    return { token, expiresAt: expiresAt.toISOString() };
+    return { accessToken, refreshToken, expiresAt };
   }
 
-  async revokeSessions(userId: string): Promise<{ revokedCount: number }> {
+  async revokeSessions(userId: string, adminId: string): Promise<{ revokedCount: number }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("User not found");
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const result = await this.prisma.session.updateMany({
       where: {
@@ -711,23 +769,26 @@ export class AdminUsersService {
       data: { revokedAt: new Date() },
     });
 
-    await this.prisma.$transaction([
-      this.prisma.securityEvent.create({
-        data: {
-          userId,
-          type: "SESSION_REVOKED",
-          metadata: { triggeredBy: "admin", count: result.count },
-        },
-      }),
-      this.prisma.ledger.create({
-        data: {
-          action: "admin.users.revoke-sessions",
-          entity: "user",
-          entityId: userId,
-          after: { revokedCount: result.count },
-        },
-      }),
-    ]);
+    if (result.count > 0) {
+      await this.prisma.$transaction([
+        this.prisma.securityEvent.create({
+          data: {
+            userId,
+            type: "SESSION_REVOKED",
+            metadata: { triggeredBy: adminId, count: result.count },
+          },
+        }),
+        this.prisma.ledger.create({
+          data: {
+            action: "admin.users.revoke-sessions",
+            entity: "user",
+            entityId: userId,
+            userId: adminId,
+            after: { revokedCount: result.count },
+          },
+        }),
+      ]);
+    }
 
     return { revokedCount: result.count };
   }
@@ -735,9 +796,77 @@ export class AdminUsersService {
   async setPermissions(
     userId: string,
     dto: AssignPermissionsDto,
+    adminId: string,
   ): Promise<{ permissionIds: string[] }> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("User not found");
+    if (userId === adminId) {
+      throw new ForbiddenException({
+        code: "SELF_PERMISSION_ESCALATION_NOT_ALLOWED",
+        details: {},
+      });
+    }
+
+    const [user, actor] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, permissions: { select: { permissionId: true } } },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: adminId },
+        include: {
+          role: { include: { permissions: { select: { permissionId: true } } } },
+          permissions: { select: { permissionId: true } },
+        },
+      }),
+    ]);
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!actor || !actor.role) throw new ForbiddenException({ code: "PERMISSION_DENIED", details: {} });
+
+    const validPermissionIds = new Set(
+      (
+        await this.prisma.permission.findMany({
+          where: { id: { in: dto.permissionIds } },
+          select: { id: true },
+        })
+      ).map(({ id }) => id),
+    );
+    if (dto.permissionIds.some((permissionId) => !validPermissionIds.has(permissionId))) {
+      throw new BadRequestException({
+        code: "INVALID_PERMISSION_ID",
+        details: {},
+      });
+    }
+
+    const actorPermissionIds = new Set(
+      actor.role.name === "ADMIN"
+        ? (
+            await this.prisma.permission.findMany({ select: { id: true } })
+          ).map(({ id }) => id)
+        : [
+            ...actor.role.permissions.map(({ permissionId }) => permissionId),
+            ...actor.permissions.map(({ permissionId }) => permissionId),
+          ],
+    );
+    const existingPermissionIds = new Set(
+      user.permissions.map(({ permissionId }) => permissionId),
+    );
+    const unauthorizedChanges = [
+      ...dto.permissionIds.filter(
+        (permissionId) =>
+          !actorPermissionIds.has(permissionId) &&
+          !existingPermissionIds.has(permissionId),
+      ),
+      ...[...existingPermissionIds].filter(
+        (permissionId) =>
+          !actorPermissionIds.has(permissionId) &&
+          !dto.permissionIds.includes(permissionId),
+      ),
+    ];
+    if (unauthorizedChanges.length > 0) {
+      throw new ForbiddenException({
+        code: "PERMISSION_ASSIGNMENT_NOT_ALLOWED",
+        details: {},
+      });
+    }
 
     await this.prisma.$transaction(async (tx) => {
       // Remove all existing per-user permission grants
@@ -753,12 +882,20 @@ export class AdminUsersService {
         });
       }
 
+      // Force re-authentication so removed permissions are not retained in stale sessions.
+      await tx.session.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
       // Audit log
       await tx.ledger.create({
         data: {
           action: "admin.users.set-permissions",
           entity: "user",
           entityId: userId,
+          userId: adminId,
+          before: { permissionIds: [...existingPermissionIds] },
           after: { permissionIds: dto.permissionIds },
         },
       });
@@ -774,12 +911,12 @@ export class AdminUsersService {
     suspendedUntil?: string,
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
     if (
       user.suspendedAt &&
       (!user.suspendedUntil || user.suspendedUntil > new Date())
     )
-      throw new BadRequestException("المستخدم موقوف بالفعل");
+      throw new BadRequestException({ code: "USER_ALREADY_SUSPENDED", details: {} });
 
     const before = { isActive: user.isActive, suspendedAt: user.suspendedAt };
     const after = { reason, suspendedUntil: suspendedUntil ?? null };
@@ -823,13 +960,13 @@ export class AdminUsersService {
       afterState: after,
     });
 
-    return { success: true };
+    return { userId, status: "SUSPENDED" };
   }
 
   async reactivate(userId: string, reason: string, adminId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException("المستخدم غير موجود");
-    if (!user.suspendedAt) throw new BadRequestException("المستخدم غير موقوف");
+    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!user.suspendedAt) throw new BadRequestException({ code: "USER_NOT_SUSPENDED", details: {} });
 
     const before = {
       suspendedAt: user.suspendedAt,
@@ -876,7 +1013,7 @@ export class AdminUsersService {
       afterState: after,
     });
 
-    return { success: true };
+    return { userId, status: "ACTIVE" };
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -892,7 +1029,7 @@ export class AdminUsersService {
       "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
     let password = "";
     for (let i = 0; i < 16; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+      password += chars.charAt(randomInt(chars.length));
     }
     return password;
   }

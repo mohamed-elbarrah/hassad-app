@@ -12,7 +12,6 @@ import {
 import { Throttle } from "@nestjs/throttler"; // NEW
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "./auth.service";
-import { JwtService } from "@nestjs/jwt";
 import { UserRole } from "@hassad/shared";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { RolesGuard } from "./guards/roles.guard";
@@ -34,7 +33,6 @@ import { EmailService } from "../common/services/email.service";
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
   ) {}
@@ -95,7 +93,16 @@ export class AuthController {
     @Request() req: ExpressRequest & { user: JwtPayload },
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken } = await this.authService.refresh(req.user);
+    const { accessToken, refreshToken, refreshExpiresAt } =
+      await this.authService.refresh(req.user);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: Math.max(0, refreshExpiresAt.getTime() - Date.now()),
+    });
 
     res.cookie("token", accessToken, {
       httpOnly: true,
@@ -116,10 +123,15 @@ export class AuthController {
     return this.authService.getProfile(user.id);
   }
 
-  /** POST /auth/logout — clears all auth cookies */
+  /** POST /auth/logout — always clears browser credentials, including stale tokens. */
   @Post("logout")
   @HttpCode(HttpStatus.OK)
-  async logout(@Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Request() req: ExpressRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // Logout must remain usable when passport cannot validate an expired/revoked JWT.
+    await this.authService.revokeSessionFromRequest(req);
     res.cookie("token", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -211,22 +223,13 @@ export class AuthController {
       return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
     }
 
-    const payload = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    };
-
-    const accessToken = this.jwtService.sign(payload);
-
-    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
-    const refreshToken = refreshSecret
-      ? this.jwtService.sign(payload, {
-          secret: refreshSecret,
-          expiresIn: "7d",
-        })
-      : "";
+    const { accessToken, refreshToken } =
+      await this.authService.createSessionTokens({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      });
 
     res.cookie("token", accessToken, {
       httpOnly: true,

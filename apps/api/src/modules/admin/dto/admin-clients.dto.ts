@@ -9,9 +9,49 @@ import {
   IsEnum,
   IsIn,
   MinLength,
+  IsEmail,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { ClientKind, ClientStatus } from "@hassad/shared";
+import { BusinessType, ClientKind, ClientStatus } from "@hassad/shared";
+
+export class AdminCreateClientDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  companyName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  contactName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(5)
+  phoneWhatsapp?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  businessName?: string;
+
+  @IsOptional()
+  @IsEnum(BusinessType)
+  businessType?: BusinessType;
+
+  @IsOptional()
+  @IsUUID()
+  accountManager?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  password?: string;
+}
 
 export class SuspendClientDto {
   @IsString()
@@ -59,6 +99,39 @@ export class QueryAdminClientsDto {
   @Min(1)
   @Max(100)
   limit?: number = 20;
+}
+
+export class QueryAdminClientHistoryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit = 20;
+}
+
+/** Public activity projection; audit state snapshots must never cross this boundary. */
+export interface AdminClientActivityItem {
+  id: string;
+  eventType: string;
+  userId: string;
+  userName: string | null;
+  userEmail: string | null;
+  occurredAt: string;
+}
+
+export interface AdminClientActivityResponse {
+  items: AdminClientActivityItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export class QueryClientUsersDto {

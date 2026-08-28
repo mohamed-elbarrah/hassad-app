@@ -70,7 +70,7 @@ export class ClientsService {
       const nameFallback =
         dto.contactName ||
         (dto.email ? dto.email.split("@")[0] : null) ||
-        "عميل جديد";
+        "UNNAMED_CLIENT";
 
       const result = await this.canonicalClientService.upsertCanonicalClient(
         tx,
@@ -91,8 +91,8 @@ export class ClientsService {
           userId,
           eventType: result.created ? "CLIENT_CREATED" : "CLIENT_UPDATED",
           description: result.created
-            ? "Client created through the canonical client workflow"
-            : "Existing canonical client profile refreshed through direct client creation",
+            ? "CLIENT_CREATED"
+            : "CLIENT_PROFILE_REFRESHED",
         },
       });
 

@@ -43,23 +43,8 @@ export class PermissionsGuard implements CanActivate {
       });
     }
 
-    // Admin has all permissions
-    if (user.role === "ADMIN") {
-      return true;
-    }
-
-    // Fast path: JWT has all required permissions → skip DB lookup
-    if (
-      user.permissions &&
-      Array.isArray(user.permissions) &&
-      requiredPermissions.every((permission) =>
-        user.permissions.includes(permission),
-      )
-    ) {
-      return true;
-    }
-
-    // Fallback to DB lookup (JWT may be stale — permission granted after token was issued)
+    // Always read current permissions from the database. JWT permissions can be stale
+    // after an administrator changes a user's grants.
     const userWithPermissions = await this.prisma.user.findUnique({
       where: { id: user.id },
       include: {
@@ -80,8 +65,26 @@ export class PermissionsGuard implements CanActivate {
       },
     });
 
-    if (!userWithPermissions) {
-      return false;
+    if (!userWithPermissions || !userWithPermissions.role) {
+      throw new ForbiddenException({
+        code: "PERMISSION_DENIED",
+        details: {},
+      });
+    }
+
+    if (!userWithPermissions.isActive) {
+      throw new ForbiddenException({ code: "ACCOUNT_INACTIVE", details: {} });
+    }
+    if (
+      userWithPermissions.suspendedAt &&
+      (!userWithPermissions.suspendedUntil ||
+        userWithPermissions.suspendedUntil > new Date())
+    ) {
+      throw new ForbiddenException({ code: "ACCOUNT_SUSPENDED", details: {} });
+    }
+
+    if (userWithPermissions.role.name === "ADMIN") {
+      return true;
     }
 
     const rolePermissions = userWithPermissions.role.permissions.map(

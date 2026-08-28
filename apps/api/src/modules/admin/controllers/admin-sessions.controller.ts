@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Query, UseGuards } from "@nestjs/common";
 import { AdminSessionsService } from "../services/admin-sessions.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { QuerySessionsDto } from "../dto/admin-sessions.dto";
@@ -18,7 +19,7 @@ export class AdminSessionsController {
 
   @Post(":id/revoke")
   @RequirePermissions("admin.users.manage")
-  revoke(@Param("id") id: string) {
-    return this.adminSessionsService.revoke(id);
+  revoke(@Param("id") id: string, @CurrentUser("id") adminId: string) {
+    return this.adminSessionsService.revoke(id, adminId);
   }
 }

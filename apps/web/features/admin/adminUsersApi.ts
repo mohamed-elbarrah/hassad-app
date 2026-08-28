@@ -54,11 +54,22 @@ export interface AdminUserDetail extends AdminUserItem {
   };
 }
 
+export interface AdminPermission {
+  id: string;
+  name: string;
+}
+
+export interface AdminUserPermissions {
+  permissions: AdminPermission[];
+  assignedPermissionIds: string[];
+  canAssignPermissionIds: string[];
+}
+
 export interface AdminUserActivity {
   id: string;
   action: string;
-  entityType: string;
-  entityLabel: string;
+  entity: string;
+  entityId: string | null;
   createdAt: string;
 }
 
@@ -100,6 +111,10 @@ export interface AdminUserOverview {
     metrics: AdminUserMetric[];
   };
   work: AdminUserWork;
+}
+
+export interface AdminSessionRevokeResult {
+  revoked: true;
 }
 
 export interface AdminSession {
@@ -246,6 +261,11 @@ export const adminUsersApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
     }),
 
+    getAdminUserPermissions: builder.query<AdminUserPermissions, string>({
+      query: (id) => `/admin/users/${id}/permissions`,
+      providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
+    }),
+
     getAdminUserActivity: builder.query<PaginatedAdminUserActivity, { id: string; page?: number; limit?: number }>({
       query: ({ id, page = 1, limit = 20 }) => `/admin/users/${id}/activity?page=${page}&limit=${limit}`,
       providesTags: (_result, _error, params) => [
@@ -319,7 +339,7 @@ export const adminUsersApi = createApi({
     }),
 
     impersonateAdminUser: builder.mutation<
-      { token: string },
+      { expiresAt: string },
       { id: string; reason: string }
     >({
       query: ({ id, reason }) => ({
@@ -329,7 +349,7 @@ export const adminUsersApi = createApi({
       }),
     }),
 
-    revokeAdminUserSessions: builder.mutation<void, string>({
+    revokeAdminUserSessions: builder.mutation<{ revokedCount: number }, string>({
       query: (id) => ({
         url: `/admin/users/${id}/revoke-sessions`,
         method: "POST",
@@ -341,13 +361,13 @@ export const adminUsersApi = createApi({
     }),
 
     updateAdminUserPermissions: builder.mutation<
-      void,
-      { id: string; permissionKeys: string[] }
+      { permissionIds: string[] },
+      { id: string; permissionIds: string[] }
     >({
-      query: ({ id, permissionKeys }) => ({
+      query: ({ id, permissionIds }) => ({
         url: `/admin/users/${id}/permissions`,
         method: "POST",
-        body: { permissionKeys },
+        body: { permissionIds },
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: "AdminUser", id }],
     }),
@@ -368,7 +388,7 @@ export const adminUsersApi = createApi({
       providesTags: ["AdminSessions"],
     }),
 
-    revokeAdminSession: builder.mutation<void, string>({
+    revokeAdminSession: builder.mutation<AdminSessionRevokeResult, string>({
       query: (id) => ({
         url: `/admin/sessions/${id}/revoke`,
         method: "POST",
@@ -415,6 +435,7 @@ export const {
   useGetAdminUsersQuery,
   useGetAdminUserByIdQuery,
   useGetAdminUserOverviewQuery,
+  useGetAdminUserPermissionsQuery,
   useGetAdminUserActivityQuery,
   useGetAdminUserPerformanceQuery,
   useGetAdminUserWorkQuery,

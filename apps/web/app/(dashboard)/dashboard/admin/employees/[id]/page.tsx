@@ -13,7 +13,7 @@ import {
 } from "@hassad/shared";
 import { useGetAdminUserOverviewQuery } from "@/features/admin/adminUsersApi";
 import { adminEmployeeMetricLabel, adminEmployeeSectionTitle, adminErrorMessage } from "@/lib/i18n";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatNumber } from "@/lib/format";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +43,6 @@ function LoadingState() {
 export default function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data, isLoading, isError, error } = useGetAdminUserOverviewQuery(id);
-
   if (isLoading) return <LoadingState />;
 
   if (isError || !data) {
@@ -73,7 +72,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <ProfileCard employee={employee} roleLabel={roleLabel} departmentLabel={departmentLabel} />
         <div className="grid gap-4 sm:grid-cols-2">
-          {data.kpis.map((metric) => <Card key={metric.key}><CardContent className="flex min-h-28 flex-col justify-between gap-3 p-5"><span className="text-sm text-muted-foreground">{adminEmployeeMetricLabel(metric.key)}</span><span className="text-2xl font-semibold">{metric.value}</span></CardContent></Card>)}
+          {data.kpis.map((metric) => <Card key={metric.key}><CardContent className="flex min-h-28 flex-col justify-between gap-3 p-5"><span className="text-sm text-muted-foreground">{adminEmployeeMetricLabel(metric.key)}</span><span className="text-2xl font-semibold">{formatNumber(metric.value)}</span></CardContent></Card>)}
         </div>
       </div>
 
@@ -104,7 +103,7 @@ function DetailItem({ icon: Icon, label, value }: { icon: typeof Mail; label: st
 }
 
 function PerformanceSection({ sectionCode, metrics }: { sectionCode: string; metrics: Array<{ key: string; value: number }> }) {
-  return <Card><CardHeader className="gap-2"><CardTitle>{adminEmployeeSectionTitle(sectionCode)}</CardTitle><CardDescription>المؤشرات التشغيلية الخاصة بدور هذا الموظف.</CardDescription></CardHeader><CardContent className="flex flex-col gap-3">{metrics.map((metric) => <div key={metric.key} className="flex items-center justify-between gap-4 border-b py-3 last:border-b-0"><span className="text-sm text-muted-foreground">{adminEmployeeMetricLabel(metric.key)}</span><span className="font-semibold">{metric.value}</span></div>)}</CardContent></Card>;
+  return <Card><CardHeader className="gap-2"><CardTitle>{adminEmployeeSectionTitle(sectionCode)}</CardTitle><CardDescription>المؤشرات التشغيلية الخاصة بدور هذا الموظف.</CardDescription></CardHeader><CardContent className="flex flex-col gap-3">{metrics.map((metric) => <div key={metric.key} className="flex items-center justify-between gap-4 border-b py-3 last:border-b-0"><span className="text-sm text-muted-foreground">{adminEmployeeMetricLabel(metric.key)}</span><span className="font-semibold">{formatNumber(metric.value)}</span></div>)}</CardContent></Card>;
 }
 
 function WorkTable({ title, description, headers, rows }: { title: string; description: string; headers: string[]; rows: string[][] }) {

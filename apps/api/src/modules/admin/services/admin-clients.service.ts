@@ -5,7 +5,10 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
-import { QueryClientUsersDto } from "../dto/admin-clients.dto";
+import {
+  AdminClientActivityResponse,
+  QueryClientUsersDto,
+} from "../dto/admin-clients.dto";
 
 @Injectable()
 export class AdminClientsService {
@@ -236,6 +239,8 @@ export class AdminClientsService {
     if (!user)
       throw new NotFoundException({ code: "CLIENT_NOT_FOUND", details: {} });
 
+    const profile = user.clientProfile;
+
     return {
       id: user.id,
       type: "user",
@@ -248,12 +253,12 @@ export class AdminClientsService {
         user.clientProfile?.companyName ??
         user.clientProfile?.businessName ??
         "—",
-      portalAccess: !!user.clientProfile?.portalAccessToken,
-      contractsCount: user.clientProfile?._count.contracts ?? 0,
-      projectsCount: user.clientProfile?._count.projects ?? 0,
-      invoicesCount: user.clientProfile?._count.invoices ?? 0,
+      portalAccess: !!profile?.portalAccessToken,
+      contractsCount: profile?._count.contracts ?? 0,
+      projectsCount: profile?._count.projects ?? 0,
+      invoicesCount: profile?._count.invoices ?? 0,
       manager: null,
-      profile: user.clientProfile,
+      profile: profile ? this.sanitizeProfile(profile) : null,
       counters: {
         payments: 0,
         proposals: 0,
@@ -378,9 +383,15 @@ export class AdminClientsService {
       }),
       this.prisma.clientHistoryLog.findMany({
         where: { clientId },
-        orderBy: { occurredAt: "desc" },
+        orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
         take: 20,
-        include: { user: { select: { id: true, name: true } } },
+        select: {
+          id: true,
+          eventType: true,
+          userId: true,
+          occurredAt: true,
+          user: { select: { name: true, email: true } },
+        },
       }),
       this.prisma.satisfactionRating.findMany({
         where: { clientId },
@@ -403,8 +414,6 @@ export class AdminClientsService {
     return {
       ...this.formatClientResponse(client),
       source: client.requests[0]?.source ?? null,
-      portalToken: client.portalAccessToken,
-      portalTokenExpiresAt: client.portalTokenExpiresAt?.toISOString() ?? null,
       managerName: client.manager?.name ?? null,
       hasPortalAccess: !!client.portalAccessToken,
       overdueInvoicesCount,
@@ -466,9 +475,9 @@ export class AdminClientsService {
       historyLogs: historyLogs.map((h) => ({
         id: h.id,
         eventType: h.eventType,
-        description: h.description,
         userId: h.userId,
-        userName: h.user?.name ?? null,
+        userName: h.user.name,
+        userEmail: h.user.email,
         occurredAt: h.occurredAt.toISOString(),
       })),
       satRatings: satRatings.map((r) => ({
@@ -481,7 +490,11 @@ export class AdminClientsService {
     };
   }
 
-  async getHistory(clientId: string, page = 1, limit = 20) {
+  async getHistory(
+    clientId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<AdminClientActivityResponse> {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
     });
@@ -495,7 +508,7 @@ export class AdminClientsService {
         where: { clientId },
         skip,
         take: limit,
-        orderBy: { occurredAt: "desc" },
+        orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
         include: {
           user: { select: { id: true, name: true, email: true } },
         },
@@ -507,8 +520,6 @@ export class AdminClientsService {
       items: items.map((h) => ({
         id: h.id,
         eventType: h.eventType,
-        description: h.description,
-        metadata: h.metadata,
         userId: h.userId,
         userName: h.user?.name ?? null,
         userEmail: h.user?.email ?? null,
@@ -563,8 +574,8 @@ export class AdminClientsService {
         data: {
           clientId,
           userId: adminId,
-          eventType: "suspended",
-          description: `تم إيقاف العميل - ${reason}`,
+          eventType: "CLIENT_SUSPENDED",
+          description: "CLIENT_SUSPENDED",
           metadata: { reason, suspendedUntil: suspendedUntil ?? null },
         },
       }),
@@ -626,8 +637,8 @@ export class AdminClientsService {
         data: {
           clientId,
           userId: adminId,
-          eventType: "reactivated",
-          description: `تم إعادة تفعيل العميل - ${reason}`,
+          eventType: "CLIENT_REACTIVATED",
+          description: "CLIENT_REACTIVATED",
           metadata: { reason },
         },
       }),
@@ -686,11 +697,12 @@ export class AdminClientsService {
         data: {
           clientId,
           userId: adminId,
-          eventType: "manager_changed",
-          description: `تم تغيير مدير الحساب إلى ${manager.name} - ${reason}`,
+          eventType: "CLIENT_MANAGER_CHANGED",
+          description: "CLIENT_MANAGER_CHANGED",
           metadata: {
             fromManager: before.accountManager,
             toManager: accountManagerId,
+            managerName: manager.name,
             reason,
           },
         },
@@ -751,7 +763,7 @@ export class AdminClientsService {
       createdAt: client.createdAt.toISOString(),
       updatedAt: client.updatedAt.toISOString(),
       manager: client.manager,
-      profile: client.profile,
+      profile: this.sanitizeProfile(client.profile),
       counters: {
         contracts: client._count?.contracts ?? 0,
         projects: client._count?.projects ?? 0,
@@ -768,5 +780,34 @@ export class AdminClientsService {
       completedProjects: client.completedProjects,
       totalProjects: client.totalProjects,
     };
+  }
+
+  /** Remove credentials from profiles, including values nested in JSON sections. */
+  private sanitizeProfile(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.sanitizeProfile(item));
+    }
+
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (value && typeof value === "object") {
+      const safe: Record<string, unknown> = {};
+      for (const [key, nestedValue] of Object.entries(value)) {
+        if (
+          key === "portalAccessToken" ||
+          key === "portalTokenExpiresAt" ||
+          key === "portal_access_token" ||
+          key === "portal_token_expires_at"
+        ) {
+          continue;
+        }
+        safe[key] = this.sanitizeProfile(nestedValue);
+      }
+      return safe;
+    }
+
+    return value;
   }
 }

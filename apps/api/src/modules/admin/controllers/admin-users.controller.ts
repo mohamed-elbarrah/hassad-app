@@ -8,8 +8,9 @@ import {
   Query,
   UseGuards,
   Req,
+  Res,
 } from "@nestjs/common";
-import { Request } from "express";
+import { Request, Response } from "express";
 import { AdminUsersService } from "../services/admin-users.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -26,6 +27,9 @@ import {
   ChangeRoleDto,
   CreateAdminUserDto,
   UpdateUserDto,
+  QueryUserActivityDto,
+  SuspendUserDto,
+  ReactivateUserDto,
 } from "../dto/admin-users.dto";
 
 @Controller("admin/users")
@@ -69,18 +73,22 @@ export class AdminUsersController {
     return this.adminUsersService.getPerformance(id);
   }
 
+  @Get(":id/permissions")
+  @RequirePermissions("admin.users.read")
+  getPermissions(
+    @Param("id") id: string,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.adminUsersService.getPermissions(id, adminId);
+  }
+
   @Get(":id/activity")
   @RequirePermissions("admin.users.read")
   getActivity(
     @Param("id") id: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
+    @Query() query: QueryUserActivityDto,
   ) {
-    return this.adminUsersService.getActivity(
-      id,
-      page ? parseInt(page, 10) : 1,
-      limit ? parseInt(limit, 10) : 20,
-    );
+    return this.adminUsersService.getActivity(id, query.page, query.limit);
   }
 
   @Get(":id/work")
@@ -103,48 +111,67 @@ export class AdminUsersController {
 
   @Post(":id/impersonate")
   @RequirePermissions("admin.users.impersonate")
-  impersonate(
+  async impersonate(
     @Param("id") id: string,
     @CurrentUser() admin: JwtPayload,
     @Body() dto: ImpersonateDto,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const ip = req.ip;
     const userAgent = req.headers["user-agent"];
-    return this.adminUsersService.impersonate(
+    const result = await this.adminUsersService.impersonate(
       admin.id,
       id,
       dto.reason,
       ip,
       userAgent,
     );
+    const maxAge = Math.max(0, result.expiresAt.getTime() - Date.now());
+    res.cookie("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge,
+    });
+    res.cookie("token", result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge,
+    });
+    return { expiresAt: result.expiresAt.toISOString() };
   }
 
   @Post(":id/revoke-sessions")
   @RequirePermissions("admin.users.manage")
-  revokeSessions(@Param("id") id: string) {
-    return this.adminUsersService.revokeSessions(id);
+  revokeSessions(
+    @Param("id") id: string,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.adminUsersService.revokeSessions(id, adminId);
   }
 
   @Post(":id/suspend")
   @RequirePermissions("admin.users.manage")
   suspend(
     @Param("id") id: string,
-    @Body("reason") reason: string,
-    @Body("suspendedUntil") suspendedUntil: string | undefined,
+    @Body() dto: SuspendUserDto,
     @CurrentUser("id") adminId: string,
   ) {
-    return this.adminUsersService.suspend(id, reason, adminId, suspendedUntil);
+    return this.adminUsersService.suspend(id, dto.reason, adminId, dto.suspendedUntil);
   }
 
   @Post(":id/reactivate")
   @RequirePermissions("admin.users.manage")
   reactivate(
     @Param("id") id: string,
-    @Body("reason") reason: string,
+    @Body() dto: ReactivateUserDto,
     @CurrentUser("id") adminId: string,
   ) {
-    return this.adminUsersService.reactivate(id, reason, adminId);
+    return this.adminUsersService.reactivate(id, dto.reason, adminId);
   }
 
   @Patch(":id")
@@ -155,7 +182,11 @@ export class AdminUsersController {
 
   @Post(":id/permissions")
   @RequirePermissions("admin.users.manage")
-  setPermissions(@Param("id") id: string, @Body() dto: AssignPermissionsDto) {
-    return this.adminUsersService.setPermissions(id, dto);
+  setPermissions(
+    @Param("id") id: string,
+    @Body() dto: AssignPermissionsDto,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.adminUsersService.setPermissions(id, dto, adminId);
   }
 }

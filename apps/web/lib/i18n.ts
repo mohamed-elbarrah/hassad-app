@@ -67,11 +67,33 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
 const CLIENT_ACTIVITY_LABELS: Record<string, string> = {
   CLIENT_CREATED: "إنشاء العميل",
   CLIENT_UPDATED: "تحديث بيانات العميل",
+  CLIENT_SUSPENDED: "إيقاف العميل",
+  CLIENT_REACTIVATED: "إعادة تفعيل العميل",
+  CLIENT_MANAGER_CHANGED: "تغيير مدير الحساب",
+  suspended: "إيقاف العميل",
+  reactivated: "إعادة تفعيل العميل",
+  manager_changed: "تغيير مدير الحساب",
   PROFILE_UPDATED: "تحديث الملف التعريفي",
   CONTRACT_CREATED: "إنشاء عقد",
   PROJECT_CREATED: "إنشاء مشروع",
   INVOICE_CREATED: "إصدار فاتورة",
   PAYMENT_RECEIVED: "استلام دفعة",
+};
+
+const CLIENT_ACTIVITY_DETAILS: Record<string, string> = {
+  CLIENT_CREATED: "تم إنشاء العميل.",
+  CLIENT_UPDATED: "تم تحديث ملف العميل.",
+  CLIENT_SUSPENDED: "تم إيقاف العميل.",
+  CLIENT_REACTIVATED: "تم إعادة تفعيل العميل.",
+  CLIENT_MANAGER_CHANGED: "تم تغيير مدير الحساب.",
+  suspended: "تم إيقاف العميل.",
+  reactivated: "تم إعادة تفعيل العميل.",
+  manager_changed: "تم تغيير مدير الحساب.",
+  PROFILE_UPDATED: "تم تحديث الملف التعريفي.",
+  CONTRACT_CREATED: "تم إنشاء عقد للعميل.",
+  PROJECT_CREATED: "تم إنشاء مشروع للعميل.",
+  INVOICE_CREATED: "تم إصدار فاتورة للعميل.",
+  PAYMENT_RECEIVED: "تم استلام دفعة من العميل.",
 };
 
 const INVOICE_STATUS_LABELS: Record<string, string> = {
@@ -118,6 +140,22 @@ export function clientActivityLabel(
 ): string {
   if (!eventType) return "تحديث على العميل";
   return CLIENT_ACTIVITY_LABELS[eventType] ?? "تحديث على العميل";
+}
+
+export function clientActivityDetails(
+  eventType: string | null | undefined,
+  metadata?: unknown,
+): string {
+  const base =
+    (eventType && CLIENT_ACTIVITY_DETAILS[eventType]) ??
+    "تم تسجيل تحديث على العميل.";
+  if (!metadata || typeof metadata !== "object") return base;
+  const record = metadata as Record<string, unknown>;
+  const managerName = typeof record.managerName === "string" ? record.managerName.trim() : "";
+  if (managerName) return `${base} المدير: ${managerName}.`;
+  // Reasons are free-form backend/user content; do not render them as a
+  // substitute for a localized activity description.
+  return base;
 }
 
 export function paymentPlanTriggerLabel(
@@ -188,16 +226,82 @@ export function projectErrorMessage(error: unknown): string {
 
 const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   AUTHENTICATION_REQUIRED: "يلزم تسجيل الدخول.",
-  PERMISSION_DENIED: "ليس لديك صلاحية لعرض الموظفين.",
-  VALIDATION_ERROR: "تحقق من معايير البحث وحاول مرة أخرى.",
-  REQUEST_FAILED: "تعذر تحميل الموظفين. حاول مرة أخرى.",
-  UNKNOWN_ERROR: "حدث خطأ أثناء تحميل الموظفين.",
+  ACCOUNT_INACTIVE: "هذا الحساب غير نشط.",
+  ACCOUNT_SUSPENDED: "هذا الحساب موقوف.",
+  USER_ALREADY_SUSPENDED: "الموظف موقوف بالفعل.",
+  USER_NOT_SUSPENDED: "الموظف غير موقوف.",
+  USER_NOT_FOUND: "لم يتم العثور على الموظف.",
+  CLIENT_NOT_FOUND: "لم يتم العثور على العميل.",
+  EMAIL_ALREADY_IN_USE: "البريد الإلكتروني مستخدم بالفعل.",
+  PERMISSION_ASSIGNMENT_NOT_ALLOWED: "لا يمكنك منح هذه الصلاحية.",
+  SELF_PERMISSION_ESCALATION_NOT_ALLOWED: "لا يمكنك تعديل صلاحيات حسابك.",
+  SESSION_NOT_FOUND: "لم يتم العثور على الجلسة.",
+  INVALID_PERMISSION_ID: "توجد صلاحية غير صالحة.",
+  PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+  VALIDATION_ERROR: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
+  REQUEST_FAILED: "تعذر تنفيذ الطلب. حاول مرة أخرى.",
+  UNKNOWN_ERROR: "حدث خطأ. يرجى المحاولة مرة أخرى.",
 };
 
 export function adminErrorMessage(error: unknown): string {
   const code = (error as { data?: { error?: { code?: string } } })?.data?.error
     ?.code;
   return (code && ADMIN_ERROR_MESSAGES[code]) || ADMIN_ERROR_MESSAGES.UNKNOWN_ERROR;
+}
+
+const ADMIN_ACTIVITY_ACTION_LABELS: Record<string, string> = {
+  "admin.users.create": "إنشاء موظف",
+  "admin.users.update": "تحديث بيانات الموظف",
+  "admin.users.reset-password": "إعادة تعيين كلمة مرور الموظف",
+  "admin.users.bulk": "تنفيذ إجراء جماعي على الموظفين",
+  "admin.users.set-permissions": "تعديل صلاحيات الموظف",
+  "admin.users.suspend": "إيقاف حساب الموظف",
+  "admin.users.reactivate": "إعادة تفعيل حساب الموظف",
+  "admin.users.impersonate": "بدء انتحال هوية الموظف",
+  "admin.users.revoke-sessions": "إلغاء جلسات الموظف",
+  "admin.sessions.revoke": "إلغاء جلسة الموظف",
+  "admin.clients.suspend": "إيقاف العميل",
+  "admin.clients.reactivate": "إعادة تفعيل العميل",
+  "admin.clients.assign-manager": "تعيين مدير الحساب",
+  "admin.projects.create": "إنشاء مشروع",
+  "admin.projects.reassign-pm": "إعادة تعيين مدير المشروع",
+  "admin.projects.archive": "أرشفة المشروع",
+  "admin.projects.unarchive": "إلغاء أرشفة المشروع",
+  "admin.projects.force-status": "تغيير حالة المشروع",
+  "admin.projects.add-member": "إضافة عضو للمشروع",
+  "admin.projects.add-task": "إضافة مهمة للمشروع",
+  "admin.tasks.reassign": "إعادة تعيين المهمة",
+  "admin.tasks.force-transition": "تغيير حالة المهمة",
+  "admin.requests.reassign": "إعادة تعيين الطلب",
+  "admin.requests.force-status": "تغيير حالة الطلب",
+  "admin.requests.update-notes": "تحديث ملاحظات الطلب",
+  "admin.proposals.convert_to_contract": "تحويل العرض إلى عقد",
+  "admin.contracts.cancel": "إلغاء العقد",
+  "admin.contracts.status_change": "تغيير حالة العقد",
+  "admin.contracts.convert_to_project": "تحويل العقد إلى مشروع",
+  "admin.finance.force-invoice-status": "تغيير حالة الفاتورة",
+  "admin.finance.trigger-refund": "بدء استرداد دفعة",
+  "admin.finance.retry-webhook": "إعادة محاولة التكامل المالي",
+  "admin.campaigns.update": "تحديث الحملة",
+  "admin.campaigns.pause": "إيقاف الحملة",
+  "admin.campaigns.end": "إنهاء الحملة",
+};
+
+const ADMIN_ACTIVITY_ENTITY_LABELS: Record<string, string> = {
+  user: "مستخدم",
+  client: "عميل",
+  project: "مشروع",
+  task: "مهمة",
+  request: "طلب",
+  session: "جلسة",
+};
+
+export function adminActivityActionLabel(action: string): string {
+  return ADMIN_ACTIVITY_ACTION_LABELS[action] ?? "عملية إدارية";
+}
+
+export function adminActivityEntityLabel(entity: string): string {
+  return ADMIN_ACTIVITY_ENTITY_LABELS[entity] ?? "عنصر إداري";
 }
 
 const ADMIN_EMPLOYEE_METRIC_LABELS: Record<string, string> = {

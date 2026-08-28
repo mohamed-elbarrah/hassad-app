@@ -1,6 +1,5 @@
 import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
-import { ConfigModule, ConfigService } from "@nestjs/config";
+import { AuthModule } from "../../auth/auth.module";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { FinanceModule } from "../finance/finance.module";
 import { PaymentsModule } from "../payments/payments.module";
@@ -87,6 +86,7 @@ import { PrismaHealthIndicator } from "../health/indicators";
 import { HealthPersistenceService } from "../health/services/health-persistence.service";
 import { RobustErrorLoggerService } from "../health/services/robust-error-logger.service";
 import { RequestsModule } from "../requests/requests.module";
+import { CrmModule } from "../crm/crm.module";
 
 @Module({
   imports: [
@@ -97,18 +97,9 @@ import { RequestsModule } from "../requests/requests.module";
     ChatModule,
     AiModule,
     RequestsModule,
+    CrmModule,
     TerminusModule,
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>("JWT_SECRET") ?? "default_secret",
-        signOptions: {
-          expiresIn: (configService.get<string>("JWT_EXPIRES_IN") ||
-            "1h") as unknown as number,
-        },
-      }),
-    }),
+    AuthModule,
   ],
   controllers: [
     AdminController,

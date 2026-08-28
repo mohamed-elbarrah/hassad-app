@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AdminClientsService } from "../services/admin-clients.service";
+import { ClientsService } from "../../crm/services/clients.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -18,12 +19,27 @@ import {
   AssignManagerDto,
   QueryClientUsersDto,
   QueryAdminClientsDto,
+  AdminCreateClientDto,
+  QueryAdminClientHistoryDto,
 } from "../dto/admin-clients.dto";
 
 @Controller("admin/clients")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AdminClientsController {
-  constructor(private readonly service: AdminClientsService) {}
+  constructor(
+    private readonly service: AdminClientsService,
+    private readonly clientsService: ClientsService,
+  ) {}
+
+  @Post()
+  @RequirePermissions("admin.clients.intervene")
+  async create(
+    @CurrentUser("id") adminId: string,
+    @Body() dto: AdminCreateClientDto,
+  ) {
+    const client = await this.clientsService.create(adminId, dto);
+    return { id: client.id };
+  }
 
   @Get()
   @RequirePermissions("admin.clients.read")
@@ -59,14 +75,9 @@ export class AdminClientsController {
   @RequirePermissions("admin.clients.read")
   getHistory(
     @Param("id") id: string,
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
+    @Query() query: QueryAdminClientHistoryDto,
   ) {
-    return this.service.getHistory(
-      id,
-      page ? Number(page) : 1,
-      limit ? Number(limit) : 20,
-    );
+    return this.service.getHistory(id, query.page, query.limit);
   }
 
   @Post(":id/suspend")

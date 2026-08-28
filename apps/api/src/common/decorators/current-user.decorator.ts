@@ -7,7 +7,16 @@ export interface JwtPayload {
   name: string;
   email: string;
   role: UserRole;
-  permissions?: string[]; // NEW - optional permissions array
+  permissions?: string[];
+  /** Database-backed session identity carried by current-generation JWTs. */
+  sid?: string;
+  /** Present on short-lived administrator impersonation tokens. */
+  impersonator?: string;
+  impersonatorName?: string;
+  reason?: string;
+  type?: "impersonation";
+  /** Only populated by refresh validation; never used as an authority claim. */
+  refreshToken?: string;
 }
 
 export const CurrentUser = createParamDecorator(

@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Building2, Briefcase } from "lucide-react";
@@ -51,7 +51,7 @@ export function CreateClientModal({ open, onOpenChange }: Props) {
   );
 
   const form = useForm<CreateClientInput>({
-    resolver: zodResolver(CreateClientSchema),
+    resolver: zodResolver(CreateClientSchema) as unknown as Resolver<CreateClientInput>,
     defaultValues: {
       companyName: "",
       contactName: "",

@@ -8,8 +8,15 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
-import { UserRole, ClientKind, ClientStatus, BusinessType } from "@hassad/shared";
+import { randomUUID } from "crypto";
+import {
+  UserRole,
+  ClientKind,
+  ClientStatus,
+  BusinessType,
+} from "@hassad/shared";
 import { ConfigService } from "@nestjs/config";
+import type { Request } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import { JwtPayload } from "../common/decorators/current-user.decorator";
 import { CanonicalClientService } from "../modules/requests/canonical-client.service";
@@ -201,26 +208,18 @@ export class AuthService {
       ...user.permissions.map((p: any) => p.permission.name),
     ];
 
-    const payload = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role.name,
-      permissions,
-    };
-    const accessToken = this.jwtService.sign(payload);
-
-    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
-    if (!refreshSecret) {
-      throw new InternalServerErrorException({
-        code: "AUTH_CONFIGURATION_ERROR",
-      });
-    }
-
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: refreshSecret,
-      expiresIn: "7d",
-    });
+    const tokens = await this.createSessionTokens(
+      {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role.name as UserRole,
+        permissions,
+      },
+      ip,
+      userAgent,
+      dto.rememberMe ?? false,
+    );
 
     let clientId: string | undefined;
     let intakeCompleted = false;
@@ -247,22 +246,157 @@ export class AuthService {
         intakeCompleted,
         ...(clientId !== undefined && { clientId }),
       },
-      accessToken,
-      refreshToken,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     };
   }
 
   async refresh(user: JwtPayload) {
+    const session = await this.getValidSession(user.sid, user.id);
+    const profile = await this.getProfile(user.id);
     const payload = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      permissions: user.permissions, // NEW - include permissions from JWT
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      role: profile.role,
+      permissions: profile.permissions,
+      sid: session.id,
+      ...(user.impersonator && { impersonator: user.impersonator }),
+      ...(user.impersonatorName && { impersonatorName: user.impersonatorName }),
+      ...(user.reason && { reason: user.reason }),
+      ...(user.type && { type: user.type }),
     };
+    const refreshSecret =
+      this.configService.getOrThrow<string>("JWT_REFRESH_SECRET");
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: refreshSecret,
+      expiresIn: Math.max(
+        1,
+        Math.floor((session.expiresAt.getTime() - Date.now()) / 1000),
+      ),
+    });
+    const rotated = await this.prisma.session.updateMany({
+      // Compare-and-swap prevents two concurrent refreshes from reusing one token.
+      where: { id: session.id, refreshTokenHash: session.refreshTokenHash, revokedAt: null },
+      data: { refreshTokenHash: await bcrypt.hash(refreshToken, 12) },
+    });
+    if (rotated.count !== 1) {
+      throw new UnauthorizedException({ code: "INVALID_REFRESH_TOKEN", details: {} });
+    }
     return {
       accessToken: this.jwtService.sign(payload),
+      refreshToken,
+      refreshExpiresAt: session.expiresAt,
     };
+  }
+
+  private async getValidSession(sessionId: string, userId: string) {
+    const session = await this.prisma.session.findFirst({
+      where: { id: sessionId, userId },
+      include: {
+        user: {
+          select: { isActive: true, suspendedAt: true, suspendedUntil: true },
+        },
+      },
+    });
+    if (!session || session.revokedAt || session.expiresAt <= new Date()) {
+      throw new UnauthorizedException({ code: "SESSION_REVOKED", details: {} });
+    }
+    if (!session.user.isActive) {
+      throw new UnauthorizedException({
+        code: "ACCOUNT_INACTIVE",
+        details: {},
+      });
+    }
+    if (
+      session.user.suspendedAt &&
+      (!session.user.suspendedUntil || session.user.suspendedUntil > new Date())
+    ) {
+      throw new UnauthorizedException({
+        code: "ACCOUNT_SUSPENDED",
+        details: {},
+      });
+    }
+    return session;
+  }
+
+  async revokeSession(sessionId: string | undefined, userId: string) {
+    if (!sessionId || !userId) return;
+    await this.prisma.session.updateMany({
+      where: { id: sessionId, userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  /** Best-effort session revocation for logout. Signature validation is retained,
+   * but expiration is ignored so stale credentials cannot prevent cleanup. */
+  async revokeSessionFromRequest(req: Request) {
+    const sessionIds = new Set<string>();
+    const accessToken = req.cookies?.token;
+    const refreshToken = req.cookies?.refreshToken;
+    for (const [token, secret] of [
+      [accessToken, this.configService.get<string>("JWT_SECRET")],
+      [refreshToken, this.configService.get<string>("JWT_REFRESH_SECRET")],
+    ] as const) {
+      if (!token || !secret) continue;
+      try {
+        const payload = this.jwtService.verify<JwtPayload>(token, {
+          secret,
+          ignoreExpiration: true,
+        });
+        if (payload.sid && payload.id) sessionIds.add(`${payload.sid}:${payload.id}`);
+      } catch {
+        // Invalid credentials are still cleaned from the browser below.
+      }
+    }
+    await Promise.all(
+      [...sessionIds].map((key) => {
+        const [sessionId, userId] = key.split(":");
+        return this.revokeSession(sessionId, userId);
+      }),
+    );
+  }
+
+  async createSessionTokens(
+    user: Omit<JwtPayload, "sid">,
+    ip?: string,
+    userAgent?: string,
+    rememberMe = false,
+    lifetimeSeconds?: number,
+  ) {
+    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
+    if (!refreshSecret) {
+      throw new InternalServerErrorException({
+        code: "AUTH_CONFIGURATION_ERROR",
+        details: {},
+      });
+    }
+
+    // Generate the identifier before signing so both tokens are bound to this database session.
+    const sessionId = randomUUID();
+    const payload = { ...user, sid: sessionId };
+    const lifetime = lifetimeSeconds ?? (rememberMe ? 30 : 7) * 24 * 60 * 60;
+    const expiresAt = new Date(Date.now() + lifetime * 1000);
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: lifetimeSeconds ?? "1h",
+    });
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: refreshSecret,
+      expiresIn: lifetime,
+    });
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 12);
+
+    await this.prisma.session.create({
+      data: {
+        id: sessionId,
+        userId: user.id,
+        refreshTokenHash,
+        ip,
+        userAgent,
+        expiresAt,
+      },
+    });
+    return { accessToken, refreshToken };
   }
 
   async getProfile(userId: string) {
@@ -388,6 +522,28 @@ export class AuthService {
     };
   }
 
+  private assertAccountUsable(user: {
+    isActive: boolean;
+    suspendedAt: Date | null;
+    suspendedUntil: Date | null;
+  }) {
+    if (!user.isActive) {
+      throw new UnauthorizedException({
+        code: "ACCOUNT_INACTIVE",
+        details: {},
+      });
+    }
+    if (
+      user.suspendedAt &&
+      (!user.suspendedUntil || user.suspendedUntil > new Date())
+    ) {
+      throw new UnauthorizedException({
+        code: "ACCOUNT_SUSPENDED",
+        details: {},
+      });
+    }
+  }
+
   // ── OAuth (Google, Snapchat, etc.) ─────────────────────────────────────────
 
   async validateOAuthUser(data: {
@@ -403,6 +559,7 @@ export class AuthService {
     });
 
     if (user) {
+      this.assertAccountUsable(user);
       return {
         id: user.id,
         name: user.name,
@@ -418,6 +575,7 @@ export class AuthService {
     });
 
     if (user) {
+      this.assertAccountUsable(user);
       // Auto-link: update provider info
       const updated = await this.prisma.user.update({
         where: { id: user.id },
@@ -508,13 +666,31 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        passwordHash,
-        resetToken: null,
-        resetTokenExpiresAt: null,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.user.updateMany({
+        where: {
+          id: user.id,
+          resetToken: token,
+          resetTokenExpiresAt: { gt: new Date() },
+        },
+        data: {
+          passwordHash,
+          resetToken: null,
+          resetTokenExpiresAt: null,
+        },
+      });
+      if (result.count !== 1) {
+        throw new UnauthorizedException({
+          code: "INVALID_RESET_TOKEN",
+          details: {},
+        });
+      }
+      // Password changes invalidate every previously issued access/refresh JWT.
+      await tx.session.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      return result;
     });
 
     return { code: "PASSWORD_RESET" };

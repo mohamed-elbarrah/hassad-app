@@ -1,9 +1,10 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Building2 } from "lucide-react";
-import { useGetAdminClientByIdQuery } from "@/features/admin/adminClientsApi";
+import { useGetAdminClientByIdQuery, useGetAdminClientHistoryQuery } from "@/features/admin/adminClientsApi";
+import { adminErrorMessage, clientSourceLabel } from "@/lib/i18n";
 import { useGetAdminProposalsQuery } from "@/features/admin/adminProposalsApi";
 import {
   buildDefaultClientStats,
@@ -35,7 +36,9 @@ export default function ClientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: client, isLoading, isError } = useGetAdminClientByIdQuery(id);
+  const [historyPage, setHistoryPage] = useState(1);
+  const { data: client, isLoading, isError, error: clientError } = useGetAdminClientByIdQuery(id);
+  const { data: historyData, isLoading: historyLoading, isError: historyErrorState, error: historyError, refetch: refetchHistory } = useGetAdminClientHistoryQuery({ id, page: historyPage, limit: 20 });
   const { data: proposalData, isLoading: proposalsLoading } =
     useGetAdminProposalsQuery({ clientId: id, limit: 50 });
 
@@ -53,9 +56,9 @@ export default function ClientDetailPage({
                 <Building2 />
               </EmptyMedia>
               <EmptyHeader>
-                <EmptyTitle>العميل غير موجود</EmptyTitle>
+                <EmptyTitle>تعذر تحميل العميل</EmptyTitle>
                 <EmptyDescription>
-                  لم نتمكن من العثور على بيانات هذا العميل.
+                  {adminErrorMessage(clientError)}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
@@ -82,7 +85,7 @@ export default function ClientDetailPage({
     ) : null,
     client.source ? (
       <Badge key="source" variant="outline">
-        {client.source}
+        {clientSourceLabel(client.source)}
       </Badge>
     ) : null,
   ].filter(Boolean);
@@ -168,8 +171,8 @@ export default function ClientDetailPage({
             {
               value: "history",
               label: "سجل النشاط",
-              count: client.historyLogs.length,
-              content: <ClientHistoryTable history={client.historyLogs} />,
+              count: historyData?.total ?? client.historyLogs.length,
+              content: historyErrorState ? <Empty><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyHeader><EmptyTitle>تعذر تحميل سجل النشاط</EmptyTitle><EmptyDescription>{adminErrorMessage(historyError)}</EmptyDescription></EmptyHeader><EmptyContent><Button variant="outline" onClick={() => refetchHistory()}>إعادة المحاولة</Button></EmptyContent></Empty> : <ClientHistoryTable history={historyData?.items ?? client.historyLogs} loading={historyLoading} pagination={historyData && historyData.totalPages > 1 ? { page: historyPage, totalPages: historyData.totalPages, onPageChange: setHistoryPage } : undefined} />,
             },
           ]}
         />

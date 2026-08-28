@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Building2, Briefcase } from "lucide-react";
 import { toast } from "sonner";
@@ -33,9 +33,10 @@ import {
 import { UserRole, BusinessType, CreateClientSchema } from "@hassad/shared";
 import type { CreateClientInput } from "@hassad/shared";
 
-import { useCreateClientMutation } from "@/features/clients/clientsApi";
-import { useSearchUsersQuery } from "@/features/users/usersApi";
+import { useCreateAdminClientMutation } from "@/features/admin/adminClientsApi";
+import { useGetAdminUsersQuery } from "@/features/admin/adminUsersApi";
 import { useAppSelector } from "@/lib/hooks";
+import { adminErrorMessage } from "@/lib/i18n";
 
 const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   [BusinessType.RESTAURANT]: "مطعم",
@@ -56,15 +57,15 @@ export function CreateClientDialog({
 }: CreateClientDialogProps) {
   const { user } = useAppSelector((state) => state.auth);
   const isAdmin = user?.role === UserRole.ADMIN;
-  const [createClient, { isLoading }] = useCreateClientMutation();
+  const [createClient, { isLoading }] = useCreateAdminClientMutation();
 
-  const { data: salesUsers } = useSearchUsersQuery(
-    { role: UserRole.SALES, limit: 50 },
+  const { data: salesUsers } = useGetAdminUsersQuery(
+    { roles: UserRole.SALES, limit: 50 },
     { skip: !isAdmin || !open },
   );
 
   const form = useForm<CreateClientInput>({
-    resolver: zodResolver(CreateClientSchema),
+    resolver: zodResolver(CreateClientSchema) as unknown as Resolver<CreateClientInput>,
     mode: "onChange",
     defaultValues: {
       companyName: "",
@@ -87,8 +88,8 @@ export function CreateClientDialog({
       toast.success("تم إضافة العميل بنجاح");
       form.reset();
       onOpenChange(false);
-    } catch {
-      toast.error("فشل إضافة العميل. يرجى المحاولة مجدداً.");
+    } catch (error) {
+      toast.error(adminErrorMessage(error));
     }
   }
 
