@@ -100,9 +100,18 @@ export const PORTAL_MORE_ITEMS: PortalNavItem[] = [
   { label: "العقود", href: "/portal/contracts", icon: FileText },
   { label: "العروض", href: "/portal/proposals", icon: FileText },
   { label: "مراجعة التسليمات", href: "/portal/deliverables", icon: Inbox },
-  { label: "الحملات", href: "/portal/campaigns", icon: TrendingUp },
+  {
+    label: "الحملات",
+    href: "/portal/campaigns",
+    icon: TrendingUp,
+  },
+  {
+    label: "الدراسات التسويقية",
+    href: "/portal/marketing-strategies",
+    icon: FileText,
+  },
   { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
-  { label: "النزاعات", href: "/portal/disputes", icon: Scale },
+  { label: "الإعدادات", href: "/portal/account", icon: Settings },
 ];
 
 export function isPortalActiveLink(href: string, pathname: string) {

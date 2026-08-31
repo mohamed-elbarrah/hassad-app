@@ -2,7 +2,7 @@
 
 import { useAppSelector } from "@/lib/hooks";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { LoaderCircle } from "lucide-react";
 import { UserRole } from "@hassad/shared";
 import {
@@ -66,7 +66,14 @@ export default function PortalLayout({
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "20rem",
+          "--sidebar-width-icon": "4.5rem",
+        } as CSSProperties
+      }
+    >
       <div className="flex h-svh w-full overflow-hidden bg-muted/30" dir="rtl">
         <PortalSidebar />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

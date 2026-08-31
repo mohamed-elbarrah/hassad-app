@@ -1,36 +1,16 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Building2,
-  Shield,
   Briefcase,
-  ListChecks,
-  ClipboardList,
   Kanban,
-  FileText,
-  FileSignature,
-  PlusCircle,
   MessageSquare,
-  BarChart3,
-  TrendingUp,
-  Ticket,
   LayoutDashboard,
   Users,
-  FolderKanban,
-  CheckSquare,
-  FileSpreadsheet,
   Handshake,
   PiggyBank,
-  Scale,
   Activity,
   FileBarChart,
-  Lock,
-  Database,
-  Globe,
-  AlertTriangle,
-  DollarSign,
-  CreditCard,
-  Bot,
   Megaphone,
+  Settings,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -43,179 +23,170 @@ export type NavSubItem = {
 export type NavItem = {
   title: string;
   url: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
   roles: string[];
   exact?: boolean;
   items?: NavSubItem[];
 };
-export type NavSection = { label: string; items: NavItem[] };
+export type NavSection = {
+  label: string;
+  icon: LucideIcon;
+  items: NavItem[];
+};
 
 /* ── Admin-only navigation (Phase 6 — built in waves) ──────────────────────── */
 export const adminNavSections: NavSection[] = [
   {
     label: "لوحة التحكم",
+    icon: LayoutDashboard,
     items: [
       {
         title: "نظرة عامة",
         url: "/dashboard/admin",
         exact: true,
-        icon: LayoutDashboard,
         roles: ["ADMIN"],
       },
     ],
   },
   {
     label: "إدارة الموظفين",
+    icon: Users,
     items: [
       {
         title: "الموظفون",
         url: "/dashboard/admin/employees",
-        icon: Users,
         roles: ["ADMIN"],
       },
     ],
   },
   {
     label: "إدارة العملاء",
+    icon: Handshake,
     items: [
       {
         title: "العملاء",
         url: "/dashboard/admin/clients",
-        icon: Handshake,
         roles: ["ADMIN"],
       },
     ],
   },
   {
     label: "العمليات",
+    icon: Briefcase,
     items: [
       {
         title: "المشاريع",
         url: "/dashboard/admin/projects",
-        icon: FolderKanban,
         roles: ["ADMIN"],
       },
       {
         title: "المهام",
         url: "/dashboard/admin/tasks",
-        icon: CheckSquare,
         roles: ["ADMIN"],
       },
       {
         title: "العقود",
         url: "/dashboard/admin/contracts",
-        icon: FileSignature,
         roles: ["ADMIN"],
       },
       {
         title: "الطلبات",
         url: "/dashboard/admin/requests",
-        icon: ClipboardList,
         roles: ["ADMIN"],
       },
       {
         title: "العروض الفنية",
         url: "/dashboard/admin/proposals",
-        icon: FileText,
         roles: ["ADMIN"],
       },
       {
         title: "النزاعات",
         url: "/dashboard/admin/disputes",
-        icon: Scale,
         roles: ["ADMIN"],
       },
     ],
   },
   {
     label: "المالية",
+    icon: PiggyBank,
     items: [
       {
         title: "نظرة عامة",
         url: "/dashboard/admin/finance",
         exact: true,
-        icon: PiggyBank,
         roles: ["ADMIN"],
       },
       {
         title: "الفواتير",
         url: "/dashboard/admin/finance/invoices",
-        icon: FileSpreadsheet,
         roles: ["ADMIN"],
       },
       {
         title: "المدفوعات",
         url: "/dashboard/admin/finance/payments",
-        icon: TrendingUp,
         roles: ["ADMIN"],
       },
       {
         title: "بوابات الدفع",
         url: "/dashboard/admin/payment-gateways",
-        icon: CreditCard,
         roles: ["ADMIN"],
       },
     ],
   },
   {
     label: "المراقبة",
+    icon: Activity,
     items: [
       {
         title: "سجل التدقيق",
         url: "/dashboard/admin/audit",
-        icon: Activity,
         roles: ["ADMIN"],
       },
       {
         title: "الأمان",
         url: "/dashboard/admin/security",
-        icon: Lock,
         roles: ["ADMIN"],
       },
       {
         title: "الجلسات",
         url: "/dashboard/admin/sessions",
-        icon: Database,
         roles: ["ADMIN"],
       },
       {
         title: "صحة النظام",
         url: "/dashboard/admin/health",
-        icon: AlertTriangle,
         roles: ["ADMIN"],
       },
     ],
   },
   {
     label: "التقارير",
+    icon: FileBarChart,
     items: [
       {
         title: "التقارير",
         url: "/dashboard/admin/reports",
-        icon: FileBarChart,
         roles: ["ADMIN"],
       },
     ],
   },
   {
     label: "الإعدادات",
+    icon: Settings,
     items: [
       {
         title: "التكاملات",
         url: "/dashboard/admin/integrations",
-        icon: Globe,
         roles: ["ADMIN"],
       },
       {
         title: "العملات",
         url: "/dashboard/admin/settings/currencies",
-        icon: DollarSign,
         roles: ["ADMIN"],
       },
       {
         title: "الذكاء الاصطناعي",
         url: "/dashboard/admin/ai",
-        icon: Bot,
         roles: ["ADMIN"],
       },
     ],
@@ -227,131 +198,119 @@ export const adminNavSections: NavSection[] = [
 export const roleNavSections: NavSection[] = [
   {
     label: "المشاريع",
+    icon: Briefcase,
     items: [
       {
         title: "المشاريع",
         url: "/dashboard/pm",
         exact: true,
-        icon: Briefcase,
         roles: ["PM"],
       },
       {
         title: "المهام",
         url: "/dashboard/pm/tasks",
-        icon: ListChecks,
         roles: ["PM"],
       },
       {
         title: "طلبات التعديل",
         url: "/dashboard/pm/requests",
-        icon: ClipboardList,
         roles: ["PM"],
       },
       {
         title: "النزاعات",
         url: "/dashboard/pm/disputes",
-        icon: Ticket,
         roles: ["PM"],
       },
     ],
   },
   {
     label: "المبيعات",
+    icon: Kanban,
     items: [
       {
         title: "إنشاء طلب جديد",
         url: "/dashboard/sales/requests/new",
-        icon: PlusCircle,
         roles: ["SALES"],
       },
       {
         title: "لوحة المبيعات",
         url: "/dashboard/sales/pipeline",
         exact: true,
-        icon: Kanban,
         roles: ["SALES"],
       },
       {
         title: "العملاء",
         url: "/dashboard/sales/clients",
-        icon: Building2,
         roles: ["SALES"],
       },
       {
         title: "العروض الفنية",
         url: "/dashboard/sales/proposals",
-        icon: FileText,
         roles: ["SALES"],
       },
       {
         title: "العقود",
         url: "/dashboard/sales/contracts",
-        icon: FileSignature,
         roles: ["SALES"],
       },
     ],
   },
   {
     label: "فريق",
+    icon: Users,
     items: [
       {
         title: "قائمة المهام",
         url: "/dashboard/team",
-        icon: ClipboardList,
         roles: ["TEAM"],
       },
     ],
   },
   {
     label: "التسويق",
+    icon: Megaphone,
     items: [
       {
         title: "لوحة التحكم",
         url: "/dashboard/marketing",
         exact: true,
-        icon: BarChart3,
         roles: ["MARKETING"],
       },
       {
         title: "الحملات",
         url: "/dashboard/marketing/campaigns",
-        icon: Megaphone,
         roles: ["MARKETING"],
       },
     ],
   },
   {
     label: "المالية",
+    icon: PiggyBank,
     items: [
       {
         title: "لوحة التحكم المالية",
         url: "/dashboard/finance",
         exact: true,
-        icon: BarChart3,
         roles: ["ACCOUNTANT"],
       },
       {
         title: "إدارة الفواتير",
         url: "/dashboard/finance/invoices",
-        icon: FileText,
         roles: ["ACCOUNTANT"],
       },
       {
         title: "المدفوعات",
         url: "/dashboard/finance/payments",
-        icon: TrendingUp,
         roles: ["ACCOUNTANT"],
       },
       {
         title: "الرواتب والأجور",
         url: "/dashboard/finance/payroll",
-        icon: Kanban,
         roles: ["ACCOUNTANT"],
       },
       {
         title: "سجل التدقيق",
         url: "/dashboard/finance/ledger",
-        icon: Shield,
         roles: ["ACCOUNTANT"],
       },
     ],
@@ -363,12 +322,12 @@ export const roleNavSections: NavSection[] = [
 export const sharedNavSections: NavSection[] = [
   {
     label: "التواصل",
+    icon: MessageSquare,
     items: [
       {
         title: "المحادثات",
         url: "/dashboard/messages",
         exact: true,
-        icon: MessageSquare,
         roles: ["ADMIN", "PM", "SALES", "TEAM", "MARKETING", "ACCOUNTANT"],
       },
     ],

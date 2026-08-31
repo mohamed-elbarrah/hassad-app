@@ -28,6 +28,7 @@ import {
   roleNavSections,
   sharedNavSections,
   type NavItem,
+  type NavSection,
 } from "@/lib/navigation";
 import {
   canAccessDashboardPath,
@@ -46,6 +47,7 @@ import type { NotificationItem } from "@/features/notifications/notificationsApi
 import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotificationSocket";
 import { formatRelativeTime } from "@/lib/format";
 import { notificationPresentation } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,7 +66,9 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -74,7 +78,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -142,8 +145,8 @@ function DashboardNotificationsButton() {
   );
 
   const unreadCount = data?.count ?? 0;
-  const notifications =
-    (notificationsData?.data ?? []) as unknown as NotificationItem[];
+  const notifications = (notificationsData?.data ??
+    []) as unknown as NotificationItem[];
   const displayCount =
     unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
 
@@ -211,55 +214,57 @@ function DashboardNotificationsButton() {
               aria-live="polite"
             >
               {notificationsLoading ? (
-              <div className="flex flex-col gap-3 p-3">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="flex flex-col gap-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-full" />
-                  </div>
-                ))}
-              </div>
-            ) : notifications.length ? (
-              notifications.map((notification) => {
-                const presentation = notificationPresentation(
-                  notification.eventType,
-                  notification.metadata,
-                );
-                return (
-                <Link
-                  key={notification.id}
-                  href="/dashboard/notifications"
-                  className="flex items-start gap-2 border-b p-3 text-right last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`mt-2 size-2 shrink-0 rounded-full ${
-                      notification.isRead ? "bg-transparent" : "bg-primary"
-                    }`}
-                  />
-                  <span className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span
-                      className={`truncate text-sm ${
-                        notification.isRead ? "text-foreground" : "font-semibold text-foreground"
-                      }`}
+                <div className="flex flex-col gap-3 p-3">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="flex flex-col gap-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : notifications.length ? (
+                notifications.map((notification) => {
+                  const presentation = notificationPresentation(
+                    notification.eventType,
+                    notification.metadata,
+                  );
+                  return (
+                    <Link
+                      key={notification.id}
+                      href="/dashboard/notifications"
+                      className="flex items-start gap-2 border-b p-3 text-right last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
-                      {presentation.title}
-                    </span>
-                    <span className="line-clamp-2 text-xs text-muted-foreground">
-                      {presentation.body}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatRelativeTime(notification.createdAt as string)}
-                    </span>
-                  </span>
-                </Link>
-                );
-              })
-            ) : (
-              <p className="p-4 text-center text-sm text-muted-foreground">
-                لا توجد إشعارات
-              </p>
-            )}
+                      <span
+                        aria-hidden="true"
+                        className={`mt-2 size-2 shrink-0 rounded-full ${
+                          notification.isRead ? "bg-transparent" : "bg-primary"
+                        }`}
+                      />
+                      <span className="flex min-w-0 flex-1 flex-col gap-1">
+                        <span
+                          className={`truncate text-sm ${
+                            notification.isRead
+                              ? "text-foreground"
+                              : "font-semibold text-foreground"
+                          }`}
+                        >
+                          {presentation.title}
+                        </span>
+                        <span className="line-clamp-2 text-xs text-muted-foreground">
+                          {presentation.body}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatRelativeTime(notification.createdAt as string)}
+                        </span>
+                      </span>
+                    </Link>
+                  );
+                })
+              ) : (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  لا توجد إشعارات
+                </p>
+              )}
             </div>
           )}
 
@@ -281,10 +286,10 @@ function DashboardThemeToggle() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-10 w-10 rounded-full border border-border bg-background"
+        className="size-10 rounded-full border border-border bg-background"
         aria-label="تبديل المظهر"
       >
-        <Monitor className="h-5 w-5" />
+        <Monitor />
       </Button>
     );
   }
@@ -303,10 +308,10 @@ function DashboardThemeToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10 rounded-full border border-border bg-background hover:bg-accent"
+          className="size-10 rounded-full border border-border bg-background hover:bg-accent"
           aria-label="تبديل المظهر"
         >
-          <ThemeIcon className="h-5 w-5" />
+          <ThemeIcon />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
@@ -322,6 +327,182 @@ function DashboardThemeToggle() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function DashboardNavigation({
+  sections,
+  pathname,
+  openSection,
+  onSectionChange,
+  onNavigate,
+}: {
+  sections: NavSection[];
+  pathname: string;
+  openSection: string | null;
+  onSectionChange: (label: string, open: boolean) => void;
+  onNavigate: () => void;
+}) {
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+
+  return (
+    <div className="flex flex-col gap-2">
+      {sections.map((section) => {
+        const activeItem = getActiveNavItem(section.items, pathname);
+        const SectionIcon = section.icon;
+
+        if (section.items.length === 1) {
+          const item = section.items[0];
+          const active = activeItem?.url === item.url;
+
+          return (
+            <SidebarMenu key={section.label}>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  isActive={active}
+                  tooltip={{ children: item.title, side: "left" }}
+                  className="text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
+                >
+                  <Link
+                    href={item.url}
+                    aria-current={active ? "page" : undefined}
+                    onClick={onNavigate}
+                  >
+                    <SectionIcon aria-hidden="true" />
+                    <span className="group-data-[collapsible=icon]:hidden">
+                      {item.title}
+                    </span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          );
+        }
+
+        const isOpen = openSection === section.label;
+        const sectionIsActive = Boolean(activeItem);
+        const children = section.items.map((item) => {
+          const active = activeItem?.url === item.url;
+
+          return (
+            <SidebarMenuItem key={item.url}>
+              <SidebarMenuButton
+                asChild
+                size="lg"
+                isActive={active}
+                tooltip={{ children: item.title, side: "left" }}
+                className="ps-10 text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
+              >
+                <Link
+                  href={item.url}
+                  aria-current={active ? "page" : undefined}
+                  onClick={onNavigate}
+                >
+                  <span>{item.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        });
+
+        if (isCollapsed) {
+          return (
+            <SidebarMenu key={section.label}>
+              <SidebarMenuItem>
+                <DropdownMenu dir="rtl">
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                      size="lg"
+                      isActive={sectionIsActive}
+                      tooltip={{ children: section.label, side: "left" }}
+                      aria-label={section.label}
+                      className="group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
+                    >
+                      <SectionIcon aria-hidden="true" />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {section.label}
+                      </span>
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    side="left"
+                    align="start"
+                    className="min-w-48"
+                  >
+                    <DropdownMenuLabel>{section.label}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      {section.items.map((item) => {
+                        const active = activeItem?.url === item.url;
+                        return (
+                          <DropdownMenuItem
+                            key={item.url}
+                            asChild
+                            className={cn(
+                              active &&
+                                "bg-accent font-medium text-accent-foreground",
+                            )}
+                          >
+                            <Link
+                              href={item.url}
+                              aria-current={active ? "page" : undefined}
+                              onClick={onNavigate}
+                            >
+                              {item.title}
+                            </Link>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          );
+        }
+
+        return (
+          <Collapsible
+            key={section.label}
+            open={isOpen}
+            onOpenChange={(open) => onSectionChange(section.label, open)}
+            className="group/collapsible"
+          >
+            <SidebarGroup className="p-0">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                      size="lg"
+                      isActive={sectionIsActive}
+                      tooltip={{ children: section.label, side: "left" }}
+                      className="text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
+                    >
+                      <SectionIcon aria-hidden="true" />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {section.label}
+                      </span>
+                      <ChevronDown
+                        aria-hidden="true"
+                        className="mr-auto transition-transform group-data-[state=open]/collapsible:rotate-180 group-data-[collapsible=icon]:hidden"
+                      />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                </SidebarMenuItem>
+              </SidebarMenu>
+              <CollapsibleContent>
+                <SidebarGroupContent className="pt-1">
+                  <SidebarMenu className="gap-1">{children}</SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
+        );
+      })}
+    </div>
   );
 }
 
@@ -352,7 +533,7 @@ function DashboardSidebarContent() {
 
     return sourceSections
       .map((section) => ({
-        label: section.label,
+        ...section,
         items: section.items.filter((item) => item.roles.includes(user.role)),
       }))
       .filter((section) => section.items.length > 0);
@@ -381,12 +562,20 @@ function DashboardSidebarContent() {
       collapsible="icon"
       className="border-l border-sidebar-border"
     >
-      <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-5 group-data-[collapsible=icon]:px-2">
         <Link
           href={user ? getRoleHome(user.role) : "/dashboard"}
-          className="flex items-center gap-3 rounded-xl px-2 py-1.5"
+          className="flex w-full items-center gap-3 rounded-xl px-1.5 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
-          <Image src="/masar.svg" alt="Hassad" width={40} height={40} />
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sidebar-accent p-1">
+            <Image
+              src="/masar.svg"
+              alt="Hassad"
+              width={44}
+              height={44}
+              className="size-full object-contain"
+            />
+          </span>
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">
               Hassad Platform
@@ -399,132 +588,24 @@ function DashboardSidebarContent() {
       </SidebarHeader>
 
       <nav aria-label="التنقل الرئيسي" className="flex min-h-0 flex-1 flex-col">
-        <SidebarContent className="px-2 py-3">
-          {isAdmin ? (
-            sections.map((section) => {
-              if (section.items.length === 1) {
-                const item = section.items[0];
-                const Icon = item.icon;
-                const active =
-                  getActiveNavItem(section.items, pathname)?.url === item.url;
-
-                return (
-                  <SidebarGroup key={section.label}>
-                    <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton
-                            asChild
-                            isActive={active}
-                            tooltip={item.title}
-                          >
-                            <Link
-                              href={item.url}
-                              aria-current={active ? "page" : undefined}
-                              onClick={handleNavigation}
-                            >
-                              <Icon />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
-                );
-              }
-
-              const isOpen = openSection === section.label;
-              const activeUrl = getActiveNavItem(section.items, pathname)?.url;
-
-              return (
-                <Collapsible
-                  key={section.label}
-                  open={isOpen}
-                  onOpenChange={(open) => {
-                    if (!open && activeSection?.label === section.label) return;
-                    setOpenSectionOverride(open ? section.label : null);
-                  }}
-                  className="group/collapsible"
-                >
-                  <SidebarGroup>
-                    <SidebarGroupLabel asChild>
-                      <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 transition-colors hover:text-sidebar-foreground">
-                        <span>{section.label}</span>
-                        <ChevronDown className="mr-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                      </CollapsibleTrigger>
-                    </SidebarGroupLabel>
-
-                    <CollapsibleContent>
-                      <SidebarGroupContent className="pt-1">
-                        <SidebarMenu>
-                          {section.items.map((item) => {
-                            const Icon = item.icon;
-                            const active = activeUrl === item.url;
-
-                            return (
-                              <SidebarMenuItem key={item.url}>
-                                <SidebarMenuButton
-                                  asChild
-                                  isActive={active}
-                                  tooltip={item.title}
-                                >
-                                  <Link
-                                    href={item.url}
-                                    aria-current={active ? "page" : undefined}
-                                    onClick={handleNavigation}
-                                  >
-                                    <Icon />
-                                    <span>{item.title}</span>
-                                  </Link>
-                                </SidebarMenuButton>
-                              </SidebarMenuItem>
-                            );
-                          })}
-                        </SidebarMenu>
-                      </SidebarGroupContent>
-                    </CollapsibleContent>
-                  </SidebarGroup>
-                </Collapsible>
-              );
-            })
-          ) : (
-            <SidebarMenu>
-              {sections
-                .flatMap((section) => section.items)
-                .map((item) => {
-                  const Icon = item.icon;
-                  const active = isActiveLink(item, pathname);
-
-                  return (
-                    <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={active}
-                        tooltip={item.title}
-                      >
-                        <Link
-                          href={item.url}
-                          aria-current={active ? "page" : undefined}
-                          onClick={handleNavigation}
-                        >
-                          <Icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-            </SidebarMenu>
-          )}
+        <SidebarContent className="px-3 py-4">
+          <DashboardNavigation
+            sections={sections}
+            pathname={pathname}
+            openSection={openSection}
+            onSectionChange={(label, open) => {
+              if (!open && activeSection?.label === label) return;
+              setOpenSectionOverride(open ? label : null);
+            }}
+            onNavigate={handleNavigation}
+          />
         </SidebarContent>
       </nav>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
         {user && (
           <div className="mb-3 flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 group-data-[collapsible=icon]:hidden">
-            <Avatar className="h-9 w-9">
+            <Avatar className="size-9">
               <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
               <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
             </Avatar>
@@ -541,11 +622,13 @@ function DashboardSidebarContent() {
 
         <SidebarSeparator />
 
-        <SidebarMenu className="pt-2">
+        <SidebarMenu className="gap-2 pt-2">
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
+              size="lg"
               isActive={isExactPathActive(settingsUrl, pathname)}
+              className="group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
               tooltip="الإعدادات"
             >
               <Link
@@ -562,8 +645,9 @@ function DashboardSidebarContent() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
+              size="lg"
               tooltip="تسجيل الخروج"
-              className="text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
               onClick={async () => {
                 if (!user) return;
                 try {
@@ -617,7 +701,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <div className="space-y-4 text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-border border-t-primary" />
+          <div className="mx-auto size-10 animate-spin rounded-full border-2 border-border border-t-primary" />
           <p className="text-sm text-muted-foreground">جارٍ التهيئة...</p>
         </div>
       </div>
@@ -635,8 +719,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       className="overflow-hidden"
       style={
         {
-          "--sidebar-width": "18rem",
-          "--sidebar-width-icon": "3.25rem",
+          "--sidebar-width": "20rem",
+          "--sidebar-width-icon": "4.5rem",
         } as CSSProperties
       }
     >

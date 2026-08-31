@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   Bell,
   ChevronDown,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { notificationPresentation } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -48,6 +50,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLogoutMutation } from "@/features/auth/authApi";
@@ -104,6 +108,7 @@ function PortalUserMenu() {
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const { state } = useSidebar();
   const [logoutMutation] = useLogoutMutation();
 
   if (!user) return null;
@@ -123,13 +128,15 @@ function PortalUserMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="h-auto w-full justify-start px-2 py-2"
+          className="h-auto w-full justify-start px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          aria-label={user.name}
+          title={state === "collapsed" ? user.name : undefined}
         >
           <Avatar className="size-9">
             <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
             <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
-          <span className="min-w-0 flex-1 truncate text-start">
+          <span className="min-w-0 flex-1 truncate text-start group-data-[collapsible=icon]:hidden">
             {user.name}
           </span>
         </Button>
@@ -225,24 +232,24 @@ function PortalNotificationMenu() {
                 notification.metadata,
               );
               return (
-              <DropdownMenuItem
-                key={notification.id}
-                className="items-start"
-                onSelect={() => openNotification(notification)}
-              >
-                <UserRound className="mt-0.5" />
-                <span className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="truncate font-medium">
-                    {presentation.title}
+                <DropdownMenuItem
+                  key={notification.id}
+                  className="items-start"
+                  onSelect={() => openNotification(notification)}
+                >
+                  <UserRound className="mt-0.5" />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="truncate font-medium">
+                      {presentation.title}
+                    </span>
+                    <span className="line-clamp-2 text-xs text-muted-foreground">
+                      {presentation.body}
+                    </span>
                   </span>
-                  <span className="line-clamp-2 text-xs text-muted-foreground">
-                    {presentation.body}
-                  </span>
-                </span>
-                {!notification.isRead && (
-                  <Badge variant="secondary">جديد</Badge>
-                )}
-              </DropdownMenuItem>
+                  {!notification.isRead && (
+                    <Badge variant="secondary">جديد</Badge>
+                  )}
+                </DropdownMenuItem>
               );
             })}
           </DropdownMenuGroup>
@@ -260,19 +267,35 @@ function PortalNotificationMenu() {
   );
 }
 
-function PortalNavLink({ item }: { item: PortalNavItem }) {
+function PortalNavLink({
+  item,
+  showIcon = true,
+}: {
+  item: PortalNavItem;
+  showIcon?: boolean;
+}) {
   const pathname = usePathname();
   const Icon = item.icon;
+  const active = isPortalActiveLink(item.href, pathname);
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
-        isActive={isPortalActiveLink(item.href, pathname)}
+        size="lg"
+        isActive={active}
+        tooltip={{ children: item.label, side: "left" }}
+        className={cn(
+          "text-start",
+          !showIcon && "ps-10",
+          "group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center",
+        )}
       >
-        <Link href={item.href}>
-          <Icon />
-          <span>{item.label}</span>
+        <Link href={item.href} aria-current={active ? "page" : undefined}>
+          {showIcon ? <Icon aria-hidden="true" /> : null}
+          <span className="group-data-[collapsible=icon]:hidden">
+            {item.label}
+          </span>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -281,6 +304,8 @@ function PortalNavLink({ item }: { item: PortalNavItem }) {
 
 export function PortalSidebar() {
   const pathname = usePathname();
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
   const activeGroup = useMemo(
     () =>
       PORTAL_NAV_GROUPS.find((group) =>
@@ -298,53 +323,144 @@ export function PortalSidebar() {
   return (
     <Sidebar
       side="right"
-      collapsible="none"
+      collapsible="icon"
       className="hidden border-l lg:flex"
     >
-      <SidebarHeader className="items-center border-b px-4 py-5">
-        <Image src="/masar.svg" alt="مسار" width={72} height={72} priority />
+      <SidebarHeader className="items-center border-b px-4 py-5 group-data-[collapsible=icon]:px-2">
+        <Link
+          href="/portal"
+          className="flex w-full items-center justify-center rounded-xl p-1"
+          aria-label="الرئيسية"
+        >
+          <span className="flex size-11 items-center justify-center rounded-xl bg-sidebar-accent p-1">
+            <Image
+              src="/masar.svg"
+              alt="مسار"
+              width={44}
+              height={44}
+              priority
+              className="size-full object-contain"
+            />
+          </span>
+        </Link>
       </SidebarHeader>
-      <SidebarContent>
-        <ScrollArea className="h-full">
-          <SidebarMenu className="p-3">
-            {PORTAL_STANDALONE_ITEMS.map((item) => (
-              <PortalNavLink key={item.href} item={item} />
-            ))}
-            {PORTAL_NAV_GROUPS.map((group) => {
-              const Icon = group.icon;
-              const isActive = group.items.some((item) =>
-                isPortalActiveLink(item.href, pathname),
-              );
-              const isOpen = openGroup === group.key;
+      <nav aria-label="التنقل الرئيسي" className="min-h-0 flex-1">
+        <SidebarContent>
+          <ScrollArea className="h-full">
+            <SidebarMenu className="gap-2 p-3">
+              {PORTAL_STANDALONE_ITEMS.map((item) => (
+                <PortalNavLink key={item.href} item={item} />
+              ))}
+              {PORTAL_NAV_GROUPS.map((group) => {
+                const Icon = group.icon;
+                const isActive = group.items.some((item) =>
+                  isPortalActiveLink(item.href, pathname),
+                );
+                const isOpen = openGroup === group.key;
 
-              return (
-                <Collapsible
-                  key={group.key}
-                  open={isOpen}
-                  onOpenChange={(open) => setOpenGroup(open ? group.key : null)}
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton isActive={isActive}>
-                        <Icon />
-                        <span>{group.label}</span>
-                        <ChevronDown className="ms-auto transition-transform data-[state=open]:rotate-180" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenu className="ms-4 border-s ps-2">
-                        {group.items.map((item) => (
-                          <PortalNavLink key={item.href} item={item} />
-                        ))}
+                if (isCollapsed) {
+                  return (
+                    <SidebarMenuItem key={group.key}>
+                      <DropdownMenu dir="rtl">
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuButton
+                            size="lg"
+                            isActive={isActive}
+                            tooltip={{ children: group.label, side: "left" }}
+                            aria-label={group.label}
+                            className="justify-center text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0"
+                          >
+                            <Icon aria-hidden="true" />
+                            <span className="group-data-[collapsible=icon]:hidden">
+                              {group.label}
+                            </span>
+                          </SidebarMenuButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          side="left"
+                          align="start"
+                          className="min-w-48"
+                        >
+                          <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuGroup>
+                            {group.items.map((item) => {
+                              const active = isPortalActiveLink(
+                                item.href,
+                                pathname,
+                              );
+                              return (
+                                <DropdownMenuItem
+                                  key={item.href}
+                                  asChild
+                                  className={cn(
+                                    active &&
+                                      "bg-accent font-medium text-accent-foreground",
+                                  )}
+                                >
+                                  <Link
+                                    href={item.href}
+                                    aria-current={active ? "page" : undefined}
+                                  >
+                                    {item.label}
+                                  </Link>
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </SidebarMenuItem>
+                  );
+                }
+
+                return (
+                  <SidebarMenuItem key={group.key}>
+                    <Collapsible
+                      className="group/collapsible"
+                      open={isOpen}
+                      onOpenChange={(open) =>
+                        setOpenGroup(open ? group.key : null)
+                      }
+                    >
+                      <SidebarMenu>
+                        <SidebarMenuItem>
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton
+                              size="lg"
+                              isActive={isActive}
+                              tooltip={{ children: group.label, side: "left" }}
+                              className="text-start"
+                            >
+                              <Icon aria-hidden="true" />
+                              <span>{group.label}</span>
+                              <ChevronDown
+                                aria-hidden="true"
+                                className="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                              />
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
+                        </SidebarMenuItem>
                       </SidebarMenu>
-                    </CollapsibleContent>
+                      <CollapsibleContent>
+                        <SidebarMenu className="ms-4 gap-1 border-s ps-2">
+                          {group.items.map((item) => (
+                            <PortalNavLink
+                              key={item.href}
+                              item={item}
+                              showIcon={false}
+                            />
+                          ))}
+                        </SidebarMenu>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </SidebarMenuItem>
-                </Collapsible>
-              );
-            })}
-          </SidebarMenu>
-        </ScrollArea>
-      </SidebarContent>
+                );
+              })}
+            </SidebarMenu>
+          </ScrollArea>
+        </SidebarContent>
+      </nav>
       <SidebarFooter className="border-t p-3">
         <PortalUserMenu />
       </SidebarFooter>
@@ -354,19 +470,28 @@ export function PortalSidebar() {
 
 export function PortalHeader() {
   const { user } = useAppSelector((state) => state.auth);
+  const { resolvedTheme, setTheme } = useTheme();
   const firstName = user?.name.split(" ")[0] ?? "";
 
   return (
     <header className="flex min-h-16 items-center justify-between border-b bg-background px-4 py-3 lg:px-6">
-      <div className="hidden flex-col md:flex">
-        <span className="font-semibold">مرحباً {firstName}</span>
-        <span className="text-sm text-muted-foreground">
-          مشروعك يسير بشكل جيد
-        </span>
+      <div className="flex min-w-0 items-center gap-3">
+        <SidebarTrigger className="hidden shrink-0 lg:flex" />
+        <div className="hidden flex-col md:flex">
+          <span className="font-semibold">مرحباً {firstName}</span>
+          <span className="text-sm text-muted-foreground">
+            مشروعك يسير بشكل جيد
+          </span>
+        </div>
       </div>
       <div className="ms-auto flex items-center gap-2">
-        <Button variant="outline" size="icon" aria-label="تبديل المظهر">
-          <Moon />
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="تبديل المظهر"
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        >
+          <Moon aria-hidden="true" />
         </Button>
         <PortalNotificationMenu />
       </div>
@@ -382,7 +507,10 @@ export function PortalMobileNav() {
   );
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background p-2 lg:hidden">
+    <nav
+      aria-label="التنقل للجوال"
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background p-2 lg:hidden"
+    >
       <div className="flex items-center justify-around gap-1">
         {PORTAL_BOTTOM_PRIMARY.map((item) => {
           const Icon = item.icon;
