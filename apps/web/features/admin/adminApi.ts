@@ -242,7 +242,6 @@ export interface AdminAttentionUnacknowledgedAlert {
 export interface AiProvider {
   id: string;
   name: string;
-  displayName: string | null;
   baseUrl: string | null;
   apiKey: string;
   models: string[];
@@ -256,9 +255,14 @@ export interface AiProvider {
   updatedAt: string;
 }
 
+export interface SupportedAiProvider {
+  name: string;
+  label: string;
+  defaultModels: string[];
+}
+
 export interface CreateAiProviderDto {
   name: string;
-  displayName?: string;
   baseUrl?: string;
   apiKey: string;
   models?: string[];
@@ -277,7 +281,6 @@ export interface FetchModelsDto {
 }
 
 export interface UpdateAiProviderDto {
-  displayName?: string;
   baseUrl?: string;
   apiKey?: string;
   models?: string[];
@@ -635,6 +638,10 @@ export const adminApi = createApi({
       providesTags: ["AiProviders"],
     }),
 
+    getSupportedAiProviders: builder.query<SupportedAiProvider[], void>({
+      query: () => "/admin/ai/providers/supported",
+    }),
+
     getAiProvider: builder.query<AiProvider, string>({
       query: (id) => `/admin/ai/providers/${id}`,
       providesTags: (_result, _error, id) => [{ type: "AiProviders", id }],
@@ -735,6 +742,7 @@ export const {
   useUpdateAdminBusinessGoalMutation,
   useDeleteAdminBusinessGoalMutation,
   useGetAiProvidersQuery,
+  useGetSupportedAiProvidersQuery,
   useGetAiProviderQuery,
   useGetAiProviderModelsQuery,
   usePreviewAiProviderModelsMutation,

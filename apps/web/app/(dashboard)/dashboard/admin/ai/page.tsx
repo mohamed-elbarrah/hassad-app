@@ -46,6 +46,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,28 +57,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   useCreateAiProviderMutation,
   useDeleteAiProviderMutation,
   useGetAiProvidersQuery,
+  useGetSupportedAiProvidersQuery,
   usePreviewAiProviderModelsMutation,
   useTestAiProviderMutation,
   useUpdateAiProviderMutation,
   type AiProvider,
   type CreateAiProviderDto,
+  type SupportedAiProvider,
   type UpdateAiProviderDto,
 } from "@/features/admin/adminApi";
 import { adminErrorMessage } from "@/lib/i18n";
 
-const DEFAULT_MODELS: Record<string, string[]> = {
-  openai: ["gpt-4o", "gpt-4o-mini"],
-  anthropic: ["claude-3-5-sonnet-latest", "claude-3-5-haiku-latest"],
-  google: ["gemini-1.5-pro", "gemini-1.5-flash"],
-};
-
 type FormState = {
   name: string;
-  displayName: string;
   baseUrl: string;
   apiKey: string;
   models: string[];
@@ -88,8 +85,7 @@ type FormState = {
 };
 
 const emptyForm: FormState = {
-  name: "openai",
-  displayName: "",
+  name: "",
   baseUrl: "",
   apiKey: "",
   models: [],
@@ -102,7 +98,6 @@ const emptyForm: FormState = {
 function formFromProvider(provider: AiProvider): FormState {
   return {
     name: provider.name,
-    displayName: provider.displayName ?? "",
     baseUrl: provider.baseUrl ?? "",
     apiKey: "",
     models: provider.models ?? [],
@@ -126,8 +121,10 @@ function LoadingState() {
   );
 }
 
-function ProviderDialog({ provider, open, onOpenChange }: { provider: AiProvider | null; open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [form, setForm] = useState<FormState>(() => provider ? formFromProvider(provider) : emptyForm);
+function ProviderDialog({ provider, supportedProviders, open, onOpenChange }: { provider: AiProvider | null; supportedProviders: SupportedAiProvider[]; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const defaultProvider = supportedProviders[0]?.name ?? "";
+  const createForm = (): FormState => ({ ...emptyForm, name: defaultProvider });
+  const [form, setForm] = useState<FormState>(() => provider ? formFromProvider(provider) : createForm());
   const [create, createState] = useCreateAiProviderMutation();
   const [update, updateState] = useUpdateAiProviderMutation();
   const [previewModels] = usePreviewAiProviderModelsMutation();
@@ -137,7 +134,7 @@ function ProviderDialog({ provider, open, onOpenChange }: { provider: AiProvider
   const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
 
   function handleOpenChange(nextOpen: boolean) {
-    if (nextOpen) setForm(provider ? formFromProvider(provider) : { ...emptyForm });
+    if (nextOpen) setForm(provider ? formFromProvider(provider) : createForm());
     onOpenChange(nextOpen);
   }
 
@@ -148,7 +145,6 @@ function ProviderDialog({ provider, open, onOpenChange }: { provider: AiProvider
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const common = {
-      displayName: form.displayName || undefined,
       baseUrl: form.baseUrl || undefined,
       models: form.models,
       priority: Number(form.priority) || 1,
@@ -156,6 +152,11 @@ function ProviderDialog({ provider, open, onOpenChange }: { provider: AiProvider
       maxTokens: form.maxTokens ? Number(form.maxTokens) : undefined,
       temperature: form.temperature ? Number(form.temperature) : undefined,
     };
+    const supportedProvider = supportedProviders.some(({ name }) => name === form.name);
+    if (!supportedProvider) {
+      toast.error("هذا المزود غير مدعوم حالياً ولا يمكن حفظه.");
+      return;
+    }
     try {
       if (isEditing) {
         const body: UpdateAiProviderDto = { ...common, ...(form.apiKey ? { apiKey: form.apiKey } : {}) };
@@ -172,21 +173,21 @@ function ProviderDialog({ provider, open, onOpenChange }: { provider: AiProvider
     }
   }
 
-  const defaults = DEFAULT_MODELS[form.name.toLowerCase()] ?? [];
+  const selectedProvider = supportedProviders.find(({ name }) => name === form.name);
+  const isUnsupported = isEditing && !selectedProvider;
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" dir="rtl">
         <DialogHeader><DialogTitle>{isEditing ? "تعديل مزود الذكاء الاصطناعي" : "إضافة مزود جديد"}</DialogTitle><DialogDescription>اضبط بيانات الاتصال والنماذج التي يمكن للنظام استخدامها.</DialogDescription></DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2"><Label htmlFor="ai-provider-name">معرّف المزود</Label><Input id="ai-provider-name" value={form.name} disabled={isEditing} onChange={(event) => updateField("name", event.target.value)} placeholder="openai" /></div>
-            <div className="flex flex-col gap-2"><Label htmlFor="ai-provider-display-name">الاسم المعروض</Label><Input id="ai-provider-display-name" value={form.displayName} onChange={(event) => updateField("displayName", event.target.value)} placeholder="OpenAI" /></div>
+            <div className="flex flex-col gap-2"><Label htmlFor="ai-provider-name">معرّف المزود</Label><Select value={isUnsupported ? "" : form.name} onValueChange={(value) => updateField("name", value)} disabled={isEditing || supportedProviders.length === 0}><SelectTrigger id="ai-provider-name" className="min-h-11"><SelectValue placeholder="اختر مزوداً معتمداً" /></SelectTrigger><SelectContent><SelectGroup>{supportedProviders.map((supported) => <SelectItem key={supported.name} value={supported.name}>{supported.label} ({supported.name})</SelectItem>)}</SelectGroup></SelectContent></Select>{isUnsupported ? <Alert variant="destructive"><AlertTitle>مزود غير مدعوم</AlertTitle><AlertDescription>هذا السجل يستخدم معرّفاً غير موجود في كتالوج المزودين المعتمدين. لا يمكن حفظه قبل معالجة السجل.</AlertDescription></Alert> : null}</div>
             <div className="flex flex-col gap-2 sm:col-span-2"><Label htmlFor="ai-provider-key">مفتاح API {isEditing ? "(اتركه فارغاً للإبقاء على المفتاح الحالي)" : ""}</Label><Input id="ai-provider-key" dir="ltr" type="password" value={form.apiKey} onChange={(event) => updateField("apiKey", event.target.value)} placeholder={isEditing ? "••••••••" : "sk-..."} /></div>
             <div className="flex flex-col gap-2 sm:col-span-2"><Label htmlFor="ai-provider-url">الرابط الأساسي (اختياري)</Label><Input id="ai-provider-url" dir="ltr" value={form.baseUrl} onChange={(event) => updateField("baseUrl", event.target.value)} placeholder="https://api.example.com/v1" /></div>
             <div className="flex flex-col gap-2"><Label htmlFor="ai-provider-priority">الأولوية</Label><Input id="ai-provider-priority" type="number" min="1" value={form.priority} onChange={(event) => updateField("priority", event.target.value)} /></div>
             <div className="flex items-center gap-3 pt-7"><Switch id="ai-provider-active" checked={form.isActive} onCheckedChange={(value) => updateField("isActive", value)} /><Label htmlFor="ai-provider-active">مزود نشط</Label></div>
           </div>
-          <ModelPicker providerType={form.name} apiKey={form.apiKey} baseUrl={form.baseUrl || undefined} selected={form.models} defaultModels={defaults} onChange={(models) => updateField("models", models)} onFetch={handleFetch} />
+          <ModelPicker providerType={form.name} apiKey={form.apiKey} baseUrl={form.baseUrl || undefined} selected={form.models} defaultModels={selectedProvider?.defaultModels ?? []} onChange={(models) => updateField("models", models)} onFetch={handleFetch} />
           <div className="grid gap-4 sm:grid-cols-2"><div className="flex flex-col gap-2"><Label htmlFor="ai-max-tokens">الحد الأقصى للتوكنات</Label><Input id="ai-max-tokens" type="number" min="1" value={form.maxTokens} onChange={(event) => updateField("maxTokens", event.target.value)} /></div><div className="flex flex-col gap-2"><Label htmlFor="ai-temperature">درجة الحرارة</Label><Input id="ai-temperature" type="number" min="0" max="2" step="0.1" value={form.temperature} onChange={(event) => updateField("temperature", event.target.value)} /></div></div>
           <DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button type="submit" disabled={isSaving}>{isSaving ? "جارٍ الحفظ..." : "حفظ الإعدادات"}</Button></DialogFooter>
         </form>
@@ -197,6 +198,7 @@ function ProviderDialog({ provider, open, onOpenChange }: { provider: AiProvider
 
 export default function AiPage() {
   const query = useGetAiProvidersQuery();
+  const supportedQuery = useGetSupportedAiProvidersQuery();
   const [testProvider, testState] = useTestAiProviderMutation();
   const [deleteProvider, deleteState] = useDeleteAiProviderMutation();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -216,15 +218,17 @@ export default function AiPage() {
   }
   async function handleDelete() { if (!providerToDelete) return; try { await deleteProvider(providerToDelete.id).unwrap(); toast.success("تم حذف المزود بنجاح"); setProviderToDelete(null); } catch (error) { toast.error(adminErrorMessage(error)); } }
 
-  if (query.isLoading) return <LoadingState />;
-  if (query.isError) return <div className="flex flex-col gap-6" dir="rtl"><PageHeader title="إعدادات الذكاء الاصطناعي" description="تعذر تحميل مزودي الذكاء الاصطناعي." icon={Sparkles} /><Card><CardContent className="p-8"><Empty><EmptyMedia variant="icon"><ServerCog /></EmptyMedia><EmptyHeader><EmptyTitle>تعذر تحميل المزودين</EmptyTitle><EmptyDescription>{adminErrorMessage(query.error)}</EmptyDescription></EmptyHeader><EmptyContent><Button variant="outline" onClick={() => query.refetch()}>إعادة المحاولة</Button></EmptyContent></Empty></CardContent></Card></div>;
+  if (query.isLoading || supportedQuery.isLoading) return <LoadingState />;
+  if (query.isError || supportedQuery.isError) return <div className="flex flex-col gap-6" dir="rtl"><PageHeader title="إعدادات الذكاء الاصطناعي" description="تعذر تحميل مزودي الذكاء الاصطناعي." icon={Sparkles} /><Card><CardContent className="p-8"><Empty><EmptyMedia variant="icon"><ServerCog /></EmptyMedia><EmptyHeader><EmptyTitle>تعذر تحميل المزودين</EmptyTitle><EmptyDescription>{adminErrorMessage(query.error || supportedQuery.error)}</EmptyDescription></EmptyHeader><EmptyContent><Button variant="outline" onClick={() => { void query.refetch(); void supportedQuery.refetch(); }}>إعادة المحاولة</Button></EmptyContent></Empty></CardContent></Card></div>;
 
   const providers = query.data ?? [];
+  const supportedProviders = supportedQuery.data ?? [];
+  const providerLabels = new Map(supportedProviders.map((provider) => [provider.name, provider.label]));
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       <PageHeader title="إعدادات الذكاء الاصطناعي" description="إدارة مزودي الذكاء الاصطناعي والنماذج المتاحة للمساعد." icon={Sparkles} actions={<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => query.refetch()} disabled={query.isFetching}><RefreshCw data-icon="inline-start" />{query.isFetching ? "جاري التحديث" : "تحديث"}</Button><Button onClick={openCreate}><Plus data-icon="inline-start" />إضافة مزود</Button></div>} />
-      {providers.length === 0 ? <Card><CardContent className="p-8"><Empty><EmptyMedia variant="icon"><Cpu /></EmptyMedia><EmptyHeader><EmptyTitle>لا يوجد مزودون بعد</EmptyTitle><EmptyDescription>أضف أول مزود للبدء باستخدام ميزات الذكاء الاصطناعي.</EmptyDescription></EmptyHeader><EmptyContent><Button onClick={openCreate}><Plus data-icon="inline-start" />إضافة مزود</Button></EmptyContent></Empty></CardContent></Card> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{providers.map((provider) => <Card key={provider.id} className="flex flex-col"><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle className="flex items-center gap-2"><Cpu />{provider.displayName || provider.name}</CardTitle><CardDescription className="mt-2 font-mono text-xs" dir="ltr">{provider.name}</CardDescription></div><Badge variant={provider.isActive ? "secondary" : "outline"}>{provider.isActive ? "نشط" : "متوقف"}</Badge></div></CardHeader><CardContent className="flex flex-1 flex-col gap-3"><div className="flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle2 />{provider.models?.length ?? 0} نموذج محدد</div><div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">الأولوية</span><span>{provider.priority}</span></div><div className="flex flex-wrap gap-1">{(provider.models ?? []).slice(0, 3).map((model) => <Badge key={model} variant="outline" className="font-mono text-xs">{model}</Badge>)}{(provider.models ?? []).length > 3 ? <Badge variant="outline">+{provider.models.length - 3}</Badge> : null}</div></CardContent><CardFooter className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => void handleTest(provider)} disabled={testState.isLoading}><TestTube2 data-icon="inline-start" />اختبار الاتصال</Button><Button variant="outline" size="sm" onClick={() => openEdit(provider)}><Edit data-icon="inline-start" />تعديل</Button><Button variant="ghost" size="sm" className="text-destructive" onClick={() => setProviderToDelete(provider)}><Trash2 data-icon="inline-start" />حذف</Button></CardFooter></Card>)}</div>}
-      <ProviderDialog key={selectedProvider?.id ?? "create"} provider={selectedProvider} open={dialogOpen} onOpenChange={setDialogOpen} />
+      {providers.length === 0 ? <Card><CardContent className="p-8"><Empty><EmptyMedia variant="icon"><Cpu /></EmptyMedia><EmptyHeader><EmptyTitle>لا يوجد مزودون بعد</EmptyTitle><EmptyDescription>أضف أول مزود للبدء باستخدام ميزات الذكاء الاصطناعي.</EmptyDescription></EmptyHeader><EmptyContent><Button onClick={openCreate}><Plus data-icon="inline-start" />إضافة مزود</Button></EmptyContent></Empty></CardContent></Card> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{providers.map((provider) => <Card key={provider.id} className="flex flex-col"><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle className="flex items-center gap-2"><Cpu />{providerLabels.get(provider.name) ?? provider.name}</CardTitle>{!providerLabels.has(provider.name) ? <Badge variant="destructive">مزود غير مدعوم</Badge> : null}<CardDescription className="mt-2 font-mono text-xs" dir="ltr">{provider.name}</CardDescription></div><Badge variant={provider.isActive ? "secondary" : "outline"}>{provider.isActive ? "نشط" : "متوقف"}</Badge></div></CardHeader><CardContent className="flex flex-1 flex-col gap-3"><div className="flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle2 />{provider.models?.length ?? 0} نموذج محدد</div><div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">الأولوية</span><span>{provider.priority}</span></div><div className="flex flex-wrap gap-1">{(provider.models ?? []).slice(0, 3).map((model) => <Badge key={model} variant="outline" className="font-mono text-xs">{model}</Badge>)}{(provider.models ?? []).length > 3 ? <Badge variant="outline">+{provider.models.length - 3}</Badge> : null}</div></CardContent><CardFooter className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => void handleTest(provider)} disabled={testState.isLoading || !providerLabels.has(provider.name)}><TestTube2 data-icon="inline-start" />اختبار الاتصال</Button><Button variant="outline" size="sm" onClick={() => openEdit(provider)}><Edit data-icon="inline-start" />تعديل</Button><Button variant="ghost" size="sm" className="text-destructive" onClick={() => setProviderToDelete(provider)}><Trash2 data-icon="inline-start" />حذف</Button></CardFooter></Card>)}</div>}
+      <ProviderDialog key={selectedProvider?.id ?? "create"} provider={selectedProvider} supportedProviders={supportedProviders} open={dialogOpen} onOpenChange={setDialogOpen} />
       <AlertDialog open={providerToDelete !== null} onOpenChange={(open) => { if (!open) setProviderToDelete(null); }}><AlertDialogContent dir="rtl"><AlertDialogHeader><AlertDialogTitle>حذف مزود الذكاء الاصطناعي؟</AlertDialogTitle><AlertDialogDescription>سيتم حذف إعدادات هذا المزود ولا يمكن التراجع عن العملية.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction disabled={deleteState.isLoading} onClick={(event) => { event.preventDefault(); void handleDelete(); }}>{deleteState.isLoading ? "جارٍ الحذف..." : "تأكيد الحذف"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>
   );

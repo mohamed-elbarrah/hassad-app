@@ -27,3 +27,28 @@ export const DEFAULT_MODELS: Record<string, string[]> = {
   anthropic: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022"],
   google: ["gemini-2.0-flash", "gemini-1.5-pro"],
 };
+
+/**
+ * The provider catalog is derived from the adapters and model defaults so that
+ * the API cannot advertise a provider that the runtime cannot instantiate.
+ */
+const PROVIDER_LABELS: Record<string, string> = {
+  openai: "OpenAI",
+  openrouter: "OpenRouter",
+  anthropic: "Anthropic",
+  google: "Google",
+};
+
+export interface SupportedAiProvider {
+  name: string;
+  label: string;
+  defaultModels: string[];
+}
+
+export const SUPPORTED_PROVIDERS: SupportedAiProvider[] = Object.keys(
+  ADAPTER_FACTORIES,
+).map((name) => ({
+  name,
+  label: PROVIDER_LABELS[name] ?? name,
+  defaultModels: DEFAULT_MODELS[name] ?? [],
+}));

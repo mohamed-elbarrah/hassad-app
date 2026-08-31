@@ -7,10 +7,13 @@ import {
   Min,
   IsIn,
 } from "class-validator";
+import { ADAPTER_FACTORIES } from "../adapters/adapter-factory";
+
+const SUPPORTED_PROVIDER_NAMES = Object.keys(ADAPTER_FACTORIES);
 
 export class FetchModelsDto {
   @IsString()
-  @IsIn(["openai", "openrouter", "anthropic", "google"])
+  @IsIn(SUPPORTED_PROVIDER_NAMES)
   name: string;
 
   @IsString()
@@ -23,6 +26,7 @@ export class FetchModelsDto {
 
 export class CreateAiProviderDto {
   @IsString()
+  @IsIn(SUPPORTED_PROVIDER_NAMES)
   name: string;
 
   @IsOptional()

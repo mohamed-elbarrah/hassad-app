@@ -6,7 +6,11 @@ import {
 import { PrismaService } from "../../../prisma/prisma.service";
 import { EncryptionService } from "../encryption/encryption.service";
 import { AiProviderRegistry } from "./ai-provider-registry.service";
-import { ADAPTER_FACTORIES, DEFAULT_MODELS } from "../adapters/adapter-factory";
+import {
+  ADAPTER_FACTORIES,
+  DEFAULT_MODELS,
+  SUPPORTED_PROVIDERS,
+} from "../adapters/adapter-factory";
 import type { AiProviderConfig } from "../adapters/provider.interface";
 import { AiProvider as AiProviderType, Prisma } from "@prisma/client";
 
@@ -33,7 +37,12 @@ export class AiProviderService {
     return this.maskKey(row);
   }
 
+  getSupportedProviders() {
+    return SUPPORTED_PROVIDERS;
+  }
+
   async create(data: Prisma.AiProviderCreateInput) {
+    this.assertSupportedProvider(data.name);
     const row = await this.prisma.aiProvider.create({
       data: {
         ...data,
@@ -135,6 +144,18 @@ export class AiProviderService {
 
   getDefaultModels(type: string): string[] {
     return DEFAULT_MODELS[type] || [];
+  }
+
+  private assertSupportedProvider(name: string): void {
+    if (!Object.prototype.hasOwnProperty.call(ADAPTER_FACTORIES, name)) {
+      throw new BadRequestException({
+        code: "UNSUPPORTED_AI_PROVIDER",
+        details: {
+          name,
+          supportedProviders: Object.keys(ADAPTER_FACTORIES),
+        },
+      });
+    }
   }
 
   private maskKey(row: AiProviderType): ProviderJson {

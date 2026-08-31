@@ -31,6 +31,12 @@ export class AiProviderController {
     return this.service.findAll();
   }
 
+  @Get("supported")
+  @RequirePermissions("admin.ai.read")
+  getSupportedProviders() {
+    return this.service.getSupportedProviders();
+  }
+
   @Get(":id")
   @RequirePermissions("admin.ai.read")
   findOne(@Param("id") id: string) {
