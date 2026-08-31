@@ -3,6 +3,7 @@ import type {
   CrmStage,
   PipelineStage,
   ProposalStatus,
+  ClientKind,
 } from "../enums/client";
 import type {
   ProjectStatus,
@@ -234,28 +235,53 @@ export type DeliveryWorkspaceResponse = {
 export type AdminOverviewResponse = {
   granularity: "day" | "month" | "quarter" | "year";
   kpis: Array<{
-    label: string;
-    value: string;
-    description: string;
-    trend?: {
-      label: string;
-      tone: "success" | "warning" | "neutral";
-    };
+    key: "revenue" | "activeClients" | "activeProjects" | "overdueTasks";
+    value: number;
+    change: number | null;
   }>;
   projectAmountChart: Array<{
     label: string;
     amount: number;
+    currency: string;
   }>;
   invoiceChart: Array<{
     label: string;
     paid: number;
     unpaid: number;
+    currency: string;
   }>;
   commercialChart: Array<{
     label: string;
+    activeProjects: number;
+    requests: number;
     contracts: number;
     offers: number;
   }>;
+  funnel: {
+    leads: number;
+    clients: number;
+    proposals: number;
+    contracts: number;
+    projects: number;
+    invoices: number;
+    payments: number;
+    conversionRates: {
+      requestsToOffers: number;
+      offersToContracts: number;
+      leadsToClients: number;
+      clientsToProposals: number;
+      proposalsToContracts: number;
+      contractsToProjects: number;
+      projectsToInvoices: number;
+      invoicesToPayments: number;
+    };
+    contractStatusDistribution: Record<string, number>;
+    dropOffs: {
+      requestsToOffers: number;
+      offersToContracts: number;
+      contractsToProjects: number;
+    };
+  };
   summaries: {
     projectAmount: string;
     paidInvoices: string;
@@ -278,7 +304,6 @@ export type AdminOverviewResponse = {
     owner: string;
     ownerInitials: string;
     nextAction: string;
-    lastActivity: string;
   }>;
   salesLeaders: Array<{
     id: string;
@@ -304,16 +329,11 @@ export type AdminOverviewResponse = {
     id: string;
     clientName: string;
     companyName: string;
+    kind: ClientKind;
     totalProjects: number;
     activeProjects: number;
     lastSeen: string;
     onlineTone: WorkspaceStatusTone;
     balance: string;
   }>;
-  performance: {
-    conversionRate: string;
-    averageProjectValue: string;
-    proposalToContractRate: string;
-    activeProjects: string;
-  };
 };

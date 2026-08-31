@@ -57,9 +57,8 @@ Notification list and detail consumers no longer render notification
 `title`, `body`, or `message`; they use `notificationPresentation(eventType,
 metadata)`. The remaining title/body reads in `apps/web/lib/i18n.ts` are
 intentional compatibility fallbacks for legacy broadcast/records. Other search
-matches (`dashboard-model.ts`, `dashboard-panels.tsx`, admin overview, and
-`dashboard-shell.tsx`) are unrelated dashboard activity/KPI payloads, not the
-notification DTO, and were not changed.
+matches in `dashboard-shell.tsx` are unrelated dashboard activity/KPI payloads,
+not the notification DTO, and were not changed.
 
 ## Deferred phase
 

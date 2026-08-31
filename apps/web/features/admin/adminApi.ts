@@ -1,4 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
+import type { AdminOverviewResponse } from "@hassad/shared";
 import { baseQuery } from "@/lib/baseQuery";
 
 export interface AdminStatsDeltas {
@@ -429,6 +430,14 @@ export const adminApi = createApi({
     "AiProviders",
   ],
   endpoints: (builder) => ({
+    getAdminOverview: builder.query<AdminOverviewResponse, { from?: string; to?: string; granularity?: "day" | "month" | "quarter" | "year" } | void>({
+      query: (params: { from?: string; to?: string; granularity?: "day" | "month" | "quarter" | "year" } = {}) => ({
+        url: "/admin/overview",
+        params,
+      }),
+      providesTags: ["AdminStats"],
+    }),
+
     getAdminStats: builder.query<
       AdminStats,
       { from?: string; to?: string } | void
@@ -719,6 +728,7 @@ export const adminApi = createApi({
 });
 
 export const {
+  useGetAdminOverviewQuery,
   useGetAdminStatsQuery,
   useGetAdminTrendsQuery,
   useGetAdminFunnelQuery,

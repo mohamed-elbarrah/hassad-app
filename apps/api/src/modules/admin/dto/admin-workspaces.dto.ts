@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
 import {
+  IsDateString,
   IsIn,
   IsInt,
   IsOptional,
@@ -10,11 +11,11 @@ import {
 
 export class AdminOverviewWorkspaceQueryDto {
   @IsOptional()
-  @IsString()
+  @IsDateString()
   from?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   to?: string;
 
   @IsOptional()

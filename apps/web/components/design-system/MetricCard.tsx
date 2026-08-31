@@ -68,7 +68,7 @@ function MetricCardInner({
         </p>
         <div className="flex shrink-0 items-center gap-2">
           {icon && (
-            <div className="shrink-0">
+            <div className="shrink-0" aria-hidden="true">
               {typeof icon === "function" || (typeof icon === "object" && "render" in icon)
                 ? <IconDisplay icon={icon as LucideIcon} />
                 : icon}

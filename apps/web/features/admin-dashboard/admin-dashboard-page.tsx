@@ -1,103 +1,127 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ShieldAlert } from "lucide-react";
+import { Building2, ClipboardCheck, DollarSign, FolderKanban, Users } from "lucide-react";
 
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/common/PageHeader";
+import { MetricCard } from "@/components/design-system/MetricCard";
+import { ErrorState } from "@/components/design-system/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGetAdminAlertsQuery, useGetAdminAiInsightsQuery, useGetAdminDashboardAttentionQuery, useGetAdminDashboardRecentActivityQuery, useGetAdminDashboardTeamWorkloadQuery, useGetAdminFunnelQuery, useGetAdminStatsQuery, useGetAdminTrendsQuery } from "@/features/admin/adminApi";
-import { buildTrendOptions, toPeriodParams, type PeriodKey, type TrendKey } from "@/features/admin-dashboard/dashboard-model";
-import { ClientsPieCard, CrmFunnelCard, ExecutiveGrowthCard, ProjectsTrendCard, QuickActionsPanel, SupportPanels, TeamRadarCard } from "@/features/admin-dashboard/dashboard-panels";
+import { useGetAdminOverviewQuery } from "@/features/admin/adminApi";
+import { AdminCommercialFunnel } from "@/features/admin-dashboard/admin-commercial-funnel";
+import { AdminInvoiceChart } from "@/features/admin-dashboard/admin-invoice-chart";
+import { AdminProjectAmountChart } from "@/features/admin-dashboard/admin-project-amount-chart";
+import { AdminOverviewTables } from "@/features/admin-dashboard/admin-overview-tables";
+import { AdminSummaryChart } from "@/features/admin-dashboard/admin-summary-chart";
+import { formatNumber } from "@/lib/format";
+
+const kpiPresentation = {
+  revenue: { title: "الإيرادات الشهرية", icon: DollarSign },
+  activeClients: { title: "العملاء النشطون", icon: Users },
+  activeProjects: { title: "المشاريع النشطة", icon: FolderKanban },
+  overdueTasks: { title: "المهام المتأخرة", icon: ClipboardCheck },
+} as const;
 
 function PageSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <Skeleton className="h-[32rem] rounded-3xl" />
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Skeleton className="h-[34rem] rounded-3xl" />
-        <Skeleton className="h-[34rem] rounded-3xl" />
-        <Skeleton className="h-[34rem] rounded-3xl" />
-        <Skeleton className="h-[34rem] rounded-3xl" />
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-7 w-64" />
+        <Skeleton className="h-4 w-96 max-w-full" />
       </div>
-      <Skeleton className="h-[40rem] rounded-3xl" />
-      <Skeleton className="h-72 rounded-3xl" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={index} className="h-40 rounded-card" />
+        ))}
+      </div>
+      <Skeleton className="h-[380px] w-full rounded-card" />
+      <div className="grid gap-6 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Skeleton key={index} className="h-[380px] rounded-card" />
+        ))}
+      </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={index} className="h-[420px] rounded-card" />
+        ))}
+      </div>
     </div>
   );
 }
 
 export default function AdminDashboardPage() {
-  const [period, setPeriod] = useState<PeriodKey>("30d");
-  const [selectedTrend, setSelectedTrend] = useState<TrendKey>("revenue");
+  const { data: overview, isLoading, isError, refetch } = useGetAdminOverviewQuery();
 
-  const periodParams = useMemo(() => toPeriodParams(period), [period]);
+  if (isLoading) return <PageSkeleton />;
 
-  const { data: stats, isLoading: statsLoading, isError: statsError } = useGetAdminStatsQuery();
-  const { data: trends, isLoading: trendsLoading } = useGetAdminTrendsQuery(periodParams);
-  const { data: alerts, isLoading: alertsLoading } = useGetAdminAlertsQuery();
-  const { data: attention, isLoading: attentionLoading } = useGetAdminDashboardAttentionQuery();
-  const { data: activity, isLoading: activityLoading } = useGetAdminDashboardRecentActivityQuery();
-  const { data: workload, isLoading: workloadLoading } = useGetAdminDashboardTeamWorkloadQuery();
-  const { data: aiInsights, isLoading: aiLoading } = useGetAdminAiInsightsQuery();
-  const { data: funnel, isLoading: funnelLoading } = useGetAdminFunnelQuery(periodParams);
-
-  const loading =
-    statsLoading ||
-    trendsLoading ||
-    alertsLoading ||
-    attentionLoading ||
-    activityLoading ||
-    workloadLoading ||
-    aiLoading ||
-    funnelLoading;
-
-  const trendOptions = useMemo(() => buildTrendOptions(trends), [trends]);
-
-  if (loading) {
-    return <PageSkeleton />;
-  }
-
-  if (statsError || !stats) {
+  if (isError || !overview) {
     return (
-      <Card className="border-destructive/30 bg-destructive/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-destructive">
-            <ShieldAlert className="h-5 w-5" />
-            لوحة الإدارة غير متاحة
-          </CardTitle>
-          <CardDescription>تعذر تحميل بيانات لوحة الإدارة التنفيذية.</CardDescription>
-        </CardHeader>
-      </Card>
+      <ErrorState
+        title="لوحة الإدارة غير متاحة"
+        message="تعذر تحميل بيانات النظرة العامة."
+        onRetry={() => void refetch()}
+      />
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <ExecutiveGrowthCard
-        period={period}
-        onPeriodChange={setPeriod}
-        selectedTrend={selectedTrend}
-        onSelectTrend={(key) => setSelectedTrend(key as TrendKey)}
-        labels={trends?.labels ?? []}
-        trendOptions={trendOptions}
-        stats={stats}
+      <PageHeader
+        title="نظرة عامة على الإدارة"
+        description="ملخص تنفيذي لمتابعة الأداء التجاري والتشغيلي."
+        icon={Building2}
       />
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <CrmFunnelCard funnel={funnel} />
-        <ProjectsTrendCard trends={trends} stats={stats} />
-        <TeamRadarCard stats={stats} workload={workload} />
-        <ClientsPieCard stats={stats} alerts={alerts} attention={attention} />
-      </div>
+      <section
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        aria-label="مؤشرات الإدارة الرئيسية"
+      >
+        {overview.kpis.map((kpi) => {
+          const presentation = kpiPresentation[kpi.key];
+          const isRevenue = kpi.key === "revenue";
+          const isOverdue = kpi.key === "overdueTasks";
+          const trend = kpi.change == null
+            ? undefined
+            : isOverdue
+              ? kpi.change < 0
+                ? "up"
+                : kpi.change > 0
+                  ? "down"
+                  : "neutral"
+              : kpi.change > 0
+                ? "up"
+                : kpi.change < 0
+                  ? "down"
+                  : "neutral";
 
-      <SupportPanels
-        alerts={alerts}
-        attention={attention}
-        activity={activity ?? []}
-        aiPending={aiInsights?.pendingSuggestions ?? 0}
-        aiAnalyses={(aiInsights?.recentAnalyses ?? []).slice(0, 3)}
+          return (
+            <MetricCard
+              key={kpi.key}
+              title={presentation.title}
+              value={isRevenue ? undefined : formatNumber(kpi.value)}
+              amount={isRevenue ? kpi.value : undefined}
+              icon={presentation.icon}
+              variant={isOverdue && kpi.value > 0 ? "warning" : isRevenue ? "success" : "default"}
+              trend={trend}
+              trendValue={kpi.change == null ? undefined : `${kpi.change > 0 ? "+" : ""}${kpi.change}%`}
+            />
+          );
+        })}
+      </section>
+
+      <AdminSummaryChart data={overview.commercialChart} />
+
+      <section className="grid gap-6 lg:grid-cols-3" aria-label="تحليلات الإدارة">
+        <AdminProjectAmountChart data={overview.projectAmountChart} />
+        <AdminInvoiceChart data={overview.invoiceChart} />
+        <AdminCommercialFunnel data={overview.funnel} />
+      </section>
+
+      <AdminOverviewTables
+        leadOrders={overview.leadOrders}
+        salesLeaders={overview.salesLeaders}
+        activeProjects={overview.activeProjects}
+        clients={overview.clients}
       />
-
-      <QuickActionsPanel />
     </div>
   );
 }

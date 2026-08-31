@@ -1,5 +1,3 @@
-import { OverviewDashboard } from "./_components/overview-dashboard";
+import AdminDashboardPage from "@/features/admin-dashboard/admin-dashboard-page";
 
-export default function AdminDashboard() {
-  return <OverviewDashboard />;
-}
+export default AdminDashboardPage;

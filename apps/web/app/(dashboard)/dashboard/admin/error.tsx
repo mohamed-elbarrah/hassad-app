@@ -1,13 +1,7 @@
 "use client";
 
-import { OverviewError } from "./_components/overview-error";
+import { ErrorState } from "@/components/design-system/EmptyState";
 
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  return <OverviewError error={error} reset={reset} />;
+export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return <ErrorState title="لوحة الإدارة غير متاحة" onRetry={reset} />;
 }

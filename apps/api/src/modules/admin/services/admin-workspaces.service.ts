@@ -101,30 +101,10 @@ export class AdminWorkspacesService {
     return {
       granularity,
       kpis: [
-        {
-          label: "Revenue",
-          value: this.formatCurrency(stats.monthlyRevenue),
-          description: "Paid invoice revenue in the selected period.",
-          trend: this.toTrend(stats.deltas.monthlyRevenue),
-        },
-        {
-          label: "Active clients",
-          value: String(stats.activeClients),
-          description: "Clients with an active relationship.",
-          trend: this.toTrend(stats.deltas.activeClients),
-        },
-        {
-          label: "Active projects",
-          value: String(stats.activeProjects),
-          description: "Projects still under delivery control.",
-          trend: this.toTrend(stats.deltas.activeProjects),
-        },
-        {
-          label: "Overdue tasks",
-          value: String(stats.overdueTasks),
-          description: "Tasks that missed their due date.",
-          trend: this.toTrend(stats.deltas.overdueTasks, true),
-        },
+        { key: "revenue", value: stats.monthlyRevenue, change: stats.deltas.monthlyRevenue },
+        { key: "activeClients", value: stats.activeClients, change: stats.deltas.activeClients },
+        { key: "activeProjects", value: stats.activeProjects, change: stats.deltas.activeProjects },
+        { key: "overdueTasks", value: stats.overdueTasks, change: stats.deltas.overdueTasks },
       ],
       projectAmountChart: charts.projectAmountChart,
       invoiceChart: charts.invoiceChart,
@@ -138,7 +118,20 @@ export class AdminWorkspacesService {
       },
       leadOrders,
       salesLeaders,
-      activeProjects: delivery.items.slice(0, 6).map((item) => ({
+      funnel: {
+        ...funnel,
+        dropOffs: {
+          requestsToOffers: Math.max(funnel.leads - funnel.proposals, 0),
+          offersToContracts: Math.max(funnel.proposals - funnel.contracts, 0),
+          contractsToProjects: Math.max(funnel.contracts - funnel.projects, 0),
+        },
+        conversionRates: {
+          ...funnel.conversionRates,
+          requestsToOffers: funnel.leads > 0 ? Math.round((funnel.proposals / funnel.leads) * 1000) / 10 : 0,
+          offersToContracts: funnel.proposals > 0 ? Math.round((funnel.contracts / funnel.proposals) * 1000) / 10 : 0,
+        },
+      },
+      activeProjects: delivery.items.slice(0, 10).map((item) => ({
         id: item.id,
         name: item.name,
         clientName: item.clientName,
@@ -150,10 +143,11 @@ export class AdminWorkspacesService {
         activeTasks: item.activeTasksCount,
         value: this.formatCurrency(item.totalValue),
       })),
-      clients: clients.items.slice(0, 6).map((item) => ({
+      clients: clients.items.slice(0, 10).map((item) => ({
         id: item.id,
         clientName: item.contactName,
         companyName: item.companyName,
+        kind: item.kind,
         totalProjects: item.totalProjects,
         activeProjects: item.activeProjects,
         lastSeen: item.lastSeen,
@@ -233,6 +227,7 @@ export class AdminWorkspacesService {
       id: client.id,
       contactName: client.user?.name ?? client.companyName,
       companyName: client.companyName ?? client.businessName ?? "—",
+      kind: client.kind,
       stage:
         client.activeProjects > 0
           ? "active"
@@ -695,7 +690,7 @@ export class AdminWorkspacesService {
 
     return [...byUser.values()]
       .sort((left, right) => right.revenue - left.revenue)
-      .slice(0, 5)
+      .slice(0, 6)
       .map((item) => ({
         id: item.id,
         name: item.name,
@@ -792,7 +787,7 @@ export class AdminWorkspacesService {
       InvoiceStatus.PARTIAL,
     ];
 
-    const [projects, paidInvoices, unpaidInvoices, proposals, contracts] =
+    const [projects, paidInvoices, unpaidInvoices, proposals, requests, contracts] =
       await Promise.all([
         this.prisma.project.findMany({
           where: {
@@ -825,6 +820,10 @@ export class AdminWorkspacesService {
           where: { createdAt: { gte: startDate, lte: endDate } },
           select: { createdAt: true },
         }),
+        this.prisma.request.findMany({
+          where: { createdAt: { gte: startDate, lte: endDate } },
+          select: { createdAt: true },
+        }),
         this.prisma.contract.findMany({
           where: {
             createdAt: { gte: startDate, lte: endDate },
@@ -844,7 +843,7 @@ export class AdminWorkspacesService {
         }, 0),
       );
 
-      return { label: bucket.label, amount };
+      return { label: bucket.label, amount, currency: "USD" };
     });
 
     const invoiceChart = buckets.map((bucket) => {
@@ -864,11 +863,17 @@ export class AdminWorkspacesService {
         }, 0),
       );
 
-      return { label: bucket.label, paid, unpaid };
+      return { label: bucket.label, paid, unpaid, currency: "USD" };
     });
 
     const commercialChart = buckets.map((bucket) => ({
       label: bucket.label,
+      activeProjects: projects.filter((project) =>
+        project.startDate <= bucket.end && project.endDate >= bucket.start,
+      ).length,
+      requests: requests.filter((request) =>
+        this.isDateWithinBucket(request.createdAt, bucket),
+      ).length,
       contracts: contracts.filter((contract) =>
         this.isDateWithinBucket(contract.createdAt, bucket),
       ).length,
