@@ -128,6 +128,11 @@ export class ProjectsService {
       return project;
     });
     this.clientCounterService.onProjectStatusChange(id).catch(() => undefined);
+    // Also refresh the title when a project is renamed and add any newly
+    // eligible manager/member/assignee participants.
+    this.projectGroupChatService
+      .syncParticipants(id)
+      .catch(() => undefined);
     return updated;
   }
 
@@ -141,6 +146,9 @@ export class ProjectsService {
     });
 
     this.clientCounterService.onProjectStatusChange(id).catch(() => undefined);
+    this.projectGroupChatService
+      .syncParticipants(id)
+      .catch(() => undefined);
 
     return updated;
   }
@@ -158,7 +166,7 @@ export class ProjectsService {
     });
 
     this.projectGroupChatService
-      .addParticipant(id, dto.userId)
+      .syncParticipants(id)
       .catch(() => undefined);
 
     // Auto-create task for Marketing role
@@ -221,7 +229,9 @@ export class ProjectsService {
       },
     });
 
-    this.projectGroupChatService.syncParticipants(id).catch(() => undefined);
+    this.projectGroupChatService
+      .syncParticipants(id)
+      .catch(() => undefined);
 
     return result;
   }
@@ -538,7 +548,10 @@ export class ProjectsService {
     // Add new PM to chat
     await this.projectGroupChatService.addParticipant(projectId, newPmId, db);
 
-    // Remove old PM from chat if not keeping
+    await this.projectGroupChatService.syncParticipants(projectId, db);
+
+    // This is an explicit caller-controlled removal, not synchronization;
+    // preserve the existing keepOldPmInChat contract.
     if (oldPmId && !keepOldPmInChat) {
       const conversation = await this.projectGroupChatService.find(
         projectId,
@@ -546,10 +559,7 @@ export class ProjectsService {
       );
       if (conversation) {
         await client.conversationParticipant.deleteMany({
-          where: {
-            conversationId: conversation.id,
-            userId: oldPmId,
-          },
+          where: { conversationId: conversation.id, userId: oldPmId },
         });
       }
     }

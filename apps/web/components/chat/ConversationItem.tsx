@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatRelativeTime } from "@/lib/format";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { useAppSelector } from "@/lib/hooks";
+import { CHAT_DELETED_MESSAGE_LABEL } from "@/lib/i18n";
 
 import { CheckCheck, Users } from "lucide-react";
 
@@ -15,8 +16,7 @@ interface ConversationItemProps {
 }
 
 function getLastMessage(conversation: Conversation): Message | null {
-  if (!conversation.messages || conversation.messages.length === 0) return null;
-  return conversation.messages[0];
+  return conversation.lastMessage ?? null;
 }
 
 function getParticipantPreview(
@@ -24,8 +24,8 @@ function getParticipantPreview(
   currentUserId?: string,
 ): string {
   const others = conversation.participants
-    .filter((p) => p.userId !== currentUserId)
-    .map((p) => p.user?.name ?? "")
+    .filter((p) => p.id !== currentUserId)
+    .map((p) => p.name ?? "")
     .filter(Boolean);
 
   if (others.length === 0) return "أنت فقط";
@@ -48,15 +48,15 @@ function getDisplayInfo(
   }
 
   const other = conversation.participants.find(
-    (p) => p.userId !== currentUserId,
+    (p) => p.id !== currentUserId,
   );
-  const name = other?.user?.name ?? conversation.title ?? "محادثة";
+  const name = other?.name ?? conversation.title ?? "محادثة";
 
   // Role-based subtitle
   let subtitle = "";
   if (currentUserRole === "PM" || currentUserRole === "ADMIN") {
-    subtitle = conversation.client?.companyName
-      ? conversation.client.companyName
+    subtitle = conversation.clientName
+      ? conversation.clientName
       : conversation.project?.name
         ? `مشروع ${conversation.project.name}`
         : "";
@@ -65,22 +65,14 @@ function getDisplayInfo(
       ? `مشروع ${conversation.project.name}`
       : "";
   } else {
-    subtitle = conversation.client?.companyName ?? "";
+    subtitle = conversation.clientName ?? "";
   }
 
   return {
     name,
     subtitle,
     avatarName: name,
-    meta: other?.user?.role
-      ? other.user.role === "PM"
-        ? "مدير مشروع"
-        : other.user.role === "SALES"
-          ? "مبيعات"
-          : other.user.role === "CLIENT"
-            ? "عميل"
-            : ""
-      : "",
+    meta: "",
   };
 }
 
@@ -101,11 +93,14 @@ export function ConversationItem({
   const lastMessage = getLastMessage(conversation);
   const info = getDisplayInfo(conversation, user?.id, user?.role);
 
-  // Simulated unread count — would come from API in production
-  const unreadCount = 0;
+  const unreadCount = Math.max(0, conversation.unreadCount ?? 0);
 
   // Check if last message was from the current user
-  const isLastMessageOwn = lastMessage?.senderId === user?.id;
+  const isLastMessageOwn = lastMessage?.sender.id === user?.id;
+  const otherParticipant = conversation.participants.find(
+    (participant) => participant.id !== user?.id,
+  );
+  const isOnline = conversation.type === "DIRECT" && Boolean(otherParticipant?.isOnline);
 
   return (
     <button
@@ -114,6 +109,7 @@ export function ConversationItem({
         "group relative flex w-full items-start gap-3 px-4 py-3.5 text-right transition-all duration-200",
         "hover:bg-primary/5",
         isActive && "bg-primary/10",
+        unreadCount > 0 && !isActive && "font-semibold",
       )}
     >
       {/* Active indicator bar */}
@@ -135,7 +131,9 @@ export function ConversationItem({
         <span
           className={cn(
             "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background",
-            "bg-success",
+            conversation.type === "DIRECT" && isOnline
+              ? "bg-success"
+              : "bg-muted-foreground/40",
           )}
         />
       </div>
@@ -187,7 +185,9 @@ export function ConversationItem({
                       {lastMessage.sender.name}:{" "}
                     </span>
                   )}
-                  {lastMessage.content}
+                  {lastMessage.deletedAt
+                    ? CHAT_DELETED_MESSAGE_LABEL
+                    : lastMessage.displayContent || lastMessage.content}
                 </>
               ) : (
                 <span className="text-muted-foreground">
@@ -200,7 +200,10 @@ export function ConversationItem({
           <div className="flex shrink-0 items-center gap-1.5">
             {/* Unread badge */}
             {unreadCount > 0 && (
-              <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+              <span
+                aria-label={`${unreadCount} رسائل غير مقروءة`}
+                className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground"
+              >
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}

@@ -9,6 +9,7 @@ import { DirectConversationService } from "./services/direct-conversation.servic
 import { ProjectGroupChatService } from "./services/project-group-chat.service";
 import { ChatGateway } from "./gateway/chat.gateway";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { WsAuthGuard } from "../../common/guards/ws-auth.guard";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
     DirectConversationService,
     ProjectGroupChatService,
     ChatGateway,
+    WsAuthGuard,
   ],
   exports: [ChatService, ChatPresenceService, DirectConversationService, ProjectGroupChatService],
 })

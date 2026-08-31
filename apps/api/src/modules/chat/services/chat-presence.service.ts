@@ -18,12 +18,19 @@ export class ChatPresenceService {
   }
 
   async connect(userId: string, socketId: string) {
-    const record = this.records.get(userId) ?? { sockets: new Set<string>(), lastSeenAt: new Date() };
+    const record = this.records.get(userId) ?? {
+      sockets: new Set<string>(),
+      lastSeenAt: new Date(),
+    };
     const wasOffline = record.sockets.size === 0;
     record.sockets.add(socketId);
     record.lastSeenAt = new Date();
     this.records.set(userId, record);
-    if (wasOffline) await this.prisma.user.update({ where: { id: userId }, data: { lastSeenAt: record.lastSeenAt } });
+    if (wasOffline)
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { lastSeenAt: record.lastSeenAt },
+      });
     return wasOffline;
   }
 
@@ -41,7 +48,10 @@ export class ChatPresenceService {
     record.lastSeenAt = new Date();
     if (record.sockets.size > 0) return null;
     this.records.delete(userId);
-    await this.prisma.user.update({ where: { id: userId }, data: { lastSeenAt: record.lastSeenAt } });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastSeenAt: record.lastSeenAt },
+    });
     return record.lastSeenAt;
   }
 }

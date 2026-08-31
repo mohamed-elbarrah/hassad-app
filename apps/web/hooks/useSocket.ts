@@ -6,30 +6,36 @@ import type { Socket } from "socket.io-client";
 
 export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
+  const [socketInstance, setSocketInstance] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [reconnectCount, setReconnectCount] = useState(0);
 
   useEffect(() => {
     const socket = getSocket();
     socketRef.current = socket;
+    setSocketInstance(socket);
 
     setIsConnected(socket.connected);
 
-    socket.on("connect", () => setIsConnected(true));
-    socket.on("disconnect", () => setIsConnected(false));
-    socket.on("reconnect_attempt", () => {
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
+    const handleReconnectAttempt = () => {
       setReconnectCount((c) => c + 1);
-    });
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("reconnect_attempt", handleReconnectAttempt);
 
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("reconnect_attempt");
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("reconnect_attempt", handleReconnectAttempt);
       disconnectSocket();
     };
   }, []);
 
   const shouldPoll = reconnectCount > 3;
 
-  return { socket: socketRef.current, isConnected, shouldPoll };
+  return { socket: socketInstance, isConnected, shouldPoll };
 }

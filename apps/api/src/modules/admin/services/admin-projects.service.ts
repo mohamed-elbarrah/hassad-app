@@ -6,6 +6,7 @@ import {
 import { PrismaService } from "../../../prisma/prisma.service";
 import { ClientKind } from "@hassad/shared";
 import { AdminActionLogService } from "./admin-action-log.service";
+import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 import { ProjectStatus, TaskStatus, TaskPriority } from "@hassad/shared";
 
 @Injectable()
@@ -13,6 +14,7 @@ export class AdminProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly actionLog: AdminActionLogService,
+    private readonly projectGroupChatService: ProjectGroupChatService,
   ) {}
 
   async getActorCapabilities(userId: string) {
@@ -479,6 +481,9 @@ export class AdminProjectsService {
       beforeState: before,
       afterState: after,
     });
+    this.projectGroupChatService
+      .syncParticipants(projectId)
+      .catch(() => undefined);
 
     return { code: "PROJECT_ACTION_COMPLETED" };
   }
@@ -685,6 +690,9 @@ export class AdminProjectsService {
       actionType: "admin.projects.create",
       afterState: { name: data.name, clientId: data.clientId },
     });
+    this.projectGroupChatService
+      .ensure(project.id)
+      .catch(() => undefined);
 
     return project;
   }
@@ -729,6 +737,9 @@ export class AdminProjectsService {
       reason,
       afterState: { userId, role, name: user.name },
     });
+    this.projectGroupChatService
+      .syncParticipants(projectId)
+      .catch(() => undefined);
 
     return member;
   }
@@ -797,6 +808,9 @@ export class AdminProjectsService {
         afterState: { taskId: task.id, title: data.title },
       });
     }
+    this.projectGroupChatService
+      .syncParticipants(projectId)
+      .catch(() => undefined);
 
     return task;
   }

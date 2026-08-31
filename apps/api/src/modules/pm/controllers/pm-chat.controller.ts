@@ -20,8 +20,7 @@ import {
 } from "../../../common/decorators/current-user.decorator";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
-import { StorageCategory } from "../../../common/storage/storage.constants";
-import { StorageService } from "../../../common/storage/storage.service";
+import { ChatAttachmentService, CHAT_UPLOAD_LIMITS } from "../../../common/storage/chat-attachment.service";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 
 import {
@@ -43,7 +42,7 @@ export class PmChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly directConversationService: DirectConversationService,
-    private readonly storageService: StorageService,
+    private readonly chatAttachmentService: ChatAttachmentService,
     private readonly crmChatService: PmChatService,
   ) {}
 
@@ -54,6 +53,12 @@ export class PmChatController {
     @Query() query: GetConversationsQueryDto,
   ) {
     return this.chatService.findMyConversations(user.id, query);
+  }
+
+  @Post("conversations/:id/read")
+  @RequirePermissions("chat.read")
+  markConversationRead(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
+    return this.chatService.markConversationRead(id, user.id);
   }
 
   @Post("conversations")
@@ -87,7 +92,7 @@ export class PmChatController {
         details: { otherUserId },
       });
     }
-    return conversation;
+    return this.chatService.getConversationDetails(conversation.id, user.id);
   }
 
   @Post("conversations/:id/messages")
@@ -115,37 +120,15 @@ export class PmChatController {
 
   @Post("conversations/:id/messages/with-files")
   @RequirePermissions("chat.message")
-  @UseInterceptors(FilesInterceptor("files", 10))
+  @UseInterceptors(FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, { limits: CHAT_UPLOAD_LIMITS }))
   async createMessageWithFiles(
     @CurrentUser() user: JwtPayload,
     @Param("id") conversationId: string,
     @Body() dto: CreateMessageDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    const attachments =
-      files && files.length > 0
-        ? await Promise.all(
-            files.map(async (file) => {
-              const uploadResult = await this.storageService.upload({
-                category: StorageCategory.CHAT_ATTACHMENT,
-                entityId: conversationId,
-                file: {
-                  buffer: file.buffer,
-                  originalname: file.originalname,
-                  mimetype: file.mimetype,
-                  size: file.size,
-                },
-                subPath: "messages",
-              });
-              return {
-                key: uploadResult.key,
-                originalName: file.originalname,
-                mimeType: file.mimetype,
-                size: file.size,
-              };
-            }),
-          )
-        : [];
+    await this.chatService.assertConversationAccess(conversationId, user.id);
+    const attachments = await this.chatAttachmentService.upload(conversationId, files);
 
     return this.chatService.createMessageWithAttachments(
       user.id,
@@ -159,7 +142,7 @@ export class PmChatController {
 
   @Post("conversations/direct/:userId/messages/with-files")
   @RequirePermissions("chat.message")
-  @UseInterceptors(FilesInterceptor("files", 10))
+  @UseInterceptors(FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, { limits: CHAT_UPLOAD_LIMITS }))
   async createDirectMessageWithFiles(
     @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
@@ -178,30 +161,9 @@ export class PmChatController {
       });
     }
 
-    const attachments =
-      files && files.length > 0
-        ? await Promise.all(
-            files.map(async (file) => {
-              const uploadResult = await this.storageService.upload({
-                category: StorageCategory.CHAT_ATTACHMENT,
-                entityId: conversation.id,
-                file: {
-                  buffer: file.buffer,
-                  originalname: file.originalname,
-                  mimetype: file.mimetype,
-                  size: file.size,
-                },
-                subPath: "messages",
-              });
-              return {
-                key: uploadResult.key,
-                originalName: file.originalname,
-                mimeType: file.mimetype,
-                size: file.size,
-              };
-            }),
-          )
-        : [];
+    await this.chatService.assertConversationAccess(conversation.id, user.id);
+
+    const attachments = await this.chatAttachmentService.upload(conversation.id, files);
 
     return this.chatService.createMessageWithAttachments(
       user.id,

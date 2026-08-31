@@ -20,6 +20,12 @@ type RawResult = QueryReturnValue<
   FetchBaseQueryError,
   FetchBaseQueryMeta
 >;
+type RawBaseQueryApi = Parameters<typeof rawBaseQuery>[1];
+type RawBaseQueryExtraOptions = Parameters<typeof rawBaseQuery>[2];
+
+interface ApiMeta {
+  [key: string]: unknown;
+}
 
 function unwrap(result: RawResult): RawResult {
   if (result.error) return result;
@@ -59,7 +65,7 @@ function unwrap(result: RawResult): RawResult {
   const envelope = result.data as {
     success?: unknown;
     data?: unknown;
-    meta?: Record<string, unknown>;
+    meta?: ApiMeta;
   };
   if (envelope.success !== true || !("data" in envelope)) {
     return {
@@ -139,8 +145,8 @@ function isNetworkError(result: RawResult): boolean {
 
 async function requestWithNetworkRetry(
   args: string | FetchArgs,
-  api: any,
-  extraOptions: any,
+  api: RawBaseQueryApi,
+  extraOptions: RawBaseQueryExtraOptions,
 ): Promise<RawResult> {
   let result = normalizeError(
     unwrap((await rawBaseQuery(args, api, extraOptions)) as RawResult),
@@ -166,7 +172,10 @@ async function requestWithNetworkRetry(
 
 let refreshPromise: Promise<RawResult> | null = null;
 
-function refreshAccessToken(api: any, extraOptions: any): Promise<RawResult> {
+function refreshAccessToken(
+  api: RawBaseQueryApi,
+  extraOptions: RawBaseQueryExtraOptions,
+): Promise<RawResult> {
   if (!refreshPromise) {
     refreshPromise = Promise.resolve(
       rawBaseQuery({ url: "/auth/refresh", method: "POST" }, api, extraOptions),
@@ -180,7 +189,10 @@ function refreshAccessToken(api: any, extraOptions: any): Promise<RawResult> {
   return refreshPromise;
 }
 
-async function clearSession(api: any, extraOptions: any): Promise<void> {
+async function clearSession(
+  api: RawBaseQueryApi,
+  extraOptions: RawBaseQueryExtraOptions,
+): Promise<void> {
   api.dispatch(logout());
   await rawBaseQuery(
     { url: "/auth/logout", method: "POST" },

@@ -6,6 +6,7 @@ import {
 import { PrismaService } from "../../../prisma/prisma.service";
 import type { Prisma } from "@prisma/client";
 import { AdminActionLogService } from "./admin-action-log.service";
+import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "../../../common/storage/storage.constants";
 import {
@@ -28,6 +29,7 @@ export class AdminContractsService {
     private readonly prisma: PrismaService,
     private readonly actionLog: AdminActionLogService,
     private readonly storageService: StorageService,
+    private readonly projectGroupChatService: ProjectGroupChatService,
   ) {}
 
   async getActorCapabilities(userId: string) {
@@ -484,6 +486,9 @@ export class AdminContractsService {
       actionType: "admin.contracts.convert-to-project",
       afterState: { projectId: project.id, projectName },
     });
+    this.projectGroupChatService
+      .ensure(project.id)
+      .catch(() => undefined);
 
     return {
       code: "CONTRACT_CONVERTED_TO_PROJECT",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { toast } from "sonner"; // NEW
@@ -9,7 +9,10 @@ import {
   useGetConversationsQuery,
   useGetConversationQuery,
   useGetMessagesQuery,
+  useLazyGetMessagesQuery,
+  useMarkConversationReadMutation,
   useSendMessageMutation,
+  useSendMessageWithFilesMutation,
   useLazyGetDirectConversationQuery,
 } from "@/features/chat/chatApi";
 import { useChatSocket } from "@/hooks/useChatSocket";
@@ -26,14 +29,22 @@ import { MessageSquare } from "lucide-react";
 import { portalErrorMessage } from "@/lib/i18n";
 
 export default function PortalChatPage() {
-  void useAppSelector((s) => s.auth);
+  const currentUserId = useAppSelector((s) => s.auth.user?.id);
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const resolvingConversationRef = useRef<string | null>(null);
 
   const openSales = searchParams.get("openSales") === "true";
   const openUserId = searchParams.get("userId");
+  const deepLinkKey = `${openUserId ?? ""}:${openSales ? "sales" : ""}`;
+
+  useEffect(() => {
+    if (resolvingConversationRef.current !== deepLinkKey) {
+      resolvingConversationRef.current = deepLinkKey;
+      setSelectedId(null);
+    }
+  }, [deepLinkKey]);
 
   const {
     data: conversationsData,
@@ -41,14 +52,14 @@ export default function PortalChatPage() {
     isError: convError,
     error: conversationsError,
     refetch: refetchConversations,
-  } = useGetConversationsQuery({ type: "DIRECT", limit: 50 });
+  } = useGetConversationsQuery({ limit: 50 });
 
   const [fetchDirectConv] = useLazyGetDirectConversationQuery();
   const { data: teamMembersData } = useGetTeamMembersQuery(undefined, {
     skip: !openSales,
   });
 
-  const conversations = conversationsData?.data ?? [];
+  const conversations = useMemo(() => conversationsData?.data ?? [], [conversationsData?.data]);
   const { data: selectedConvDetails } = useGetConversationQuery(selectedId!, {
     skip: !selectedId,
   });
@@ -56,60 +67,56 @@ export default function PortalChatPage() {
     conversations.find((c) => c.id === selectedId) ?? selectedConvDetails;
 
   useEffect(() => {
-    if (openUserId && !selectedId && !convLoading) {
-      const existing = conversations.find((c) =>
-        c.participants.some((p) => p.userId === openUserId),
-      );
-      if (existing) {
-        setSelectedId(existing.id);
-      } else {
-        fetchDirectConv(openUserId)
-          .unwrap()
-          .then((conv) => {
-            setSelectedId(conv.id);
-            dispatch(
-              chatApi.util.invalidateTags([
-                { type: "Conversation", id: "LIST" },
-              ]),
-            );
-          })
-          .catch((error) => {
-            toast.error(portalErrorMessage(error));
-          });
+    if (!openUserId && !openSales) {
+      resolvingConversationRef.current = null;
+      if (!selectedId && !convLoading && conversations[0]) {
+        setSelectedId(conversations[0].id);
       }
       return;
     }
+    if (selectedId || convLoading) return;
 
-    if (!openSales || selectedId || convLoading) return;
+    // Deep links must resolve a target, rather than selecting whichever direct
+    // conversation happens to be first in an independently paginated response.
+    const targetId = openUserId ?? (() => {
+      const members = teamMembersData?.members ?? [];
+      return [...members]
+        .filter((member) =>
+          member.roleType === "SALES" || member.roleType === "ACCOUNT_MANAGER",
+        )
+        .sort((a, b) => {
+          const roleRank = (role: string) => (role === "SALES" ? 0 : 1);
+          return (
+            roleRank(a.roleType) - roleRank(b.roleType) ||
+            a.name.localeCompare(b.name) ||
+            a.id.localeCompare(b.id)
+          );
+        })[0]?.id;
+    })();
 
-    // If a specific sales user is requested via openSales but no conversation exists,
-    // resolve the first sales/account manager from the team and create a direct chat.
-    if (!conversations.length && teamMembersData?.members) {
-      const salesMember = teamMembersData.members.find(
-        (m) => m.roleType === "SALES" || m.roleType === "ACCOUNT_MANAGER",
-      );
-      if (salesMember) {
-        fetchDirectConv(salesMember.id)
-          .unwrap()
-          .then((conv) => {
-            setSelectedId(conv.id);
-            dispatch(
-              chatApi.util.invalidateTags([
-                { type: "Conversation", id: "LIST" },
-              ]),
-            );
-          })
-          .catch((error) => {
-            toast.error(portalErrorMessage(error));
-          });
-        return;
-      }
+    if (!targetId) return;
+    if (resolvingConversationRef.current === targetId) return;
+
+    const existing = conversations.find((conversation) =>
+      conversation.type === "DIRECT" &&
+      conversation.participants.some((participant) => participant.id === targetId),
+    );
+    if (existing) {
+      setSelectedId(existing.id);
+      return;
     }
 
-    const firstDirect = conversations[0];
-    if (firstDirect) {
-      setSelectedId(firstDirect.id);
-    }
+    resolvingConversationRef.current = targetId;
+    fetchDirectConv(targetId)
+      .unwrap()
+      .then((conversation) => {
+        setSelectedId(conversation.id);
+        dispatch(chatApi.util.invalidateTags([{ type: "Conversation", id: "LIST" }]));
+      })
+      .catch((error) => {
+        resolvingConversationRef.current = null;
+        toast.error(portalErrorMessage(error));
+      });
   }, [
     openSales,
     openUserId,
@@ -132,11 +139,32 @@ export default function PortalChatPage() {
     { skip: !selectedId },
   );
 
-  const [sendMessage] = useSendMessageMutation();
+  const [loadMessages, { isFetching: isLoadingOlder }] = useLazyGetMessagesQuery();
+  const [markConversationRead] = useMarkConversationReadMutation();
+  const [sendMessage, { isLoading: isSendingText }] = useSendMessageMutation();
+  const [sendMessageWithFiles, { isLoading: isSendingFiles }] =
+    useSendMessageWithFilesMutation();
+  const isSending = isSendingText || isSendingFiles;
 
-  const { onNewMessage, emitTyping, emitStopTyping } = useChatSocket(
-    selectedId ?? undefined,
-  );
+  const {
+    isConnected,
+    onNewMessage,
+    onMessageUpdated,
+    onMessageDeleted,
+    onUserTyping,
+    onUserStopTyping,
+    onPresenceChange,
+    onUnreadCount,
+    markConversationRead: markReadSocket,
+    emitTyping,
+    emitStopTyping,
+  } = useChatSocket(selectedId ?? undefined);
+
+  useEffect(() => {
+    if (!isConnected) return;
+    void refetchConversations();
+    if (selectedId) void refetchMessages();
+  }, [isConnected, refetchConversations, refetchMessages, selectedId]);
 
   const [typingUser, setTypingUser] = useState<{
     userId: string;
@@ -146,45 +174,238 @@ export default function PortalChatPage() {
   useEffect(() => {
     if (!onNewMessage) return;
     const unsub = onNewMessage((msg: Message) => {
-      setLocalMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, msg];
-      });
+      if (msg.conversationId === selectedId) {
+        // Persist the read boundary while the active conversation receives
+        // messages, rather than waiting for a conversation switch.
+        void markReadSocket(selectedId).catch(() =>
+          markConversationRead(selectedId).unwrap().catch(() => undefined),
+        );
+        dispatch(
+          chatApi.util.updateQueryData(
+            "getMessages",
+            { conversationId: selectedId, limit: 100 },
+            (draft) => {
+              if (!draft.data.some((message) => message.id === msg.id)) {
+                draft.data.push(msg);
+                draft.data.sort(
+                  (a, b) =>
+                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+                    a.id.localeCompare(b.id),
+                );
+              }
+            },
+          ),
+        );
+      }
+      if (msg.conversationId !== selectedId) void refetchConversations();
+      dispatch(
+        chatApi.util.updateQueryData(
+          "getConversations",
+          { limit: 50 },
+          (draft) => {
+            const conversation = draft.data.find((item) => item.id === msg.conversationId);
+            if (conversation) {
+              conversation.lastMessage = msg;
+              conversation.updatedAt = msg.createdAt;
+              draft.data.sort(
+                (a, b) =>
+                  new Date(b.updatedAt).getTime() -
+                  new Date(a.updatedAt).getTime(),
+              );
+            }
+          },
+        ),
+      );
     });
     return () => {
       unsub?.();
     };
-  }, [onNewMessage]);
+  }, [dispatch, markConversationRead, markReadSocket, onNewMessage, refetchConversations, selectedId]);
 
   useEffect(() => {
-    setLocalMessages([]);
+    if (!onMessageUpdated || !selectedId) return;
+    return onMessageUpdated((updatedMessage) => {
+      if (updatedMessage.conversationId !== selectedId) return;
+      dispatch(
+        chatApi.util.updateQueryData(
+          "getMessages",
+          { conversationId: selectedId, limit: 100 },
+          (draft) => {
+            const index = draft.data.findIndex((message) => message.id === updatedMessage.id);
+            if (index !== -1) draft.data[index] = updatedMessage;
+          },
+        ),
+      );
+      dispatch(
+        chatApi.util.updateQueryData(
+          "getConversations",
+          { limit: 50 },
+          (draft) => {
+            const conversation = draft.data.find((item) => item.id === updatedMessage.conversationId);
+            if (conversation?.lastMessage?.id === updatedMessage.id) {
+              conversation.lastMessage = updatedMessage;
+            }
+          },
+        ),
+      );
+      dispatch(
+        chatApi.util.updateQueryData("getConversation", selectedId, (draft) => {
+          if (draft.lastMessage?.id === updatedMessage.id) draft.lastMessage = updatedMessage;
+        }),
+      );
+    });
+  }, [dispatch, onMessageUpdated, selectedId]);
+
+  useEffect(() => {
+    if (!onMessageDeleted || !selectedId) return;
+    return onMessageDeleted((deletedMessage) => {
+      if (deletedMessage.conversationId !== selectedId) return;
+      dispatch(
+        chatApi.util.updateQueryData(
+          "getMessages",
+          { conversationId: selectedId, limit: 100 },
+          (draft) => {
+            const index = draft.data.findIndex((message) => message.id === deletedMessage.id);
+            if (index !== -1) draft.data[index] = deletedMessage;
+          },
+        ),
+      );
+      dispatch(
+        chatApi.util.updateQueryData(
+          "getConversations",
+          { limit: 50 },
+          (draft) => {
+            const conversation = draft.data.find((item) => item.id === deletedMessage.conversationId);
+            if (conversation?.lastMessage?.id === deletedMessage.id) {
+              conversation.lastMessage = deletedMessage;
+            }
+          },
+        ),
+      );
+      dispatch(
+        chatApi.util.updateQueryData("getConversation", selectedId, (draft) => {
+          if (draft.lastMessage?.id === deletedMessage.id) draft.lastMessage = deletedMessage;
+        }),
+      );
+    });
+  }, [dispatch, onMessageDeleted, selectedId]);
+
+  useEffect(() => {
+    if (!onUserTyping || !selectedId) return;
+    const unsubscribeTyping = onUserTyping((data) => {
+      if (data.userId !== currentUserId) {
+        setTypingUser({ userId: data.userId, userName: data.userName });
+      }
+    });
+    const unsubscribeStopTyping = onUserStopTyping?.((data) => {
+      setTypingUser((current) =>
+        current?.userId === data.userId ? null : current,
+      );
+    });
+    return () => {
+      unsubscribeTyping?.();
+      unsubscribeStopTyping?.();
+    };
+  }, [currentUserId, onUserTyping, onUserStopTyping, selectedId]);
+
+  useEffect(() => {
+    if (!onPresenceChange) return;
+    return onPresenceChange(({ userId, isOnline, lastSeenAt }) => {
+      dispatch(
+        chatApi.util.updateQueryData(
+          "getConversations",
+          { limit: 50 },
+          (draft) => {
+            for (const conversation of draft.data) {
+              const participant = conversation.participants.find((item) => item.id === userId);
+              if (participant) {
+                participant.isOnline = isOnline;
+                if (lastSeenAt) participant.lastSeenAt = lastSeenAt;
+              }
+            }
+          },
+        ),
+      );
+      if (selectedId) {
+        dispatch(
+          chatApi.util.updateQueryData("getConversation", selectedId, (draft) => {
+            const participant = draft.participants.find((item) => item.id === userId);
+            if (participant) {
+              participant.isOnline = isOnline;
+              if (lastSeenAt) participant.lastSeenAt = lastSeenAt;
+            }
+          }),
+        );
+      }
+    });
+  }, [dispatch, onPresenceChange, selectedId]);
+
+  useEffect(() => {
     setTypingUser(null);
   }, [selectedId]);
 
-  const displayedMessages = useMemo(() => {
-    const server = messagesData ?? [];
-    const serverIds = new Set(server.map((m) => m.id));
-    const uniqueLocal = localMessages.filter((m) => !serverIds.has(m.id));
-    return [...server, ...uniqueLocal];
-  }, [messagesData, localMessages]);
+  const displayedMessages = useMemo(() => messagesData?.data ?? [], [messagesData]);
+
+  // Read state is owned by the server. The optimistic cache update only keeps
+  // the list responsive while the durable mark-read request is in flight.
+  useEffect(() => {
+    if (!selectedId) return;
+    dispatch(chatApi.util.updateQueryData("getConversations", { limit: 50 }, (draft) => {
+      const conversation = draft.data.find((item) => item.id === selectedId);
+      if (conversation) conversation.unreadCount = 0;
+    }));
+    if (isConnected) {
+      void markReadSocket(selectedId)
+        .catch(() => markConversationRead(selectedId).unwrap())
+        .catch((error) => toast.error(portalErrorMessage(error)));
+    } else {
+      // REST is the fallback when the socket is unavailable; both paths use
+      // ChatService.markConversationRead on the server.
+      void markConversationRead(selectedId)
+        .unwrap()
+        .catch((error) => toast.error(portalErrorMessage(error)));
+    }
+  }, [dispatch, isConnected, markConversationRead, markReadSocket, selectedId]);
+
+  useEffect(() => {
+    if (!onUnreadCount) return;
+    const unsubscribe = onUnreadCount(({ conversationId, unreadCount }) => {
+      dispatch(chatApi.util.updateQueryData("getConversations", { limit: 50 }, (draft) => {
+        const conversation = draft.data.find((item) => item.id === conversationId);
+        if (conversation) conversation.unreadCount = unreadCount;
+      }));
+    });
+    return () => unsubscribe?.();
+  }, [dispatch, onUnreadCount]);
+
+  const handleLoadOlder = useCallback(() => {
+    if (!selectedId || !messagesData?.hasMore || !messagesData.nextCursor) return;
+    void loadMessages({ conversationId: selectedId, limit: 100, cursor: messagesData.nextCursor });
+  }, [loadMessages, messagesData, selectedId]);
 
   const handleSelectConversation = useCallback((conv: Conversation) => {
     setSelectedId(conv.id);
   }, []);
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async (content: string, files?: File[]) => {
       if (!selectedId) return;
       try {
-        await sendMessage({
-          conversationId: selectedId,
-          content,
-        }).unwrap();
+        if (files?.length) {
+          await sendMessageWithFiles({
+            conversationId: selectedId,
+            content,
+            files,
+          }).unwrap();
+        } else {
+          await sendMessage({ conversationId: selectedId, content }).unwrap();
+        }
       } catch (err) {
         toast.error(portalErrorMessage(err));
+        throw err;
       }
     },
-    [selectedId, sendMessage],
+    [selectedId, sendMessage, sendMessageWithFiles],
   );
 
   return (
@@ -255,8 +476,12 @@ export default function PortalChatPage() {
                   </div>
                 ) : (
                   <ChatWindow
+                    key={selectedId}
                     messages={displayedMessages}
                     isLoading={msgLoading}
+                    hasMore={messagesData?.hasMore}
+                    isLoadingOlder={isLoadingOlder}
+                    onLoadOlder={handleLoadOlder}
                     typingUser={typingUser}
                   />
                 )}
@@ -264,6 +489,7 @@ export default function PortalChatPage() {
                   onSend={handleSend}
                   onTyping={() => selectedId && emitTyping(selectedId)}
                   onStopTyping={() => selectedId && emitStopTyping(selectedId)}
+                  disabled={isSending}
                 />
               </div>
             ) : (

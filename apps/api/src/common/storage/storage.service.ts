@@ -172,7 +172,14 @@ export class StorageService implements OnModuleInit {
       }),
     );
 
-    const url = await this.getPresignedUrl(key);
+    let url: string;
+    try {
+      url = await this.getPresignedUrl(key);
+    } catch (error) {
+      // Compensate for a successful write when completion fails.
+      await this.deleteByKey(key);
+      throw error;
+    }
 
     return {
       key,

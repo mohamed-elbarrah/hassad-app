@@ -8,12 +8,14 @@ import { TaskStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
 import { AdminTasksQueryDto } from "../dto/admin-tasks.dto";
+import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 
 @Injectable()
 export class AdminTasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly actionLog: AdminActionLogService,
+    private readonly projectGroupChatService: ProjectGroupChatService,
   ) {}
 
   private buildWhere(query: AdminTasksQueryDto): Prisma.TaskWhereInput {
@@ -376,6 +378,9 @@ export class AdminTasksService {
       beforeState: before,
       afterState: after,
     });
+    this.projectGroupChatService
+      .syncParticipants(task.projectId)
+      .catch(() => undefined);
 
     return { code: "TASK_REASSIGNED" };
   }

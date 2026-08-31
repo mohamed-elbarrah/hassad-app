@@ -52,6 +52,25 @@ export class CreateMessageDto {
   parentMessageId?: string;
 }
 
+/** Payloads received directly from the chat Socket.IO client. */
+export class ChatConversationSocketDto {
+  @IsUUID()
+  conversationId: string;
+}
+
+export class ChatSendMessageSocketDto {
+  @IsUUID()
+  conversationId: string;
+
+  @IsString()
+  @MinLength(1)
+  content: string;
+
+  @IsOptional()
+  @IsUUID()
+  parentMessageId?: string;
+}
+
 export class GetConversationsQueryDto {
   @IsOptional()
   @IsIn(["DIRECT", "GROUP"])
@@ -81,10 +100,8 @@ export class GetConversationsQueryDto {
 
 export class GetMessagesQueryDto {
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number = 1;
+  @IsString()
+  cursor?: string;
 
   @IsOptional()
   @Type(() => Number)

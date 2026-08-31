@@ -1,38 +1,45 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
   Param,
+  Patch,
+  Post,
   Query,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
-  UploadedFiles,
-  Delete,
-  Patch,
-  NotFoundException,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
-import { ChatService } from "../services/chat.service";
-import { ProjectGroupChatService } from "../services/project-group-chat.service";
-import { DirectConversationService } from "../services/direct-conversation.service";
 import {
-  CreateConversationDto,
+  CurrentUser,
+  type JwtPayload,
+} from "../../../common/decorators/current-user.decorator";
+import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
+import { PermissionsGuard } from "../../../common/guards/permissions.guard";
+import {
+  ChatAttachmentService,
+  CHAT_UPLOAD_LIMITS,
+} from "../../../common/storage/chat-attachment.service";
+import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import {
   AddParticipantDto,
+  CreateConversationDto,
   CreateMessageDto,
   GetConversationsQueryDto,
   GetMessagesQueryDto,
   UpdateMessageDto,
-} from "../dto/chat.dto";
-import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
-import { PermissionsGuard } from "../../../common/guards/permissions.guard";
-import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
-import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { ChatAttachmentService, CHAT_UPLOAD_LIMITS } from "../../../common/storage/chat-attachment.service";
+} from "../../chat/dto/chat.dto";
+import { ChatService } from "../../chat/services/chat.service";
+import { DirectConversationService } from "../../chat/services/direct-conversation.service";
+import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 
-@Controller("")
+/** Portal-owned adapter over the shared chat domain services. */
+@Controller("portal/chat")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-export class ChatController {
+export class PortalChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly projectGroupChatService: ProjectGroupChatService,
@@ -43,7 +50,7 @@ export class ChatController {
   @Get("conversations")
   @RequirePermissions("chat.read")
   findMyConversations(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Query() query: GetConversationsQueryDto,
   ) {
     return this.chatService.findMyConversations(user.id, query);
@@ -51,14 +58,14 @@ export class ChatController {
 
   @Post("conversations/:id/read")
   @RequirePermissions("chat.read")
-  markConversationRead(@CurrentUser() user: any, @Param("id") id: string) {
+  markConversationRead(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.chatService.markConversationRead(id, user.id);
   }
 
   @Post("conversations")
   @RequirePermissions("chat.create")
   createConversation(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: CreateConversationDto,
   ) {
     return this.chatService.createConversation(user.id, dto);
@@ -67,7 +74,7 @@ export class ChatController {
   @Get("conversations/direct/:userId")
   @RequirePermissions("chat.read")
   async getDirectConversation(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
   ) {
     const conversation = await this.directConversationService.getOrCreate(
@@ -83,36 +90,33 @@ export class ChatController {
     return this.chatService.getConversationDetails(conversation.id, user.id);
   }
 
-  @Get("conversations/:id")
-  @RequirePermissions("chat.read")
-  findConversation(@CurrentUser() user: any, @Param("id") id: string) {
-    return this.chatService.findConversation(id, user.id);
-  }
-
   @Get("conversations/project/:projectId/group")
   @RequirePermissions("chat.read")
   async getProjectGroupChat(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("projectId") projectId: string,
   ) {
-    // Authorize against the project before ensure() can create or repair the
-    // shared group conversation. Conversation membership alone is too late for
-    // a caller requesting a group that does not exist yet.
     await this.chatService.assertProjectAccess(projectId, user.id);
     const conversation = await this.projectGroupChatService.ensure(projectId);
     if (!conversation) {
       throw new NotFoundException({
         code: "PROJECT_GROUP_CHAT_NOT_FOUND",
-        details: {},
+        details: { projectId },
       });
     }
     return this.chatService.getConversationDetails(conversation.id, user.id);
   }
 
+  @Get("conversations/:id")
+  @RequirePermissions("chat.read")
+  findConversation(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
+    return this.chatService.findConversation(id, user.id);
+  }
+
   @Post("conversations/:id/participants")
   @RequirePermissions("chat.update")
   addParticipant(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
     @Body() dto: AddParticipantDto,
   ) {
@@ -122,7 +126,7 @@ export class ChatController {
   @Delete("conversations/:id/participants/:userId")
   @RequirePermissions("chat.update")
   removeParticipant(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
     @Param("userId") userId: string,
   ) {
@@ -132,7 +136,7 @@ export class ChatController {
   @Post("conversations/:id/messages")
   @RequirePermissions("chat.message")
   createMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") conversationId: string,
     @Body() dto: CreateMessageDto,
   ) {
@@ -145,7 +149,7 @@ export class ChatController {
   @Post("conversations/direct/:userId/messages")
   @RequirePermissions("chat.message")
   createDirectMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
     @Body() dto: CreateMessageDto,
   ) {
@@ -155,24 +159,24 @@ export class ChatController {
   @Post("conversations/:id/messages/with-files")
   @RequirePermissions("chat.message")
   @UseInterceptors(
-    FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, { limits: CHAT_UPLOAD_LIMITS }),
+    FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, {
+      limits: CHAT_UPLOAD_LIMITS,
+    }),
   )
   async createMessageWithFiles(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") conversationId: string,
     @Body() dto: CreateMessageDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    // Authorize before accepting any file into storage.
     await this.chatService.assertConversationAccess(conversationId, user.id);
-    const attachments = await this.chatAttachmentService.upload(conversationId, files);
-
+    const attachments = await this.chatAttachmentService.upload(
+      conversationId,
+      files,
+    );
     return this.chatService.createMessageWithAttachments(
       user.id,
-      {
-        ...dto,
-        conversationId,
-      },
+      { ...dto, conversationId },
       attachments,
     );
   }
@@ -180,10 +184,12 @@ export class ChatController {
   @Post("conversations/direct/:userId/messages/with-files")
   @RequirePermissions("chat.message")
   @UseInterceptors(
-    FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, { limits: CHAT_UPLOAD_LIMITS }),
+    FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, {
+      limits: CHAT_UPLOAD_LIMITS,
+    }),
   )
   async createDirectMessageWithFiles(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
     @Body() dto: CreateMessageDto,
     @UploadedFiles() files: Express.Multer.File[],
@@ -192,23 +198,20 @@ export class ChatController {
       user.id,
       otherUserId,
     );
-
     if (!conversation) {
       throw new NotFoundException({
         code: "DIRECT_CONVERSATION_CREATE_FAILED",
         details: {},
       });
     }
-
     await this.chatService.assertConversationAccess(conversation.id, user.id);
-    const attachments = await this.chatAttachmentService.upload(conversation.id, files);
-
+    const attachments = await this.chatAttachmentService.upload(
+      conversation.id,
+      files,
+    );
     return this.chatService.createMessageWithAttachments(
       user.id,
-      {
-        ...dto,
-        conversationId: conversation.id,
-      },
+      { ...dto, conversationId: conversation.id },
       attachments,
     );
   }
@@ -216,7 +219,7 @@ export class ChatController {
   @Get("conversations/:id/messages")
   @RequirePermissions("chat.read")
   getMessages(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
     @Query() query: GetMessagesQueryDto,
   ) {
@@ -226,7 +229,7 @@ export class ChatController {
   @Patch("conversations/:conversationId/messages/:messageId")
   @RequirePermissions("chat.message")
   updateMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("conversationId") conversationId: string,
     @Param("messageId") messageId: string,
     @Body() dto: UpdateMessageDto,
@@ -242,7 +245,7 @@ export class ChatController {
   @Delete("conversations/:conversationId/messages/:messageId")
   @RequirePermissions("chat.message")
   deleteMessage(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param("conversationId") conversationId: string,
     @Param("messageId") messageId: string,
   ) {

@@ -1,23 +1,20 @@
 import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
+let socketConsumers = 0;
 
 export function getSocket(): Socket {
-  if (socket?.connected) return socket;
+  socketConsumers += 1;
+  if (socket) return socket;
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/v1";
   const wsUrl = apiUrl.replace(/\/v1$/, "");
 
-  const token =
-    typeof document !== "undefined"
-      ? document.cookie
-          .split("; ")
-          .find((row) => row.startsWith("token="))
-          ?.split("=")[1]
-      : undefined;
-
+  // Authentication is carried by the secure HttpOnly cookie. Reading the
+  // cookie here would both fail for HttpOnly cookies and expose credentials to
+  // the client bundle, so let Socket.IO include it with the handshake.
   socket = io(wsUrl, {
-    auth: { token: token ? decodeURIComponent(token) : undefined },
+    withCredentials: true,
     transports: ["websocket", "polling"],
     autoConnect: true,
     reconnection: true,
@@ -29,7 +26,8 @@ export function getSocket(): Socket {
 }
 
 export function disconnectSocket() {
-  if (socket) {
+  socketConsumers = Math.max(0, socketConsumers - 1);
+  if (socket && socketConsumers === 0) {
     socket.disconnect();
     socket = null;
   }

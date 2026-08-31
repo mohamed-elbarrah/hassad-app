@@ -31,11 +31,14 @@ export function ConversationList({
     if (!searchQuery.trim()) return conversations;
     const q = searchQuery.toLowerCase();
     return conversations.filter((conv) => {
-      const name =
-        conv.title?.toLowerCase() ??
-        conv.participants.map((p) => p.user?.name?.toLowerCase()).join(" ") ??
-        "";
-      const clientName = conv.client?.companyName?.toLowerCase() ?? "";
+      const name = [
+        conv.title ?? "",
+        conv.participants.map((p) => p.name).join(" "),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const clientName = conv.clientName?.toLowerCase() ?? "";
       const projectName = conv.project?.name?.toLowerCase() ?? "";
       return (
         name.includes(q) || clientName.includes(q) || projectName.includes(q)

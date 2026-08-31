@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Conversation } from "@/features/chat/chatApi";
 import { useAppSelector } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/format";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Phone, MoreHorizontal, Search, ExternalLink } from "lucide-react";
@@ -31,9 +32,9 @@ function getHeaderInfo(
   }
 
   const other = conversation.participants.find(
-    (p) => p.userId !== currentUserId,
+    (p) => p.id !== currentUserId,
   );
-  const name = other?.user?.name ?? conversation.title ?? "محادثة";
+  const name = other?.name ?? conversation.title ?? "محادثة";
 
   // Role-based subtitle
   let subtitle = "";
@@ -45,8 +46,8 @@ function getHeaderInfo(
       subtitle = `مشروع ${conversation.project.name}`;
       projectName = conversation.project.name;
       projectLink = `/dashboard/pm/projects/${conversation.project.id}`;
-    } else if (conversation.client?.companyName) {
-      subtitle = conversation.client.companyName;
+    } else if (conversation.clientName) {
+      subtitle = conversation.clientName;
     }
   } else if (currentUserRole === "CLIENT") {
     if (conversation.project?.name) {
@@ -57,8 +58,8 @@ function getHeaderInfo(
   } else {
     if (conversation.project?.name) {
       subtitle = `مشروع ${conversation.project.name}`;
-    } else if (conversation.client?.companyName) {
-      subtitle = conversation.client.companyName;
+    } else if (conversation.clientName) {
+      subtitle = conversation.clientName;
     }
   }
 
@@ -68,7 +69,6 @@ function getHeaderInfo(
     avatarName: name,
     projectLink,
     projectName,
-    otherUserRole: other?.user?.role,
   };
 }
 
@@ -83,6 +83,18 @@ function getInitials(name: string): string {
 export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
   const user = useAppSelector((s) => s.auth.user);
   const info = getHeaderInfo(conversation, user?.id, user?.role);
+  const otherParticipant = conversation.participants.find(
+    (participant) => participant.id !== user?.id,
+  );
+  const isDirectOnline = Boolean(otherParticipant?.isOnline);
+  const presenceLabel =
+    conversation.type === "DIRECT"
+      ? isDirectOnline
+        ? "متصل"
+        : otherParticipant?.lastSeenAt
+          ? `آخر ظهور ${formatRelativeTime(otherParticipant.lastSeenAt)}`
+          : "غير متصل"
+      : info.subtitle || "محادثة جماعية";
 
   return (
     <div className="flex items-center gap-3 border-b border-border bg-background px-5 py-3.5">
@@ -96,7 +108,9 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
         <span
           className={cn(
             "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
-            "bg-success",
+            conversation.type === "DIRECT" && isDirectOnline
+              ? "bg-success"
+              : "bg-muted-foreground/40",
           )}
         />
       </div>
@@ -107,23 +121,7 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
           <span className="truncate text-sm font-semibold text-foreground">
             {info.name}
           </span>
-          {info.otherUserRole && (
-            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-              {info.otherUserRole === "PM"
-                ? "مدير مشروع"
-                : info.otherUserRole === "SALES"
-                  ? "مبيعات"
-                  : info.otherUserRole === "CLIENT"
-                    ? "عميل"
-                    : info.otherUserRole === "ACCOUNTANT"
-                      ? "محاسب"
-                      : info.otherUserRole === "MARKETING"
-                        ? "تسويق"
-                        : info.otherUserRole === "ADMIN"
-                          ? "مدير"
-                          : info.otherUserRole}
-            </span>
-          )}
+
         </div>
 
         {isTyping ? (
@@ -140,7 +138,7 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
         ) : (
           <div className="flex items-center gap-2">
             <span className="truncate text-xs text-muted-foreground">
-              {info.subtitle || "متصل"}
+              {presenceLabel}
             </span>
             {info.projectLink && (
               <Link
@@ -161,6 +159,7 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
           onClick={() => toast.info("البحث في المحادثة قريباً")}
           className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="بحث في المحادثة"
+          aria-label="بحث في المحادثة"
         >
           <Search className="w-4 h-4" />
         </button>
@@ -168,6 +167,7 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
           onClick={() => toast.info("المكالمات الصوتية قريباً")}
           className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="مكالمة"
+          aria-label="مكالمة"
         >
           <Phone className="w-4 h-4" />
         </button>
@@ -175,6 +175,7 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
           onClick={() => toast.info("خيارات إضافية قريباً")}
           className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="المزيد"
+          aria-label="المزيد من الخيارات"
         >
           <MoreHorizontal className="w-4 h-4" />
         </button>

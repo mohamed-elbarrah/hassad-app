@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,9 @@ import type { Message } from "@/features/chat/chatApi";
 interface ChatWindowProps {
   messages: Message[];
   isLoading?: boolean;
+  hasMore?: boolean;
+  isLoadingOlder?: boolean;
+  onLoadOlder?: () => void;
   typingUser?: { userId: string; userName: string } | null;
 }
 
@@ -49,10 +52,19 @@ function shouldShowDateSeparator(
 export function ChatWindow({
   messages,
   isLoading,
+  hasMore = false,
+  isLoadingOlder = false,
+  onLoadOlder,
   typingUser,
 }: ChatWindowProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const pendingScrollAdjustment = useRef<{
+    top: number;
+    height: number;
+    firstMessageId: string | null;
+  } | null>(null);
+  const didInitialScroll = useRef(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
@@ -73,10 +85,38 @@ export function ChatWindow({
 
   // Scroll to bottom on initial load
   useEffect(() => {
-    if (!isLoading && messages.length > 0) {
+    if (!isLoading && messages.length > 0 && !didInitialScroll.current) {
       bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      didInitialScroll.current = true;
     }
-  }, [isLoading]);
+  }, [isLoading, messages.length]);
+
+  // Prepending history must not move the messages currently in view.
+  useLayoutEffect(() => {
+    const pending = pendingScrollAdjustment.current;
+    const container = containerRef.current;
+    if (!pending || !container) return;
+    // Ignore socket updates to existing/latest messages. Only a changed first
+    // item means the older cursor page has actually been prepended.
+    if (pending.firstMessageId === messages[0]?.id) {
+      if (!isLoadingOlder) pendingScrollAdjustment.current = null;
+      return;
+    }
+    container.scrollTop = pending.top + (container.scrollHeight - pending.height);
+    pendingScrollAdjustment.current = null;
+  }, [isLoadingOlder, messages]);
+
+  const handleLoadOlder = () => {
+    const container = containerRef.current;
+    if (container) {
+      pendingScrollAdjustment.current = {
+        top: container.scrollTop,
+        height: container.scrollHeight,
+        firstMessageId: messages[0]?.id ?? null,
+      };
+    }
+    onLoadOlder?.();
+  };
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -139,7 +179,20 @@ export function ChatWindow({
         onScroll={checkIfAtBottom}
         className="h-full overflow-y-auto px-5 py-4"
       >
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
+          {hasMore && onLoadOlder && (
+            <div className="flex justify-center pb-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleLoadOlder}
+                disabled={isLoadingOlder}
+              >
+                {isLoadingOlder ? "جارٍ تحميل الرسائل..." : "تحميل الرسائل الأقدم"}
+              </Button>
+            </div>
+          )}
           {messages.map((msg, idx) => {
             const prevMsg = idx > 0 ? messages[idx - 1] : null;
             const showDate = shouldShowDateSeparator(msg, prevMsg);
@@ -190,6 +243,7 @@ export function ChatWindow({
           onClick={scrollToBottom}
           variant="outline"
           size="icon"
+          aria-label="الانتقال إلى أحدث الرسائل"
           className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border-border bg-background text-muted-foreground shadow-lg transition-all hover:bg-muted hover:text-primary"
         >
           <ChevronDown className="h-4 w-4" />

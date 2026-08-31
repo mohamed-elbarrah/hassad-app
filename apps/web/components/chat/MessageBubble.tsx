@@ -2,11 +2,12 @@
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { formatFileSize, formatRelativeTime } from "@/lib/format";
+import { formatRelativeTime } from "@/lib/format";
 import { useAppSelector } from "@/lib/hooks";
 import { useState } from "react";
 import { FileIcon, Download, CheckCheck, X, Maximize2 } from "lucide-react";
 import type { Message, MessageAttachment } from "@/features/chat/chatApi";
+import { CHAT_DELETED_MESSAGE_LABEL } from "@/lib/i18n";
 
 function isImageType(mimeType: string): boolean {
   return mimeType.startsWith("image/");
@@ -35,6 +36,7 @@ function AttachmentCard({
         <button
           onClick={() => setPreviewOpen(true)}
           className="group relative overflow-hidden rounded-xl"
+          aria-label={`معاينة ${attachment.fileName}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -56,6 +58,7 @@ function AttachmentCard({
             <button
               onClick={() => setPreviewOpen(false)}
               className="absolute left-4 top-4 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+              aria-label="إغلاق المعاينة"
             >
               <X className="h-5 w-5" />
             </button>
@@ -94,7 +97,7 @@ function AttachmentCard({
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{attachment.fileName}</p>
-        <p className="text-xs opacity-70">{formatFileSize(0)}</p>
+        <p className="text-xs opacity-70">{attachment.fileType}</p>
       </div>
       <Download className="h-4 w-4 shrink-0 opacity-70" />
     </a>
@@ -107,8 +110,9 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const user = useAppSelector((s) => s.auth.user);
-  const isOwn = message.senderId === user?.id;
-  const hasAttachments = message.attachments && message.attachments.length > 0;
+  const isOwn = message.sender.id === user?.id;
+  const isDeleted = Boolean(message.deletedAt);
+  const hasAttachments = !isDeleted && message.attachments && message.attachments.length > 0;
 
   return (
     <div
@@ -122,7 +126,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         <div className="mt-1 shrink-0">
           <Avatar className="h-8 w-8 rounded-full">
             <AvatarFallback className="bg-muted text-xs text-foreground">
-              {getInitials(message.sender?.name ?? "?")}
+              {getInitials(message.sender.name ?? "?")}
             </AvatarFallback>
           </Avatar>
         </div>
@@ -135,23 +139,27 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
       >
         {/* Sender name (for group messages) */}
-        {!isOwn && message.sender?.name && (
+        {!isOwn && message.sender.name && (
           <span className="mb-1 mr-1 text-[11px] font-medium text-muted-foreground">
             {message.sender.name}
           </span>
         )}
 
         {/* Message content */}
-        {message.content && (
+        {(isDeleted || message.displayContent || message.content) && (
           <div
             className={cn(
               "relative rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm",
-              isOwn
-                ? "bg-primary text-primary-foreground rounded-br-md"
-                : "rounded-bl-md border border-border bg-background text-foreground",
+              isDeleted
+                ? "border border-border bg-muted text-muted-foreground italic"
+                : isOwn
+                  ? "bg-primary text-primary-foreground rounded-br-md"
+                  : "rounded-bl-md border border-border bg-background text-foreground",
             )}
           >
-            {message.content}
+            {isDeleted
+              ? CHAT_DELETED_MESSAGE_LABEL
+              : message.displayContent || message.content}
           </div>
         )}
 

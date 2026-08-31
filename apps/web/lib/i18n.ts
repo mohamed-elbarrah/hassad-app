@@ -98,6 +98,9 @@ const CLIENT_ACTIVITY_DETAILS: Record<string, string> = {
 
 export const UNKNOWN_STATUS_LABEL = "حالة غير معروفة";
 
+/** Presentation label for a message whose content was removed by the chat API. */
+export const CHAT_DELETED_MESSAGE_LABEL = "هذه الرسالة محذوفة";
+
 const INVOICE_STATUS_LABELS: Record<string, string> = {
   DUE: "مستحقة",
   SENT: "مرسلة",
@@ -1273,8 +1276,18 @@ export function notificationErrorMessage(error: unknown): string {
 }
 
 export function portalErrorMessage(error: unknown): string {
-  const code = (error as { data?: { error?: { code?: string } } })?.data?.error?.code;
-  return code === "PERMISSION_DENIED" ? "ليس لديك صلاحية لعرض هذه البيانات." : code === "AUTHENTICATION_REQUIRED" ? "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى." : "تعذر تحميل البيانات. يرجى المحاولة لاحقاً.";
+  const code = (error as { data?: { error?: { code?: string } }; code?: string })?.data?.error?.code
+    ?? (error as { code?: string })?.code;
+  const messages: Record<string, string> = {
+    PERMISSION_DENIED: "ليس لديك صلاحية لعرض هذه البيانات.",
+    AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+    CONVERSATION_NOT_FOUND: "لم يتم العثور على المحادثة.",
+    CONVERSATION_PARTICIPATION_FORBIDDEN: "ليس لديك صلاحية للوصول إلى هذه المحادثة.",
+    CONVERSATION_INACTIVE: "هذه المحادثة غير متاحة حالياً.",
+    SOCKET_NOT_CONNECTED: "تعذر الاتصال بالمحادثة. يرجى المحاولة لاحقاً.",
+    SOCKET_ACK_TIMEOUT: "استغرق تحديث حالة القراءة وقتاً أطول من المتوقع.",
+  };
+  return (code && messages[code]) || "تعذر تحميل البيانات. يرجى المحاولة لاحقاً.";
 }
 
 export function marketingErrorMessage(error: unknown): string {

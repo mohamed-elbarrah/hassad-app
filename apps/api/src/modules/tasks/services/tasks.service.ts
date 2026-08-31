@@ -358,7 +358,7 @@ export class TasksService {
         );
 
       await this.projectGroupChatService
-        .addParticipant(createdTask.projectId, createdTask.assignedTo)
+        .syncParticipants(createdTask.projectId)
         .catch(() => undefined);
     }
 
@@ -592,7 +592,7 @@ export class TasksService {
       );
 
       this.projectGroupChatService
-        .addParticipant(existingTask.projectId, dto.userId)
+        .syncParticipants(existingTask.projectId)
         .catch(() => undefined);
 
       if (recipients.length > 0) {

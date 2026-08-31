@@ -1709,19 +1709,26 @@ model Conversation {
 
   @@index([clientId])
   @@index([type, clientId])
+  @@index([type, isActive, updatedAt])
   @@index([projectId])
   @@map("conversations")
 }
 
 model ConversationParticipant {
-  id             String       @id @default(uuid())
-  conversationId String       @map("conversation_id")
-  userId         String       @map("user_id")
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String                         @id @default(uuid())
+  conversationId String                         @map("conversation_id")
+  userId         String                         @map("user_id")
+  source         ConversationParticipantSource  @default(MANUAL)
+  isActive       Boolean                        @default(true) @map("is_active")
+  conversation   Conversation                   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  lastReadAt     DateTime?                      @map("last_read_at")
+
+  @@unique([conversationId, userId])
   @@index([conversationId])
   @@index([userId])
+  @@index([userId, conversationId])
   @@map("conversation_participants")
 }
 
@@ -1743,6 +1750,7 @@ model Message {
   deletedBy       User?               @relation("DeletedMessages", fields: [deletedById], references: [id], onDelete: SetNull)
 
   @@index([conversationId])
+  @@index([conversationId, createdAt, id])
   @@index([createdAt])
   @@index([parentMessageId])
   @@index([deletedById])
@@ -2070,6 +2078,11 @@ enum RenewalAlertType {
   SIXTY_DAYS
   THIRTY_DAYS
   SEVEN_DAYS
+}
+
+enum ConversationParticipantSource {
+  AUTO
+  MANUAL
 }
 
 enum ConversationType {

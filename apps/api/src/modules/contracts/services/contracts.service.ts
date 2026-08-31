@@ -39,6 +39,7 @@ import {
   type RequestAccessScope,
 } from "../../requests/request-access";
 import { DirectConversationService } from "../../chat/services/direct-conversation.service";
+import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 import { PmAssignmentService } from "./pm-assignment.service";
 import { ContractPaymentPlanService } from "./contract-payment-plan.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
@@ -69,6 +70,7 @@ export class ContractsService {
     private notificationsService: NotificationsService,
     private requestsService: RequestsService,
     private directConversationService: DirectConversationService,
+    private projectGroupChatService: ProjectGroupChatService,
     private pmAssignmentService: PmAssignmentService,
     private clientCounterService: ClientCounterService,
     private paymentPlanService: ContractPaymentPlanService,
@@ -245,6 +247,10 @@ export class ContractsService {
     if (!project) {
       return null;
     }
+
+    this.projectGroupChatService
+      .ensure(project.id)
+      .catch(() => undefined);
 
     await this.notificationsService
       .createNotification({

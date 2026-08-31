@@ -2,26 +2,68 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { CHAT_MAX_FILES } from "@/features/chat/chatApi";
+import { portalErrorMessage } from "@/lib/i18n";
 
 import { toast } from "sonner";
 import { Send, Paperclip, X, FileText, Smile } from "lucide-react";
 
 interface MessageInputProps {
-  onSend: (content: string, files?: File[]) => void;
+  onSend: (content: string, files?: File[]) => void | Promise<void>;
   onTyping?: () => void;
   onStopTyping?: () => void;
   disabled?: boolean;
   placeholder?: string;
 }
 
-function getFilePreview(file: File): {
-  type: "image" | "document";
-  url?: string;
-} {
-  if (file.type.startsWith("image/")) {
-    return { type: "image", url: URL.createObjectURL(file) };
-  }
-  return { type: "document" };
+const CHAT_ACCEPTED_FILE_TYPES = [
+  { extension: ".pdf", mimeType: "application/pdf" },
+  { extension: ".png", mimeType: "image/png" },
+  { extension: ".jpg", mimeType: "image/jpeg" },
+  { extension: ".jpeg", mimeType: "image/jpeg" },
+  { extension: ".gif", mimeType: "image/gif" },
+  { extension: ".webp", mimeType: "image/webp" },
+  { extension: ".doc", mimeType: "application/msword" },
+  {
+    extension: ".docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  },
+  { extension: ".zip", mimeType: "application/zip" },
+  { extension: ".txt", mimeType: "text/plain" },
+  { extension: ".csv", mimeType: "text/csv" },
+  { extension: ".mp4", mimeType: "video/mp4" },
+  { extension: ".mov", mimeType: "video/quicktime" },
+  { extension: ".webm", mimeType: "video/webm" },
+] as const;
+
+const CHAT_ACCEPT = CHAT_ACCEPTED_FILE_TYPES.flatMap(({ extension, mimeType }) => [
+  mimeType,
+  extension,
+]).join(",");
+
+const CHAT_ATTACHMENT_ERROR_MESSAGES: Record<string, string> = {
+  FILE_TYPE_NOT_ALLOWED: "نوع الملف غير مسموح.",
+  INVALID_FILE_TYPE: "نوع الملف غير مدعوم.",
+  INVALID_FILE_CONTENT: "محتوى الملف غير صالح.",
+  CHAT_SVG_NOT_ALLOWED: "ملفات SVG غير مسموحة.",
+};
+
+function chatAttachmentErrorMessage(code: string): string {
+  return (
+    CHAT_ATTACHMENT_ERROR_MESSAGES[code] ||
+    portalErrorMessage({ data: { error: { code, details: {} } } })
+  );
+}
+
+function getFileKey(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
+
+function isAcceptedChatFile(file: File): boolean {
+  const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+  return CHAT_ACCEPTED_FILE_TYPES.some(
+    (type) => type.extension === extension && type.mimeType === file.type,
+  );
 }
 
 export function MessageInput({
@@ -38,28 +80,61 @@ export function MessageInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const previewUrlsRef = useRef<Record<string, string>>({});
 
-  // Cleanup object URLs
+  // Create previews once per selected image and release removed previews.
   useEffect(() => {
-    return () => {
-      files.forEach((f) => {
-        if ((f as any)._previewUrl) {
-          URL.revokeObjectURL((f as any)._previewUrl);
+    const activeKeys = new Set(
+      files.filter((file) => file.type.startsWith("image/")).map(getFileKey),
+    );
+    setPreviewUrls((current) => {
+      const next = { ...current };
+      for (const [key, url] of Object.entries(current)) {
+        if (!activeKeys.has(key)) {
+          URL.revokeObjectURL(url);
+          delete next[key];
         }
-      });
-    };
+      }
+      for (const file of files) {
+        if (file.type.startsWith("image/")) {
+          const key = getFileKey(file);
+          if (!next[key]) next[key] = URL.createObjectURL(file);
+        }
+      }
+      previewUrlsRef.current = next;
+      return next;
+    });
   }, [files]);
 
-  const handleSend = useCallback(() => {
+  useEffect(() => {
+    return () => {
+      for (const url of Object.values(previewUrlsRef.current)) URL.revokeObjectURL(url);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      onStopTyping?.();
+    };
+  }, [onStopTyping]);
+
+  const handleSend = useCallback(async () => {
     const trimmed = text.trim();
     if ((!trimmed && files.length === 0) || disabled) return;
-    onSend(trimmed || "📎", files.length > 0 ? files : undefined);
-    setText("");
-    setFiles([]);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
+
+    // Keep the draft and attachments until the request succeeds. This prevents
+    // a failed upload from silently discarding the user's files.
+    try {
+      await onSend(trimmed || "📎", files.length > 0 ? files : undefined);
+      setText("");
+      setFiles([]);
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
+      onStopTyping?.();
+    } catch {
+      // The owning page presents the localized transport error.
     }
-    onStopTyping?.();
   }, [text, files, disabled, onSend, onStopTyping]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -89,29 +164,34 @@ export function MessageInput({
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files ?? []);
-    if (selected.length > 0) {
+  const addFiles = (candidates: File[]) => {
+    if (disabled) return;
+
+    const accepted = candidates.filter(isAcceptedChatFile);
+    if (accepted.length !== candidates.length) {
+      toast.error(chatAttachmentErrorMessage("FILE_TYPE_NOT_ALLOWED"));
+    }
+    if (accepted.length > 0) {
       setFiles((prev) => {
-        const combined = [...prev, ...selected];
-        return combined.slice(0, 10);
+        const combined = [...prev, ...accepted];
+        return combined.slice(0, CHAT_MAX_FILES);
       });
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addFiles(Array.from(e.target.files ?? []));
     e.target.value = "";
   };
 
   const removeFile = (index: number) => {
-    setFiles((prev) => {
-      const file = prev[index];
-      if ((file as any)._previewUrl) {
-        URL.revokeObjectURL((file as any)._previewUrl);
-      }
-      return prev.filter((_, i) => i !== index);
-    });
+    if (disabled) return;
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Drag & drop handlers
   const handleDragOver = (e: React.DragEvent) => {
+    if (disabled) return;
     e.preventDefault();
     setIsDragging(true);
   };
@@ -124,13 +204,7 @@ export function MessageInput({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const dropped = Array.from(e.dataTransfer.files ?? []);
-    if (dropped.length > 0) {
-      setFiles((prev) => {
-        const combined = [...prev, ...dropped];
-        return combined.slice(0, 10);
-      });
-    }
+    addFiles(Array.from(e.dataTransfer.files ?? []));
   };
 
   return (
@@ -157,17 +231,17 @@ export function MessageInput({
       {files.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2">
           {files.map((file, i) => {
-            const preview = getFilePreview(file);
+            const previewUrl = previewUrls[getFileKey(file)];
             return (
               <div
                 key={`${file.name}-${i}`}
                 className="group relative flex items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-xs"
               >
-                {preview.type === "image" && preview.url ? (
+                {file.type.startsWith("image/") && previewUrl ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={preview.url}
+                      src={previewUrl}
                       alt={file.name}
                       className="h-8 w-8 rounded-lg object-cover"
                     />
@@ -198,9 +272,11 @@ export function MessageInput({
                 <button
                   type="button"
                   onClick={() => removeFile(i)}
-                  className="shrink-0 rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-danger-100 hover:text-danger-600"
+                  disabled={disabled}
+                  className="shrink-0 rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-danger-100 hover:text-danger-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={`إزالة ${file.name}`}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X aria-hidden="true" className="h-3.5 w-3.5" />
                 </button>
               </div>
             );
@@ -216,7 +292,7 @@ export function MessageInput({
           multiple
           className="hidden"
           onChange={handleFileSelect}
-          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
+          accept={CHAT_ACCEPT}
         />
 
         {/* Attach file button */}
@@ -226,6 +302,7 @@ export function MessageInput({
           disabled={disabled}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary disabled:opacity-50"
           title="إرفاق ملف"
+          aria-label="إرفاق ملف"
         >
           <Paperclip className="h-4 w-4" />
         </button>
@@ -237,18 +314,24 @@ export function MessageInput({
           disabled={disabled}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary disabled:opacity-50"
           title="إضافة رمز تعبيري"
+          aria-label="إضافة رمز تعبيري"
         >
           <Smile className="h-4 w-4" />
         </button>
 
         {/* Textarea */}
+        <label htmlFor="chat-message-input" className="sr-only">
+          نص الرسالة
+        </label>
         <textarea
+          id="chat-message-input"
           ref={textareaRef}
           value={text}
           onChange={handleChange}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           disabled={disabled}
+          aria-label="نص الرسالة"
           placeholder={isDragging ? "أفلت الملفات هنا..." : placeholder}
           rows={1}
           className={cn(
@@ -274,6 +357,7 @@ export function MessageInput({
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}
           title="إرسال"
+          aria-label="إرسال"
         >
           <Send className="h-4 w-4" />
         </button>
