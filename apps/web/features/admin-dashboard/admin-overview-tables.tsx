@@ -7,13 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { CLIENT_KIND_AR, type AdminOverviewResponse, type ClientKind } from "@hassad/shared";
-import { formatNumber } from "@/lib/format";
+import { formatCurrency, formatNumber, formatShortDateLong } from "@/lib/format";
 import { UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 
 type LeadOrder = AdminOverviewResponse["leadOrders"][number];
 type SalesLeader = AdminOverviewResponse["salesLeaders"][number];
 type ActiveProject = AdminOverviewResponse["activeProjects"][number];
 type AdminClient = AdminOverviewResponse["clients"][number];
+
+function formatLastSeen(value: string | null | undefined) {
+  if (!value || value === "—") return "—";
+  if (value === "Online") return "متصل الآن";
+  return Number.isNaN(new Date(value).getTime()) ? "—" : formatShortDateLong(value);
+}
 
 function EmptyRow({ label, colSpan }: { label: string; colSpan: number }) {
   return (
@@ -43,11 +49,10 @@ function LeadOrdersTable({ rows }: { rows: LeadOrder[] }) {
                 <TableHead>التواصل</TableHead>
                 <TableHead>القيمة</TableHead>
                 <TableHead>المسؤول</TableHead>
-                <TableHead>الإجراء التالي</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.length === 0 ? <EmptyRow label="لا توجد طلبات حالياً" colSpan={6} /> : rows.map((row) => (
+              {rows.length === 0 ? <EmptyRow label="لا توجد طلبات حالياً" colSpan={5} /> : rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>
                     <Link href={`/dashboard/admin/requests/${row.id}`} className="flex min-w-44 flex-col gap-1 hover:text-primary">
@@ -62,14 +67,13 @@ function LeadOrdersTable({ rows }: { rows: LeadOrder[] }) {
                       <span className="text-muted-foreground">{formatNumber(row.meetings)} اجتماعات</span>
                     </div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">{row.value}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatCurrency(row.value, row.currency)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2 whitespace-nowrap">
                       <Avatar className="size-8"><AvatarFallback>{row.ownerInitials}</AvatarFallback></Avatar>
                       <span>{row.owner}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="min-w-40 text-sm text-muted-foreground">{row.nextAction}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -114,7 +118,7 @@ function SalesLeadersTable({ rows }: { rows: SalesLeader[] }) {
                   </TableCell>
                   <TableCell>{formatNumber(row.deals)}</TableCell>
                   <TableCell>{formatNumber(row.contracts)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{row.revenue}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatCurrency(row.revenue, row.currency)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -142,10 +146,10 @@ function ActiveProjectsTable({ rows }: { rows: ActiveProject[] }) {
                 <TableRow key={row.id}>
                   <TableCell><Link href={`/dashboard/admin/projects/${row.id}`} className="font-medium hover:text-primary">{row.name}</Link></TableCell>
                   <TableCell>{row.clientName}</TableCell>
-                  <TableCell><Badge variant={row.stateTone === "attention" || row.stateTone === "warning" ? "secondary" : row.stateTone === "destructive" ? "destructive" : "outline"}>{row.state}</Badge></TableCell>
-                  <TableCell>{row.progress}</TableCell>
+                  <TableCell><AdminStatusBadge domain="project" status={row.state} /></TableCell>
+                  <TableCell>{row.progress}%</TableCell>
                   <TableCell><div className="flex items-center gap-2 whitespace-nowrap"><Avatar className="size-8"><AvatarFallback>{row.pmInitials}</AvatarFallback></Avatar><span>{row.pm}</span></div></TableCell>
-                  <TableCell className="whitespace-nowrap">{row.value}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatCurrency(row.value, row.currency)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -173,9 +177,11 @@ function ClientsTable({ rows }: { rows: AdminClient[] }) {
                 <TableRow key={row.id}>
                   <TableCell><Link href={`/dashboard/admin/clients/${row.id}`} className="flex min-w-44 flex-col gap-1 hover:text-primary"><span className="font-medium">{row.clientName}</span><span className="text-xs text-muted-foreground">{row.companyName}</span></Link></TableCell>
                   <TableCell><Badge variant={row.kind === "CLIENT" ? "secondary" : "outline"}>{CLIENT_KIND_AR[row.kind as ClientKind] ?? UNKNOWN_STATUS_LABEL}</Badge></TableCell>
-                  <TableCell className="whitespace-nowrap">{row.lastSeen}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatLastSeen(row.lastSeen)}
+                  </TableCell>
                   <TableCell><div className="flex flex-col gap-1"><span>{formatNumber(row.totalProjects)} إجمالي</span><span className="text-xs text-muted-foreground">{formatNumber(row.activeProjects)} نشط</span></div></TableCell>
-                  <TableCell className="whitespace-nowrap">{row.balance}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatCurrency(row.balance, row.currency)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

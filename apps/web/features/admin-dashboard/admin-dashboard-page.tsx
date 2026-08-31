@@ -6,12 +6,16 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { MetricCard } from "@/components/design-system/MetricCard";
 import { ErrorState } from "@/components/design-system/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+
 import { useGetAdminOverviewQuery } from "@/features/admin/adminApi";
 import { AdminCommercialFunnel } from "@/features/admin-dashboard/admin-commercial-funnel";
 import { AdminInvoiceChart } from "@/features/admin-dashboard/admin-invoice-chart";
 import { AdminProjectAmountChart } from "@/features/admin-dashboard/admin-project-amount-chart";
 import { AdminOverviewTables } from "@/features/admin-dashboard/admin-overview-tables";
 import { AdminSummaryChart } from "@/features/admin-dashboard/admin-summary-chart";
+import { AdminOverviewFilters, getDefaultAdminOverviewFilters, type AdminOverviewFilters as AdminOverviewFilterValues } from "@/features/admin-dashboard/admin-overview-filters";
+import { adminErrorMessage } from "@/lib/i18n";
 import { formatNumber } from "@/lib/format";
 
 const kpiPresentation = {
@@ -49,7 +53,8 @@ function PageSkeleton() {
 }
 
 export default function AdminDashboardPage() {
-  const { data: overview, isLoading, isError, refetch } = useGetAdminOverviewQuery();
+  const [filters, setFilters] = useState<AdminOverviewFilterValues>(getDefaultAdminOverviewFilters);
+  const { data: overview, error, isLoading, isError, refetch } = useGetAdminOverviewQuery(filters);
 
   if (isLoading) return <PageSkeleton />;
 
@@ -57,7 +62,7 @@ export default function AdminDashboardPage() {
     return (
       <ErrorState
         title="لوحة الإدارة غير متاحة"
-        message="تعذر تحميل بيانات النظرة العامة."
+        message={adminErrorMessage(error)}
         onRetry={() => void refetch()}
       />
     );
@@ -69,6 +74,7 @@ export default function AdminDashboardPage() {
         title="نظرة عامة على الإدارة"
         description="ملخص تنفيذي لمتابعة الأداء التجاري والتشغيلي."
         icon={Building2}
+        actions={<AdminOverviewFilters onChange={setFilters} />}
       />
 
       <section

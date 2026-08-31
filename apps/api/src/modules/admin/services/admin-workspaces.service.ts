@@ -22,7 +22,6 @@ import {
   AdminEmployeesWorkspaceQueryDto,
   AdminOverviewWorkspaceQueryDto,
 } from "../dto/admin-workspaces.dto";
-import { AdminDashboardService } from "./admin-dashboard.service";
 import { AdminService } from "./admin.service";
 import { AdminUsersService } from "./admin-users.service";
 
@@ -38,9 +37,13 @@ type OverviewGranularity = "day" | "month" | "quarter" | "year";
 
 type OverviewBucket = {
   key: string;
-  label: string;
   start: Date;
   end: Date;
+};
+
+type OverviewRange = {
+  startDate: Date;
+  endDate: Date;
 };
 
 @Injectable()
@@ -48,28 +51,27 @@ export class AdminWorkspacesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly adminService: AdminService,
-    private readonly adminDashboardService: AdminDashboardService,
     private readonly adminUsersService: AdminUsersService,
   ) {}
 
   async getOverview(query: AdminOverviewWorkspaceQueryDto) {
-    const from = query.from;
-    const to = query.to;
     const granularity = (query.granularity ?? "day") as OverviewGranularity;
-    const { startDate, endDate } = this.resolveOverviewRange(from, to);
-    const [stats, funnel, alerts, recentActivity, attention, clients, crm, delivery, charts] =
+    const { startDate, endDate } = this.resolveOverviewRange(query);
+    const rangeFrom = startDate.toISOString();
+    const rangeTo = endDate.toISOString();
+    const [stats, funnel, clients, crm, delivery, charts] =
       await Promise.all([
-        this.adminService.getStats(from, to),
-        this.adminService.getFunnel(from, to),
-        this.adminService.getAlerts(),
-        this.adminDashboardService.getRecentActivity(8),
-        this.adminDashboardService.getAttention(),
+        this.adminService.getStats(rangeFrom, rangeTo),
+        this.adminService.getFunnel(rangeFrom, rangeTo),
         this.getClientsWorkspace({ filter: "clients", sort: "highest-spend" }),
-        this.getCrmWorkspace({
-          statusFilter: "all",
-          dateFilter: "last-30-days",
-          valueFilter: "all-values",
-        }),
+        this.getCrmWorkspace(
+          {
+            statusFilter: "all",
+            dateFilter: "all-time",
+            valueFilter: "all-values",
+          },
+          { startDate, endDate },
+        ),
         this.getDeliveryWorkspace({
           statusFilter: "active",
           modelFilter: "all-models",
@@ -88,15 +90,15 @@ export class AdminWorkspacesService {
       stageTone: item.stageTone,
       calls: item.contactAttemptCount,
       meetings: item.meetingsCount,
-      projects: item.projectSignalLabel,
+      projects: item.projectCount,
       projectsTone: item.projectSignalTone,
       owner: item.owner,
       ownerInitials: this.buildInitials(item.owner),
-      nextAction: item.nextStep,
-      value: this.formatCurrency(item.estimatedValue),
+      value: item.estimatedValue,
+      currency: item.currency,
     }));
 
-    const salesLeaders = await this.getSalesLeaders(from, to);
+    const salesLeaders = await this.getSalesLeaders(rangeFrom, rangeTo);
 
     return {
       granularity,
@@ -109,13 +111,6 @@ export class AdminWorkspacesService {
       projectAmountChart: charts.projectAmountChart,
       invoiceChart: charts.invoiceChart,
       commercialChart: charts.commercialChart,
-      summaries: {
-        projectAmount: this.formatCurrency(charts.currentActiveProjectAmount),
-        paidInvoices: this.formatCurrency(charts.totalPaidInvoices),
-        unpaidInvoices: this.formatCurrency(charts.totalUnpaidInvoices),
-        activeContracts: String(funnel.contracts),
-        offersSent: String(funnel.proposals),
-      },
       leadOrders,
       salesLeaders,
       funnel: {
@@ -135,13 +130,14 @@ export class AdminWorkspacesService {
         id: item.id,
         name: item.name,
         clientName: item.clientName,
-        state: this.formatProjectStatus(item.status),
+        state: item.status,
         stateTone: item.statusTone,
-        progress: `${item.completionPercentage}%`,
+        progress: item.completionPercentage,
         pm: item.projectManager,
         pmInitials: this.buildInitials(item.projectManager),
         activeTasks: item.activeTasksCount,
-        value: this.formatCurrency(item.totalValue),
+        value: item.totalValue,
+        currency: item.currency,
       })),
       clients: clients.items.slice(0, 10).map((item) => ({
         id: item.id,
@@ -151,11 +147,10 @@ export class AdminWorkspacesService {
         totalProjects: item.totalProjects,
         activeProjects: item.activeProjects,
         lastSeen: item.lastSeen,
-        onlineTone: item.lastSeen === "Online" ? "success" : "neutral",
-        balance: this.formatCurrency(item.outstandingAmount),
+        onlineTone: item.lastSeen ? "success" : "neutral",
+        balance: item.outstandingAmount,
+        currency: item.currency,
       })),
-      attention,
-      recentActivity,
     };
   }
 
@@ -201,6 +196,7 @@ export class AdminWorkspacesService {
         include: {
           user: { select: { name: true, lastLoginAt: true } },
           manager: { select: { name: true } },
+          contracts: { take: 1, select: { currency: true } },
           requests: {
             where: {
               status: {
@@ -221,6 +217,7 @@ export class AdminWorkspacesService {
             select: { projects: true, contracts: true, proposals: true },
           },
         },
+        take: 100,
       });
 
     const clientRows = clients.map((client) => ({
@@ -237,20 +234,15 @@ export class AdminWorkspacesService {
       totalProjects: client.totalProjects ?? client._count.projects,
       activeProjects: client.activeProjects ?? 0,
       openOrders: client.requests.length,
+      currency: client.contracts[0]?.currency ?? "SAR",
       pendingOffers: client._count.proposals,
       signedContracts: client._count.contracts,
-      totalSpend: client.totalPaid ?? 0,
+      totalSpend: Number(client.totalPaid ?? 0),
       outstandingAmount: Math.max(
         Number(client.totalContractValue ?? 0) - Number(client.totalPaid ?? 0),
         0,
       ),
-      lastSeen: client.user?.lastLoginAt
-        ? new Date(client.user.lastLoginAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
-        : "No portal session",
+      lastSeen: client.user?.lastLoginAt?.toISOString() ?? null,
       owner: client.manager?.name ?? "Unassigned",
       stageTone:
         client.status === "SUSPENDED"
@@ -281,8 +273,13 @@ export class AdminWorkspacesService {
     return { items: combined };
   }
 
-  async getCrmWorkspace(query: AdminCrmWorkspaceQueryDto) {
-    const dateFilter = this.buildDateFilter(query.dateFilter);
+  async getCrmWorkspace(
+    query: AdminCrmWorkspaceQueryDto,
+    range?: OverviewRange,
+  ) {
+    const dateFilter = range
+      ? { gte: range.startDate, lte: range.endDate }
+      : this.buildDateFilter(query.dateFilter);
 
     const [requests] = await Promise.all([
       this.prisma.request.findMany({
@@ -298,6 +295,7 @@ export class AdminWorkspacesService {
             select: { type: true, contactedAt: true },
           },
           services: {
+            take: 2,
             include: {
               service: {
                 select: { name: true },
@@ -306,20 +304,23 @@ export class AdminWorkspacesService {
           },
           proposals: {
             orderBy: { createdAt: "desc" },
+            take: 1,
             select: { status: true, totalPrice: true, createdAt: true, id: true },
           },
           contracts: {
             orderBy: { createdAt: "desc" },
-            select: { status: true, totalValue: true, createdAt: true, id: true },
+            take: 1,
+            select: { status: true, totalValue: true, currency: true, createdAt: true, id: true },
           },
           client: {
             select: {
               kind: true,
-              projects: { select: { id: true } },
+              _count: { select: { projects: true } },
             },
           },
         },
         orderBy: { createdAt: "desc" },
+        take: 100,
       }),
     ]);
 
@@ -341,7 +342,7 @@ export class AdminWorkspacesService {
         latestProposal?.status === ProposalStatus.APPROVED ||
         request.status === RequestStatus.CONTRACT_PREPARATION ||
         request.status === RequestStatus.CONTRACT_SENT;
-      const projectCount = request.client?.projects.length ?? 0;
+      const projectCount = request.client?._count.projects ?? 0;
       const serviceLine = request.services.length
         ? request.services
             .map((service) => service.service.name)
@@ -366,6 +367,8 @@ export class AdminWorkspacesService {
         crmStage: stage,
         stageTone: this.mapCrmStageTone(stage),
         estimatedValue,
+        currency: latestContract?.currency ?? "SAR",
+        projectCount,
         openedAt: request.createdAt.toISOString(),
         openedDaysAgo,
         lastContact: request.lastContactAt
@@ -474,6 +477,7 @@ export class AdminWorkspacesService {
         contract: {
           select: {
             totalValue: true,
+            currency: true,
             invoices: {
               select: { amount: true, status: true },
             },
@@ -502,6 +506,7 @@ export class AdminWorkspacesService {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 100,
     });
 
     const items = projects
@@ -584,6 +589,7 @@ export class AdminWorkspacesService {
           endDate: project.endDate?.toISOString().slice(0, 10) ?? "—",
           daysToEnd,
           totalValue,
+          currency: project.contract?.currency ?? "SAR",
           remainingValue,
           overdueTasks,
           openRevisions,
@@ -698,8 +704,8 @@ export class AdminWorkspacesService {
         role: "Sales",
         deals: item.deals,
         contracts: item.contracts,
-        revenue: this.formatCurrency(item.revenue),
-        winRate: item.deals > 0 ? `${Math.round((item.contracts / item.deals) * 100)}%` : "0%",
+        revenue: item.revenue,
+        currency: "SAR",
       }));
   }
 
@@ -730,14 +736,6 @@ export class AdminWorkspacesService {
     return { label, tone };
   }
 
-  private formatCurrency(amount: number) {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  }
-
   private buildInitials(name: string) {
     return name
       .split(" ")
@@ -754,20 +752,32 @@ export class AdminWorkspacesService {
     return { gte: new Date(Date.now() - days * 86400000) };
   }
 
-  private resolveOverviewRange(from?: string, to?: string) {
+  private resolveOverviewRange(query: AdminOverviewWorkspaceQueryDto): OverviewRange {
     const now = new Date();
-    const parsedFrom = from ? new Date(from) : null;
-    const parsedTo = to ? new Date(to) : null;
-    const hasValidFrom = parsedFrom && !Number.isNaN(parsedFrom.getTime());
-    const hasValidTo = parsedTo && !Number.isNaN(parsedTo.getTime());
-    const endDate = hasValidTo ? parsedTo : now;
-    const startDate = hasValidFrom
-      ? parsedFrom
-      : new Date(endDate.getTime() - 29 * 24 * 60 * 60 * 1000);
+    const hasCustomRange = Boolean(query.from || query.to);
+    const endDate = query.to ? this.normalizeOverviewEnd(query.to) : now;
+    let startDate: Date;
+
+    if (hasCustomRange) {
+      startDate = query.from ? new Date(query.from) : new Date(endDate);
+    } else {
+      startDate = new Date(endDate);
+      if (query.preset === "6m") startDate.setUTCMonth(startDate.getUTCMonth() - 6);
+      else if (query.preset === "12m") startDate.setUTCFullYear(startDate.getUTCFullYear() - 1);
+      else startDate.setUTCDate(startDate.getUTCDate() - 29);
+    }
 
     return startDate <= endDate
       ? { startDate, endDate }
       : { startDate: endDate, endDate: startDate };
+  }
+
+  private normalizeOverviewEnd(value: string) {
+    const date = new Date(value);
+    // Date-only `to` values represent the complete calendar day, consistently
+    // across statistics, funnel, and chart queries.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) date.setUTCHours(23, 59, 59, 999);
+    return date;
   }
 
   private async buildOverviewCharts(
@@ -799,7 +809,7 @@ export class AdminWorkspacesService {
           select: {
             startDate: true,
             endDate: true,
-            contract: { select: { totalValue: true } },
+            contract: { select: { totalValue: true, currency: true } },
           },
         }),
         this.prisma.invoice.findMany({
@@ -807,14 +817,14 @@ export class AdminWorkspacesService {
             status: InvoiceStatus.PAID,
             paidAt: { gte: startDate, lte: endDate },
           },
-          select: { amount: true, paidAt: true },
+          select: { amount: true, currency: true, paidAt: true },
         }),
         this.prisma.invoice.findMany({
           where: {
             status: { in: unpaidStatuses },
             dueDate: { gte: startDate, lte: endDate },
           },
-          select: { amount: true, dueDate: true },
+          select: { amount: true, currency: true, dueDate: true },
         }),
         this.prisma.proposal.findMany({
           where: { createdAt: { gte: startDate, lte: endDate } },
@@ -843,7 +853,15 @@ export class AdminWorkspacesService {
         }, 0),
       );
 
-      return { label: bucket.label, amount, currency: "USD" };
+      return {
+        label: bucket.key,
+        amount,
+        currency: this.resolveCurrency(
+          projects
+            .filter((project) => project.startDate <= bucket.end && project.endDate >= bucket.start)
+            .map((project) => project.contract?.currency),
+        ),
+      };
     });
 
     const invoiceChart = buckets.map((bucket) => {
@@ -863,11 +881,23 @@ export class AdminWorkspacesService {
         }, 0),
       );
 
-      return { label: bucket.label, paid, unpaid, currency: "USD" };
+      return {
+        label: bucket.key,
+        paid,
+        unpaid,
+        currency: this.resolveCurrency([
+          ...paidInvoices
+            .filter((invoice) => invoice.paidAt && this.isDateWithinBucket(invoice.paidAt, bucket))
+            .map((invoice) => invoice.currency),
+          ...unpaidInvoices
+            .filter((invoice) => this.isDateWithinBucket(invoice.dueDate, bucket))
+            .map((invoice) => invoice.currency),
+        ]),
+      };
     });
 
     const commercialChart = buckets.map((bucket) => ({
-      label: bucket.label,
+      label: bucket.key,
       activeProjects: projects.filter((project) =>
         project.startDate <= bucket.end && project.endDate >= bucket.start,
       ).length,
@@ -882,14 +912,7 @@ export class AdminWorkspacesService {
       ).length,
     }));
 
-    return {
-      projectAmountChart,
-      invoiceChart,
-      commercialChart,
-      currentActiveProjectAmount: projectAmountChart.at(-1)?.amount ?? 0,
-      totalPaidInvoices: invoiceChart.reduce((sum, bucket) => sum + bucket.paid, 0),
-      totalUnpaidInvoices: invoiceChart.reduce((sum, bucket) => sum + bucket.unpaid, 0),
-    };
+    return { projectAmountChart, invoiceChart, commercialChart };
   }
 
   private buildOverviewBuckets(
@@ -907,7 +930,6 @@ export class AdminWorkspacesService {
 
       buckets.push({
         key: this.formatOverviewBucketKey(cursor, granularity),
-        label: this.formatOverviewBucketLabel(cursor, granularity),
         start: bucketStart,
         end: bucketEnd > endDate ? endDate : bucketEnd,
       });
@@ -969,18 +991,9 @@ export class AdminWorkspacesService {
     return `${year}`;
   }
 
-  private formatOverviewBucketLabel(date: Date, granularity: OverviewGranularity) {
-    const year = date.getUTCFullYear();
-    const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
-    const day = `${date.getUTCDate()}`.padStart(2, "0");
-
-    if (granularity === "day") return `${year}-${month}-${day}`;
-    if (granularity === "month") return `${year}-${month}`;
-    if (granularity === "quarter") {
-      return `${year}-Q${Math.floor(date.getUTCMonth() / 3) + 1}`;
-    }
-
-    return `${year}`;
+  private resolveCurrency(currencies: Array<string | null | undefined>) {
+    const values = [...new Set(currencies.filter((currency): currency is string => Boolean(currency)))];
+    return values.length === 1 ? values[0] : values.length > 1 ? "MIXED" : "SAR";
   }
 
   private isDateWithinBucket(date: Date, bucket: OverviewBucket) {
@@ -1124,26 +1137,4 @@ export class AdminWorkspacesService {
     return "neutral";
   }
 
-  private formatProjectStatus(status: ProjectStatus) {
-    switch (status) {
-      case ProjectStatus.PLANNING:
-        return "Planning";
-      case ProjectStatus.PENDING_ACTIVATION:
-        return "Pending activation";
-      case ProjectStatus.ACTIVE:
-        return "Active";
-      case ProjectStatus.ON_HOLD:
-        return "On hold";
-      case ProjectStatus.AWAITING_REVIEW:
-        return "Awaiting review";
-      case ProjectStatus.NEEDS_REVISION:
-        return "Needs revision";
-      case ProjectStatus.COMPLETED:
-        return "Completed";
-      case ProjectStatus.CANCELLED:
-        return "Cancelled";
-      default:
-        return status;
-    }
-  }
 }

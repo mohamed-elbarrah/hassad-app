@@ -430,10 +430,12 @@ export const adminApi = createApi({
     "AiProviders",
   ],
   endpoints: (builder) => ({
-    getAdminOverview: builder.query<AdminOverviewResponse, { from?: string; to?: string; granularity?: "day" | "month" | "quarter" | "year" } | void>({
-      query: (params: { from?: string; to?: string; granularity?: "day" | "month" | "quarter" | "year" } = {}) => ({
+    getAdminOverview: builder.query<AdminOverviewResponse, { preset?: "30d" | "6m" | "12m"; from?: string; to?: string; granularity?: "day" | "month" | "quarter" | "year" } | void>({
+      query: (params: { preset?: "30d" | "6m" | "12m"; from?: string; to?: string; granularity?: "day" | "month" | "quarter" | "year" } = {}) => ({
         url: "/admin/overview",
-        params,
+        params: params.preset
+          ? { preset: params.preset, granularity: params.granularity }
+          : params,
       }),
       providesTags: ["AdminStats"],
     }),

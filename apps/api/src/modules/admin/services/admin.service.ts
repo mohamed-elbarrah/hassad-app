@@ -35,6 +35,7 @@ export class AdminService {
         startOfMonth,
         startOfLastMonth,
         endOfLastMonth,
+        periodEnd: now,
         isCustom: false,
       };
     }
@@ -51,12 +52,13 @@ export class AdminService {
       startOfMonth: periodStart,
       startOfLastMonth: prevPeriodStart,
       endOfLastMonth: prevPeriodEnd,
+      periodEnd,
       isCustom: true,
     };
   }
 
   async getStats(from?: string, to?: string) {
-    const { startOfMonth, startOfLastMonth, endOfLastMonth } =
+    const { startOfMonth, startOfLastMonth, endOfLastMonth, periodEnd } =
       this.parseDateRange(from, to);
     const now = new Date();
 
@@ -115,7 +117,7 @@ export class AdminService {
       this.prisma.invoice.aggregate({
         where: {
           status: "PAID",
-          paidAt: { gte: startOfMonth },
+          paidAt: { gte: startOfMonth, lte: periodEnd },
         },
         _sum: { amount: true },
       }),

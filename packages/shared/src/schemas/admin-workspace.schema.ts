@@ -21,6 +21,7 @@ export type WorkspaceStatusTone =
   | "destructive";
 
 export type AdminOverviewQuery = {
+  preset?: "30d" | "6m" | "12m";
   from?: string;
   to?: string;
   granularity?: "day" | "month" | "quarter" | "year";
@@ -105,7 +106,8 @@ export type ClientWorkspaceRecord = {
   signedContracts: number;
   totalSpend: number;
   outstandingAmount: number;
-  lastSeen: string;
+  currency: string;
+  lastSeen: string | null;
   owner: string;
   stageTone: WorkspaceStatusTone;
   financeTone: WorkspaceStatusTone;
@@ -172,6 +174,8 @@ export type CrmWorkspaceRecord = {
   crmStage?: CrmStage;
   stageTone: WorkspaceStatusTone;
   estimatedValue: number;
+  currency: string;
+  projectCount: number;
   openedAt: string;
   openedDaysAgo: number;
   lastContact: string;
@@ -213,6 +217,7 @@ export type DeliveryWorkspaceRecord = {
   endDate: string;
   daysToEnd: number;
   totalValue: number;
+  currency: string;
   remainingValue: number;
   overdueTasks: number;
   openRevisions: number;
@@ -282,28 +287,21 @@ export type AdminOverviewResponse = {
       contractsToProjects: number;
     };
   };
-  summaries: {
-    projectAmount: string;
-    paidInvoices: string;
-    unpaidInvoices: string;
-    activeContracts: string;
-    offersSent: string;
-  };
   leadOrders: Array<{
     id: string;
     clientName: string;
     companyName: string;
-    stage: string;
+    stage: PipelineStage;
     crmStage?: CrmStage;
     stageTone: WorkspaceStatusTone;
     calls: number;
     meetings: number;
-    projects: string;
+    projects: number;
     projectsTone: WorkspaceStatusTone;
-    value: string;
+    value: number;
+    currency: string;
     owner: string;
     ownerInitials: string;
-    nextAction: string;
   }>;
   salesLeaders: Array<{
     id: string;
@@ -311,19 +309,21 @@ export type AdminOverviewResponse = {
     initials: string;
     deals: number;
     contracts: number;
-    revenue: string;
+    revenue: number;
+    currency: string;
   }>;
   activeProjects: Array<{
     id: string;
     name: string;
     clientName: string;
-    state: string;
+    state: ProjectStatus;
     stateTone: WorkspaceStatusTone;
-    progress: string;
+    progress: number;
     pm: string;
     pmInitials: string;
     activeTasks: number;
-    value: string;
+    value: number;
+    currency: string;
   }>;
   clients: Array<{
     id: string;
@@ -332,8 +332,9 @@ export type AdminOverviewResponse = {
     kind: ClientKind;
     totalProjects: number;
     activeProjects: number;
-    lastSeen: string;
+    lastSeen: string | null;
     onlineTone: WorkspaceStatusTone;
-    balance: string;
+    balance: number;
+    currency: string;
   }>;
 };

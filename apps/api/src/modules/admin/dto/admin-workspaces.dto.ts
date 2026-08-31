@@ -11,6 +11,10 @@ import {
 
 export class AdminOverviewWorkspaceQueryDto {
   @IsOptional()
+  @IsIn(["30d", "6m", "12m"])
+  preset?: "30d" | "6m" | "12m";
+
+  @IsOptional()
   @IsDateString()
   from?: string;
 
