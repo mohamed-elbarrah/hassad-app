@@ -1,9 +1,10 @@
 "use client";
 
-import { ContactLogType } from "@hassad/shared";
+import { ContactLogType, ContractStatus } from "@hassad/shared";
 import type { CreateRequestContactLogPayload } from "@/features/requests/requestsApi";
 import type { SalesPipelineItem } from "@/features/sales/salesApi";
 import { RequestContactLogDialog } from "@/components/request-detail/RequestContactLogDialog";
+import { SalesContractSendAction } from "@/components/dashboard/sales/SalesContractSendAction";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -57,6 +58,10 @@ export function SalesPipelineActions({
           : Boolean(onCreateContract)
         : false;
 
+  const draftContractId = request.contracts?.find(
+    (contract) => contract.status === ContractStatus.DRAFT,
+  )?.id;
+
   function handleWorkflowAction() {
     if (!workflowAction) return;
 
@@ -85,6 +90,12 @@ export function SalesPipelineActions({
           allowedTypes={SALES_CONTACT_LOG_TYPES}
           isSubmitting={isAddingContactLog}
           onSubmit={(payload) => onAddContactLog(request, payload)}
+        />
+      ) : null}
+      {draftContractId ? (
+        <SalesContractSendAction
+          contractId={draftContractId}
+          className="px-3 text-xs"
         />
       ) : null}
       {workflowAction && canUseWorkflowAction ? (

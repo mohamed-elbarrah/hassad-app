@@ -15,7 +15,18 @@ import { Transform, Type } from "class-transformer";
 import { ContractType, PaymentAmountType } from "@hassad/shared";
 import { PaymentPlanRowDto } from "./payment-plan.dto";
 
+export enum ContractCreationIntent {
+  DRAFT = "DRAFT",
+  CREATE_AND_SEND = "CREATE_AND_SEND",
+  /** Explicit compatibility mode for the legacy portal/admin contract owner. */
+  LEGACY_SENT = "LEGACY_SENT",
+}
+
 export class CreateContractDto {
+  /** Controls the atomic lifecycle operation performed by Sales. */
+  @IsOptional()
+  @IsIn([ContractCreationIntent.DRAFT, ContractCreationIntent.CREATE_AND_SEND])
+  intent?: ContractCreationIntent;
   @IsUUID()
   requestId: string;
 

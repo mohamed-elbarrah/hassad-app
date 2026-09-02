@@ -333,8 +333,10 @@ export class FinanceService {
       where: { id: contract.clientId },
       select: { userId: true },
     });
-    if (clientUser?.userId) {
-      this.notificationsService
+    // A transaction-scoped invoice is not visible outside the transaction yet.
+    // Dispatch only after commit (the caller owns that post-commit dispatch).
+    if (clientUser?.userId && !params.tx) {
+      await this.notificationsService
         .createNotification({
           entityId: invoice.id,
           entityType: "invoice",

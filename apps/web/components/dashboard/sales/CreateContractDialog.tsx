@@ -23,6 +23,7 @@ import {
   salesWorkflowValidationMessages,
 } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/format";
 import { CalculatedAmount } from "@/components/ui/calculated-amount";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -199,8 +200,10 @@ export function CreateContractDialog({
     file: File;
     contractId?: string;
   } | null>(null);
-  const [pendingConfirmation, setPendingConfirmation] =
-    useState<ContractFormValues | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<{
+    values: ContractFormValues;
+    intent: "save" | "send";
+  } | null>(null);
   // Tie a selected file to its contract so parent updates cannot submit stale files.
   const file =
     fileSelection &&
@@ -336,7 +339,7 @@ export function CreateContractDialog({
     selectedType,
   ]);
 
-  async function onSubmit(values: ContractFormValues) {
+  async function onSubmit(values: ContractFormValues, intent: "save" | "send") {
     if (file) {
       const isPdf =
         file.type === "application/pdf" && /\.pdf$/i.test(file.name);
@@ -357,12 +360,12 @@ export function CreateContractDialog({
       return;
     }
 
-    if (termsChanged(values)) {
-      setPendingConfirmation(values);
+    if (intent === "send" || termsChanged(values)) {
+      setPendingConfirmation({ values, intent });
       return;
     }
 
-    await submitValues(values);
+    await submitValues(values, intent);
   }
 
   function termsChanged(values: ContractFormValues) {
@@ -378,7 +381,10 @@ export function CreateContractDialog({
     );
   }
 
-  async function submitValues(values: ContractFormValues) {
+  async function submitValues(
+    values: ContractFormValues,
+    intent: "save" | "send",
+  ) {
     try {
       if (isEdit && contract) {
         await updateContract({
@@ -412,6 +418,7 @@ export function CreateContractDialog({
         onSaved?.();
       } else if (file) {
         await createContract({
+          intent: intent === "send" ? "CREATE_AND_SEND" : "DRAFT",
           requestId: values.requestId,
           title: values.title,
           type: values.type,
@@ -426,7 +433,7 @@ export function CreateContractDialog({
           proposalId: values.proposalId || undefined,
           file,
         }).unwrap();
-        toast.success("تم إنشاء العقد");
+        toast.success(intent === "send" ? "تم إنشاء العقد وإرساله" : "تم حفظ مسودة العقد");
         onSaved?.();
       }
 
@@ -468,7 +475,7 @@ export function CreateContractDialog({
             <Form {...form}>
               <form
                 id="contract-form"
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}
                 className="flex flex-col gap-5"
               >
                 <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-4">
@@ -503,10 +510,11 @@ export function CreateContractDialog({
                           القيمة المعتمدة
                         </p>
                         <p className="font-medium">
-                          {(isEdit
-                            ? contract?.totalValue
-                            : proposalSummary.totalPrice) ?? 0}{" "}
-                          SAR
+                          {formatCurrency(
+                            (isEdit
+                              ? contract?.totalValue
+                              : proposalSummary.totalPrice) ?? 0,
+                          )}
                         </p>
                       </div>
                       <div>
@@ -835,17 +843,29 @@ export function CreateContractDialog({
             >
               إلغاء
             </Button>
+            {!isEdit ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmitting || !canEditContract}
+                onClick={() => void form.handleSubmit((values) => onSubmit(values, "save"))()}
+              >
+                {isCreating ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
+                حفظ المسودة
+              </Button>
+            ) : null}
             <Button
-              type="submit"
-              form="contract-form"
+              type={isEdit ? "submit" : "button"}
+              form={isEdit ? "contract-form" : undefined}
               disabled={isSubmitting || !canEditContract}
+              onClick={!isEdit ? () => void form.handleSubmit((values) => onSubmit(values, "send"))() : undefined}
             >
               {isSubmitting ? (
                 <Loader2 data-icon="inline-start" className="animate-spin" />
               ) : (
                 <FileSignature data-icon="inline-start" />
               )}
-              {isEdit ? "حفظ التعديلات" : "إنشاء العقد"}
+              {isEdit ? "حفظ التعديلات" : "إنشاء وإرسال"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -859,10 +879,15 @@ export function CreateContractDialog({
       >
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد تغيير شروط العقد؟</AlertDialogTitle>
+            <AlertDialogTitle>
+              {pendingConfirmation?.intent === "send"
+                ? "تأكيد إرسال العقد؟"
+                : "تأكيد تغيير شروط العقد؟"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              سيؤثر تغيير نوع العقد أو شروط الدفعة على طريقة احتساب الدفعات
-              والفواتير القادمة. راجع البيانات قبل المتابعة.
+              {pendingConfirmation?.intent === "send"
+                ? "سيتم إرسال العقد إلى العميل ليبدأ التوقيع الإلكتروني. تأكد من اكتمال البيانات قبل المتابعة."
+                : "سيؤثر تغيير نوع العقد أو شروط الدفعة على طريقة احتساب الدفعات والفواتير القادمة. راجع البيانات قبل المتابعة."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -872,12 +897,18 @@ export function CreateContractDialog({
               onClick={(event) => {
                 event.preventDefault();
                 if (!pendingConfirmation) return;
-                const values = pendingConfirmation;
+                const pending = pendingConfirmation;
                 setPendingConfirmation(null);
-                void submitValues(values);
+                void submitValues(pending.values, pending.intent);
               }}
             >
-              {isSubmitting ? "جارٍ الحفظ" : "تأكيد وحفظ"}
+              {isSubmitting
+                ? pendingConfirmation?.intent === "send"
+                  ? "جارٍ الإرسال"
+                  : "جارٍ الحفظ"
+                : pendingConfirmation?.intent === "send"
+                  ? "تأكيد وإرسال"
+                  : "تأكيد وحفظ"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

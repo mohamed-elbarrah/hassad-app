@@ -70,6 +70,7 @@ import {
   formatRelativeTime,
 } from "@/lib/format";
 import { salesWorkflowErrorMessage } from "@/lib/i18n";
+import { SalesContractSendAction } from "@/components/dashboard/sales/SalesContractSendAction";
 
 const PAGE_SIZE = 12;
 
@@ -263,6 +264,9 @@ function ContractCard({ contract }: { contract: SalesContractListItem }) {
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>الإصدار {formatNumber(contract.versionNumber)}</span>
           <div className="flex flex-wrap gap-2">
+            {contract.status === ContractStatus.DRAFT ? (
+              <SalesContractSendAction contractId={contract.id} label="إرسال" />
+            ) : null}
             {related ? (
               <Button variant="outline" size="sm" asChild>
                 <Link href={related}>
@@ -349,6 +353,9 @@ function ContractRow({ contract }: { contract: SalesContractListItem }) {
       </TableCell>
       <TableCell className="text-left">
         <div className="flex flex-wrap justify-end gap-2">
+          {contract.status === ContractStatus.DRAFT ? (
+            <SalesContractSendAction contractId={contract.id} label="إرسال" />
+          ) : null}
           {related ? (
             <Button variant="ghost" size="sm" asChild>
               <Link href={related}>{contract.client ? "العميل" : "العرض"}</Link>

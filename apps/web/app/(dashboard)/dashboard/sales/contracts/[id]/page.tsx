@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCheck, Copy, FileClock } from "lucide-react";
+import { ContractStatus } from "@hassad/shared";
 import { toast } from "sonner";
 import {
   useGetSalesContractDetailQuery,
@@ -14,6 +15,7 @@ import {
   ContractDetailView,
 } from "@/components/contract-detail/ContractDetailPattern";
 import { Button } from "@/components/ui/button";
+import { SalesContractSendAction } from "@/components/dashboard/sales/SalesContractSendAction";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Empty,
@@ -89,7 +91,8 @@ export default function SalesContractDetailPage({
   }
 
   return (
-    <ContractDetailView
+    <>
+      <ContractDetailView
       contract={contract}
       backHref="/dashboard/sales/contracts"
       backLabel="العودة إلى العقود"
@@ -104,6 +107,12 @@ export default function SalesContractDetailPage({
       }
       actions={
         <>
+          {contract.status === ContractStatus.DRAFT ? (
+            <SalesContractSendAction
+              contractId={contract.id}
+              variant="default"
+            />
+          ) : null}
           {contract.client ? (
             <Button asChild variant="outline" size="sm">
               <Link href={`/dashboard/sales/clients/${contract.client.id}`}>
@@ -130,6 +139,7 @@ export default function SalesContractDetailPage({
           </Button>
         </>
       }
-    />
+      />
+    </>
   );
 }

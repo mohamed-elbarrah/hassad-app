@@ -22,6 +22,7 @@ import {
   SignContractDto,
   SignByTokenDto,
   CreateVersionDto,
+  ContractCreationIntent,
 } from "../dto/contract.dto";
 import {
   DefinePaymentPlanDto,
@@ -69,14 +70,22 @@ export class ContractsController {
         size: file.size,
       },
     });
-    const contract = await this.contractsService.create(
-      user.id,
-      uploadResult.key,
-      createContractDto,
-    );
+    let contract: Awaited<ReturnType<ContractsService["create"]>>;
+    try {
+      contract = await this.contractsService.create(
+        user.id,
+        uploadResult.key,
+        createContractDto,
+        undefined,
+        ContractCreationIntent.LEGACY_SENT,
+      );
+    } catch (error) {
+      await this.storageService.deleteByKey(uploadResult.key);
+      throw error;
+    }
 
-    // Note: the down-payment invoice is now issued at SIGN time from the contract's
-    // payment plan (see ContractsService.onContractSigned), not at creation.
+    // This generic owner intentionally preserves its historical SENT-on-create
+    // contract behavior; Sales uses /sales/contracts with explicit intent modes.
     return contract;
   }
 

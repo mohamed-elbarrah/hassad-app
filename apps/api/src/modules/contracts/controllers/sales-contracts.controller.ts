@@ -22,7 +22,11 @@ import {
   STORAGE_CONFIG,
 } from "../../../common/storage/storage.constants";
 import { getSalesRequestAccessScope } from "../../requests/request-access";
-import { CreateContractDto, SalesUpdateContractDto } from "../dto/contract.dto";
+import {
+  ContractCreationIntent,
+  CreateContractDto,
+  SalesUpdateContractDto,
+} from "../dto/contract.dto";
 import { SalesContractQueryDto } from "../dto/sales-contract-query.dto";
 import { ContractsService } from "../services/contracts.service";
 
@@ -119,11 +123,23 @@ export class SalesContractsController {
         uploadResult.key,
         dto,
         accessScope,
+        dto.intent ?? ContractCreationIntent.DRAFT,
       );
     } catch (error) {
       await this.storageService.deleteByKey(uploadResult.key);
       throw error;
     }
+  }
+
+  @Post(":id/send")
+  @RequirePermissions("contracts.send")
+  send(@Param("id") id: string, @CurrentUser() user: AuthUser) {
+    return this.contractsService.send(
+      id,
+      user.id,
+      getSalesRequestAccessScope(user),
+      true,
+    );
   }
 
   @Patch(":id")

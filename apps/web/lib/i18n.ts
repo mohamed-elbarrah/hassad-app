@@ -659,6 +659,7 @@ const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
   PROPOSAL_NOT_EDITABLE: "لا يمكن تعديل العرض الفني في حالته الحالية.",
   PROPOSAL_REQUEST_MISMATCH: "العرض الفني لا ينتمي إلى الطلب المحدد.",
   CONTRACT_NOT_FOUND: "لم يتم العثور على العقد.",
+  CONTRACT_NOT_SENDABLE: "لا يمكن إرسال العقد في حالته الحالية.",
   CONTRACT_NOT_EDITABLE: "لا يمكن تعديل العقد في حالته الحالية.",
   CONTRACT_UPDATE_FIELDS_REQUIRED: "أدخل قيمة واحدة على الأقل للتحديث.",
   CONTRACT_UPDATE_CONFLICT:
@@ -666,6 +667,7 @@ const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
   CONTRACT_FINANCIAL_HISTORY_LOCKED:
     "لا يمكن تغيير الشروط المالية بعد بدء الفوترة أو السداد.",
   CONTRACT_TOTAL_VALUE_INVALID: "إجمالي قيمة العقد غير صالح.",
+  CONTRACT_DATE_RANGE_INVALID: "تاريخ بداية العقد يجب أن يسبق تاريخ نهايته.",
   RETAINER_MONTHS_REQUIRED: "عدد أشهر الاشتراك مطلوب.",
   INITIAL_PAYMENT_DETAILS_REQUIRED: "بيانات الدفعة الأولية مطلوبة.",
   INITIAL_PAYMENT_PLAN_REQUIRED: "يجب أن تتضمن خطة الدفع الدفعة الأولية.",
@@ -687,6 +689,11 @@ const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
   SCHEDULED_INVOICE_AMOUNT_INVALID: "قيمة الفاتورة المجدولة غير صالحة.",
   CONTRACT_SHARE_LINK_NOT_FOUND: "لا يوجد رابط توقيع متاح لهذا العقد.",
   CONTRACT_NOT_SIGNABLE: "لا يمكن توقيع العقد في حالته الحالية.",
+  REQUEST_REFERENCE_REQUIRED: "يجب ربط العقد بطلب قبل إرساله.",
+  REQUEST_NOT_READY_FOR_CONTRACT_SEND: "الطلب غير جاهز لإرسال العقد.",
+  REQUEST_NOT_READY_FOR_CONTRACT: "الطلب غير جاهز لإنشاء العقد.",
+  CONTRACT_STATUS_CHANGED:
+    "تم تغيير حالة العقد من مستخدم آخر. حدّث الصفحة وحاول مرة أخرى.",
   INITIAL_PAYMENT_REQUIRED: "يجب سداد الدفعة الأولى قبل تفعيل العقد.",
   PAYMENT_PLAN_REQUIRED: "لا يمكن توقيع العقد قبل إعداد خطة الدفعة الأولى.",
   PROJECT_MANAGER_ASSIGNMENT_REQUIRED: "تعذر تعيين مدير المشروع.",

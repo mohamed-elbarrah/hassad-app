@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import { salesApi } from "@/features/sales/salesApi";
 import type {
   ContractStatus,
   ContractType,
@@ -188,6 +189,8 @@ export interface SalesContractFilters {
 
 /** Input for the FormData POST /contracts mutation */
 export interface CreateContractFormInput {
+  /** Sales creation lifecycle; the backend commits CREATE_AND_SEND atomically. */
+  intent?: "DRAFT" | "CREATE_AND_SEND";
   requestId: string;
   title: string;
   type: ContractType;
@@ -227,6 +230,7 @@ export interface UpdateSalesContractInput extends Omit<
 
 function buildContractFormData(input: CreateContractFormInput) {
   const formData = new FormData();
+  if (input.intent) formData.append("intent", input.intent);
   formData.append("requestId", input.requestId);
   formData.append("title", input.title);
   formData.append("type", input.type);
@@ -364,6 +368,14 @@ export const contractsApi = createApi({
         { type: "Contract", id: "SALES_LIST" },
         { type: "Contract", id: "LIST" },
       ],
+      async onQueryStarted(_input, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(salesApi.util.invalidateTags([{ type: "SalesPipeline", id: "LIST" }]));
+        } catch {
+          // The form presents the mutation error.
+        }
+      },
     }),
 
     updateSalesContract: builder.mutation<
@@ -392,8 +404,35 @@ export const contractsApi = createApi({
         { type: "Contract", id: "SALES_LIST" },
         { type: "Contract", id: "LIST" },
       ],
+      async onQueryStarted(_input, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(salesApi.util.invalidateTags([{ type: "SalesPipeline", id: "LIST" }]));
+        } catch {
+          // The form presents the mutation error.
+        }
+      },
     }),
 
+    /** Sales-owned contract lifecycle action. */
+    sendSalesContract: builder.mutation<ContractItem, string>({
+      query: (id) => ({ url: `/sales/contracts/${id}/send`, method: "POST" }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: "Contract", id },
+        { type: "Contract", id: "SALES_LIST" },
+        { type: "Contract", id: "LIST" },
+      ],
+      async onQueryStarted(_id, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(salesApi.util.invalidateTags([{ type: "SalesPipeline", id: "LIST" }]));
+        } catch {
+          // The action component presents the mutation error.
+        }
+      },
+    }),
+
+    /** Legacy shared endpoint retained for non-Sales consumers. */
     sendContract: builder.mutation<ContractItem, string>({
       query: (id) => ({ url: `/contracts/${id}/send`, method: "POST" }),
       invalidatesTags: (_result, _error, id) => [
@@ -471,6 +510,7 @@ export const {
   useUpdateContractMutation,
   useCreateSalesContractMutation,
   useUpdateSalesContractMutation,
+  useSendSalesContractMutation,
   useSendContractMutation,
   useSignContractMutation,
   useGetContractByTokenQuery,

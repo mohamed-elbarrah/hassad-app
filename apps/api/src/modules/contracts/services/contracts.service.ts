@@ -19,6 +19,7 @@ import {
   SignByTokenDto,
   CreateVersionDto,
   SalesUpdateContractDto,
+  ContractCreationIntent,
 } from "../dto/contract.dto";
 import {
   DefinePaymentPlanDto,
@@ -272,16 +273,29 @@ export class ContractsService {
     if (fallbackUsed) {
       this.notificationsService
         .broadcast({
-          title: "تعيين مدير مشروع تلقائي",
-          message: `تم إنشاء مشروع تلقائياً من العقد "${contract.title}" وتم تعيينه لـ "${assignment.pmName}" تلقائياً (أقل عبء مشاريع: ${assignment.currentLoad} مشاريع نشطة).`,
+          eventType: "PROJECT_MANAGER_AUTO_ASSIGNED",
+          metadata: {
+            contractId: contract.id,
+            projectId: project.id,
+            projectManagerId,
+            projectManagerName: assignment.pmName,
+            currentLoad: assignment.currentLoad,
+            autoCreated: true,
+          },
           roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
     } else if (assignment.isAccountManager) {
       this.notificationsService
         .broadcast({
-          title: "تعيين مدير مشروع",
-          message: `تم إنشاء مشروع من العقد "${contract.title}" وتم تعيينه لمدير حساب العميل "${assignment.pmName}" (${assignment.currentLoad} مشاريع نشطة).`,
+          eventType: "PROJECT_MANAGER_ASSIGNED",
+          metadata: {
+            contractId: contract.id,
+            projectId: project.id,
+            projectManagerId,
+            projectManagerName: assignment.pmName,
+            currentLoad: assignment.currentLoad,
+          },
           roles: ["ADMIN"],
         })
         .catch(() => undefined);
@@ -296,10 +310,6 @@ export class ContractsService {
     return project;
   }
 
-  /**
-   * One-step: create contract + immediately set SENT + generate shareLinkToken.
-   * Notifies the CLIENT user linked to the originating request.
-   */
   /**
    * Post-sign orchestration:
    *  - Create the delivery project.
@@ -358,12 +368,16 @@ export class ContractsService {
     // Check if a down-payment invoice was already created at contract creation.
     const existingInvoice = onSignRow?.id
       ? await this.prisma.invoice.findFirst({
-          where: { contractId, paymentPlanId: onSignRow.id },
+          where: {
+            contractId,
+            paymentPlanId: onSignRow.id,
+            status: { not: InvoiceStatus.CANCELLED },
+          },
           select: { id: true, status: true },
         })
       : null;
 
-    if (existingInvoice && existingInvoice.status === InvoiceStatus.PAID) {
+    if (existingInvoice?.status === InvoiceStatus.PAID) {
       // Already paid — activate immediately.
       await this.activateContract(
         contractId,
@@ -429,10 +443,7 @@ export class ContractsService {
    * retries/concurrent requests serialize before checking the invoice, while
    * keeping the plan-row id as the invoice's immutable financial link.
    */
-  private async reconcileSalesInitialInvoice(
-    contractId: string,
-    userId: string,
-  ) {
+  private async reconcileInitialInvoice(contractId: string, userId: string) {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         await this.prisma.$transaction(
@@ -463,13 +474,18 @@ export class ContractsService {
             if (amount <= 0) return;
 
             const existing = await tx.invoice.findFirst({
-              where: { contractId, paymentPlanId: row.id },
+              where: {
+                contractId,
+                paymentPlanId: row.id,
+                status: { not: InvoiceStatus.CANCELLED },
+              },
               select: { id: true, status: true },
               orderBy: { createdAt: "asc" },
             });
             // A paid/partial invoice is history and must never be replaced.
-            // A non-cancelled invoice is already the one payable invoice.
-            if (existing && existing.status !== InvoiceStatus.CANCELLED) return;
+            // Cancelled invoices are intentionally excluded so a replacement can
+            // be issued for the same active plan row.
+            if (existing) return;
 
             await this.issueDownPaymentInvoice(
               contractId,
@@ -866,6 +882,7 @@ export class ContractsService {
     filePath: string,
     dto: CreateContractDto,
     accessScope?: RequestAccessScope,
+    intentOverride?: ContractCreationIntent,
   ) {
     await this.assertCreationAccess(dto, accessScope);
 
@@ -1004,6 +1021,12 @@ export class ContractsService {
       }
     }
 
+    // Each route owns its lifecycle semantics: Sales passes the DTO intent,
+    // while the generic portal/admin owner passes LEGACY_SENT explicitly.
+    const intent = intentOverride ?? dto.intent ?? ContractCreationIntent.DRAFT;
+    const shouldSend =
+      intent === ContractCreationIntent.CREATE_AND_SEND ||
+      intent === ContractCreationIntent.LEGACY_SENT;
     const created = await this.prisma.$transaction(async (tx) => {
       const request = await this.requestsService.resolveRequestContext(
         {
@@ -1023,7 +1046,12 @@ export class ContractsService {
           createdBy: userId,
           title: dto.title,
           type: dto.type,
-          status: ContractStatus.SENT,
+          // Sales creates drafts and may atomically send them. The generic
+          // contract owner historically creates already-sent contracts.
+          status:
+            intent === ContractCreationIntent.LEGACY_SENT
+              ? ContractStatus.SENT
+              : ContractStatus.DRAFT,
           startDate,
           endDate,
           monthlyValue,
@@ -1127,52 +1155,168 @@ export class ContractsService {
         }
       }
 
-      await this.requestsService.updateStatus(
-        request.id,
-        RequestStatus.CONTRACT_SENT,
-        userId,
-        undefined,
-        tx,
-        accessScope,
-      );
-
-      return { contract, request };
-    });
-
-    // Create down-payment invoice so the client sees it immediately.
-    const onSignRow = await this.paymentPlanService.getOnSignRow(
-      created.contract.id,
-    );
-    if (onSignRow) {
-      const downPaymentAmount = this.paymentPlanService.resolveAmount(
-        onSignRow,
-        created.contract.totalValue,
-      );
-      if (downPaymentAmount > 0) {
-        await this.issueDownPaymentInvoice(
-          created.contract.id,
-          userId,
-          onSignRow,
-          downPaymentAmount,
-        ).catch((err) => {
-          this.logger.error(
-            `Failed to create down-payment invoice for contract ${created.contract.id}: ${err?.message}`,
-          );
+      // This guard belongs only to Sales create-and-send. Generic callers
+      // retain their historical create behavior and must not inherit Sales
+      // request-transition rules.
+      if (
+        intent === ContractCreationIntent.CREATE_AND_SEND &&
+        request.status !== RequestStatus.CONTRACT_PREPARATION
+      ) {
+        throw new ConflictException({
+          code: "REQUEST_NOT_READY_FOR_CONTRACT",
+          details: { requestId: request.id, status: request.status },
         });
       }
-    }
 
-    const recipientId =
-      created.request.client.userId ?? created.request.submittedBy;
-    if (recipientId) {
-      this.notificationsService
-        .createNotification({
-          entityId: shareLinkToken,
-          entityType: "contract",
-          eventType: "CONTRACT_SENT",
-          userId: recipientId,
-        })
-        .catch(() => undefined);
+      if (intent === ContractCreationIntent.LEGACY_SENT) {
+        await this.requestsService.updateStatus(
+          request.id,
+          RequestStatus.CONTRACT_SENT,
+          userId,
+          undefined,
+          tx,
+          accessScope,
+        );
+      } else if (shouldSend) {
+        await tx.contract.update({
+          where: { id: contract.id },
+          data: { status: ContractStatus.SENT },
+        });
+        await this.recordContractStatusHistory(
+          tx,
+          contract.id,
+          ContractStatus.DRAFT,
+          ContractStatus.SENT,
+          userId,
+          "CONTRACT_SENT_BY_SALES",
+        );
+        await this.requestsService.updateStatus(
+          request.id,
+          RequestStatus.CONTRACT_SENT,
+          userId,
+          undefined,
+          tx,
+          accessScope,
+        );
+
+        const onSignRow = await tx.contractPaymentPlan.findFirst({
+          where: {
+            contractId: contract.id,
+            triggerType: PaymentPlanTriggerType.ON_SIGN,
+            isActive: true,
+          },
+          orderBy: { sequence: "asc" },
+          select: { id: true, amountType: true, amountValue: true },
+        });
+        if (onSignRow) {
+          const amount = this.paymentPlanService.resolveAmount(
+            onSignRow,
+            contract.totalValue,
+          );
+          if (amount > 0) {
+            await this.issueDownPaymentInvoice(
+              contract.id,
+              userId,
+              onSignRow,
+              amount,
+              tx,
+            );
+          }
+        }
+      }
+
+      const finalContract = shouldSend
+        ? await tx.contract.findUniqueOrThrow({ where: { id: contract.id } })
+        : contract;
+      return {
+        contract: finalContract,
+        request,
+        sent: shouldSend,
+      };
+    });
+
+    if (created.sent) {
+      // Generic creation issues its initial invoice after commit, as it did
+      // before Sales introduced the atomic create-and-send flow. In particular,
+      // do not route generic callers through the Sales reconciliation path.
+      if (intent === ContractCreationIntent.LEGACY_SENT) {
+        const onSignRow = await this.paymentPlanService.getOnSignRow(
+          created.contract.id,
+        );
+        if (onSignRow) {
+          const amount = this.paymentPlanService.resolveAmount(
+            onSignRow,
+            created.contract.totalValue,
+          );
+          if (amount > 0) {
+            await this.issueDownPaymentInvoice(
+              created.contract.id,
+              userId,
+              onSignRow,
+              amount,
+            ).catch((error) =>
+              this.logger.warn(
+                `Initial invoice creation failed after generic contract creation: ${error instanceof Error ? error.message : String(error)}`,
+              ),
+            );
+          }
+        }
+      }
+
+      const notifyUserIds = [
+        created.request.client?.userId ?? created.request.submittedBy,
+        created.contract.createdBy,
+      ].filter(Boolean) as string[];
+      if (notifyUserIds.length > 0) {
+        await this.notificationsService
+          .notifyUsers({
+            userIds: notifyUserIds,
+            entityId: created.contract.id,
+            entityType: "contract",
+            eventType: "CONTRACT_SENT",
+            metadata: { contractId: created.contract.id },
+          })
+          .catch((error) =>
+            this.logger.warn(
+              `Contract notification dispatch failed after commit: ${error instanceof Error ? error.message : String(error)}`,
+            ),
+          );
+      }
+      const invoice = await this.prisma.invoice.findFirst({
+        where: {
+          contractId: created.contract.id,
+          paymentPlan: { triggerType: PaymentPlanTriggerType.ON_SIGN },
+          status: { not: InvoiceStatus.CANCELLED },
+        },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, invoiceNumber: true, amount: true },
+      });
+      const invoiceRecipientId =
+        created.request.client?.userId ?? created.request.submittedBy;
+      if (
+        intent !== ContractCreationIntent.LEGACY_SENT &&
+        invoice &&
+        invoiceRecipientId
+      ) {
+        await this.notificationsService
+          .createNotification({
+            entityId: invoice.id,
+            entityType: "invoice",
+            eventType: "INVOICE_CREATED",
+            userId: invoiceRecipientId,
+            metadata: {
+              invoiceId: invoice.id,
+              invoiceNumber: invoice.invoiceNumber,
+              amount: invoice.amount,
+              contractId: created.contract.id,
+            },
+          })
+          .catch((error) =>
+            this.logger.warn(
+              `Invoice notification dispatch failed after commit: ${error instanceof Error ? error.message : String(error)}`,
+            ),
+          );
+      }
     }
 
     const { shareLinkToken: _shareLinkToken, ...safeContract } =
@@ -1608,6 +1752,10 @@ export class ContractsService {
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(Prisma.sql`
+        SELECT id FROM contracts WHERE id = ${contract.id} FOR UPDATE
+      `);
+
       const onSignRow = await tx.contractPaymentPlan.findFirst({
         where: {
           contractId: contract.id,
@@ -1633,7 +1781,7 @@ export class ContractsService {
           where: {
             contractId: contract.id,
             paymentPlanId: onSignRow.id,
-            status: InvoiceStatus.PAID,
+            status: { equals: InvoiceStatus.PAID, not: InvoiceStatus.CANCELLED },
           },
           select: { id: true },
         });
@@ -1717,8 +1865,12 @@ export class ContractsService {
     await this.onContractSigned(contract.id, dto.signedByName).catch(() => {
       this.notificationsService
         .broadcast({
-          title: "فشل إنشاء مشروع تلقائي",
-          message: `تم توقيع العقد "${contract.title}" لكن تعذر إنشاء المشروع/فاتورة الدفعة المقدمة تلقائياً. يرجى مراجعة الحالة يدوياً.`,
+          eventType: "CONTRACT_SIGNED_FOLLOW_UP_REQUIRED",
+          metadata: {
+            contractId: contract.id,
+            failureCode: "SIGNED_CONTRACT_FOLLOW_UP_FAILED",
+            failedOperations: ["PROJECT_CREATION", "INITIAL_INVOICE_SETUP"],
+          },
           roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
@@ -2174,7 +2326,7 @@ export class ContractsService {
     // Reconcile on every SENT edit so a retried request also repairs a prior
     // post-commit failure without creating another invoice.
     if (updated!.status === ContractStatus.SENT) {
-      await this.reconcileSalesInitialInvoice(id, actorId);
+      await this.reconcileInitialInvoice(id, actorId);
     }
 
     if (
@@ -2192,66 +2344,297 @@ export class ContractsService {
     return safeContract;
   }
 
-  async send(id: string, userId?: string) {
-    const contract = await this.findOne(id);
+  /**
+   * Explicit send transition. Contract, request, status history, and the
+   * initial invoice are committed together so a failed send cannot leave the
+   * request and contract in different workflow stages.
+   */
+  async send(
+    id: string,
+    userId?: string,
+    accessScope?: RequestAccessScope,
+    salesWorkflow = false,
+  ) {
+    const result = await this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw(Prisma.sql`
+          SELECT id FROM contracts WHERE id = ${id} FOR UPDATE
+        `);
+        const contract = await tx.contract.findFirst({
+          where: {
+            id,
+            ...(salesWorkflow && accessScope?.assignedSalesId
+              ? { request: buildRequestAccessWhere(accessScope) }
+              : {}),
+          },
+          select: {
+            id: true,
+            status: true,
+            createdBy: true,
+            clientId: true,
+            requestId: true,
+            shareLinkToken: true,
+            totalValue: true,
+            initialPaymentRequired: true,
+            downPaymentType: true,
+            downPaymentValue: true,
+            client: { select: { accountManager: true, userId: true } },
+          },
+        });
+        if (!contract) {
+          throw new NotFoundException({
+            code: "CONTRACT_NOT_FOUND",
+            details: { id },
+          });
+        }
+        const actorId = userId ?? contract.createdBy;
+        const wasDraft = contract.status === ContractStatus.DRAFT;
+        let invoiceCreated = false;
 
-    const updated = await this.prisma.contract.update({
-      where: { id },
-      data: {
-        status: ContractStatus.SENT,
+        // These sendability and request-transition guards are Sales workflow
+        // rules. Generic /contracts/:id/send retains its legacy transition.
+        if (
+          salesWorkflow &&
+          contract.status !== ContractStatus.DRAFT &&
+          contract.status !== ContractStatus.SENT
+        ) {
+          throw new ConflictException({
+            code: "CONTRACT_NOT_SENDABLE",
+            details: { id, status: contract.status },
+          });
+        }
+
+        const request = contract.requestId
+          ? await tx.request.findFirst({
+              where: {
+                id: contract.requestId,
+                ...(salesWorkflow ? buildRequestAccessWhere(accessScope) : {}),
+              },
+              select: { id: true, status: true },
+            })
+          : null;
+        if (salesWorkflow && !request) {
+          throw new NotFoundException({
+            code: "REQUEST_NOT_FOUND",
+            details: { id: contract.requestId },
+          });
+        }
+        if (
+          salesWorkflow &&
+          request &&
+          request.status !== RequestStatus.CONTRACT_PREPARATION &&
+          request.status !== RequestStatus.CONTRACT_SENT
+        ) {
+          throw new ConflictException({
+            code: "REQUEST_NOT_READY_FOR_CONTRACT_SEND",
+            details: { requestId: request.id, status: request.status },
+          });
+        }
+
+        if (contract.status !== ContractStatus.SENT) {
+          if (salesWorkflow) {
+            const updated = await tx.contract.updateMany({
+              where: { id, status: ContractStatus.DRAFT },
+              data: { status: ContractStatus.SENT },
+            });
+            if (updated.count !== 1) {
+              throw new ConflictException({
+                code: "CONTRACT_STATUS_CHANGED",
+                details: { id },
+              });
+            }
+            await this.recordContractStatusHistory(
+              tx,
+              id,
+              ContractStatus.DRAFT,
+              ContractStatus.SENT,
+              actorId,
+              "CONTRACT_SENT_BY_SALES",
+            );
+          } else {
+            await tx.contract.update({
+              where: { id },
+              data: { status: ContractStatus.SENT },
+            });
+          }
+        }
+        if (
+          request &&
+          (!salesWorkflow ||
+            request.status === RequestStatus.CONTRACT_PREPARATION)
+        ) {
+          await this.requestsService.updateStatus(
+            request.id,
+            RequestStatus.CONTRACT_SENT,
+            actorId,
+            undefined,
+            tx,
+            salesWorkflow ? accessScope : undefined,
+          );
+        }
+
+        const row = salesWorkflow
+          ? await tx.contractPaymentPlan.findFirst({
+              where: {
+                contractId: id,
+                triggerType: PaymentPlanTriggerType.ON_SIGN,
+                isActive: true,
+              },
+              orderBy: { sequence: "asc" },
+              select: { id: true, amountType: true, amountValue: true },
+            })
+          : null;
+        let invoiceRow = row;
+        if (salesWorkflow && !invoiceRow && contract.initialPaymentRequired) {
+          if (
+            !contract.downPaymentType ||
+            contract.downPaymentValue === null ||
+            contract.downPaymentValue === undefined
+          ) {
+            throw new BadRequestException({
+              code: "INITIAL_PAYMENT_DETAILS_REQUIRED",
+              details: { contractId: id },
+            });
+          }
+          invoiceRow = await tx.contractPaymentPlan.create({
+            data: {
+              contractId: id,
+              label: "Initial payment",
+              sequence: 0,
+              triggerType: PaymentPlanTriggerType.ON_SIGN,
+              amountType: contract.downPaymentType,
+              amountValue: contract.downPaymentValue,
+              isRecurring: false,
+              dueOffsetDays: 0,
+            },
+            select: { id: true, amountType: true, amountValue: true },
+          });
+        }
+        if (salesWorkflow && invoiceRow) {
+          const amount = this.paymentPlanService.resolveAmount(
+            invoiceRow,
+            contract.totalValue,
+          );
+          if (amount > 0) {
+            const existing = await tx.invoice.findFirst({
+              where: {
+                contractId: id,
+                paymentPlanId: invoiceRow.id,
+                status: { not: InvoiceStatus.CANCELLED },
+              },
+              orderBy: { createdAt: "asc" },
+              select: { id: true, status: true },
+            });
+            if (!existing) {
+              await this.issueDownPaymentInvoice(
+                id,
+                actorId,
+                invoiceRow,
+                amount,
+                tx,
+              );
+              invoiceCreated = true;
+            }
+          }
+        }
+
+        const sentContract = await tx.contract.findUniqueOrThrow({
+          where: { id },
+          include: {
+            client: { select: { accountManager: true, userId: true } },
+          },
+        });
+        return {
+          contract: sentContract,
+          notify: salesWorkflow ? wasDraft : true,
+          invoiceCreated: salesWorkflow && invoiceCreated,
+        };
       },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
 
-    // Use the same locked reconciliation path as Sales edits. This keeps
-    // send retries and concurrent send/edit requests from creating duplicates.
-    await this.reconcileSalesInitialInvoice(id, userId ?? contract.createdBy);
-
-    let actorName: string | undefined;
-    if (userId) {
-      const actor = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { name: true },
-      });
-      actorName = actor?.name;
-    }
-
-    const notifyUserIds = [
-      contract.client.accountManager,
-      contract.createdBy,
-    ].filter(Boolean) as string[];
-    if (notifyUserIds.length > 0) {
-      await this.notificationsService.notifyUsers({
-        userIds: notifyUserIds,
-        entityId: id,
-        entityType: "CONTRACT",
-        eventType: "CONTRACT_SENT",
-      });
-    }
-
-    const clientUser = await this.prisma.client.findUnique({
-      where: { id: contract.clientId },
-      select: { userId: true },
-    });
-    if (clientUser?.userId) {
-      this.notificationsService
-        .createNotification({
-          entityId: id,
-          entityType: "contract",
-          eventType: "CONTRACT_SENT",
-          userId: clientUser.userId,
-        })
-        .catch(() => undefined);
-    }
-
-    if (contract.requestId) {
-      await this.requestsService.updateStatus(
-        contract.requestId,
-        RequestStatus.CONTRACT_SENT,
-        contract.createdBy,
+    if (!salesWorkflow) {
+      // Generic send historically reconciles the initial invoice, but this is
+      // deliberately outside the Sales-only atomic transition path.
+      await this.reconcileInitialInvoice(
+        id,
+        userId ?? result.contract.createdBy,
       );
     }
 
-    const { shareLinkToken: _shareLinkToken, ...safeContract } = updated;
+    if (result.notify) {
+      const notifyUserIds = [
+        result.contract.client.accountManager,
+        result.contract.createdBy,
+      ].filter(Boolean) as string[];
+      if (notifyUserIds.length > 0) {
+        await this.notificationsService
+          .notifyUsers({
+            userIds: notifyUserIds,
+            entityId: id,
+            entityType: "CONTRACT",
+            eventType: "CONTRACT_SENT",
+            metadata: { contractId: id },
+          })
+          .catch((error) =>
+            this.logger.warn(
+              `Contract notification dispatch failed after commit: ${error instanceof Error ? error.message : String(error)}`,
+            ),
+          );
+      }
+      if (result.contract.client.userId) {
+        await this.notificationsService
+          .createNotification({
+            entityId: id,
+            entityType: "contract",
+            eventType: "CONTRACT_SENT",
+            userId: result.contract.client.userId,
+            metadata: { contractId: id },
+          })
+          .catch((error) =>
+            this.logger.warn(
+              `Client contract notification dispatch failed after commit: ${error instanceof Error ? error.message : String(error)}`,
+            ),
+          );
+      }
+    }
+    if (result.invoiceCreated && result.contract.client.userId) {
+      const invoice = await this.prisma.invoice.findFirst({
+        where: {
+          contractId: id,
+          paymentPlan: { triggerType: PaymentPlanTriggerType.ON_SIGN },
+          status: { not: InvoiceStatus.CANCELLED },
+        },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, invoiceNumber: true, amount: true },
+      });
+      if (invoice) {
+        await this.notificationsService
+          .createNotification({
+            entityId: invoice.id,
+            entityType: "invoice",
+            eventType: "INVOICE_CREATED",
+            userId: result.contract.client.userId,
+            metadata: {
+              invoiceId: invoice.id,
+              invoiceNumber: invoice.invoiceNumber,
+              amount: invoice.amount,
+              contractId: id,
+            },
+          })
+          .catch((error) =>
+            this.logger.warn(
+              `Invoice notification dispatch failed after commit: ${error instanceof Error ? error.message : String(error)}`,
+            ),
+          );
+      }
+    }
+
+    const {
+      shareLinkToken: _shareLinkToken,
+      client: _client,
+      ...safeContract
+    } = result.contract;
     return safeContract;
   }
 
@@ -2265,37 +2648,60 @@ export class ContractsService {
       });
     }
 
-    const initialPaymentAmount = contract.initialPaymentRequired
-      ? (contract.initialPaymentAmount ?? 0)
-      : this.resolveDownPaymentFallback(contract);
-    if (initialPaymentAmount > 0) {
-      const onSignRow = await this.paymentPlanService.getOnSignRow(contract.id);
-      const paidInvoice = onSignRow
-        ? await this.prisma.invoice.findFirst({
-            where: {
-              contractId: contract.id,
-              paymentPlanId: onSignRow.id,
-              status: InvoiceStatus.PAID,
-            },
-            select: { id: true },
-          })
-        : null;
-      if (!paidInvoice) {
-        throw new BadRequestException({
-          code: "INITIAL_PAYMENT_REQUIRED",
-          details: { contractId: contract.id },
-        });
-      }
-    }
-
     const signedResult = await this.prisma.$transaction(async (tx) => {
-      const updatedContract = await tx.contract.update({
-        where: { id },
+      await tx.$queryRaw(Prisma.sql`
+        SELECT id FROM contracts WHERE id = ${id} FOR UPDATE
+      `);
+
+      const onSignRow = await tx.contractPaymentPlan.findFirst({
+        where: {
+          contractId: id,
+          triggerType: PaymentPlanTriggerType.ON_SIGN,
+          isActive: true,
+        },
+        orderBy: { sequence: "asc" },
+      });
+      const initialPaymentAmount = onSignRow
+        ? this.paymentPlanService.resolveAmount(onSignRow, contract.totalValue)
+        : contract.initialPaymentRequired
+          ? (contract.initialPaymentAmount ?? 0)
+          : this.resolveDownPaymentFallback(contract);
+
+      if (initialPaymentAmount > 0) {
+        const paidInvoice = onSignRow
+          ? await tx.invoice.findFirst({
+              where: {
+                contractId: id,
+                paymentPlanId: onSignRow.id,
+                status: { equals: InvoiceStatus.PAID, not: InvoiceStatus.CANCELLED },
+              },
+              select: { id: true },
+            })
+          : null;
+        if (!paidInvoice) {
+          throw new BadRequestException({
+            code: "INITIAL_PAYMENT_REQUIRED",
+            details: { contractId: id },
+          });
+        }
+      }
+
+      const updated = await tx.contract.updateMany({
+        where: { id, status: ContractStatus.SENT },
         data: {
           status: ContractStatus.SIGNED,
           eSigned: true,
           signedAt: new Date(),
         },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException({
+          code: "CONTRACT_STATUS_CHANGED",
+          details: { id, expectedStatus: ContractStatus.SENT },
+        });
+      }
+      const updatedContract = await tx.contract.findUniqueOrThrow({
+        where: { id },
       });
 
       await this.recordContractStatusHistory(
@@ -2323,8 +2729,12 @@ export class ContractsService {
     await this.onContractSigned(id, dto.signedByName).catch(() => {
       this.notificationsService
         .broadcast({
-          title: "فشل إنشاء مشروع تلقائي",
-          message: `تم توقيع العقد "${contract.title}" لكن تعذر تهيئة المشروع/فاتورة الدفعة المقدمة تلقائياً.`,
+          eventType: "CONTRACT_SIGNED_FOLLOW_UP_REQUIRED",
+          metadata: {
+            contractId: id,
+            failureCode: "SIGNED_CONTRACT_FOLLOW_UP_FAILED",
+            failedOperations: ["PROJECT_CREATION", "INITIAL_INVOICE_SETUP"],
+          },
           roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
