@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
@@ -11,15 +12,117 @@ import { PrismaService } from "../../../prisma/prisma.service";
 type PortalContractDetailRecord = Prisma.ContractGetPayload<{
   include: {
     client: { select: { id: true; companyName: true } };
-    proposal: true;
-    invoices: { include: { items: true; payments: true } };
+    proposal: {
+      select: {
+        id: true;
+        title: true;
+        serviceDescription: true;
+        servicesList: true;
+        totalPrice: true;
+        durationDays: true;
+      };
+    };
+    invoices: {
+      include: {
+        items: true;
+        payments: {
+          select: {
+            id: true;
+            amount: true;
+            method: true;
+            status: true;
+            date: true;
+            currency: true;
+          };
+        };
+        paymentPlan: {
+          select: {
+            id: true;
+            label: true;
+            sequence: true;
+            triggerType: true;
+            amountType: true;
+            amountValue: true;
+            isRecurring: true;
+            dueOffsetDays: true;
+            isActive: true;
+          };
+        };
+      };
+    };
+    paymentPlans: {
+      include: {
+        invoices: {
+          select: {
+            id: true;
+            invoiceNumber: true;
+            amount: true;
+            status: true;
+            currency: true;
+            payments: {
+              select: { amount: true; status: true };
+            };
+          };
+        };
+      };
+    };
     request: { select: { id: true; status: true } };
   };
 }>;
 
-export type PortalContractDetail = Omit<PortalContractDetailRecord, "filePath"> & {
+type PortalContractInvoice = Omit<
+  PortalContractDetailRecord["invoices"][number],
+  "payments" | "paymentPlan"
+> & {
+  paidAmount: number;
+  remainingAmount: number;
+  payments: Array<{
+    id: string;
+    amount: number;
+    method: PortalContractDetailRecord["invoices"][number]["payments"][number]["method"];
+    status: PortalContractDetailRecord["invoices"][number]["payments"][number]["status"];
+    date: Date;
+    currency: string;
+  }>;
+  paymentPlan: PortalContractDetailRecord["invoices"][number]["paymentPlan"];
+};
+
+type PortalContractPaymentPlan = Omit<
+  PortalContractDetailRecord["paymentPlans"][number],
+  "invoices" | "contractId" | "createdAt" | "updatedAt"
+> & {
+  currency: string;
+  invoices: Array<{
+    id: string;
+    invoiceNumber: string;
+    amount: number;
+    status: PortalContractDetailRecord["invoices"][number]["status"];
+    currency: string;
+    paidAmount: number;
+    remainingAmount: number;
+  }>;
+};
+
+export type PortalContractDetail = Omit<
+  PortalContractDetailRecord,
+  "filePath" | "shareLinkToken" | "invoices" | "paymentPlans"
+> & {
   filePath?: string | null;
   fileUrl: string | null;
+  shareLinkToken: string;
+  invoices: PortalContractInvoice[];
+  paymentPlans: PortalContractPaymentPlan[];
+  initialPayment: {
+    required: boolean;
+    status: string;
+    amount: number;
+    currency: string;
+    invoiceId: string | null;
+    paidAmount: number;
+    remainingAmount: number;
+  };
+  paymentEligibility: { canPay: boolean; reasonCode: string | null };
+  signingEligibility: { canSign: boolean; reasonCode: string | null };
 };
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
@@ -1617,13 +1720,19 @@ export class PortalService {
     role: string;
   }): Promise<PortalContractDetail> {
     const { contractId, clientId, role } = params;
+    void role;
 
-    const where: any = {
-      OR: [{ id: contractId }, { shareLinkToken: contractId }],
-    };
-    if (role === "CLIENT" && clientId) {
-      where.clientId = clientId;
+    if (!clientId) {
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
     }
+
+    const where: Prisma.ContractWhereInput = {
+      OR: [{ id: contractId }, { shareLinkToken: contractId }],
+      clientId,
+    };
 
     const contract = await this.prisma.contract.findFirst({
       where,
@@ -1631,9 +1740,61 @@ export class PortalService {
         client: {
           select: { id: true, companyName: true },
         },
-        proposal: true,
+        proposal: {
+          // Do not expose proposal share tokens or persisted storage keys.
+          select: {
+            id: true,
+            title: true,
+            serviceDescription: true,
+            servicesList: true,
+            totalPrice: true,
+            durationDays: true,
+          },
+        },
         invoices: {
-          include: { items: true, payments: true },
+          include: {
+            items: true,
+            payments: {
+              select: {
+                id: true,
+                amount: true,
+                method: true,
+                status: true,
+                date: true,
+                currency: true,
+              },
+            },
+            paymentPlan: {
+              select: {
+                id: true,
+                label: true,
+                sequence: true,
+                triggerType: true,
+                amountType: true,
+                amountValue: true,
+                isRecurring: true,
+                dueOffsetDays: true,
+                isActive: true,
+              },
+            },
+          },
+        },
+        paymentPlans: {
+          orderBy: { sequence: "asc" },
+          include: {
+            invoices: {
+              select: {
+                id: true,
+                invoiceNumber: true,
+                amount: true,
+                status: true,
+                currency: true,
+                payments: {
+                  select: { amount: true, status: true },
+                },
+              },
+            },
+          },
         },
         request: {
           select: { id: true, status: true },
@@ -1652,8 +1813,116 @@ export class PortalService {
       ? await this.storageService.getPresignedUrl(contract.filePath)
       : null;
 
+    const paymentPlans = contract.paymentPlans.map((plan) => ({
+      id: plan.id,
+      label: plan.label,
+      sequence: plan.sequence,
+      triggerType: plan.triggerType,
+      amountType: plan.amountType,
+      amountValue: plan.amountValue,
+      isRecurring: plan.isRecurring,
+      dueOffsetDays: plan.dueOffsetDays,
+      isActive: plan.isActive,
+      currency: contract.currency,
+      invoices: plan.invoices.map((invoice) => {
+        const paidAmount = invoice.payments
+          .filter((payment) => payment.status === "SUCCESS")
+          .reduce((sum, payment) => sum + payment.amount, 0);
+        return {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.amount,
+          status: invoice.status,
+          currency: invoice.currency,
+          paidAmount,
+          remainingAmount: Math.max(0, invoice.amount - paidAmount),
+        };
+      }),
+    }));
+
+    const invoices = contract.invoices.map((invoice) => {
+      const paidAmount = invoice.payments
+        .filter((payment) => payment.status === "SUCCESS")
+        .reduce((sum, payment) => sum + payment.amount, 0);
+      return {
+        ...invoice,
+        currency: invoice.currency,
+        paidAmount,
+        remainingAmount: Math.max(0, invoice.amount - paidAmount),
+      };
+    });
+    const onSignPlan = contract.paymentPlans.find(
+      (plan) => plan.triggerType === "ON_SIGN" && plan.isActive,
+    );
+    const initialInvoice = onSignPlan
+      ? contract.invoices.find(
+          (invoice) => invoice.paymentPlanId === onSignPlan.id,
+        )
+      : null;
+    const initialPaidAmount = initialInvoice
+      ? (invoices.find((invoice) => invoice.id === initialInvoice.id)
+          ?.paidAmount ?? 0)
+      : 0;
+    const initialAmount = onSignPlan
+      ? onSignPlan.amountType === "PERCENT"
+        ? Math.round(
+            ((contract.totalValue * onSignPlan.amountValue) / 100) * 100,
+          ) / 100
+        : onSignPlan.amountValue
+      : (contract.initialPaymentAmount ?? 0);
+    const initialRequired =
+      initialAmount > 0 || contract.initialPaymentRequired;
+    const initialPaid =
+      initialInvoice?.status === "PAID" ||
+      (initialInvoice
+        ? initialPaidAmount >= initialAmount
+        : contract.initialPaymentStatus === "PAID");
+    const canPay =
+      contract.status === ContractStatus.SENT &&
+      invoices.some(
+        (invoice) =>
+          invoice.status !== InvoiceStatus.CANCELLED &&
+          invoice.remainingAmount > 0,
+      );
+    const canSign =
+      contract.status === ContractStatus.SENT &&
+      (!initialRequired || (Boolean(onSignPlan) && initialPaid));
+
+    const { shareLinkToken, ...safeContract } = contract;
     return {
-      ...contract,
+      ...safeContract,
+      // The authenticated portal signing flow uses this existing capability
+      // token; it is scoped to the client-owned contract above.
+      shareLinkToken,
+      invoices,
+      paymentPlans,
+      initialPayment: {
+        required: initialRequired,
+        status: initialPaid ? "PAID" : contract.initialPaymentStatus,
+        amount: initialAmount,
+        currency: contract.currency,
+        invoiceId: initialInvoice?.id ?? null,
+        paidAmount: initialPaidAmount,
+        remainingAmount: Math.max(0, initialAmount - initialPaidAmount),
+      },
+      paymentEligibility: {
+        canPay,
+        reasonCode: canPay
+          ? null
+          : contract.status !== ContractStatus.SENT
+            ? "INVALID_CONTRACT_STATUS"
+            : "INITIAL_PAYMENT_NOT_DUE",
+      },
+      signingEligibility: {
+        canSign,
+        reasonCode: canSign
+          ? null
+          : contract.status !== ContractStatus.SENT
+            ? "INVALID_CONTRACT_STATUS"
+            : onSignPlan
+              ? "INITIAL_PAYMENT_REQUIRED"
+              : "PAYMENT_PLAN_REQUIRED",
+      },
       fileUrl,
       filePath: undefined,
     };

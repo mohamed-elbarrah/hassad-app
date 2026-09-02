@@ -126,6 +126,11 @@ export interface CreateProposalFormInput {
   durationUnit: DurationUnit;
 }
 
+/** Update fields plus an optional replacement PDF. */
+export type UpdateProposalFormInput = UpdateProposalInput & {
+  file?: File;
+};
+
 export const proposalsApi = createApi({
   reducerPath: "proposalsApi",
   baseQuery,
@@ -230,21 +235,52 @@ export const proposalsApi = createApi({
 
         return { url: "/sales/proposals", method: "POST", body: formData };
       },
-      invalidatesTags: [{ type: "Proposal", id: "SALES_LIST" }],
+      invalidatesTags: [
+        { type: "Proposal", id: "SALES_LIST" },
+        { type: "Proposal", id: "LIST" },
+      ],
     }),
 
     updateSalesProposal: builder.mutation<
       ProposalListItem,
-      { id: string; body: UpdateProposalInput }
+      { id: string; body: UpdateProposalFormInput }
     >({
-      query: ({ id, body }) => ({
-        url: `/sales/proposals/${id}`,
-        method: "PATCH",
-        body,
-      }),
+      query: ({ id, body }) => {
+        // Keep the JSON request for ordinary edits, but use multipart when a
+        // replacement PDF is selected so the file remains optional.
+        if (!body.file) {
+          const jsonBody = Object.fromEntries(
+            Object.entries(body).filter(([key]) => key !== "file"),
+          );
+          return {
+            url: `/sales/proposals/${id}`,
+            method: "PATCH",
+            body: jsonBody,
+          };
+        }
+
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(body)) {
+          if (key === "file") {
+            // The input type guarantees this is the selected replacement PDF.
+            formData.append("file", body.file, body.file.name);
+          } else if (value !== undefined) {
+            formData.append(
+              key,
+              key === "servicesList" ? JSON.stringify(value) : String(value),
+            );
+          }
+        }
+        return {
+          url: `/sales/proposals/${id}`,
+          method: "PATCH",
+          body: formData,
+        };
+      },
       invalidatesTags: (_result, _error, { id }) => [
         { type: "Proposal", id },
         { type: "Proposal", id: "SALES_LIST" },
+        { type: "Proposal", id: "LIST" },
       ],
     }),
 

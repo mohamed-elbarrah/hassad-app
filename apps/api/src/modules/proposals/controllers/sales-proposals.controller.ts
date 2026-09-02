@@ -17,7 +17,10 @@ import { RequirePermissions } from "../../../common/decorators/permissions.decor
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { StorageService } from "../../../common/storage/storage.service";
-import { StorageCategory } from "../../../common/storage/storage.constants";
+import {
+  StorageCategory,
+  STORAGE_CONFIG,
+} from "../../../common/storage/storage.constants";
 import { getSalesRequestAccessScope } from "../../requests/request-access";
 import { RequestsService } from "../../requests/requests.service";
 import { CreateProposalDto, UpdateProposalDto } from "../dto/proposal.dto";
@@ -67,7 +70,13 @@ export class SalesProposalsController {
 
   @Post()
   @RequirePermissions("proposals.create")
-  @UseInterceptors(FileInterceptor("file"))
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: {
+        fileSize: STORAGE_CONFIG[StorageCategory.PROPOSAL].maxFileSize,
+      },
+    }),
+  )
   async create(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateProposalDto,
@@ -94,25 +103,37 @@ export class SalesProposalsController {
       },
     });
 
-    return this.proposalsService.create(
-      user.id,
-      { ...dto, filePath: uploadResult.key },
-      accessScope,
-    );
+    try {
+      return await this.proposalsService.create(
+        user.id,
+        { ...dto, filePath: uploadResult.key },
+        accessScope,
+      );
+    } catch (error) {
+      await this.storageService.deleteByKey(uploadResult.key);
+      throw error;
+    }
   }
 
   @Patch(":id")
   @RequirePermissions("proposals.update")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
   update(
     @Param("id") id: string,
     @Body() dto: UpdateProposalDto,
     @CurrentUser() user: AuthUser,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     return this.proposalsService.update(
       id,
       dto,
       user.id,
       getSalesRequestAccessScope(user),
+      file,
     );
   }
 }

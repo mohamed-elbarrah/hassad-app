@@ -8,6 +8,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { Request, Response } from "express";
+import { MulterError } from "multer";
 import { RobustErrorLoggerService } from "../../modules/health/services/robust-error-logger.service";
 import {
   ErrorCategory,
@@ -26,10 +27,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    const isMulterFileSizeError =
+      exception instanceof MulterError && exception.code === "LIMIT_FILE_SIZE";
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+        : isMulterFileSizeError
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const message =
       exception instanceof HttpException
@@ -44,8 +49,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const validationMessages = Array.isArray(rawMessage)
       ? rawMessage
       : undefined;
-    const errorCode =
-      typeof responseBody?.code === "string"
+    const errorCode = isMulterFileSizeError
+      ? "FILE_TOO_LARGE"
+      : typeof responseBody?.code === "string"
         ? responseBody.code
         : validationMessages
           ? "VALIDATION_ERROR"
@@ -56,8 +62,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
               : status >= 500
                 ? "INTERNAL_SERVER_ERROR"
                 : "REQUEST_FAILED";
-    const errorDetails =
-      responseBody?.details && typeof responseBody.details === "object"
+    const errorDetails = isMulterFileSizeError
+      ? { code: "LIMIT_FILE_SIZE" }
+      : responseBody?.details && typeof responseBody.details === "object"
         ? responseBody.details
         : validationMessages
           ? {

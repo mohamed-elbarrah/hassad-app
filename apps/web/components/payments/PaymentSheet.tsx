@@ -29,6 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { portalErrorMessage } from "@/lib/i18n";
+import { formatCurrency } from "@/lib/format";
 import {
   useCreateElementPaymentIntentMutation,
   useUploadPaymentReceiptMutation,
@@ -43,6 +44,7 @@ export interface PayableInvoice {
   id: string;
   invoiceNumber: string;
   amount: number;
+  currency?: string | null;
   status: string;
 }
 
@@ -69,8 +71,8 @@ function buildAvailableMethods(activeGateways: string[]) {
   return methods;
 }
 
-function fmtAmount(n: number) {
-  return n.toLocaleString("ar-SA-u-nu-latn");
+function fmtAmount(n: number, currency?: string | null) {
+  return formatCurrency(n, currency);
 }
 
 /* ═════════════ Simple Checkout Card (inline, no sheet) ═════════════════ */
@@ -107,7 +109,8 @@ export function InlinePaymentCard({
   const resolvedMethods = useMemo(
     () =>
       buildAvailableMethods(activeGateways).filter(
-        (method) => method.key !== PaymentMethod.CARD || Boolean(resolvedStripeKey),
+        (method) =>
+          method.key !== PaymentMethod.CARD || Boolean(resolvedStripeKey),
       ),
     [activeGateways, resolvedStripeKey],
   );
@@ -137,8 +140,7 @@ export function InlinePaymentCard({
           <p className="text-xs text-muted-foreground">المبلغ المستحق</p>
         </div>
         <p className="text-lg font-bold">
-          {fmtAmount(invoice.amount)}{" "}
-          <span className="text-sm font-normal text-muted-foreground">ر.س</span>
+          {fmtAmount(invoice.amount, invoice.currency)}
         </p>
       </div>
 
@@ -165,7 +167,9 @@ export function InlinePaymentCard({
       {loadingPaymentConfiguration ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">جاري تحميل طرق الدفع...</p>
+          <p className="text-sm text-muted-foreground">
+            جاري تحميل طرق الدفع...
+          </p>
         </div>
       ) : (
         <>
@@ -389,11 +393,7 @@ function StripePaymentForm({
         </p>
       )}
 
-      <Button
-        type="submit"
-        disabled={!stripe || processing}
-        className="w-full"
-      >
+      <Button type="submit" disabled={!stripe || processing} className="w-full">
         {processing ? (
           <>
             <Loader2 data-icon="inline-start" className="animate-spin" />
@@ -464,18 +464,20 @@ export function BankTransferForm({
         <div className="overflow-hidden rounded-lg border">
           <Table>
             <TableBody>
-          {bankAccounts.map((acc: any) => (
-            <TableRow key={acc.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-2">
-                  <Landmark className="size-4 text-muted-foreground" />
-                  {acc.bankName}
-                </div>
-              </TableCell>
-              <TableCell>{acc.accountName}</TableCell>
-              <TableCell className="font-mono text-left select-all">{acc.iban}</TableCell>
-            </TableRow>
-          ))}
+              {bankAccounts.map((acc: any) => (
+                <TableRow key={acc.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="size-4 text-muted-foreground" />
+                      {acc.bankName}
+                    </div>
+                  </TableCell>
+                  <TableCell>{acc.accountName}</TableCell>
+                  <TableCell className="font-mono text-left select-all">
+                    {acc.iban}
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
@@ -488,10 +490,12 @@ export function BankTransferForm({
       <div className="flex gap-3 rounded-lg border p-4">
         <AlertCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
         <p className="text-xs leading-6 text-muted-foreground">
-          <span className="font-semibold text-foreground">تعليمات التحويل:</span>{" "}
+          <span className="font-semibold text-foreground">
+            تعليمات التحويل:
+          </span>{" "}
           قم بتحويل المبلغ{" "}
           <span className="font-semibold text-foreground">
-            {fmtAmount(invoice.amount)} ر.س
+            {fmtAmount(invoice.amount, invoice.currency)}
           </span>{" "}
           إلى أحد الحسابات أعلاه. يرجى إرفاق رقم الفاتورة{" "}
           <span className="font-semibold text-foreground">
@@ -663,10 +667,7 @@ export function PaymentSheet({
                   </p>
                 </div>
                 <p className="text-lg font-bold text-foreground">
-                  {fmtAmount(invoice.amount)}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    ر.س
-                  </span>
+                  {fmtAmount(invoice.amount, invoice.currency)}
                 </p>
               </div>
 

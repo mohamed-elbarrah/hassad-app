@@ -121,7 +121,8 @@ const PAYMENT_PLAN_TRIGGER_LABELS: Record<string, string> = {
 export function contractStatusLabel(status: string | null | undefined): string {
   if (!status) return "غير محدد";
   return (
-    CONTRACT_STATUS_AR[status as keyof typeof CONTRACT_STATUS_AR] ?? UNKNOWN_STATUS_LABEL
+    CONTRACT_STATUS_AR[status as keyof typeof CONTRACT_STATUS_AR] ??
+    UNKNOWN_STATUS_LABEL
   );
 }
 
@@ -156,7 +157,8 @@ export function clientActivityDetails(
     "تم تسجيل تحديث على العميل.";
   if (!metadata || typeof metadata !== "object") return base;
   const record = metadata as Record<string, unknown>;
-  const managerName = typeof record.managerName === "string" ? record.managerName.trim() : "";
+  const managerName =
+    typeof record.managerName === "string" ? record.managerName.trim() : "";
   if (managerName) return `${base} المدير: ${managerName}.`;
   // Reasons are free-form backend/user content; do not render them as a
   // substitute for a localized activity description.
@@ -312,7 +314,9 @@ export function adminSuccessMessage(code: string | undefined): string {
 export function adminErrorMessage(error: unknown): string {
   const code = (error as { data?: { error?: { code?: string } } })?.data?.error
     ?.code;
-  return (code && ADMIN_ERROR_MESSAGES[code]) || ADMIN_ERROR_MESSAGES.UNKNOWN_ERROR;
+  return (
+    (code && ADMIN_ERROR_MESSAGES[code]) || ADMIN_ERROR_MESSAGES.UNKNOWN_ERROR
+  );
 }
 
 const ADMIN_ACTIVITY_ACTION_LABELS: Record<string, string> = {
@@ -652,8 +656,35 @@ function getApiErrorPayload(error: unknown): ApiErrorPayload {
 
 const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
   PROPOSAL_NOT_FOUND: "لم يتم العثور على العرض الفني.",
+  PROPOSAL_NOT_EDITABLE: "لا يمكن تعديل العرض الفني في حالته الحالية.",
   PROPOSAL_REQUEST_MISMATCH: "العرض الفني لا ينتمي إلى الطلب المحدد.",
   CONTRACT_NOT_FOUND: "لم يتم العثور على العقد.",
+  CONTRACT_NOT_EDITABLE: "لا يمكن تعديل العقد في حالته الحالية.",
+  CONTRACT_UPDATE_FIELDS_REQUIRED: "أدخل قيمة واحدة على الأقل للتحديث.",
+  CONTRACT_UPDATE_CONFLICT:
+    "تم تعديل العقد من مستخدم آخر. حدّث الصفحة وحاول مرة أخرى.",
+  CONTRACT_FINANCIAL_HISTORY_LOCKED:
+    "لا يمكن تغيير الشروط المالية بعد بدء الفوترة أو السداد.",
+  CONTRACT_TOTAL_VALUE_INVALID: "إجمالي قيمة العقد غير صالح.",
+  RETAINER_MONTHS_REQUIRED: "عدد أشهر الاشتراك مطلوب.",
+  INITIAL_PAYMENT_DETAILS_REQUIRED: "بيانات الدفعة الأولية مطلوبة.",
+  INITIAL_PAYMENT_PLAN_REQUIRED: "يجب أن تتضمن خطة الدفع الدفعة الأولية.",
+  PAYMENT_PLAN_INITIAL_MISMATCH: "بيانات الدفعة الأولية لا تطابق خطة الدفع.",
+  RECURRING_PAYMENT_PLAN_REQUIRED: "يجب أن تتضمن خطة العقد دفعة شهرية متكررة.",
+  INITIAL_PAYMENT_AMOUNT_INVALID: "قيمة الدفعة الأولية غير صالحة.",
+  RECURRING_PAYMENT_AMOUNT_INVALID: "قيمة الدفعة الشهرية غير صالحة.",
+  FIXED_PROJECT_MONTHS_NOT_ALLOWED: "العقد الثابت لا يقبل عدد أشهر اشتراك.",
+  INITIAL_PAYMENT_NOT_ALLOWED: "لا يمكن إرسال بيانات دفعة أولية عند تعطيلها.",
+  PAYMENT_PLAN_FINANCIAL_HISTORY_LOCKED:
+    "لا يمكن تعديل خطة الدفع بعد بدء الفوترة.",
+  PAYMENT_PLAN_MULTIPLE_ON_SIGN: "لا يمكن إضافة أكثر من دفعة أولية واحدة.",
+  PAYMENT_PLAN_PERCENT_INVALID: "نسبة الدفعة غير صالحة.",
+  PAYMENT_PLAN_FIXED_AMOUNT_INVALID: "مبلغ الدفعة الثابت غير صالح.",
+  PAYMENT_PLAN_DOWN_PAYMENT_EXCEEDS_TOTAL:
+    "لا يمكن أن تتجاوز الدفعة الأولية إجمالي العقد.",
+  PAYMENT_PLAN_SEQUENCE_DUPLICATE: "ترتيب خطة الدفع مكرر.",
+  PAYMENT_PLAN_ROW_NOT_FOUND: "لم يتم العثور على بند خطة الدفع.",
+  SCHEDULED_INVOICE_AMOUNT_INVALID: "قيمة الفاتورة المجدولة غير صالحة.",
   CONTRACT_SHARE_LINK_NOT_FOUND: "لا يوجد رابط توقيع متاح لهذا العقد.",
   CONTRACT_NOT_SIGNABLE: "لا يمكن توقيع العقد في حالته الحالية.",
   INITIAL_PAYMENT_REQUIRED: "يجب سداد الدفعة الأولى قبل تفعيل العقد.",
@@ -663,6 +694,7 @@ const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
   PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذه العملية.",
   AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
   INVALID_FILE_TYPE: "نوع الملف غير مدعوم. اختر ملف PDF.",
+  INVALID_FILE_CONTENT: "محتوى الملف غير صالح. اختر ملف PDF صحيحاً.",
   PDF_FILE_REQUIRED: "اختر ملف PDF قبل الحفظ.",
   VERSION_PDF_FILE_REQUIRED: "اختر ملف PDF للإصدار الجديد.",
   FILE_TOO_LARGE: "حجم الملف أكبر من الحد المسموح.",
@@ -1074,8 +1106,10 @@ export function notificationPresentation(
   if (eventType === "BROADCAST" && broadcastTitle && broadcastBody) {
     return { title: broadcastTitle, body: broadcastBody };
   }
-  const legacyTitle = typeof metadata?.legacyTitle === "string" ? metadata.legacyTitle : null;
-  const legacyBody = typeof metadata?.legacyBody === "string" ? metadata.legacyBody : null;
+  const legacyTitle =
+    typeof metadata?.legacyTitle === "string" ? metadata.legacyTitle : null;
+  const legacyBody =
+    typeof metadata?.legacyBody === "string" ? metadata.legacyBody : null;
   if (legacyTitle && legacyBody) {
     return { title: legacyTitle, body: legacyBody };
   }
@@ -1256,10 +1290,16 @@ export function notificationPresentation(
     return { ...presentation, body: `${presentation.body} «${campaignName}».` };
   }
   if (campaignName && eventType === "MARKETING_METRICS_UPDATED") {
-    return { ...presentation, body: `تم تحديث نتائج الحملة «${campaignName}».` };
+    return {
+      ...presentation,
+      body: `تم تحديث نتائج الحملة «${campaignName}».`,
+    };
   }
   if (campaignName && eventType === "MARKETING_OPTIMIZATION_REQUIRED") {
-    return { ...presentation, body: `تحتاج الحملة «${campaignName}» إلى التحسين.` };
+    return {
+      ...presentation,
+      body: `تحتاج الحملة «${campaignName}» إلى التحسين.`,
+    };
   }
   return presentation;
 }
@@ -1276,22 +1316,31 @@ export function notificationErrorMessage(error: unknown): string {
 }
 
 export function portalErrorMessage(error: unknown): string {
-  const code = (error as { data?: { error?: { code?: string } }; code?: string })?.data?.error?.code
-    ?? (error as { code?: string })?.code;
+  const code =
+    (error as { data?: { error?: { code?: string } }; code?: string })?.data
+      ?.error?.code ?? (error as { code?: string })?.code;
   const messages: Record<string, string> = {
     PERMISSION_DENIED: "ليس لديك صلاحية لعرض هذه البيانات.",
     AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
     CONVERSATION_NOT_FOUND: "لم يتم العثور على المحادثة.",
-    CONVERSATION_PARTICIPATION_FORBIDDEN: "ليس لديك صلاحية للوصول إلى هذه المحادثة.",
+    CONVERSATION_PARTICIPATION_FORBIDDEN:
+      "ليس لديك صلاحية للوصول إلى هذه المحادثة.",
     CONVERSATION_INACTIVE: "هذه المحادثة غير متاحة حالياً.",
     SOCKET_NOT_CONNECTED: "تعذر الاتصال بالمحادثة. يرجى المحاولة لاحقاً.",
     SOCKET_ACK_TIMEOUT: "استغرق تحديث حالة القراءة وقتاً أطول من المتوقع.",
+    INITIAL_PAYMENT_REQUIRED: "يجب سداد الدفعة الأولى قبل توقيع العقد.",
+    PAYMENT_PLAN_REQUIRED: "لا يمكن توقيع العقد قبل إعداد خطة الدفع.",
+    CONTRACT_NOT_SIGNABLE: "لا يمكن توقيع العقد في حالته الحالية.",
+    INVALID_CONTRACT_STATUS: "لا يمكن تنفيذ هذا الإجراء في حالة العقد الحالية.",
   };
-  return (code && messages[code]) || "تعذر تحميل البيانات. يرجى المحاولة لاحقاً.";
+  return (
+    (code && messages[code]) || "تعذر تحميل البيانات. يرجى المحاولة لاحقاً."
+  );
 }
 
 export function marketingErrorMessage(error: unknown): string {
-  const code = (error as { data?: { error?: { code?: string } } })?.data?.error?.code;
+  const code = (error as { data?: { error?: { code?: string } } })?.data?.error
+    ?.code;
   const messages: Record<string, string> = {
     CAMPAIGN_NOT_FOUND: "لم يتم العثور على الحملة.",
     MARKETING_STRATEGY_PDF_REQUIRED: "أرفق ملف PDF صالحاً للدراسة التسويقية.",
@@ -1310,8 +1359,10 @@ export function marketingErrorMessage(error: unknown): string {
     MARKETING_TASK_DEPARTMENT_REQUIRED: "المهمة ليست ضمن قسم التسويق.",
     MARKETING_TASK_UNASSIGNED: "يجب إسناد المهمة لمسوق أولاً.",
     MARKETING_TASK_CLIENT_REQUIRED: "المهمة غير مرتبطة بعميل.",
-    MARKETING_STRATEGY_OWNER_REQUIRED: "لا يملك هذا المستخدم الدراسة التسويقية.",
-    MARKETING_STRATEGY_INVALID_STATUS: "لا يمكن تنفيذ هذا الإجراء في الحالة الحالية.",
+    MARKETING_STRATEGY_OWNER_REQUIRED:
+      "لا يملك هذا المستخدم الدراسة التسويقية.",
+    MARKETING_STRATEGY_INVALID_STATUS:
+      "لا يمكن تنفيذ هذا الإجراء في الحالة الحالية.",
     CAMPAIGN_NOT_EDITABLE: "لا يمكن تعديل حملة منتهية.",
     CAMPAIGN_PLATFORM_LOCKED: "لا يمكن تغيير المنصة بعد تفعيل الحملة.",
     CAMPAIGN_NOT_ARCHIVED: "الحملة غير مؤرشفة.",
@@ -1323,7 +1374,10 @@ export function marketingErrorMessage(error: unknown): string {
     PERMISSION_DENIED: "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
     AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
   };
-  return (code && messages[code]) ?? "تعذر تنفيذ الإجراء على الحملة. يرجى المحاولة لاحقاً.";
+  return (
+    (code && messages[code]) ??
+    "تعذر تنفيذ الإجراء على الحملة. يرجى المحاولة لاحقاً."
+  );
 }
 
 const PM_ERROR_MESSAGES: Record<string, string> = {
@@ -1389,20 +1443,29 @@ export function disputeHistoryMessage(
   code: string,
   metadata?: Record<string, unknown> | null,
 ): string {
-  const base = DISPUTE_HISTORY_MESSAGES[code] ?? DISPUTE_HISTORY_MESSAGES.DISPUTE_HISTORY_UPDATED;
-  const detail = metadata && ["reason", "feedback", "notes", "resolution"]
-    .map((key) => metadata[key])
-    .find((value): value is string => typeof value === "string" && value.trim().length > 0);
+  const base =
+    DISPUTE_HISTORY_MESSAGES[code] ??
+    DISPUTE_HISTORY_MESSAGES.DISPUTE_HISTORY_UPDATED;
+  const detail =
+    metadata &&
+    ["reason", "feedback", "notes", "resolution"]
+      .map((key) => metadata[key])
+      .find(
+        (value): value is string =>
+          typeof value === "string" && value.trim().length > 0,
+      );
   return detail ? `${base} التفاصيل: ${detail}` : base;
 }
 
 const DISPUTE_THREAD_MESSAGES: Record<string, string> = {
   DISPUTE_THREAD_CLIENT_PM: "العميل ↔ مدير المشروع",
-  DISPUTE_THREAD_CLIENT_PM_DESCRIPTION: "محادثة معالجة النزاع بين العميل ومدير المشروع.",
+  DISPUTE_THREAD_CLIENT_PM_DESCRIPTION:
+    "محادثة معالجة النزاع بين العميل ومدير المشروع.",
   DISPUTE_THREAD_ADMIN_CLIENT: "الإدارة ↔ العميل",
   DISPUTE_THREAD_ADMIN_CLIENT_DESCRIPTION: "محادثة خاصة تظهر للإدارة والعميل.",
   DISPUTE_THREAD_ADMIN_PM: "الإدارة ↔ مدير المشروع",
-  DISPUTE_THREAD_ADMIN_PM_DESCRIPTION: "محادثة خاصة تظهر للإدارة ومدير المشروع.",
+  DISPUTE_THREAD_ADMIN_PM_DESCRIPTION:
+    "محادثة خاصة تظهر للإدارة ومدير المشروع.",
 };
 
 export function disputeThreadMessage(code: string): string {
@@ -1422,7 +1485,10 @@ const PM_SUCCESS_MESSAGES: Record<string, string> = {
 };
 
 export function pmSuccessMessage(code: string | undefined): string {
-  return PM_SUCCESS_MESSAGES[code ?? "UNKNOWN_SUCCESS"] ?? PM_SUCCESS_MESSAGES.UNKNOWN_SUCCESS;
+  return (
+    PM_SUCCESS_MESSAGES[code ?? "UNKNOWN_SUCCESS"] ??
+    PM_SUCCESS_MESSAGES.UNKNOWN_SUCCESS
+  );
 }
 
 export function projectSuccessMessage(code: string): string {

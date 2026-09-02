@@ -2,12 +2,14 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from "@nestjs/common";
 import { OnEvent, EventEmitter2 } from "@nestjs/event-emitter";
 import { randomUUID } from "crypto";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { StorageService } from "../../../common/storage/storage.service";
+import { StorageCategory } from "../../../common/storage/storage.constants";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FinanceService } from "../../finance/services/finance.service";
 import {
@@ -16,6 +18,7 @@ import {
   SignContractDto,
   SignByTokenDto,
   CreateVersionDto,
+  SalesUpdateContractDto,
 } from "../dto/contract.dto";
 import {
   DefinePaymentPlanDto,
@@ -25,6 +28,7 @@ import {
   ClientKind,
   ClientStatus,
   ContractStatus,
+  ContractType,
   ProjectStatus,
   RequestStatus,
   TaskPriority,
@@ -32,6 +36,7 @@ import {
   PaymentPlanTriggerType,
   ProjectPeriodStatus,
   InvoiceStatus,
+  PaymentAmountType,
 } from "@hassad/shared";
 import { RequestsService } from "../../requests/requests.service";
 import {
@@ -44,7 +49,7 @@ import { PmAssignmentService } from "./pm-assignment.service";
 import { ContractPaymentPlanService } from "./contract-payment-plan.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
 import type { ContractStatus as ContractStatusEnum } from "@hassad/shared";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type { SalesContractQueryDto } from "../dto/sales-contract-query.dto";
 
 @Injectable()
@@ -248,9 +253,7 @@ export class ContractsService {
       return null;
     }
 
-    this.projectGroupChatService
-      .ensure(project.id)
-      .catch(() => undefined);
+    this.projectGroupChatService.ensure(project.id).catch(() => undefined);
 
     await this.notificationsService
       .createNotification({
@@ -405,6 +408,7 @@ export class ContractsService {
     userId: string,
     onSignRow: { id: string } | null,
     amount: number,
+    tx?: Prisma.TransactionClient,
   ) {
     const now = new Date();
     return this.financeService.generateScheduledInvoice({
@@ -416,7 +420,79 @@ export class ContractsService {
       dueDate: now, // due immediately
       userId,
       notes: "فاتورة الدفعة المقدمة لتفعيل العقد",
+      tx,
     });
+  }
+
+  /**
+   * Reconcile the Sales ON_SIGN row after an edit. The contract row lock makes
+   * retries/concurrent requests serialize before checking the invoice, while
+   * keeping the plan-row id as the invoice's immutable financial link.
+   */
+  private async reconcileSalesInitialInvoice(
+    contractId: string,
+    userId: string,
+  ) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await this.prisma.$transaction(
+          async (tx) => {
+            await tx.$queryRaw(Prisma.sql`
+              SELECT id FROM contracts WHERE id = ${contractId} FOR UPDATE
+            `);
+            const contract = await tx.contract.findUnique({
+              where: { id: contractId },
+              select: { status: true, totalValue: true },
+            });
+            if (!contract || contract.status !== ContractStatus.SENT) return;
+
+            const row = await tx.contractPaymentPlan.findFirst({
+              where: {
+                contractId,
+                triggerType: PaymentPlanTriggerType.ON_SIGN,
+                isActive: true,
+              },
+              orderBy: { sequence: "asc" },
+              select: { id: true, amountType: true, amountValue: true },
+            });
+            if (!row) return;
+            const amount = this.paymentPlanService.resolveAmount(
+              row,
+              contract.totalValue,
+            );
+            if (amount <= 0) return;
+
+            const existing = await tx.invoice.findFirst({
+              where: { contractId, paymentPlanId: row.id },
+              select: { id: true, status: true },
+              orderBy: { createdAt: "asc" },
+            });
+            // A paid/partial invoice is history and must never be replaced.
+            // A non-cancelled invoice is already the one payable invoice.
+            if (existing && existing.status !== InvoiceStatus.CANCELLED) return;
+
+            await this.issueDownPaymentInvoice(
+              contractId,
+              userId,
+              row,
+              amount,
+              tx,
+            );
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        return;
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2034" &&
+          attempt < 2
+        ) {
+          continue;
+        }
+        throw error;
+      }
+    }
   }
 
   /**
@@ -737,12 +813,16 @@ export class ContractsService {
     return this.paymentPlanService.addRow(contractId, row);
   }
 
-  async updatePaymentPlanRow(rowId: string, row: PaymentPlanRowDto) {
-    return this.paymentPlanService.updateRow(rowId, row);
+  async updatePaymentPlanRow(
+    contractId: string,
+    rowId: string,
+    row: PaymentPlanRowDto,
+  ) {
+    return this.paymentPlanService.updateRow(contractId, rowId, row);
   }
 
-  async removePaymentPlanRow(rowId: string) {
-    return this.paymentPlanService.removeRow(rowId);
+  async removePaymentPlanRow(contractId: string, rowId: string) {
+    return this.paymentPlanService.removeRow(contractId, rowId);
   }
 
   async assertCreationAccess(
@@ -796,6 +876,11 @@ export class ContractsService {
     let endDate = dto.endDate ? new Date(dto.endDate) : new Date();
     const monthlyValue = dto.monthlyValue ?? 0;
     let totalValue = dto.totalValue ?? 0;
+    const paymentType = dto.downPaymentType ?? dto.initialPaymentType;
+    const paymentValue = dto.downPaymentValue ?? dto.initialPaymentValue;
+    const initialPaymentRequired =
+      dto.initialPaymentRequired ??
+      (paymentType !== undefined && paymentValue !== undefined);
 
     if (dto.proposalId) {
       const proposal = await this.prisma.proposal.findFirst({
@@ -842,6 +927,83 @@ export class ContractsService {
       }
     }
 
+    if (totalValue <= 0) {
+      throw new BadRequestException({
+        code: "CONTRACT_TOTAL_VALUE_INVALID",
+        details: { totalValue },
+      });
+    }
+    if (
+      dto.type === ContractType.FIXED_PROJECT &&
+      dto.numberOfMonths !== undefined
+    ) {
+      throw new BadRequestException({
+        code: "FIXED_PROJECT_MONTHS_NOT_ALLOWED",
+        details: {},
+      });
+    }
+    if (
+      dto.type === ContractType.MONTHLY_RETAINER &&
+      (!dto.numberOfMonths || dto.numberOfMonths < 1)
+    ) {
+      throw new BadRequestException({
+        code: "RETAINER_MONTHS_REQUIRED",
+        details: {},
+      });
+    }
+    if (initialPaymentRequired) {
+      if (paymentType === undefined || paymentValue === undefined) {
+        throw new BadRequestException({
+          code: "INITIAL_PAYMENT_DETAILS_REQUIRED",
+          details: {},
+        });
+      }
+      const initialAmount =
+        paymentType === PaymentAmountType.PERCENT
+          ? (totalValue * paymentValue) / 100
+          : paymentValue;
+      if (initialAmount <= 0 || initialAmount > totalValue) {
+        throw new BadRequestException({
+          code: "INITIAL_PAYMENT_AMOUNT_INVALID",
+          details: { amount: initialAmount },
+        });
+      }
+    }
+    if (dto.paymentPlan?.length) {
+      await this.paymentPlanService.validateRows(dto.paymentPlan, totalValue);
+      const hasRecurringPeriod = dto.paymentPlan.some(
+        (row) =>
+          row.triggerType === PaymentPlanTriggerType.PERIOD_END &&
+          row.isRecurring !== false,
+      );
+      const onSignRow = dto.paymentPlan.find(
+        (row) => row.triggerType === PaymentPlanTriggerType.ON_SIGN,
+      );
+      if (initialPaymentRequired && !onSignRow) {
+        throw new BadRequestException({
+          code: "INITIAL_PAYMENT_PLAN_REQUIRED",
+          details: {},
+        });
+      }
+      if (
+        onSignRow &&
+        (!initialPaymentRequired ||
+          onSignRow.amountType !== paymentType ||
+          onSignRow.amountValue !== paymentValue)
+      ) {
+        throw new BadRequestException({
+          code: "PAYMENT_PLAN_INITIAL_MISMATCH",
+          details: {},
+        });
+      }
+      if (dto.type === ContractType.MONTHLY_RETAINER && !hasRecurringPeriod) {
+        throw new BadRequestException({
+          code: "RECURRING_PAYMENT_PLAN_REQUIRED",
+          details: {},
+        });
+      }
+    }
+
     const created = await this.prisma.$transaction(async (tx) => {
       const request = await this.requestsService.resolveRequestContext(
         {
@@ -869,9 +1031,20 @@ export class ContractsService {
           filePath,
           shareLinkToken,
           servicesList,
-          downPaymentType: dto.downPaymentType,
-          downPaymentValue: dto.downPaymentValue,
-          numberOfMonths: dto.numberOfMonths,
+          downPaymentType: initialPaymentRequired ? paymentType : null,
+          downPaymentValue: initialPaymentRequired ? paymentValue : null,
+          initialPaymentRequired,
+          initialPaymentStatus: initialPaymentRequired
+            ? "PENDING"
+            : "NOT_REQUIRED",
+          initialPaymentAmount:
+            initialPaymentRequired && paymentType && paymentValue !== undefined
+              ? paymentType === PaymentAmountType.PERCENT
+                ? Math.round(totalValue * (paymentValue / 100) * 100) / 100
+                : paymentValue
+              : null,
+          numberOfMonths:
+            dto.type === ContractType.FIXED_PROJECT ? null : dto.numberOfMonths,
         },
       });
 
@@ -891,52 +1064,65 @@ export class ContractsService {
             },
           });
         }
-      } else if (
-        dto.type === "MONTHLY_RETAINER" &&
-        dto.downPaymentType &&
-        dto.downPaymentValue != null
-      ) {
-        // Down payment row
-        const downPaymentAmount =
-          dto.downPaymentType === "PERCENT"
-            ? Math.round(totalValue * (dto.downPaymentValue / 100) * 100) / 100
-            : dto.downPaymentValue;
-
-        await tx.contractPaymentPlan.create({
-          data: {
-            contractId: contract.id,
+      } else {
+        const planRows: Array<{
+          label: string;
+          sequence: number;
+          triggerType: PaymentPlanTriggerType;
+          amountType: PaymentAmountType;
+          amountValue: number;
+          isRecurring: boolean;
+          dueOffsetDays: number;
+        }> = [];
+        if (
+          initialPaymentRequired &&
+          paymentType &&
+          paymentValue !== undefined
+        ) {
+          planRows.push({
             label: "الدفعة الأولى",
             sequence: 0,
-            triggerType: "ON_SIGN",
-            amountType: dto.downPaymentType,
-            amountValue: dto.downPaymentValue,
+            triggerType: PaymentPlanTriggerType.ON_SIGN,
+            amountType: paymentType,
+            amountValue: paymentValue,
             isRecurring: false,
             dueOffsetDays: 0,
-          },
-        });
-
-        // Recurring monthly row — derive amount from remaining / months
-        const remaining = totalValue - downPaymentAmount;
-        const months = dto.numberOfMonths ?? 1;
-        const recurringAmount =
-          dto.monthlyValue && dto.monthlyValue > 0
-            ? dto.monthlyValue
-            : months > 0
-              ? Math.round((remaining / months) * 100) / 100
+          });
+        }
+        if (dto.type === ContractType.MONTHLY_RETAINER) {
+          const months = dto.numberOfMonths ?? 1;
+          const initialAmount =
+            initialPaymentRequired && paymentType && paymentValue !== undefined
+              ? paymentType === PaymentAmountType.PERCENT
+                ? Math.round(totalValue * (paymentValue / 100) * 100) / 100
+                : paymentValue
               : 0;
-
-        if (recurringAmount > 0) {
-          await tx.contractPaymentPlan.create({
-            data: {
+          const recurringAmount =
+            dto.monthlyValue && dto.monthlyValue > 0
+              ? dto.monthlyValue
+              : Math.round(((totalValue - initialAmount) / months) * 100) / 100;
+          if (recurringAmount <= 0) {
+            throw new BadRequestException({
+              code: "RECURRING_PAYMENT_AMOUNT_INVALID",
+              details: {},
+            });
+          }
+          planRows.push({
+            label: "الدفعة الشهرية",
+            sequence: planRows.length,
+            triggerType: PaymentPlanTriggerType.PERIOD_END,
+            amountType: PaymentAmountType.FIXED,
+            amountValue: recurringAmount,
+            isRecurring: true,
+            dueOffsetDays: 0,
+          });
+        }
+        if (planRows.length > 0) {
+          await tx.contractPaymentPlan.createMany({
+            data: planRows.map((row) => ({
+              ...row,
               contractId: contract.id,
-              label: "الدفعة الشهرية",
-              sequence: 1,
-              triggerType: "PERIOD_END",
-              amountType: "FIXED",
-              amountValue: recurringAmount,
-              isRecurring: true,
-              dueOffsetDays: 0,
-            },
+            })),
           });
         }
       }
@@ -1567,6 +1753,445 @@ export class ContractsService {
     return safeContract;
   }
 
+  /**
+   * Sales contract edit. Authorization is checked before any storage write;
+   * replacement PDFs become a new contract version and client-supplied storage
+   * keys are never accepted.
+   */
+  async updateSales(
+    id: string,
+    dto: SalesUpdateContractDto,
+    actorId: string,
+    accessScope?: RequestAccessScope,
+    file?: Express.Multer.File,
+  ) {
+    if (!Object.keys(dto).length && !file) {
+      throw new BadRequestException({
+        code: "CONTRACT_UPDATE_FIELDS_REQUIRED",
+        details: {},
+      });
+    }
+
+    const existing = await this.prisma.contract.findFirst({
+      where: {
+        id,
+        ...(accessScope?.assignedSalesId
+          ? { request: buildRequestAccessWhere(accessScope) }
+          : {}),
+      },
+      select: {
+        id: true,
+        status: true,
+        type: true,
+        title: true,
+        startDate: true,
+        endDate: true,
+        numberOfMonths: true,
+        totalValue: true,
+        monthlyValue: true,
+        downPaymentType: true,
+        downPaymentValue: true,
+        initialPaymentRequired: true,
+        initialPaymentStatus: true,
+        initialPaymentAmount: true,
+        filePath: true,
+        versionNumber: true,
+        createdBy: true,
+        invoices: { select: { id: true, payments: { select: { id: true } } } },
+        versions: { select: { filePath: true } },
+      },
+    });
+    if (!existing) {
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: { id },
+      });
+    }
+    if (
+      existing.status !== ContractStatus.DRAFT &&
+      existing.status !== ContractStatus.SENT
+    ) {
+      throw new ConflictException({
+        code: "CONTRACT_NOT_EDITABLE",
+        details: { id, status: existing.status },
+      });
+    }
+
+    const hasFinancialHistory =
+      existing.invoices.length > 0 || existing.initialPaymentStatus === "PAID";
+    const requestedType = dto.type ?? existing.type;
+    const requestedTotal = dto.totalValue ?? existing.totalValue;
+    const requestedMonthly = dto.monthlyValue ?? existing.monthlyValue;
+    const requestedMonths =
+      requestedType === "FIXED_PROJECT"
+        ? null
+        : (dto.numberOfMonths ?? existing.numberOfMonths);
+    const paymentType = dto.initialPaymentType ?? dto.downPaymentType;
+    const paymentValue = dto.initialPaymentValue ?? dto.downPaymentValue;
+    const initialRequired =
+      dto.initialPaymentRequired ?? existing.initialPaymentRequired;
+    if (requestedType === "FIXED_PROJECT" && dto.numberOfMonths !== undefined) {
+      throw new BadRequestException({
+        code: "FIXED_PROJECT_MONTHS_NOT_ALLOWED",
+        details: { numberOfMonths: dto.numberOfMonths },
+      });
+    }
+    const effectivePaymentType = paymentType ?? existing.downPaymentType;
+    const effectivePaymentValue = paymentValue ?? existing.downPaymentValue;
+    const requestedPaymentType = initialRequired ? effectivePaymentType : null;
+    const requestedPaymentValue = initialRequired
+      ? effectivePaymentValue
+      : null;
+    const termsChanged =
+      requestedType !== existing.type ||
+      requestedTotal !== existing.totalValue ||
+      requestedMonthly !== existing.monthlyValue ||
+      requestedMonths !== existing.numberOfMonths ||
+      initialRequired !== existing.initialPaymentRequired ||
+      requestedPaymentType !== existing.downPaymentType ||
+      requestedPaymentValue !== existing.downPaymentValue;
+
+    if (termsChanged && hasFinancialHistory) {
+      throw new ConflictException({
+        code: "CONTRACT_FINANCIAL_HISTORY_LOCKED",
+        details: { id },
+      });
+    }
+
+    if (requestedTotal <= 0) {
+      throw new BadRequestException({
+        code: "CONTRACT_TOTAL_VALUE_INVALID",
+        details: { totalValue: requestedTotal },
+      });
+    }
+    if (
+      requestedType === "FIXED_PROJECT" &&
+      requestedMonths !== null &&
+      requestedMonths !== undefined
+    ) {
+      throw new BadRequestException({
+        code: "FIXED_PROJECT_MONTHS_NOT_ALLOWED",
+        details: { numberOfMonths: requestedMonths },
+      });
+    }
+    if (
+      requestedType === "MONTHLY_RETAINER" &&
+      (!requestedMonths || requestedMonths < 1)
+    ) {
+      throw new BadRequestException({
+        code: "RETAINER_MONTHS_REQUIRED",
+        details: { numberOfMonths: requestedMonths },
+      });
+    }
+    const effectiveStart = dto.startDate
+      ? new Date(dto.startDate)
+      : existing.startDate;
+    const effectiveEnd = dto.endDate ? new Date(dto.endDate) : existing.endDate;
+    if (effectiveStart > effectiveEnd) {
+      throw new BadRequestException({
+        code: "CONTRACT_DATE_RANGE_INVALID",
+        details: {},
+      });
+    }
+
+    if (
+      !initialRequired &&
+      (paymentType !== undefined || paymentValue !== undefined)
+    ) {
+      throw new BadRequestException({
+        code: "INITIAL_PAYMENT_NOT_ALLOWED",
+        details: {},
+      });
+    }
+    let initialAmount: number | null = existing.initialPaymentAmount;
+    if (!initialRequired) {
+      initialAmount = null;
+    } else {
+      if (!effectivePaymentType || effectivePaymentValue === undefined) {
+        throw new BadRequestException({
+          code: "INITIAL_PAYMENT_DETAILS_REQUIRED",
+          details: {},
+        });
+      }
+      initialAmount =
+        effectivePaymentType === PaymentAmountType.PERCENT
+          ? Math.round(((requestedTotal * effectivePaymentValue) / 100) * 100) /
+            100
+          : effectivePaymentValue;
+      if (initialAmount <= 0 || initialAmount > requestedTotal) {
+        throw new BadRequestException({
+          code: "INITIAL_PAYMENT_AMOUNT_INVALID",
+          details: { amount: initialAmount },
+        });
+      }
+    }
+
+    let replacementKey: string | undefined;
+    let committed = false;
+    let oldFilePath: string | null = existing.filePath;
+    let oldVersionFiles = existing.versions.map((version) => version.filePath);
+    let updated: Prisma.ContractGetPayload<object> | undefined;
+    try {
+      if (file) {
+        replacementKey = (
+          await this.storageService.upload({
+            category: StorageCategory.CONTRACT,
+            entityId: id,
+            file: {
+              buffer: file.buffer,
+              originalname: file.originalname,
+              mimetype: file.mimetype,
+              size: file.size,
+            },
+          })
+        ).key;
+      }
+
+      updated = await this.prisma.$transaction(
+        async (tx) => {
+          // Re-check ownership and read the version inside the transaction so
+          // reassignment/concurrent edits cannot bypass the initial check.
+          const current = await tx.contract.findFirst({
+            where: {
+              id,
+              ...(accessScope?.assignedSalesId
+                ? { request: buildRequestAccessWhere(accessScope) }
+                : {}),
+            },
+            select: {
+              status: true,
+              type: true,
+              title: true,
+              startDate: true,
+              endDate: true,
+              numberOfMonths: true,
+              totalValue: true,
+              monthlyValue: true,
+              initialPaymentStatus: true,
+              filePath: true,
+              versionNumber: true,
+              createdBy: true,
+              invoices: { select: { id: true } },
+              versions: { select: { filePath: true } },
+            },
+          });
+          if (!current) {
+            throw new NotFoundException({
+              code: "CONTRACT_NOT_FOUND",
+              details: { id },
+            });
+          }
+          const editableStatuses = new Set(["DRAFT", "SENT"]);
+          if (!editableStatuses.has(current.status)) {
+            throw new ConflictException({
+              code: "CONTRACT_NOT_EDITABLE",
+              details: { id, status: current.status },
+            });
+          }
+
+          oldFilePath = current.filePath;
+          oldVersionFiles = current.versions.map((version) => version.filePath);
+          if (
+            (current.invoices.length > 0 ||
+              current.initialPaymentStatus === "PAID") &&
+            termsChanged
+          ) {
+            throw new ConflictException({
+              code: "CONTRACT_FINANCIAL_HISTORY_LOCKED",
+              details: { id },
+            });
+          }
+
+          const nextVersion = file ? current.versionNumber + 1 : undefined;
+          if (replacementKey && nextVersion) {
+            // The initial contract file is not versioned at creation time. On
+            // its first replacement, retain it as version 1 before recording
+            // the new file, otherwise cleanup would destroy that history.
+            if (
+              current.filePath &&
+              !oldVersionFiles.includes(current.filePath)
+            ) {
+              await tx.contractVersion.create({
+                data: {
+                  contractId: id,
+                  versionNumber: current.versionNumber,
+                  filePath: current.filePath,
+                  createdBy: current.createdBy,
+                },
+              });
+              oldVersionFiles = [...oldVersionFiles, current.filePath];
+            }
+
+            await tx.contractVersion.create({
+              data: {
+                contractId: id,
+                versionNumber: nextVersion,
+                filePath: replacementKey,
+                createdBy: actorId,
+              },
+            });
+          }
+
+          if (termsChanged) {
+            const planRows = [] as Array<{
+              label: string;
+              sequence: number;
+              triggerType: PaymentPlanTriggerType;
+              amountType: PaymentAmountType;
+              amountValue: number;
+              isRecurring: boolean;
+              dueOffsetDays: number;
+            }>;
+            if (initialRequired && initialAmount !== null) {
+              planRows.push({
+                label: "الدفعة الأولى",
+                sequence: 0,
+                triggerType: PaymentPlanTriggerType.ON_SIGN,
+                amountType: effectivePaymentType! as PaymentAmountType,
+                amountValue: effectivePaymentValue!,
+                isRecurring: false,
+                dueOffsetDays: 0,
+              });
+            }
+            if (requestedType === "MONTHLY_RETAINER") {
+              const recurringAmount =
+                requestedMonthly > 0
+                  ? requestedMonthly
+                  : Math.round(
+                      ((requestedTotal - (initialAmount ?? 0)) /
+                        requestedMonths!) *
+                        100,
+                    ) / 100;
+              if (recurringAmount <= 0) {
+                throw new BadRequestException({
+                  code: "RECURRING_PAYMENT_AMOUNT_INVALID",
+                  details: {},
+                });
+              }
+              planRows.push({
+                label: "الدفعة الشهرية",
+                sequence: initialRequired ? 1 : 0,
+                triggerType: PaymentPlanTriggerType.PERIOD_END,
+                amountType: PaymentAmountType.FIXED,
+                amountValue: recurringAmount,
+                isRecurring: true,
+                dueOffsetDays: 0,
+              });
+            }
+            await tx.contractPaymentPlan.deleteMany({
+              where: { contractId: id },
+            });
+            if (planRows.length > 0) {
+              await tx.contractPaymentPlan.createMany({
+                data: planRows.map((row) => ({
+                  ...row,
+                  contractId: id,
+                  isActive: true,
+                })),
+              });
+            }
+          }
+
+          const result = await tx.contract.updateMany({
+            where: {
+              id,
+              status: existing.status,
+              type: existing.type,
+              title: existing.title,
+              startDate: existing.startDate,
+              endDate: existing.endDate,
+              numberOfMonths: existing.numberOfMonths,
+              totalValue: existing.totalValue,
+              monthlyValue: existing.monthlyValue,
+              initialPaymentRequired: existing.initialPaymentRequired,
+              initialPaymentStatus: existing.initialPaymentStatus,
+              initialPaymentAmount: existing.initialPaymentAmount,
+              downPaymentType: existing.downPaymentType,
+              downPaymentValue: existing.downPaymentValue,
+              filePath: existing.filePath,
+              versionNumber: existing.versionNumber,
+            },
+            data: {
+              title: dto.title,
+              type: dto.type,
+              numberOfMonths:
+                requestedType === "FIXED_PROJECT" ? null : requestedMonths,
+              startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+              endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+              monthlyValue:
+                requestedType === "FIXED_PROJECT" ? 0 : requestedMonthly,
+              totalValue: requestedTotal,
+              ...(termsChanged
+                ? {
+                    initialPaymentRequired: initialRequired,
+                    initialPaymentStatus: initialRequired
+                      ? "PENDING"
+                      : "NOT_REQUIRED",
+                    initialPaymentAmount: initialAmount,
+                    downPaymentType: initialRequired
+                      ? effectivePaymentType
+                      : null,
+                    downPaymentValue: initialRequired
+                      ? effectivePaymentValue
+                      : null,
+                  }
+                : {}),
+              ...(replacementKey
+                ? { filePath: replacementKey, versionNumber: nextVersion }
+                : {}),
+            },
+          });
+          if (result.count !== 1) {
+            throw new ConflictException({
+              code: "CONTRACT_UPDATE_CONFLICT",
+              details: { id },
+            });
+          }
+          return tx.contract.findUniqueOrThrow({ where: { id } });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+
+      committed = true;
+    } catch (error) {
+      // A successful upload with a failed transaction is an orphan otherwise.
+      if (replacementKey && !committed) {
+        await this.storageService.deleteByKey(replacementKey);
+      }
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2034"
+      ) {
+        throw new ConflictException({
+          code: "CONTRACT_UPDATE_CONFLICT",
+          details: { id },
+        });
+      }
+      throw error;
+    }
+
+    // Sales edits can introduce an ON_SIGN term while a contract is SENT.
+    // Reconcile on every SENT edit so a retried request also repairs a prior
+    // post-commit failure without creating another invoice.
+    if (updated!.status === ContractStatus.SENT) {
+      await this.reconcileSalesInitialInvoice(id, actorId);
+    }
+
+    if (
+      replacementKey &&
+      oldFilePath &&
+      oldFilePath !== replacementKey &&
+      !oldVersionFiles.includes(oldFilePath)
+    ) {
+      // Cleanup is deliberately after commit and only removes an unreferenced
+      // current object; historical ContractVersion files are retained.
+      await this.storageService.deleteByKey(oldFilePath);
+    }
+
+    const { shareLinkToken: _shareLinkToken, ...safeContract } = updated!;
+    return safeContract;
+  }
+
   async send(id: string, userId?: string) {
     const contract = await this.findOne(id);
 
@@ -1577,24 +2202,9 @@ export class ContractsService {
       },
     });
 
-    const initialPaymentAmount = contract.initialPaymentRequired
-      ? (contract.initialPaymentAmount ?? 0)
-      : this.resolveDownPaymentFallback(contract);
-    if (initialPaymentAmount > 0) {
-      const onSignRow = await this.paymentPlanService.getOnSignRow(id);
-      const existingInvoice = await this.prisma.invoice.findFirst({
-        where: { contractId: id, paymentPlanId: onSignRow?.id },
-        select: { id: true },
-      });
-      if (!existingInvoice) {
-        await this.issueDownPaymentInvoice(
-          id,
-          userId ?? contract.createdBy,
-          onSignRow,
-          initialPaymentAmount,
-        );
-      }
-    }
+    // Use the same locked reconciliation path as Sales edits. This keeps
+    // send retries and concurrent send/edit requests from creating duplicates.
+    await this.reconcileSalesInitialInvoice(id, userId ?? contract.createdBy);
 
     let actorName: string | undefined;
     if (userId) {
@@ -1659,10 +2269,17 @@ export class ContractsService {
       ? (contract.initialPaymentAmount ?? 0)
       : this.resolveDownPaymentFallback(contract);
     if (initialPaymentAmount > 0) {
-      const paidInvoice = await this.prisma.invoice.findFirst({
-        where: { contractId: contract.id, status: InvoiceStatus.PAID },
-        select: { id: true },
-      });
+      const onSignRow = await this.paymentPlanService.getOnSignRow(contract.id);
+      const paidInvoice = onSignRow
+        ? await this.prisma.invoice.findFirst({
+            where: {
+              contractId: contract.id,
+              paymentPlanId: onSignRow.id,
+              status: InvoiceStatus.PAID,
+            },
+            select: { id: true },
+          })
+        : null;
       if (!paidInvoice) {
         throw new BadRequestException({
           code: "INITIAL_PAYMENT_REQUIRED",

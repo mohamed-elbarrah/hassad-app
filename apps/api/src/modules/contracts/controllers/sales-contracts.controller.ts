@@ -17,9 +17,12 @@ import { RequirePermissions } from "../../../common/decorators/permissions.decor
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { StorageService } from "../../../common/storage/storage.service";
-import { StorageCategory } from "../../../common/storage/storage.constants";
+import {
+  StorageCategory,
+  STORAGE_CONFIG,
+} from "../../../common/storage/storage.constants";
 import { getSalesRequestAccessScope } from "../../requests/request-access";
-import { CreateContractDto, UpdateContractDto } from "../dto/contract.dto";
+import { CreateContractDto, SalesUpdateContractDto } from "../dto/contract.dto";
 import { SalesContractQueryDto } from "../dto/sales-contract-query.dto";
 import { ContractsService } from "../services/contracts.service";
 
@@ -77,7 +80,13 @@ export class SalesContractsController {
 
   @Post()
   @RequirePermissions("contracts.create")
-  @UseInterceptors(FileInterceptor("file"))
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: {
+        fileSize: STORAGE_CONFIG[StorageCategory.CONTRACT].maxFileSize,
+      },
+    }),
+  )
   async create(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateContractDto,
@@ -104,25 +113,40 @@ export class SalesContractsController {
       },
     });
 
-    return this.contractsService.create(
-      user.id,
-      uploadResult.key,
-      dto,
-      accessScope,
-    );
+    try {
+      return await this.contractsService.create(
+        user.id,
+        uploadResult.key,
+        dto,
+        accessScope,
+      );
+    } catch (error) {
+      await this.storageService.deleteByKey(uploadResult.key);
+      throw error;
+    }
   }
 
   @Patch(":id")
   @RequirePermissions("contracts.update")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: {
+        fileSize: STORAGE_CONFIG[StorageCategory.CONTRACT].maxFileSize,
+      },
+    }),
+  )
   update(
     @Param("id") id: string,
-    @Body() dto: UpdateContractDto,
+    @Body() dto: SalesUpdateContractDto,
+    @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.contractsService.update(
+    return this.contractsService.updateSales(
       id,
       dto,
+      user.id,
       getSalesRequestAccessScope(user),
+      file,
     );
   }
 }

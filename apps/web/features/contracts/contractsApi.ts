@@ -211,6 +211,20 @@ export interface SignContractInput {
   signedByEmail?: string;
 }
 
+export interface UpdateSalesContractInput extends Omit<
+  UpdateContractInput,
+  "filePath"
+> {
+  /** Sales may change these terms while the contract is still editable. */
+  type?: ContractType;
+  numberOfMonths?: number;
+  initialPaymentRequired?: boolean;
+  initialPaymentType?: PaymentAmountType;
+  initialPaymentValue?: number;
+  /** Optional replacement for the contract's current PDF. */
+  file?: File;
+}
+
 function buildContractFormData(input: CreateContractFormInput) {
   const formData = new FormData();
   formData.append("requestId", input.requestId);
@@ -239,6 +253,12 @@ function buildContractFormData(input: CreateContractFormInput) {
   }
   if (downPaymentValue !== undefined) {
     formData.append("downPaymentValue", String(downPaymentValue));
+  }
+  if (input.initialPaymentRequired !== undefined) {
+    formData.append(
+      "initialPaymentRequired",
+      String(input.initialPaymentRequired),
+    );
   }
   if (input.numberOfMonths !== undefined) {
     formData.append("numberOfMonths", String(input.numberOfMonths));
@@ -340,21 +360,37 @@ export const contractsApi = createApi({
         method: "POST",
         body: buildContractFormData(input),
       }),
-      invalidatesTags: [{ type: "Contract", id: "SALES_LIST" }],
+      invalidatesTags: [
+        { type: "Contract", id: "SALES_LIST" },
+        { type: "Contract", id: "LIST" },
+      ],
     }),
 
     updateSalesContract: builder.mutation<
       ContractItem,
-      { id: string; body: UpdateContractInput }
+      { id: string; body: UpdateSalesContractInput }
     >({
-      query: ({ id, body }) => ({
-        url: `/sales/contracts/${id}`,
-        method: "PATCH",
-        body,
-      }),
+      query: ({ id, body }) => {
+        // Keep edits on the shared transport and use one multipart contract for
+        // both ordinary edits and PDF replacement (booleans/numbers are encoded
+        // exactly as the multipart API expects).
+        const formData = new FormData();
+        for (const [key, value] of Object.entries(body)) {
+          if (key === "file" || value === undefined) continue;
+          formData.append(key, String(value));
+        }
+        if (body.file) formData.append("file", body.file, body.file.name);
+
+        return {
+          url: `/sales/contracts/${id}`,
+          method: "PATCH",
+          body: formData,
+        };
+      },
       invalidatesTags: (_result, _error, { id }) => [
         { type: "Contract", id },
         { type: "Contract", id: "SALES_LIST" },
+        { type: "Contract", id: "LIST" },
       ],
     }),
 

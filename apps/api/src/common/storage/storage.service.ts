@@ -152,6 +152,17 @@ export class StorageService implements OnModuleInit {
       });
     }
 
+    if (
+      (category === StorageCategory.PROPOSAL ||
+        category === StorageCategory.CONTRACT) &&
+      file.buffer.subarray(0, 5).toString("ascii") !== "%PDF-"
+    ) {
+      throw new BadRequestException({
+        code: "INVALID_FILE_CONTENT",
+        details: { category },
+      });
+    }
+
     const key = this.generateKey(
       category,
       entityId,
@@ -159,9 +170,12 @@ export class StorageService implements OnModuleInit {
       subPath,
     );
     const contentType =
-      file.mimetype ||
-      EXTENSION_MIME_MAP[extname(file.originalname).toLowerCase()] ||
-      "application/octet-stream";
+      category === StorageCategory.PROPOSAL ||
+      category === StorageCategory.CONTRACT
+        ? "application/pdf"
+        : file.mimetype ||
+          EXTENSION_MIME_MAP[extname(file.originalname).toLowerCase()] ||
+          "application/octet-stream";
 
     await this.s3.send(
       new PutObjectCommand({

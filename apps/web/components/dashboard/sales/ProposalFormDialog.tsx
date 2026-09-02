@@ -17,6 +17,7 @@ import {
   useUpdateSalesProposalMutation,
   type ProposalListItem,
   type ServiceItem,
+  type UpdateProposalFormInput,
 } from "@/features/proposals/proposalsApi";
 import {
   salesWorkflowErrorMessage,
@@ -130,6 +131,7 @@ export function ProposalFormDialog({
   const [file, setFile] = useState<File | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const initializedDialogRef = useRef<string | null>(null);
   const open = controlledOpen;
 
   const form = useForm<ProposalFormInput, unknown, ProposalFormValues>({
@@ -158,11 +160,23 @@ export function ProposalFormDialog({
     useUpdateSalesProposalMutation();
   const isSubmitting = isCreating || isUpdating;
 
+  // A pipeline refresh can replace `proposal` while this dialog is open. The
+  // dialog identity, rather than object identity, controls initialization so
+  // server refreshes never overwrite edits already made by the user.
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      initializedDialogRef.current = null;
+      return;
+    }
+
+    const dialogKey = `${mode}:${proposal?.id ?? "new"}:${preSelectedRequestId}`;
+    if (initializedDialogRef.current === dialogKey) return;
+    if (form.formState.isDirty || file) return;
+
     form.reset(getDefaultValues(proposal, preSelectedRequestId));
+    initializedDialogRef.current = dialogKey;
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [form, open, preSelectedRequestId, proposal]);
+  }, [file, form, mode, open, preSelectedRequestId, proposal]);
 
   useEffect(() => {
     form.setValue("totalPrice", calculatedTotal, { shouldValidate: true });
@@ -172,10 +186,10 @@ export function ProposalFormDialog({
     if (file) {
       const isPdf =
         file.type === "application/pdf" && /\.pdf$/i.test(file.name);
-      const maxFileSize = 10 * 1024 * 1024;
+      const maxFileSize = 50 * 1024 * 1024;
       if (!isPdf || file.size > maxFileSize) {
         form.setError("root", {
-          message: "يجب اختيار ملف PDF بحجم لا يتجاوز 10 ميجابايت",
+          message: "يجب اختيار ملف PDF بحجم لا يتجاوز 50 ميجابايت",
         });
         return;
       }
@@ -201,7 +215,8 @@ export function ProposalFormDialog({
             totalPrice: Number(values.totalPrice),
             durationDays: Number(values.durationDays),
             durationUnit: values.durationUnit,
-          },
+            ...(file ? { file } : {}),
+          } satisfies UpdateProposalFormInput,
         }).unwrap();
         toast.success("تم تحديث العرض الفني");
         onSaved?.();
@@ -246,6 +261,7 @@ export function ProposalFormDialog({
     if (!nextOpen) {
       setFile(null);
       setShareLink(null);
+      form.reset(getDefaultValues(null, ""));
       form.clearErrors();
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -491,32 +507,29 @@ export function ProposalFormDialog({
               </div>
 
               <div className="flex flex-col gap-2">
-                {isEdit ? (
+                <>
+                  <Label htmlFor="proposal-file">
+                    {isEdit ? "استبدال ملف العرض (اختياري)" : "ملف العرض PDF"}
+                  </Label>
+                  <Input
+                    ref={fileInputRef}
+                    id="proposal-file"
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    aria-invalid={Boolean(form.formState.errors.root)}
+                    aria-describedby="proposal-file-message"
+                    onChange={(event) => {
+                      form.clearErrors("root");
+                      setFile(event.target.files?.[0] ?? null);
+                    }}
+                  />
                   <p className="text-sm text-muted-foreground">
-                    ملف العرض الحالي محفوظ. استبدال الملفات سيكون متاحاً بعد دعم
-                    ذلك في واجهة التحديث.
+                    {file?.name ??
+                      (isEdit
+                        ? "اتركه فارغاً للاحتفاظ بالملف الحالي"
+                        : "اختر ملف PDF")}
                   </p>
-                ) : (
-                  <>
-                    <Label htmlFor="proposal-file">ملف العرض PDF</Label>
-                    <Input
-                      ref={fileInputRef}
-                      id="proposal-file"
-                      type="file"
-                      accept="application/pdf,.pdf"
-                      required
-                      aria-invalid={Boolean(form.formState.errors.root)}
-                      aria-describedby="proposal-file-message"
-                      onChange={(event) => {
-                        form.clearErrors("root");
-                        setFile(event.target.files?.[0] ?? null);
-                      }}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      {file?.name ?? "اختر ملف PDF"}
-                    </p>
-                  </>
-                )}
+                </>
                 {form.formState.errors.root?.message ? (
                   <p
                     id="proposal-file-message"

@@ -84,6 +84,7 @@ export interface ContractDetailEntity {
     id: string;
     invoiceNumber: string;
     amount: number;
+    currency?: string | null;
     status: string;
     dueDate?: string | null;
     createdAt?: string | null;
@@ -244,10 +245,15 @@ export function ContractDetailView({
           {contractStatusLabel(contract.status)}
         </Badge>
         <Badge variant="outline">
-          القيمة الإجمالية: {formatCurrency(contract.totalValue, contract.currency ?? undefined)}
+          القيمة الإجمالية:{" "}
+          {formatCurrency(contract.totalValue, contract.currency ?? undefined)}
         </Badge>
         <Badge variant="outline">
-          القيمة الشهرية: {formatCurrency(contract.monthlyValue, contract.currency ?? undefined)}
+          القيمة الشهرية:{" "}
+          {formatCurrency(
+            contract.monthlyValue,
+            contract.currency ?? undefined,
+          )}
         </Badge>
         <Badge variant="outline">
           الفواتير: {formatNumber(invoices.length)}
@@ -413,7 +419,10 @@ export function ContractDetailView({
                               {paymentPlanTriggerLabel(plan.triggerType)}
                             </TableCell>
                             <TableCell>
-                              {formatCurrency(plan.amountValue, contract.currency ?? undefined)}
+                              {formatCurrency(
+                                plan.amountValue,
+                                contract.currency ?? undefined,
+                              )}
                             </TableCell>
                             <TableCell>
                               {plan.dueOffsetDays != null
@@ -460,7 +469,10 @@ export function ContractDetailView({
                           <TableRow key={invoice.id}>
                             <TableCell>{invoice.invoiceNumber}</TableCell>
                             <TableCell>
-                              {formatCurrency(invoice.amount, contract.currency ?? undefined)}
+                              {formatCurrency(
+                                invoice.amount,
+                                contract.currency ?? undefined,
+                              )}
                             </TableCell>
                             <TableCell>
                               <Badge
@@ -719,13 +731,23 @@ function ClientContractWorkspace({
 export function ContractClientBillingArea({
   services,
   totalValue,
+  currency,
   invoices,
+  initialPaymentRequired,
+  initialPaymentAmount,
+  initialPaymentRemainingAmount,
+  initialPaymentStatus,
   canPay,
   onPaymentComplete,
 }: {
   services: Array<{ name: string; price: number }>;
   totalValue: number;
+  currency?: string;
   invoices: NonNullable<ContractDetailEntity["invoices"]>;
+  initialPaymentRequired?: boolean;
+  initialPaymentAmount?: number | null;
+  initialPaymentRemainingAmount?: number | null;
+  initialPaymentStatus?: string | null;
   canPay?: boolean;
   onPaymentComplete?: () => void;
 }) {
@@ -733,10 +755,26 @@ export function ContractClientBillingArea({
     <ContractPaymentSummary
       services={services}
       totalValue={totalValue}
+      currency={currency}
+      initialPaymentRequired={initialPaymentRequired}
+      initialPaymentAmount={initialPaymentAmount}
+      initialPaymentRemainingAmount={initialPaymentRemainingAmount}
+      initialPaymentStatus={initialPaymentStatus}
       invoices={invoices.map((invoice) => ({
         id: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
         amount: invoice.amount,
+        currency: invoice.currency,
+        paidAmount: invoice.payments
+          ?.filter((payment) => payment.status === "SUCCESS")
+          .reduce((sum, payment) => sum + payment.amount, 0),
+        remainingAmount: Math.max(
+          0,
+          invoice.amount -
+            (invoice.payments
+              ?.filter((payment) => payment.status === "SUCCESS")
+              .reduce((sum, payment) => sum + payment.amount, 0) ?? 0),
+        ),
         status: invoice.status as any,
         paymentMethod: (invoice.paymentMethod || "BANK_TRANSFER") as any,
         issueDate: invoice.issueDate || invoice.createdAt || "",

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { PaymentPlanTriggerType, PaymentAmountType } from "@hassad/shared";
@@ -43,6 +44,7 @@ export class ContractPaymentPlanService {
    */
   async definePlan(contractId: string, dto: DefinePaymentPlanDto) {
     const contract = await this.assertContractExists(contractId);
+    await this.assertNoFinancialHistory(contractId);
     await this.validateRows(dto.rows, contract.totalValue);
 
     const rows = this.normalizeSequences(dto.rows);
@@ -70,7 +72,32 @@ export class ContractPaymentPlanService {
   /** Append a single row to an existing plan. */
   async addRow(contractId: string, row: PaymentPlanRowDto) {
     const contract = await this.assertContractExists(contractId);
+    await this.assertNoFinancialHistory(contractId);
     await this.validateRows([row], contract.totalValue);
+    if (row.sequence !== undefined) {
+      const sequenceOwner = await this.prisma.contractPaymentPlan.findFirst({
+        where: { contractId, sequence: row.sequence },
+        select: { id: true },
+      });
+      if (sequenceOwner) {
+        throw new ConflictException({
+          code: "PAYMENT_PLAN_SEQUENCE_DUPLICATE",
+          details: { contractId, sequence: row.sequence },
+        });
+      }
+    }
+    if (row.triggerType === PaymentPlanTriggerType.ON_SIGN) {
+      const existingOnSign = await this.prisma.contractPaymentPlan.findFirst({
+        where: { contractId, triggerType: PaymentPlanTriggerType.ON_SIGN },
+        select: { id: true },
+      });
+      if (existingOnSign) {
+        throw new ConflictException({
+          code: "PAYMENT_PLAN_MULTIPLE_ON_SIGN",
+          details: { contractId },
+        });
+      }
+    }
 
     const maxSeq = await this.prisma.contractPaymentPlan.aggregate({
       where: { contractId },
@@ -93,14 +120,62 @@ export class ContractPaymentPlanService {
   }
 
   /** Update a single plan row. */
-  async updateRow(rowId: string, row: PaymentPlanRowDto) {
+  async updateRow(contractId: string, rowId: string, row: PaymentPlanRowDto) {
     const existing = await this.prisma.contractPaymentPlan.findUnique({
       where: { id: rowId },
-      include: { contract: { select: { totalValue: true } } },
+      include: {
+        contract: {
+          select: { totalValue: true, invoices: { select: { id: true } } },
+        },
+      },
     });
-    if (!existing) throw new NotFoundException("Plan row not found");
+    if (!existing || existing.contractId !== contractId) {
+      throw new NotFoundException({
+        code: "PAYMENT_PLAN_ROW_NOT_FOUND",
+        details: { rowId, contractId },
+      });
+    }
 
+    if (existing.contract.invoices.length > 0) {
+      throw new ConflictException({
+        code: "PAYMENT_PLAN_FINANCIAL_HISTORY_LOCKED",
+        details: { rowId },
+      });
+    }
     await this.validateRows([row], existing.contract.totalValue);
+    if (row.sequence !== undefined) {
+      const sequenceOwner = await this.prisma.contractPaymentPlan.findFirst({
+        where: {
+          contractId,
+          sequence: row.sequence,
+          NOT: { id: rowId },
+        },
+        select: { id: true },
+      });
+      if (sequenceOwner) {
+        throw new ConflictException({
+          code: "PAYMENT_PLAN_SEQUENCE_DUPLICATE",
+          details: { contractId, sequence: row.sequence },
+        });
+      }
+    }
+    if (row.triggerType === PaymentPlanTriggerType.ON_SIGN) {
+      const existingOnSign = await this.prisma.contractPaymentPlan.findFirst({
+        where: {
+          contractId: existing.contractId,
+          triggerType: PaymentPlanTriggerType.ON_SIGN,
+          isActive: true,
+          NOT: { id: rowId },
+        },
+        select: { id: true },
+      });
+      if (existingOnSign) {
+        throw new ConflictException({
+          code: "PAYMENT_PLAN_MULTIPLE_ON_SIGN",
+          details: { rowId },
+        });
+      }
+    }
 
     return this.prisma.contractPaymentPlan.update({
       where: { id: rowId },
@@ -117,12 +192,18 @@ export class ContractPaymentPlanService {
   }
 
   /** Remove a single plan row (soft: sets isActive=false to preserve history links). */
-  async removeRow(rowId: string) {
+  async removeRow(contractId: string, rowId: string) {
     const existing = await this.prisma.contractPaymentPlan.findUnique({
       where: { id: rowId },
     });
-    if (!existing) throw new NotFoundException("Plan row not found");
-    // Hard delete is safe here: invoices reference it via SET NULL, so history is kept.
+    if (!existing || existing.contractId !== contractId) {
+      throw new NotFoundException({
+        code: "PAYMENT_PLAN_ROW_NOT_FOUND",
+        details: { rowId, contractId },
+      });
+    }
+    await this.assertNoFinancialHistory(contractId);
+    // Hard delete is safe only before financial history exists.
     return this.prisma.contractPaymentPlan.delete({ where: { id: rowId } });
   }
 
@@ -142,7 +223,11 @@ export class ContractPaymentPlanService {
   /** Return the ON_SIGN (down payment) plan row, or null if none. */
   async getOnSignRow(contractId: string): Promise<ContractPaymentPlan | null> {
     return this.prisma.contractPaymentPlan.findFirst({
-      where: { contractId, triggerType: PaymentPlanTriggerType.ON_SIGN },
+      where: {
+        contractId,
+        triggerType: PaymentPlanTriggerType.ON_SIGN,
+        isActive: true,
+      },
       orderBy: { sequence: "asc" },
     });
   }
@@ -152,18 +237,44 @@ export class ContractPaymentPlanService {
       where: { id: contractId },
       select: { id: true, totalValue: true, status: true },
     });
-    if (!contract) throw new NotFoundException("Contract not found");
+    if (!contract) {
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: { id: contractId },
+      });
+    }
     return contract;
   }
 
-  private async validateRows(rows: PaymentPlanRowDto[], totalValue: number) {
+  private async assertNoFinancialHistory(contractId: string) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { contractId },
+      select: { id: true },
+    });
+    if (invoice) {
+      throw new ConflictException({
+        code: "PAYMENT_PLAN_FINANCIAL_HISTORY_LOCKED",
+        details: { contractId },
+      });
+    }
+  }
+
+  async validateRows(rows: PaymentPlanRowDto[], totalValue: number) {
     const onSignRows = rows.filter(
       (r) => r.triggerType === PaymentPlanTriggerType.ON_SIGN,
     );
+    const sequences = rows.map((row, index) => row.sequence ?? index);
+    if (new Set(sequences).size !== sequences.length) {
+      throw new BadRequestException({
+        code: "PAYMENT_PLAN_SEQUENCE_DUPLICATE",
+        details: {},
+      });
+    }
     if (onSignRows.length > 1) {
-      throw new BadRequestException(
-        "A contract may have at most one ON_SIGN (down payment) plan row.",
-      );
+      throw new BadRequestException({
+        code: "PAYMENT_PLAN_MULTIPLE_ON_SIGN",
+        details: {},
+      });
     }
 
     // Count ON_SIGN rows already in DB when adding/updating a single row.
@@ -171,15 +282,17 @@ export class ContractPaymentPlanService {
     for (const r of rows) {
       if (r.amountType === PaymentAmountType.PERCENT) {
         if (r.amountValue < 0 || r.amountValue > 100) {
-          throw new BadRequestException(
-            `Plan row "${r.label}": PERCENT amount must be between 0 and 100.`,
-          );
+          throw new BadRequestException({
+            code: "PAYMENT_PLAN_PERCENT_INVALID",
+            details: { label: r.label },
+          });
         }
       } else {
         if (r.amountValue < 0) {
-          throw new BadRequestException(
-            `Plan row "${r.label}": FIXED amount must be zero or greater.`,
-          );
+          throw new BadRequestException({
+            code: "PAYMENT_PLAN_FIXED_AMOUNT_INVALID",
+            details: { label: r.label },
+          });
         }
       }
 
@@ -189,9 +302,10 @@ export class ContractPaymentPlanService {
         r.amountType === PaymentAmountType.FIXED &&
         r.amountValue > totalValue
       ) {
-        throw new BadRequestException(
-          `Down payment (${r.amountValue}) cannot exceed contract total value (${totalValue}).`,
-        );
+        throw new BadRequestException({
+          code: "PAYMENT_PLAN_DOWN_PAYMENT_EXCEEDS_TOTAL",
+          details: { label: r.label, totalValue },
+        });
       }
     }
   }

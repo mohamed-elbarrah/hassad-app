@@ -623,6 +623,9 @@ export interface PortalContractInvoice {
   id: string;
   invoiceNumber: string;
   amount: number;
+  currency?: string;
+  paidAmount?: number;
+  remainingAmount?: number;
   status: InvoiceStatus;
   paymentMethod: PaymentMethod;
   issueDate: string;
@@ -642,10 +645,12 @@ export interface PortalContractDetail {
   endDate: string;
   monthlyValue: number;
   totalValue: number;
+  currency: string;
   initialPaymentRequired?: boolean;
   initialPaymentStatus?: string;
   initialPaymentAmount?: number | null;
   filePath: string | null;
+  fileUrl?: string | null;
   shareLinkToken: string | null;
   versionNumber: number;
   eSigned: boolean;
@@ -654,8 +659,31 @@ export interface PortalContractDetail {
   servicesList?: ServiceItem[] | null;
   client: PortalContractClient | null;
   proposal?: unknown;
-  invoices: PortalContractInvoice[];
+  invoices?: PortalContractInvoice[] | null;
+  paymentPlans?: Array<{
+    id: string;
+    label: string;
+    sequence: number;
+    triggerType: string;
+    amountType: string;
+    amountValue: number;
+    currency?: string;
+    isRecurring: boolean;
+    dueOffsetDays?: number | null;
+    isActive: boolean;
+  }> | null;
   request: { id: string; status: string } | null;
+  initialPayment?: {
+    required: boolean;
+    status: string;
+    amount: number;
+    currency: string;
+    invoiceId: string | null;
+    paidAmount: number;
+    remainingAmount: number;
+  };
+  paymentEligibility?: { canPay: boolean; reasonCode: string | null };
+  signingEligibility?: { canSign: boolean; reasonCode: string | null };
 }
 
 export const portalApi = createApi({

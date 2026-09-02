@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import {
   CreateInvoiceDto,
@@ -115,7 +116,11 @@ export class FinanceService {
         entityType: "INVOICE",
         eventType: "INVOICE_CREATED",
         userId: clientUser.userId,
-        metadata: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: invoice.amount },
+        metadata: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.amount,
+        },
       });
     }
 
@@ -130,6 +135,7 @@ export class FinanceService {
         clientId: true,
         title: true,
         totalValue: true,
+        currency: true,
         servicesList: true,
         proposal: { select: { durationDays: true } },
       },
@@ -187,6 +193,7 @@ export class FinanceService {
         createdBy: userId,
         invoiceNumber,
         amount: contract.totalValue,
+        currency: contract.currency,
         status: InvoiceStatus.PENDING,
         paymentMethod: PaymentMethod.BANK_TRANSFER,
         issueDate: new Date(),
@@ -224,7 +231,12 @@ export class FinanceService {
           entityType: "invoice",
           eventType: "INVOICE_CREATED",
           userId: clientUser.userId,
-          metadata: { invoiceId: invoice.id, invoiceNumber, contractId: contract.id, contractTitle: contract.title },
+          metadata: {
+            invoiceId: invoice.id,
+            invoiceNumber,
+            contractId: contract.id,
+            contractTitle: contract.title,
+          },
         })
         .catch(() => undefined);
     }
@@ -247,20 +259,29 @@ export class FinanceService {
     userId: string;
     projectId?: string;
     notes?: string;
+    /** Use the caller's transaction when invoice creation is part of a reconciliation. */
+    tx?: Prisma.TransactionClient;
   }) {
-    const contract = await this.prisma.contract.findUnique({
+    const db = params.tx ?? this.prisma;
+    const contract = await db.contract.findUnique({
       where: { id: params.contractId },
       select: { id: true, clientId: true, title: true, currency: true },
     });
-    if (!contract) throw new NotFoundException("Contract not found");
+    if (!contract) {
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: { id: params.contractId },
+      });
+    }
     if (params.amount <= 0) {
-      throw new BadRequestException(
-        "Scheduled invoice amount must be greater than zero",
-      );
+      throw new BadRequestException({
+        code: "SCHEDULED_INVOICE_AMOUNT_INVALID",
+        details: { contractId: params.contractId },
+      });
     }
 
     const invoiceNumber = this.generateInvoiceNumber();
-    const invoice = await this.prisma.invoice.create({
+    const invoice = await db.invoice.create({
       data: {
         clientId: contract.clientId,
         contractId: contract.id,
@@ -269,6 +290,7 @@ export class FinanceService {
 
         invoiceNumber,
         amount: params.amount,
+        currency: contract.currency,
         status: InvoiceStatus.PENDING,
         paymentMethod: PaymentMethod.BANK_TRANSFER,
         issueDate: params.issueDate,
@@ -287,15 +309,27 @@ export class FinanceService {
       include: { items: true },
     });
 
-    await this.logToLedger({
-      action: "GENERATE_SCHEDULED_INVOICE",
-      entity: "INVOICE",
-      entityId: invoice.id,
-      userId: params.userId,
-      after: invoice,
-    });
+    if (params.tx) {
+      await params.tx.ledger.create({
+        data: {
+          action: "GENERATE_SCHEDULED_INVOICE",
+          entity: "INVOICE",
+          entityId: invoice.id,
+          userId: params.userId,
+          after: invoice,
+        },
+      });
+    } else {
+      await this.logToLedger({
+        action: "GENERATE_SCHEDULED_INVOICE",
+        entity: "INVOICE",
+        entityId: invoice.id,
+        userId: params.userId,
+        after: invoice,
+      });
+    }
 
-    const clientUser = await this.prisma.client.findUnique({
+    const clientUser = await db.client.findUnique({
       where: { id: contract.clientId },
       select: { userId: true },
     });
@@ -306,7 +340,13 @@ export class FinanceService {
           entityType: "invoice",
           eventType: "INVOICE_CREATED",
           userId: clientUser.userId,
-          metadata: { invoiceId: invoice.id, invoiceLabel: params.label, amount: params.amount, contractId: contract.id, contractTitle: contract.title },
+          metadata: {
+            invoiceId: invoice.id,
+            invoiceLabel: params.label,
+            amount: params.amount,
+            contractId: contract.id,
+            contractTitle: contract.title,
+          },
         })
         .catch(() => undefined);
     }
@@ -429,7 +469,12 @@ export class FinanceService {
         entityType: "PAYMENT",
         eventType: "PAYMENT_RECEIVED",
         userId: clientUser.userId,
-        metadata: { paymentId: payment.id, invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: payment.amount },
+        metadata: {
+          paymentId: payment.id,
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: payment.amount,
+        },
       });
     }
 
@@ -1569,7 +1614,11 @@ export class FinanceService {
         entityType: "invoice",
         eventType: "INVOICE_SENT",
         userId: clientUser.userId,
-        metadata: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: invoice.amount },
+        metadata: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.amount,
+        },
       });
     }
 
@@ -1617,7 +1666,11 @@ export class FinanceService {
         entityType: "invoice",
         eventType: "INVOICE_REMINDER",
         userId: clientUser.userId,
-        metadata: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: invoice.amount },
+        metadata: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.amount,
+        },
       });
     }
 

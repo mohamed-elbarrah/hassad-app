@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { FileSignature, Loader2 } from "lucide-react";
 import {
+  ContractStatus,
   ContractType,
   PaymentAmountType,
   ProposalStatus,
@@ -23,6 +24,17 @@ import {
 } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { CalculatedAmount } from "@/components/ui/calculated-amount";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +74,7 @@ const contractFormSchema = z
     numberOfMonths: z.coerce.number().int().positive().optional(),
     initialPaymentRequired: z.boolean().default(true),
     initialPaymentType: z.enum(["PERCENT", "FIXED"]).default("PERCENT"),
-    initialPaymentValue: z.coerce.number().positive().optional(),
+    initialPaymentValue: z.coerce.number().nonnegative().optional(),
     startDate: z.string().min(1, "تاريخ البداية مطلوب"),
     endDate: z.string().min(1, "تاريخ النهاية مطلوب"),
   })
@@ -76,6 +88,49 @@ const contractFormSchema = z
         code: "custom",
         path: ["endDate"],
         message: "يجب أن يكون تاريخ النهاية بعد تاريخ البداية",
+      });
+    }
+    if (values.initialPaymentRequired) {
+      if (values.initialPaymentValue === undefined) {
+        context.addIssue({
+          code: "custom",
+          path: ["initialPaymentValue"],
+          message: "قيمة الدفعة الأولية مطلوبة",
+        });
+      } else if (values.initialPaymentValue <= 0) {
+        context.addIssue({
+          code: "custom",
+          path: ["initialPaymentValue"],
+          message: "يجب أن تكون الدفعة الأولية أكبر من صفر",
+        });
+      } else if (
+        values.initialPaymentType === "PERCENT" &&
+        values.initialPaymentValue > 100
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["initialPaymentValue"],
+          message: "يجب ألا تتجاوز النسبة 100٪",
+        });
+      } else if (
+        values.initialPaymentType === "FIXED" &&
+        values.initialPaymentValue > (values.totalValue ?? 0)
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["initialPaymentValue"],
+          message: "يجب ألا تتجاوز الدفعة الأولية إجمالي العقد",
+        });
+      }
+    }
+    if (
+      values.type === ContractType.MONTHLY_RETAINER &&
+      values.numberOfMonths === undefined
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["numberOfMonths"],
+        message: "عدد أشهر الاشتراك مطلوب",
       });
     }
   });
@@ -98,6 +153,12 @@ const contractTypeLabels: Partial<Record<ContractType, string>> = {
   [ContractType.FIXED_PROJECT]: "مشروع ثابت",
 };
 
+// Once signed/activated, changing billing terms would invalidate payment state.
+const EDITABLE_TERM_STATUSES = new Set([
+  ContractStatus.DRAFT,
+  ContractStatus.SENT,
+]);
+
 function getDefaultValues(
   contract: ContractItem | null | undefined,
   requestId: string,
@@ -110,7 +171,9 @@ function getDefaultValues(
     type: contract?.type ?? ContractType.FIXED_PROJECT,
     monthlyValue: contract?.monthlyValue ?? 0,
     totalValue: contract?.totalValue ?? 0,
-    numberOfMonths: contract?.numberOfMonths ?? 1,
+    numberOfMonths:
+      contract?.numberOfMonths ??
+      (contract?.type === ContractType.MONTHLY_RETAINER ? 1 : undefined),
     initialPaymentRequired: contract?.initialPaymentRequired ?? true,
     initialPaymentType:
       (contract?.downPaymentType as "PERCENT" | "FIXED") ?? "PERCENT",
@@ -132,8 +195,20 @@ export function CreateContractDialog({
   preSelectedRequestId = "",
 }: CreateContractDialogProps) {
   const isEdit = mode === "edit";
-  const [file, setFile] = useState<File | null>(null);
+  const [fileSelection, setFileSelection] = useState<{
+    file: File;
+    contractId?: string;
+  } | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] =
+    useState<ContractFormValues | null>(null);
+  // Tie a selected file to its contract so parent updates cannot submit stale files.
+  const file =
+    fileSelection &&
+    fileSelection.contractId === (isEdit ? contract?.id : undefined)
+      ? fileSelection.file
+      : null;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const initializedDialogRef = useRef<string | null>(null);
   const open = controlledOpen;
 
   const form = useForm<ContractFormInput, unknown, ContractFormValues>({
@@ -171,6 +246,10 @@ export function CreateContractDialog({
   const [updateContract, { isLoading: isUpdating }] =
     useUpdateSalesContractMutation();
   const isSubmitting = isCreating || isUpdating;
+  const canEditTerms =
+    !isEdit ||
+    Boolean(contract?.status && EDITABLE_TERM_STATUSES.has(contract.status));
+  const canEditContract = !isEdit || canEditTerms;
 
   const proposalOptions = useMemo(() => {
     const proposals = proposalsData?.items ?? [];
@@ -183,12 +262,31 @@ export function CreateContractDialog({
   const selectedProposal = proposalOptions.find(
     (proposal) => proposal.id === selectedProposalId,
   );
+  // Edit mode does not load the proposal list; use the contract snapshot.
+  const proposalSummary = selectedProposal ?? contract?.proposal;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      initializedDialogRef.current = null;
+      return;
+    }
+
+    const dialogKey = `${mode}:${contract?.id ?? "new"}:${preSelectedRequestId}:${proposalId ?? ""}`;
+    if (initializedDialogRef.current === dialogKey) return;
+    if (form.formState.isDirty || fileSelection) return;
+
     form.reset(getDefaultValues(contract, preSelectedRequestId, proposalId));
+    initializedDialogRef.current = dialogKey;
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, [contract, form, open, preSelectedRequestId, proposalId]);
+  }, [
+    contract,
+    fileSelection,
+    form,
+    mode,
+    open,
+    preSelectedRequestId,
+    proposalId,
+  ]);
 
   useEffect(() => {
     if (isEdit || !selectedProposalId) return;
@@ -221,12 +319,9 @@ export function CreateContractDialog({
         : initialPaymentRequired
           ? paymentValue
           : 0;
-    const remainingMonths = months - 1;
     form.setValue(
       "monthlyValue",
-      months > 0 && remainingMonths > 0
-        ? (total - initialAmount) / remainingMonths
-        : 0,
+      months > 0 ? Math.max(0, (total - initialAmount) / months) : 0,
       {
         shouldValidate: true,
       },
@@ -245,10 +340,10 @@ export function CreateContractDialog({
     if (file) {
       const isPdf =
         file.type === "application/pdf" && /\.pdf$/i.test(file.name);
-      const maxFileSize = 10 * 1024 * 1024;
+      const maxFileSize = 50 * 1024 * 1024;
       if (!isPdf || file.size > maxFileSize) {
         form.setError("root", {
-          message: "يجب اختيار ملف PDF بحجم لا يتجاوز 10 ميجابايت",
+          message: "يجب اختيار ملف PDF بحجم لا يتجاوز 50 ميجابايت",
         });
         return;
       }
@@ -262,6 +357,28 @@ export function CreateContractDialog({
       return;
     }
 
+    if (termsChanged(values)) {
+      setPendingConfirmation(values);
+      return;
+    }
+
+    await submitValues(values);
+  }
+
+  function termsChanged(values: ContractFormValues) {
+    return Boolean(
+      isEdit &&
+      contract &&
+      (values.type !== contract.type ||
+        values.numberOfMonths !== (contract.numberOfMonths ?? undefined) ||
+        values.initialPaymentRequired !== contract.initialPaymentRequired ||
+        values.initialPaymentType !== (contract.downPaymentType ?? "PERCENT") ||
+        values.initialPaymentValue !==
+          (contract.downPaymentValue ?? undefined)),
+    );
+  }
+
+  async function submitValues(values: ContractFormValues) {
     try {
       if (isEdit && contract) {
         await updateContract({
@@ -270,8 +387,25 @@ export function CreateContractDialog({
             title: values.title,
             monthlyValue: values.monthlyValue,
             totalValue: values.totalValue,
+            ...(canEditTerms && termsChanged(values)
+              ? {
+                  type: values.type,
+                  numberOfMonths:
+                    values.type === ContractType.MONTHLY_RETAINER
+                      ? values.numberOfMonths
+                      : undefined,
+                  initialPaymentRequired: values.initialPaymentRequired,
+                  initialPaymentType: values.initialPaymentRequired
+                    ? (values.initialPaymentType as PaymentAmountType)
+                    : undefined,
+                  initialPaymentValue: values.initialPaymentRequired
+                    ? values.initialPaymentValue
+                    : undefined,
+                }
+              : {}),
             startDate: values.startDate,
             endDate: values.endDate,
+            file: file ?? undefined,
           },
         }).unwrap();
         toast.success("تم تحديث العقد");
@@ -308,7 +442,8 @@ export function CreateContractDialog({
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
-      setFile(null);
+      setPendingConfirmation(null);
+      setFileSelection(null);
       form.clearErrors();
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -316,336 +451,437 @@ export function CreateContractDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0"
-        dir="rtl"
-      >
-        <DialogHeader className="shrink-0 border-b px-6 py-4 text-right">
-          <DialogTitle>{isEdit ? "تعديل العقد" : "إنشاء عقد"}</DialogTitle>
-          <DialogDescription>
-            اربط العقد بالعرض المعتمد وأكمل بيانات العقد والملف المرفق.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent
+          className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0"
+          dir="rtl"
+        >
+          <DialogHeader className="shrink-0 border-b px-6 py-4 text-right">
+            <DialogTitle>{isEdit ? "تعديل العقد" : "إنشاء عقد"}</DialogTitle>
+            <DialogDescription>
+              اربط العقد بالعرض المعتمد وأكمل بيانات العقد والملف المرفق.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          <Form {...form}>
-            <form
-              id="contract-form"
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="flex flex-col gap-5"
-            >
-              <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-4">
-                <div className="flex flex-col gap-1">
-                  <h2 className="text-base font-semibold">
-                    ملخص العرض المعتمد
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    يتم إنشاء العقد من نسخة العرض المعتمد ولا يمكن تعديل قيمته
-                    هنا.
-                  </p>
-                </div>
-                {selectedProposal ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        عنوان العرض
-                      </p>
-                      <p className="font-medium">{selectedProposal.title}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">العميل</p>
-                      <p className="font-medium">
-                        {selectedProposal.client?.companyName ??
-                          selectedProposal.request?.companyName ??
-                          "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        القيمة المعتمدة
-                      </p>
-                      <p className="font-medium">
-                        {selectedProposal.totalPrice ?? 0} SAR
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">الخدمات</p>
-                      <p className="font-medium">
-                        {selectedProposal.servicesList?.length ?? 0} خدمة
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {proposalsLoading
-                      ? "جارٍ تحميل العرض..."
-                      : "لم يتم العثور على العرض المعتمد."}
-                  </p>
-                )}
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>عنوان العقد</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="مثال: عقد إدارة الحملات"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>نوع العقد</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        disabled={isEdit}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر النوع" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectGroup>
-                            {Object.entries(contractTypeLabels).map(
-                              ([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {selectedType === ContractType.MONTHLY_RETAINER ? (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="numberOfMonths"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>عدد أشهر الاشتراك</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={String(field.value ?? "")}
-                              onChange={(event) =>
-                                field.onChange(event.target.value)
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="monthlyValue"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>القيمة الشهرية المحسوبة</FormLabel>
-                          <FormControl>
-                            <CalculatedAmount
-                              ariaLabel="القيمة الشهرية المحسوبة"
-                              value={Number(field.value ?? 0)}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            تُحسب من القيمة المعتمدة وعدد أشهر الاشتراك.
-                          </FormDescription>
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                ) : null}
-                <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-4 md:col-span-2">
-                  <div>
-                    <h2 className="text-base font-semibold">الدفعة الأولية</h2>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <Form {...form}>
+              <form
+                id="contract-form"
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="flex flex-col gap-5"
+              >
+                <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-4">
+                  <div className="flex flex-col gap-1">
+                    <h2 className="text-base font-semibold">
+                      ملخص العرض المعتمد
+                    </h2>
                     <p className="text-sm text-muted-foreground">
-                      يجب سداد الدفعة الأولية قبل تمكين العميل من توقيع العقد.
+                      يتم إنشاء العقد من نسخة العرض المعتمد ولا يمكن تعديل قيمته
+                      هنا.
                     </p>
                   </div>
+                  {proposalSummary ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          عنوان العرض
+                        </p>
+                        <p className="font-medium">{proposalSummary.title}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">العميل</p>
+                        <p className="font-medium">
+                          {selectedProposal?.client?.companyName ??
+                            selectedProposal?.request?.companyName ??
+                            contract?.client?.companyName ??
+                            "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          القيمة المعتمدة
+                        </p>
+                        <p className="font-medium">
+                          {(isEdit
+                            ? contract?.totalValue
+                            : proposalSummary.totalPrice) ?? 0}{" "}
+                          SAR
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">الخدمات</p>
+                        <p className="font-medium">
+                          {proposalSummary.servicesList?.length ?? 0} خدمة
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {proposalsLoading
+                        ? "جارٍ تحميل العرض..."
+                        : "لم يتم العثور على العرض المعتمد."}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
-                    name="initialPaymentRequired"
+                    name="title"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-md border p-3">
-                        <FormLabel>يتطلب دفعة أولية</FormLabel>
+                      <FormItem>
+                        <FormLabel>عنوان العقد</FormLabel>
                         <FormControl>
-                          <input
-                            type="checkbox"
-                            checked={field.value}
-                            onChange={field.onChange}
-                            className="size-4 accent-primary"
+                          <Input
+                            placeholder="مثال: عقد إدارة الحملات"
+                            {...field}
+                            disabled={!canEditContract}
                           />
                         </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                  {initialPaymentRequired ? (
-                    <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>نوع العقد</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={(value) => {
+                            const nextType = value as ContractType;
+                            field.onChange(nextType);
+                            if (nextType === ContractType.FIXED_PROJECT) {
+                              form.setValue("monthlyValue", 0, {
+                                shouldDirty: true,
+                              });
+                              form.setValue("numberOfMonths", undefined, {
+                                shouldDirty: true,
+                              });
+                            } else if (
+                              form.getValues("numberOfMonths") == null
+                            ) {
+                              form.setValue("numberOfMonths", 1, {
+                                shouldDirty: true,
+                              });
+                            }
+                          }}
+                          disabled={!canEditTerms}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر النوع" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectGroup>
+                              {Object.entries(contractTypeLabels).map(
+                                ([value, label]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {label}
+                                  </SelectItem>
+                                ),
+                              )}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  {selectedType === ContractType.MONTHLY_RETAINER ? (
+                    <>
                       <FormField
                         control={form.control}
-                        name="initialPaymentType"
+                        name="numberOfMonths"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>نوع الدفعة</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="PERCENT">
-                                  نسبة من الإجمالي
-                                </SelectItem>
-                                <SelectItem value="FIXED">مبلغ ثابت</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="initialPaymentValue"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {initialPaymentType === "PERCENT"
-                                ? "النسبة"
-                                : "المبلغ"}
-                            </FormLabel>
+                            <FormLabel>عدد أشهر الاشتراك</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
-                                min="0"
-                                step="0.01"
+                                min="1"
                                 value={String(field.value ?? "")}
                                 onChange={(event) =>
                                   field.onChange(event.target.value)
                                 }
+                                disabled={!canEditTerms}
                               />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="monthlyValue"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>القيمة الشهرية المحسوبة</FormLabel>
+                            <FormControl>
+                              <CalculatedAmount
+                                ariaLabel="القيمة الشهرية المحسوبة"
+                                value={Number(field.value ?? 0)}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              تُحسب من القيمة المعتمدة وعدد أشهر الاشتراك.
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  ) : null}
+                  <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-4 md:col-span-2">
+                    <div>
+                      <h2 className="text-base font-semibold">
+                        الدفعة الأولية
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        يجب سداد الدفعة الأولية قبل تمكين العميل من توقيع العقد.
+                      </p>
                     </div>
+                    <FormField
+                      control={form.control}
+                      name="initialPaymentRequired"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-md border p-3">
+                          <FormLabel>يتطلب دفعة أولية</FormLabel>
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={(checked) =>
+                                field.onChange(checked === true)
+                              }
+                              disabled={!canEditTerms}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    {initialPaymentRequired ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="initialPaymentType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>نوع الدفعة</FormLabel>
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                disabled={!canEditTerms}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="PERCENT">
+                                    نسبة من الإجمالي
+                                  </SelectItem>
+                                  <SelectItem value="FIXED">
+                                    مبلغ ثابت
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="initialPaymentValue"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                {initialPaymentType === "PERCENT"
+                                  ? "النسبة"
+                                  : "المبلغ"}
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={String(field.value ?? "")}
+                                  onChange={(event) =>
+                                    field.onChange(event.target.value)
+                                  }
+                                  disabled={!canEditTerms}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>تاريخ البداية</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                            disabled={!canEditContract}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>تاريخ النهاية</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                            disabled={!canEditContract}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {isEdit ? (
+                    <>
+                      <Label htmlFor="contract-file">
+                        استبدال ملف العقد (اختياري)
+                      </Label>
+                      <Input
+                        ref={fileInputRef}
+                        id="contract-file"
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        disabled={!canEditContract}
+                        aria-invalid={Boolean(form.formState.errors.root)}
+                        aria-describedby="contract-file-message"
+                        onChange={(event) => {
+                          form.clearErrors("root");
+                          const selectedFile = event.target.files?.[0];
+                          setFileSelection(
+                            selectedFile
+                              ? { file: selectedFile, contractId: contract?.id }
+                              : null,
+                          );
+                        }}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        {file?.name ?? "اتركه فارغاً للإبقاء على الملف الحالي"}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Label htmlFor="contract-file">ملف العقد PDF</Label>
+                      <Input
+                        ref={fileInputRef}
+                        id="contract-file"
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        required
+                        aria-invalid={Boolean(form.formState.errors.root)}
+                        aria-describedby="contract-file-message"
+                        onChange={(event) => {
+                          form.clearErrors("root");
+                          const selectedFile = event.target.files?.[0];
+                          setFileSelection(
+                            selectedFile ? { file: selectedFile } : null,
+                          );
+                        }}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        {file?.name ?? "اختر ملف PDF"}
+                      </p>
+                    </>
+                  )}
+                  {form.formState.errors.root?.message ? (
+                    <p
+                      id="contract-file-message"
+                      className="text-sm font-medium text-destructive"
+                      role="alert"
+                    >
+                      {form.formState.errors.root.message}
+                    </p>
                   ) : null}
                 </div>
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>تاريخ البداية</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>تاريخ النهاية</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              </form>
+            </Form>
+          </div>
 
-              <div className="flex flex-col gap-2">
-                {isEdit ? (
-                  <p className="text-sm text-muted-foreground">
-                    ملف العقد الحالي محفوظ. استبدال الملفات سيكون متاحاً بعد دعم
-                    ذلك في واجهة التحديث.
-                  </p>
-                ) : (
-                  <>
-                    <Label htmlFor="contract-file">ملف العقد PDF</Label>
-                    <Input
-                      ref={fileInputRef}
-                      id="contract-file"
-                      type="file"
-                      accept="application/pdf,.pdf"
-                      required
-                      aria-invalid={Boolean(form.formState.errors.root)}
-                      aria-describedby="contract-file-message"
-                      onChange={(event) => {
-                        form.clearErrors("root");
-                        setFile(event.target.files?.[0] ?? null);
-                      }}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      {file?.name ?? "اختر ملف PDF"}
-                    </p>
-                  </>
-                )}
-                {form.formState.errors.root?.message ? (
-                  <p
-                    id="contract-file-message"
-                    className="text-sm font-medium text-destructive"
-                    role="alert"
-                  >
-                    {form.formState.errors.root.message}
-                  </p>
-                ) : null}
-              </div>
-            </form>
-          </Form>
-        </div>
+          <DialogFooter className="shrink-0 border-t bg-background px-6 py-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="submit"
+              form="contract-form"
+              disabled={isSubmitting || !canEditContract}
+            >
+              {isSubmitting ? (
+                <Loader2 data-icon="inline-start" className="animate-spin" />
+              ) : (
+                <FileSignature data-icon="inline-start" />
+              )}
+              {isEdit ? "حفظ التعديلات" : "إنشاء العقد"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <DialogFooter className="shrink-0 border-t bg-background px-6 py-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-          >
-            إلغاء
-          </Button>
-          <Button type="submit" form="contract-form" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <Loader2 data-icon="inline-start" className="animate-spin" />
-            ) : (
-              <FileSignature data-icon="inline-start" />
-            )}
-            {isEdit ? "حفظ التعديلات" : "إنشاء العقد"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <AlertDialog
+        open={Boolean(pendingConfirmation)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !isSubmitting) setPendingConfirmation(null);
+        }}
+      >
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد تغيير شروط العقد؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيؤثر تغيير نوع العقد أو شروط الدفعة على طريقة احتساب الدفعات
+              والفواتير القادمة. راجع البيانات قبل المتابعة.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isSubmitting}
+              onClick={(event) => {
+                event.preventDefault();
+                if (!pendingConfirmation) return;
+                const values = pendingConfirmation;
+                setPendingConfirmation(null);
+                void submitValues(values);
+              }}
+            >
+              {isSubmitting ? "جارٍ الحفظ" : "تأكيد وحفظ"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

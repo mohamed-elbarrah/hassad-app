@@ -45,10 +45,6 @@ export class CreateProposalDto {
   @IsOptional()
   @IsString()
   durationUnit?: string;
-
-  @IsOptional()
-  @IsString()
-  filePath?: string;
 }
 
 export class UpdateProposalDto {
@@ -81,10 +77,6 @@ export class UpdateProposalDto {
   @IsOptional()
   @IsString()
   durationUnit?: string;
-
-  @IsOptional()
-  @IsString()
-  filePath?: string;
 }
 
 export class ProposalResponseDto {

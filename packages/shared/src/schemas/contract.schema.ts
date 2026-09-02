@@ -24,7 +24,6 @@ export const UpdateContractSchema = z
     endDate: z.string().min(1).optional(),
     monthlyValue: z.number().nonnegative().optional(),
     totalValue: z.number().positive().optional(),
-    filePath: z.string().optional().nullable(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",

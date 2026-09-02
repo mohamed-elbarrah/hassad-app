@@ -217,14 +217,14 @@ export class ContractsController {
     @Param("rowId") rowId: string,
     @Body() row: PaymentPlanRowDto,
   ) {
-    return this.contractsService.updatePaymentPlanRow(rowId, row);
+    return this.contractsService.updatePaymentPlanRow(id, rowId, row);
   }
 
   @Delete(":id/payment-plan/rows/:rowId")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("contracts.manage_payment_plan")
   removePaymentPlanRow(@Param("id") id: string, @Param("rowId") rowId: string) {
-    return this.contractsService.removePaymentPlanRow(rowId);
+    return this.contractsService.removePaymentPlanRow(id, rowId);
   }
 
   // ─── Public share-link endpoints (CLIENT token-based) ─────────────────────

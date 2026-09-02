@@ -2,9 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   ForbiddenException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma, ProposalStatus as PrismaProposalStatus } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { CreateProposalDto, UpdateProposalDto } from "../dto/proposal.dto";
 import { ProposalStatus, RequestStatus } from "@hassad/shared";
@@ -12,6 +13,7 @@ import { randomBytes } from "crypto";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { RequestsService } from "../../requests/requests.service";
 import { StorageService } from "../../../common/storage/storage.service";
+import { StorageCategory } from "../../../common/storage/storage.constants";
 import {
   buildRequestAccessWhere,
   type RequestAccessScope,
@@ -29,7 +31,7 @@ export class ProposalsService {
   /** Create a proposal and publish it through the legacy workflow. */
   async create(
     userId: string,
-    dto: CreateProposalDto,
+    dto: CreateProposalDto & { filePath?: string },
     accessScope?: RequestAccessScope,
   ) {
     const token = randomBytes(32).toString("hex");
@@ -81,7 +83,10 @@ export class ProposalsService {
           entityType: "proposal",
           eventType: "PROPOSAL_SENT",
           userId: recipientId,
-          metadata: { proposalId: created.proposal.id, proposalTitle: created.proposal.title },
+          metadata: {
+            proposalId: created.proposal.id,
+            proposalTitle: created.proposal.title,
+          },
         })
         .catch(() => undefined);
     }
@@ -332,10 +337,11 @@ export class ProposalsService {
     dto: UpdateProposalDto,
     userId: string,
     accessScope?: RequestAccessScope,
+    file?: Express.Multer.File,
   ) {
     const proposal = await this.findOne(id, accessScope);
 
-    // Owner guard: only creator or ADMIN can update
+    // Keep the existing Sales ownership check before accepting/uploading a file.
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, role: { select: { name: true } } },
@@ -351,6 +357,14 @@ export class ProposalsService {
       });
     }
 
+    const editableStatuses = new Set(["DRAFT", "SENT", "REVISION_REQUESTED"]);
+    if (!editableStatuses.has(proposal.status)) {
+      throw new ConflictException({
+        code: "PROPOSAL_NOT_EDITABLE",
+        details: { id, status: proposal.status },
+      });
+    }
+
     const { servicesList, ...scalarData } = dto;
     const updateData: Prisma.ProposalUpdateInput = {
       ...scalarData,
@@ -359,10 +373,79 @@ export class ProposalsService {
         : {}),
     };
 
-    return this.prisma.proposal.update({
-      where: { id },
-      data: updateData,
-    });
+    let uploadedKey: string | undefined;
+    if (file) {
+      const uploadResult = await this.storageService.upload({
+        category: StorageCategory.PROPOSAL,
+        entityId: id,
+        file: {
+          buffer: file.buffer,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+        },
+      });
+      uploadedKey = uploadResult.key;
+      updateData.filePath = uploadedKey;
+    }
+
+    let previousFilePath = proposal.filePath;
+    let committed = false;
+    try {
+      const updated = await this.prisma.$transaction(
+        async (tx) => {
+          const current = await tx.proposal.findFirst({
+            where: {
+              id,
+              ...(accessScope?.assignedSalesId
+                ? { request: buildRequestAccessWhere(accessScope) }
+                : {}),
+            },
+            select: { status: true, createdBy: true, filePath: true },
+          });
+          if (!current) {
+            throw new NotFoundException({
+              code: "PROPOSAL_NOT_FOUND",
+              details: { id },
+            });
+          }
+          if (!isAdmin && current.createdBy !== userId) {
+            throw new ForbiddenException({
+              code: "PERMISSION_DENIED",
+              details: { resource: "PROPOSAL", id },
+            });
+          }
+          const editableStatuses: PrismaProposalStatus[] = [
+            PrismaProposalStatus.DRAFT,
+            PrismaProposalStatus.SENT,
+            PrismaProposalStatus.REVISION_REQUESTED,
+          ];
+          if (!editableStatuses.includes(current.status)) {
+            throw new ConflictException({
+              code: "PROPOSAL_NOT_EDITABLE",
+              details: { id, status: current.status },
+            });
+          }
+
+          previousFilePath = current.filePath;
+          return tx.proposal.update({ where: { id }, data: updateData });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+      committed = true;
+
+      // Only remove the old object after the database points at the replacement.
+      if (uploadedKey && previousFilePath && previousFilePath !== uploadedKey) {
+        await this.storageService.deleteByKey(previousFilePath);
+      }
+      return updated;
+    } catch (error) {
+      // Prevent an orphan when persistence fails after a successful upload.
+      if (uploadedKey && !committed) {
+        await this.storageService.deleteByKey(uploadedKey);
+      }
+      throw error;
+    }
   }
 
   async send(id: string) {
@@ -500,7 +583,11 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_APPROVED_BY_CLIENT",
       userId: proposal.createdBy,
-      metadata: { proposalId: proposal.id, proposalTitle: proposal.title, notes: notes ?? null },
+      metadata: {
+        proposalId: proposal.id,
+        proposalTitle: proposal.title,
+        notes: notes ?? null,
+      },
     });
 
     return {
@@ -538,7 +625,11 @@ export class ProposalsService {
       entityType: "proposal",
       eventType: "PROPOSAL_REVISION_REQUESTED",
       userId: proposal.createdBy,
-      metadata: { proposalId: proposal.id, proposalTitle: proposal.title, notes: notes ?? null },
+      metadata: {
+        proposalId: proposal.id,
+        proposalTitle: proposal.title,
+        notes: notes ?? null,
+      },
     });
 
     return {
