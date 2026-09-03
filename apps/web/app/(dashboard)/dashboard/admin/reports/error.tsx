@@ -3,7 +3,7 @@
 import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageError";
 
 export default function Error({
-  error,
+  error: _error,
   reset: _reset,
 }: {
   error: Error & { digest?: string };
@@ -12,10 +12,7 @@ export default function Error({
   return (
     <AdminPageError
       title="حدث خطأ في تحميل التقارير"
-      description={
-        error.message ||
-        "تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى."
-      }
+      description="تعذر تحميل بيانات التقارير. يرجى تحديث الصفحة والمحاولة مرة أخرى."
     />
   );
 }

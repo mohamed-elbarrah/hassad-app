@@ -8,10 +8,14 @@ import { EncryptionService } from "../encryption/encryption.service";
 import { AiProviderRegistry } from "./ai-provider-registry.service";
 import {
   ADAPTER_FACTORIES,
+  DEFAULT_BASE_URLS,
   DEFAULT_MODELS,
   SUPPORTED_PROVIDERS,
 } from "../adapters/adapter-factory";
-import type { AiProviderConfig } from "../adapters/provider.interface";
+import {
+  isSafeCustomBaseUrl,
+  type AiProviderConfig,
+} from "../adapters/provider.interface";
 import { AiProvider as AiProviderType, Prisma } from "@prisma/client";
 
 type ProviderJson = Omit<AiProviderType, "apiKey"> & { apiKey: string };
@@ -33,7 +37,11 @@ export class AiProviderService {
 
   async findOne(id: string) {
     const row = await this.prisma.aiProvider.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException("AI provider not found");
+    if (!row)
+      throw new NotFoundException({
+        code: "AI_PROVIDER_NOT_FOUND",
+        details: {},
+      });
     return this.maskKey(row);
   }
 
@@ -43,9 +51,12 @@ export class AiProviderService {
 
   async create(data: Prisma.AiProviderCreateInput) {
     this.assertSupportedProvider(data.name);
+    const baseUrl = this.getBaseUrl(data.name, data.baseUrl);
+    this.assertSafeBaseUrl(baseUrl);
     const row = await this.prisma.aiProvider.create({
       data: {
         ...data,
+        baseUrl,
         apiKey: this.encryption.encrypt(data.apiKey),
       },
     });
@@ -54,9 +65,21 @@ export class AiProviderService {
   }
 
   async update(id: string, data: Prisma.AiProviderUpdateInput) {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
+    this.assertSupportedProvider(existing.name);
 
     const updateData = { ...data } as Record<string, unknown>;
+    const baseUrl = this.getBaseUrl(
+      existing.name,
+      typeof data.baseUrl === "string" ? data.baseUrl : existing.baseUrl,
+    );
+    this.assertSafeBaseUrl(baseUrl);
+    if (
+      data.baseUrl == null ||
+      (typeof data.baseUrl === "string" && data.baseUrl.trim() === "")
+    ) {
+      updateData.baseUrl = baseUrl;
+    }
     if (typeof data.apiKey === "string") {
       updateData.apiKey = this.encryption.encrypt(data.apiKey);
     }
@@ -79,15 +102,24 @@ export class AiProviderService {
     await this.registry.refresh();
   }
 
+  getRegistryStatus() {
+    return this.registry.getStatus();
+  }
+
   async testProvider(id: string): Promise<{ text: string; model: string }> {
     const row = await this.prisma.aiProvider.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException("AI provider not found");
+    if (!row)
+      throw new NotFoundException({
+        code: "AI_PROVIDER_NOT_FOUND",
+        details: {},
+      });
 
     const factory = ADAPTER_FACTORIES[row.name];
     if (!factory)
-      throw new BadRequestException(
-        `No adapter for provider type "${row.name}"`,
-      );
+      throw new BadRequestException({
+        code: "UNSUPPORTED_AI_PROVIDER",
+        details: { name: row.name },
+      });
 
     const apiKey = this.encryption.decrypt(row.apiKey);
 
@@ -113,13 +145,18 @@ export class AiProviderService {
 
   async fetchModels(id: string): Promise<string[]> {
     const row = await this.prisma.aiProvider.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException("AI provider not found");
+    if (!row)
+      throw new NotFoundException({
+        code: "AI_PROVIDER_NOT_FOUND",
+        details: {},
+      });
 
     const factory = ADAPTER_FACTORIES[row.name];
     if (!factory)
-      throw new BadRequestException(
-        `No adapter for provider type "${row.name}"`,
-      );
+      throw new BadRequestException({
+        code: "UNSUPPORTED_AI_PROVIDER",
+        details: { name: row.name },
+      });
 
     const apiKey = this.encryption.decrypt(row.apiKey);
 
@@ -144,6 +181,22 @@ export class AiProviderService {
 
   getDefaultModels(type: string): string[] {
     return DEFAULT_MODELS[type] || [];
+  }
+
+  private getBaseUrl(
+    providerName: string,
+    baseUrl: string | null | undefined,
+  ): string {
+    return baseUrl?.trim() || DEFAULT_BASE_URLS[providerName] || "";
+  }
+
+  private assertSafeBaseUrl(baseUrl: string | null | undefined): void {
+    if (!isSafeCustomBaseUrl(baseUrl)) {
+      throw new BadRequestException({
+        code: "UNSAFE_AI_PROVIDER_BASE_URL",
+        details: {},
+      });
+    }
   }
 
   private assertSupportedProvider(name: string): void {

@@ -301,6 +301,8 @@ DATABASE_URL=postgresql://hassad:<POSTGRES_PASSWORD>@postgres:5432/hassad
 # ── JWT Secrets ────────────────────────────────────
 JWT_SECRET=<long_random_string>
 JWT_REFRESH_SECRET=<long_random_string>
+# Required: stable high-entropy secret used to encrypt database-backed AI provider API keys.
+KEY_ENCRYPTION_SECRET=<stable_random_string>
 JWT_EXPIRES_IN=1h
 JWT_REFRESH_EXPIRES_IN=7d
 COOKIE_TOKEN_MAX_AGE=3600000
@@ -342,8 +344,13 @@ SNAPCHAT_CLIENT_ID=<client_id>
 SNAPCHAT_CLIENT_SECRET=<client_secret>
 # SNAPCHAT_CALLBACK_URL auto-constructed from DOMAIN (or SERVER_IP fallback)
 
-# ── AI (Gemini) ────────────────────────────────────
-GEMINI_API_KEY=<api_key>
+# ── AI providers ───────────────────────────────────
+# Providers and API keys are managed in the admin AI settings; do not put keys here.
+# If baseUrl is omitted or blank, the API persists these defaults:
+# OpenAI:     https://api.openai.com/v1
+# OpenRouter: https://openrouter.ai/api/v1
+# Anthropic:  https://api.anthropic.com/v1
+# Google:     https://generativelanguage.googleapis.com
 ```
 
 ---

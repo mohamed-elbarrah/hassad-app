@@ -1539,7 +1539,7 @@ model ReportSnapshot {
   generatedAt DateTime     @default(now()) @map("generated_at")
   createdAt   DateTime     @default(now()) @map("created_at")
 
-  @@index([reportType, period, periodStart])
+  @@unique([reportType, period, periodStart])
   @@index([generatedAt])
   @@map("report_snapshots")
 }
@@ -1572,6 +1572,7 @@ enum ReportPeriod {
   DAILY
   WEEKLY
   MONTHLY
+  YEARLY
   CUSTOM
 
   @@map("report_periods")

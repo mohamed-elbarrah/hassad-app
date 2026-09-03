@@ -1,23 +1,32 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AiProviderRegistry } from "../ai/services/ai-provider-registry.service";
+import type { AiResult } from "../ai/adapters/provider.interface";
 import { ToolRegistryService } from "./tools/tool-registry.service";
 import { ToolResult } from "./tools/tool.interface";
 import { AiAssistantArea, AiMessageRole } from "@hassad/shared";
 
+export class AiAssistantError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly details: Record<string, unknown> = {},
+  ) {
+    super(code);
+    this.name = "AiAssistantError";
+  }
+}
+
 export interface ToolCallEvent {
-  name: string;
+  tool: string;
   args: Record<string, unknown>;
+  callId: string;
   result: ToolResult;
 }
 
 export interface GenerateResult {
   finalText: string;
   toolCalls: ToolCallEvent[];
+  messageId: string;
 }
 
 @Injectable()
@@ -36,12 +45,7 @@ export class AiAssistantService {
   ) {
     const areas = data.areas.length === 0 ? [AiAssistantArea.ALL] : data.areas;
     return this.prisma.aiConversation.create({
-      data: {
-        userId,
-        title: data.title,
-        areas,
-        preferences: {},
-      },
+      data: { userId, title: data.title, areas, preferences: {} },
       include: { messages: { orderBy: { createdAt: "asc" } } },
     });
   }
@@ -59,30 +63,57 @@ export class AiAssistantService {
       where: { id, userId, isActive: true },
       include: { messages: { orderBy: { createdAt: "asc" } } },
     });
-    if (!conv) throw new NotFoundException("المحادثة غير موجودة");
+    if (!conv) {
+      throw new NotFoundException({
+        code: "AI_CONVERSATION_NOT_FOUND",
+        details: { conversationId: id },
+      });
+    }
     return conv;
   }
 
   async deleteConversation(id: string, userId: string) {
-    const conv = await this.prisma.aiConversation.findFirst({ where: { id, userId } });
-    if (!conv) throw new NotFoundException("المحادثة غير موجودة");
+    const conv = await this.prisma.aiConversation.findFirst({
+      where: { id, userId },
+    });
+    if (!conv) {
+      throw new NotFoundException({
+        code: "AI_CONVERSATION_NOT_FOUND",
+        details: { conversationId: id },
+      });
+    }
     return this.prisma.aiConversation.update({
-      where: { id }, data: { isActive: false },
+      where: { id },
+      data: { isActive: false },
     });
   }
 
+  /** Saves only to an active conversation owned by the authenticated user. */
   async saveMessage(
     conversationId: string,
+    userId: string,
     role: AiMessageRole,
     content: string | null,
     toolCalls?: Record<string, unknown>[],
   ) {
+    const conversation = await this.prisma.aiConversation.findFirst({
+      where: { id: conversationId, userId, isActive: true },
+      select: { id: true },
+    });
+    if (!conversation) {
+      throw new NotFoundException({
+        code: "AI_CONVERSATION_NOT_FOUND",
+        details: { conversationId },
+      });
+    }
     return this.prisma.aiMessage.create({
       data: {
-        conversationId,
+        conversationId: conversation.id,
         role,
         content,
-        toolCalls: toolCalls ? JSON.parse(JSON.stringify(toolCalls)) : undefined,
+        toolCalls: toolCalls
+          ? JSON.parse(JSON.stringify(toolCalls))
+          : undefined,
       },
     });
   }
@@ -92,7 +123,6 @@ export class AiAssistantService {
     const toolDescriptions = tools
       .map((t) => `- ${t.name}: ${t.description}`)
       .join("\n");
-
     return `أنت مساعد ذكي لمنصة "حصاد" لإدارة الأعمال. دورك مساعدة المدير بالتقارير والنصائح والتحليلات بناءً على بيانات حقيقية.
 
 المجالات المتاحة: ${areas.join(", ")}
@@ -114,11 +144,6 @@ ${toolDescriptions}
 {"name": "اسم_الأداة", "args": {}}
 <<<TOOL_CALL>>>
 
-مثال:
-<<<TOOL_CALL>>>
-{"name": "getRevenueSummary", "args": {}}
-<<<TOOL_CALL>>>
-
 إذا لم تكن بحاجة لأداة، أجب مباشرة.`;
   }
 
@@ -128,14 +153,12 @@ ${toolDescriptions}
   ): string {
     const parts = [`[النظام]\n${systemPrompt}\n`];
     for (const m of messages) {
-      let label: string;
-      if (m.role === "user") {
-        label = "المستخدم";
-      } else if (m.role === "system") {
-        label = "نتيجة الأداة";
-      } else {
-        label = "المساعد";
-      }
+      const label =
+        m.role === "user"
+          ? "المستخدم"
+          : m.role === "system"
+            ? "نتيجة الأداة"
+            : "المساعد";
       parts.push(`[${label}]\n${m.content}`);
     }
     parts.push("[المساعد]\n");
@@ -147,127 +170,119 @@ ${toolDescriptions}
     userId: string,
     userMessage: string,
   ): Promise<GenerateResult> {
-    await this.saveMessage(conversationId, AiMessageRole.USER, userMessage);
+    // Resolve ownership before the first write (and saveMessage checks it again for every write).
     const conv = await this.getConversation(conversationId, userId);
+    await this.saveMessage(
+      conversationId,
+      userId,
+      AiMessageRole.USER,
+      userMessage,
+    );
     const areas = conv.areas as AiAssistantArea[];
-
     const systemPrompt = this.buildSystemPrompt(areas);
     const allMessages = conv.messages.map((m) => ({
-      role: m.role === "USER" ? "user" : "assistant",
+      role:
+        m.role === AiMessageRole.USER
+          ? "user"
+          : m.role === AiMessageRole.SYSTEM
+            ? "system"
+            : "assistant",
       content: m.content || "",
     }));
-
     const toolCalls: ToolCallEvent[] = [];
-    const maxToolLoops = 3;
-    const messages = [...allMessages];
+    const messages = [...allMessages, { role: "user", content: userMessage }];
     const executedToolKeys = new Set<string>();
 
-    for (let loop = 0; loop < maxToolLoops; loop++) {
-      const prompt = this.buildSinglePrompt(systemPrompt, messages);
-
-      const provider = this.providerRegistry.getPrimary();
-      if (!provider) {
-        this.logger.warn("No AI provider available");
-        const errMsg = "عذراً، لا يوجد مزود ذكاء اصطناعي مفعل حالياً.";
-        messages.push({ role: "assistant", content: errMsg });
-        break;
-      }
-
-      const maxTokens = Math.min(
-        (provider as any).config?.maxTokens ?? 2048,
-        4096,
-      );
-
-      let result;
+    for (let loop = 0; loop < 3; loop++) {
+      let result: AiResult;
       try {
-        result = await provider.generateText(prompt, {
-          temperature: 0.7,
-          maxTokens,
-        });
+        result = await this.providerRegistry.generateWithFallback(
+          this.buildSinglePrompt(systemPrompt, messages),
+          {
+            temperature: 0.7,
+            maxTokens: 2048,
+          },
+        );
       } catch (err) {
         this.logger.error("AI generation failed", err);
-        const errMsg = "عذراً، حدث خطأ في الاتصال بمزود الذكاء الاصطناعي.";
-        messages.push({ role: "assistant", content: errMsg });
-        break;
+        throw new AiAssistantError("AI_PROVIDER_UNAVAILABLE", {});
       }
 
-      const toolCallRegex = /<<<TOOL_CALL>>>\s*(\{[\s\S]*?\})\s*<<<TOOL_CALL>>>/g;
-      const allMatches = [...result.text.matchAll(toolCallRegex)];
-
-      if (allMatches.length === 0) {
+      const regex = /<<<TOOL_CALL>>>\s*(\{[\s\S]*?\})\s*<<<TOOL_CALL>>>/g;
+      const matches = [...result.text.matchAll(regex)];
+      if (matches.length === 0) {
         messages.push({ role: "assistant", content: result.text });
         break;
       }
-
-      const cleanText = result.text.replace(toolCallRegex, "").trim();
-
-      let allParsed = true;
+      const cleanText = result.text.replace(regex, "").trim();
       const results: string[] = [];
-      for (const match of allMatches) {
+      for (let index = 0; index < matches.length; index++) {
+        let parsed: { name?: unknown; args?: unknown };
         try {
-          const parsed = JSON.parse(match[1]);
-          const toolName = parsed.name;
-          const toolArgs = parsed.args || {};
-          const toolKey = `${toolName}:${JSON.stringify(toolArgs)}`;
-
-          if (executedToolKeys.has(toolKey)) {
-            this.logger.warn(`Skipping duplicate tool call: ${toolKey}`);
-            continue;
-          }
-          executedToolKeys.add(toolKey);
-
-          this.logger.log(`Tool call: ${toolName}`);
-
-          const callResult = await this.toolRegistry.executeTool(
-            toolName,
-            toolArgs as Record<string, unknown>,
-          );
-          toolCalls.push({
-            name: toolName,
-            args: toolArgs as Record<string, unknown>,
-            result: callResult,
+          parsed = JSON.parse(matches[index][1]);
+        } catch {
+          throw new AiAssistantError("AI_TOOL_CALL_INVALID", {
+            callId: `call_${loop}_${index}`,
           });
-
-          results.push(`${toolName}: ${callResult.summary}`);
-        } catch (parseErr) {
-          this.logger.warn("Failed to parse tool call", parseErr);
-          allParsed = false;
         }
-      }
-
-      if (results.length === 0 && !cleanText) {
-        messages.push({
-          role: "assistant",
-          content: "تم الحصول على جميع البيانات المطلوبة.",
+        if (typeof parsed.name !== "string" || !parsed.name) {
+          throw new AiAssistantError("AI_TOOL_CALL_INVALID", {
+            callId: `call_${loop}_${index}`,
+          });
+        }
+        const toolArgs =
+          parsed.args && typeof parsed.args === "object"
+            ? (parsed.args as Record<string, unknown>)
+            : {};
+        const toolKey = `${parsed.name}:${JSON.stringify(toolArgs)}`;
+        if (executedToolKeys.has(toolKey)) continue;
+        executedToolKeys.add(toolKey);
+        const callId = `call_${loop}_${index}`;
+        const callResult = await this.toolRegistry.executeTool(
+          parsed.name,
+          toolArgs,
+          areas,
+        );
+        toolCalls.push({
+          tool: parsed.name,
+          args: toolArgs,
+          callId,
+          result: callResult,
         });
-        break;
+        results.push(`${parsed.name}: ${callResult.summary}`);
       }
-
-      if (results.length > 0) {
-        const resultSection = `[بيانات الأدوات]\n${results.join("\n")}`;
-        messages.push({ role: "system", content: resultSection });
-        for (const r of results) {
-          await this.saveMessage(conversationId, AiMessageRole.SYSTEM, r);
-        }
+      if (results.length) {
+        messages.push({
+          role: "system",
+          content: `[بيانات الأدوات]\n${results.join("\n")}`,
+        });
+        for (const summary of results)
+          await this.saveMessage(
+            conversationId,
+            userId,
+            AiMessageRole.SYSTEM,
+            summary,
+          );
       }
-
-      if (cleanText) {
-        messages.push({ role: "assistant", content: cleanText });
-      }
-
-      if (!allParsed || results.length === 0) {
-        break;
-      }
+      if (cleanText) messages.push({ role: "assistant", content: cleanText });
+      if (!cleanText && !results.length) break;
     }
 
-    const final = messages[messages.length - 1]?.content || "عذراً، لم أتمكن من معالجة طلبك.";
-    await this.saveMessage(conversationId, AiMessageRole.ASSISTANT, final, [
-      ...toolCalls.map((tc) => ({
-        name: tc.name,
-        args: tc.args,
-        result: tc.result,
+    const final =
+      [...messages].reverse().find((message) => message.role === "assistant")
+        ?.content || "";
+    const message = await this.saveMessage(
+      conversationId,
+      userId,
+      AiMessageRole.ASSISTANT,
+      final,
+      toolCalls.map(({ tool, args, callId, result }) => ({
+        tool,
+        args,
+        callId,
+        result,
       })),
-    ]);
-    return { finalText: final, toolCalls };
+    );
+    return { finalText: final, toolCalls, messageId: message.id };
   }
 }

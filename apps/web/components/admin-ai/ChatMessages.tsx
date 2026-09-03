@@ -26,9 +26,9 @@ export function ChatMessages({
   );
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4" aria-live="polite">
       {visible.length === 0 && !isStreaming && (
-        <div className="flex flex-col items-center justify-center h-full text-center text-neutral-400 gap-3">
+        <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
           <Bot className="w-12 h-12 text-neutral-300" />
           <div>
             <p className="font-medium text-neutral-500">مرحباً بك في المساعد الذكي</p>
@@ -53,8 +53,8 @@ export function ChatMessages({
           <div
             className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
               msg.role === "USER"
-                ? "bg-secondary-500 text-white rounded-bl-sm"
-                : "bg-neutral-100 text-neutral-800 rounded-tr-sm"
+                ? "rounded-bl-sm bg-primary text-primary-foreground"
+                : "rounded-tr-sm bg-muted text-foreground"
             }`}
           >
             {msg.content}

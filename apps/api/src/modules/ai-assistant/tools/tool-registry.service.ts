@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { BaseTool, ToolDefinition, ToolResult } from "./tool.interface";
 import { AiAssistantArea } from "@hassad/shared";
 
@@ -14,7 +14,9 @@ export class ToolRegistryService {
       }
       this.tools.set(tool.definition.name, tool);
     }
-    this.logger.log(`Registered ${tools.length} tool(s) — total: ${this.tools.size}`);
+    this.logger.log(
+      `Registered ${tools.length} tool(s) — total: ${this.tools.size}`,
+    );
   }
 
   getDefinitions(areas: AiAssistantArea[]): ToolDefinition[] {
@@ -28,10 +30,26 @@ export class ToolRegistryService {
     return defs;
   }
 
-  async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
+  async executeTool(
+    name: string,
+    args: Record<string, unknown>,
+    areas: AiAssistantArea[],
+  ): Promise<ToolResult> {
     const tool = this.tools.get(name);
     if (!tool) {
-      throw new Error(`Tool "${name}" not found`);
+      throw new ForbiddenException({
+        code: "AI_TOOL_NOT_FOUND",
+        details: { tool: name },
+      });
+    }
+    const allowed =
+      areas.includes(AiAssistantArea.ALL) ||
+      areas.includes(tool.definition.category);
+    if (!allowed) {
+      throw new ForbiddenException({
+        code: "AI_TOOL_AREA_NOT_ALLOWED",
+        details: { tool: name, area: tool.definition.category },
+      });
     }
     return tool.execute(args);
   }

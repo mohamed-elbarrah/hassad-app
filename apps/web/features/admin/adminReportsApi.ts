@@ -1,6 +1,19 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 
+export interface AdminReportRange {
+  from?: string;
+  to?: string;
+}
+
+function reportUrl(path: string, params?: AdminReportRange | void) {
+  if (!params || (!params.from && !params.to)) return path;
+  const searchParams = new URLSearchParams();
+  if (params.from) searchParams.set("from", params.from);
+  if (params.to) searchParams.set("to", params.to);
+  return `${path}?${searchParams.toString()}`;
+}
+
 export interface AdminReportSales {
   totalLeads: number;
   leadsByStage: Array<{ stage: string; count: number }>;
@@ -100,6 +113,56 @@ export interface AdminReportSystemHealth {
   }>;
 }
 
+/** Persisted aggregate payload produced by the scheduled full report snapshot. */
+export interface AdminReportSnapshotTasks {
+  byStatus: Array<{ status: string; count: number }>;
+  total: number;
+  overdueTasks: number;
+  blockedTasks: number;
+  revisionLoops: number;
+  slaCompliance: number;
+  teamThroughputByDepartment: Array<{
+    departmentId: string;
+    departmentName: string;
+    tasksCompleted: number;
+  }>;
+}
+
+export interface AdminReportSnapshotSystem {
+  failedWebhooks: number;
+  failedNotifications: number;
+  notificationFailureRate: number;
+  securityEventDistribution: Array<{ type: string; count: number }>;
+  impersonationCount: number;
+  errorDistribution: Array<{
+    level: string;
+    category: string;
+    count: number;
+  }>;
+}
+
+export interface AdminReportSnapshotData {
+  sales?: AdminReportSales;
+  clients?: AdminReportClients;
+  projects?: AdminReportProjects;
+  finance?: AdminReportRevenue;
+  tasks?: AdminReportSnapshotTasks;
+  system?: AdminReportSnapshotSystem;
+}
+
+export interface AdminReportSnapshot {
+  id: string;
+  reportType: "all" | "sales" | "clients" | "projects" | "tasks" | "system-health" | "finance";
+
+  period: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | "CUSTOM";
+  periodStart: string;
+  periodEnd: string;
+  data: AdminReportSnapshotData;
+  generatedAt: string;
+  createdAt: string;
+  change: Record<string, number> | null;
+}
+
 export const adminReportsApi = createApi({
   reducerPath: "adminReportsApi",
   baseQuery,
@@ -107,57 +170,38 @@ export const adminReportsApi = createApi({
   endpoints: (builder) => ({
     getAdminReportSales: builder.query<
       AdminReportSales,
-      { from?: string; to?: string } | void
+      AdminReportRange | void
     >({
-      query: (params) => {
-        if (!params) return "/admin/reports/sales";
-        const searchParams = new URLSearchParams();
-        if (params.from) searchParams.set("from", params.from);
-        if (params.to) searchParams.set("to", params.to);
-        return `/admin/reports/sales?${searchParams.toString()}`;
-      },
+      query: (params) => reportUrl("/admin/reports/sales", params),
       providesTags: ["AdminReports"],
     }),
 
     getAdminReportRevenue: builder.query<
       AdminReportRevenue,
-      { from?: string; to?: string } | void
+      AdminReportRange | void
     >({
-      query: (params) => {
-        if (!params) return "/admin/reports/revenue";
-        const searchParams = new URLSearchParams();
-        if (params.from) searchParams.set("from", params.from);
-        if (params.to) searchParams.set("to", params.to);
-        return `/admin/reports/revenue?${searchParams.toString()}`;
-      },
+      query: (params) => reportUrl("/admin/reports/revenue", params),
       providesTags: ["AdminReports"],
     }),
 
     getAdminReportProjects: builder.query<
       AdminReportProjects,
-      { from?: string; to?: string } | void
+      AdminReportRange | void
     >({
-      query: (params) => {
-        if (!params) return "/admin/reports/projects";
-        const searchParams = new URLSearchParams();
-        if (params.from) searchParams.set("from", params.from);
-        if (params.to) searchParams.set("to", params.to);
-        return `/admin/reports/projects?${searchParams.toString()}`;
-      },
+      query: (params) => reportUrl("/admin/reports/projects", params),
       providesTags: ["AdminReports"],
     }),
 
     getAdminReportSatisfaction: builder.query<
       AdminReportSatisfaction,
-      { from?: string; to?: string } | void
+      AdminReportRange | void
     >({
-      query: (params) => {
-        if (!params) return "/admin/reports/satisfaction";
-        const searchParams = new URLSearchParams();
-        if (params.from) searchParams.set("from", params.from);
-        if (params.to) searchParams.set("to", params.to);
-        return `/admin/reports/satisfaction?${searchParams.toString()}`;
-      },
+      query: (params) => reportUrl("/admin/reports/satisfaction", params),
+      providesTags: ["AdminReports"],
+    }),
+
+    getAdminReportSnapshots: builder.query<AdminReportSnapshot[], void>({
+      query: () => "/admin/reports/snapshots?limit=12",
       providesTags: ["AdminReports"],
     }),
   }),
@@ -168,4 +212,5 @@ export const {
   useGetAdminReportRevenueQuery,
   useGetAdminReportProjectsQuery,
   useGetAdminReportSatisfactionQuery,
+  useGetAdminReportSnapshotsQuery,
 } = adminReportsApi;

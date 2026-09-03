@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { Send, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ChatInputProps {
   onSend: (content: string) => void;
@@ -37,16 +39,9 @@ export function ChatInput({
     }
   };
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-    }
-  }, [value]);
-
   return (
-    <div className="flex items-end gap-2 p-3 border-t border-neutral-200 bg-white">
-      <textarea
+    <div className="flex items-end gap-2 border-t bg-background p-3">
+      <Textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -54,19 +49,19 @@ export function ChatInput({
         placeholder={placeholder}
         rows={1}
         disabled={disabled}
-        className="flex-1 resize-none rounded-xl border border-neutral-300 bg-neutral-50 px-4 py-2.5 text-sm outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500 disabled:opacity-50"
+        aria-label="رسالة المساعد الذكي"
+        className="max-h-32 min-h-10 flex-1 resize-none overflow-y-auto"
       />
-      <button
+      <Button
+        type="button"
+        size="icon"
         onClick={handleSend}
         disabled={disabled || !value.trim()}
-        className="flex-shrink-0 rounded-xl bg-secondary-500 p-2.5 text-white hover:bg-secondary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        aria-label="إرسال الرسالة"
+        className="shrink-0"
       >
-        {disabled ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
-        ) : (
-          <Send className="w-5 h-5" />
-        )}
-      </button>
+        {disabled ? <Loader2 className="animate-spin" /> : <Send />}
+      </Button>
     </div>
   );
 }

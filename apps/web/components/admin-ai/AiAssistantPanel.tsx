@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { adminErrorMessage } from "@/lib/i18n";
 import { AiAssistantArea } from "@hassad/shared";
 import {
   useGetConversationsQuery,
@@ -26,6 +28,7 @@ export function AiAssistantPanel({ onClose }: AiAssistantPanelProps) {
   const [showNewChat, setShowNewChat] = useState(false);
   const [newAreas, setNewAreas] = useState<AiAssistantArea[]>([AiAssistantArea.ALL]);
   const [streamingContent, setStreamingContent] = useState("");
+  const [streamErrorCode, setStreamErrorCode] = useState<string | null>(null);
 
   const { data: conversations, isLoading: listLoading } =
     useGetConversationsQuery();
@@ -39,12 +42,14 @@ export function AiAssistantPanel({ onClose }: AiAssistantPanelProps) {
 
   const handleStreamEvent = useCallback((event: StreamEvent) => {
     if (event.type === "token") {
+      setStreamErrorCode(null);
       setStreamingContent((prev) => prev + event.content);
     } else if (event.type === "done") {
       setStreamingContent("");
       refetchMessages();
     } else if (event.type === "error") {
       setStreamingContent("");
+      setStreamErrorCode(event.code);
     }
   }, [refetchMessages]);
 
@@ -65,6 +70,7 @@ export function AiAssistantPanel({ onClose }: AiAssistantPanelProps) {
 
   const handleSend = async (content: string) => {
     if (!activeId) return;
+    setStreamErrorCode(null);
     setStreamingContent("");
     await send(activeId, content);
   };
@@ -78,16 +84,19 @@ export function AiAssistantPanel({ onClose }: AiAssistantPanelProps) {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b border-neutral-200">
         <h2 className="font-semibold text-neutral-800 text-sm">المساعد الذكي</h2>
-        <button
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
           onClick={onClose}
-          className="p-1 rounded-lg hover:bg-neutral-100 text-neutral-500 transition-colors"
+          aria-label="إغلاق المساعد الذكي"
         >
-          <X className="w-4 h-4" />
-        </button>
+          <X />
+        </Button>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-56 border-l border-neutral-200 bg-neutral-50 flex-shrink-0">
+        <div className="flex w-40 shrink-0 border-l bg-muted/30 sm:w-56">
           <ConversationList
             conversations={conversations}
             activeId={activeId}
@@ -105,18 +114,12 @@ export function AiAssistantPanel({ onClose }: AiAssistantPanelProps) {
               <p className="text-sm text-neutral-500">اختر المجالات التي تريد مناقشتها:</p>
               <AreaSelector selected={newAreas} onChange={setNewAreas} />
               <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => setShowNewChat(false)}
-                  className="px-4 py-2 rounded-xl text-sm text-neutral-600 hover:bg-neutral-100 transition-colors"
-                >
+                <Button type="button" variant="ghost" onClick={() => setShowNewChat(false)}>
                   إلغاء
-                </button>
-                <button
-                  onClick={handleCreateNew}
-                  className="px-4 py-2 rounded-xl bg-secondary-500 text-white text-sm hover:bg-secondary-600 transition-colors"
-                >
+                </Button>
+                <Button type="button" onClick={handleCreateNew}>
                   بدء المحادثة
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -126,6 +129,11 @@ export function AiAssistantPanel({ onClose }: AiAssistantPanelProps) {
                   <span className="text-xs text-neutral-500">
                     {(conversation.areas as string[]).join(" • ")}
                   </span>
+                </div>
+              )}
+              {streamErrorCode && (
+                <div role="alert" className="mx-4 mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {adminErrorMessage({ data: { error: { code: streamErrorCode } } })}
                 </div>
               )}
               <ChatMessages

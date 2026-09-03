@@ -3,6 +3,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import { AiAnalyzeDto } from "../dto/ai.dto";
 import { AiProviderRegistry } from "./ai-provider-registry.service";
 import { AiSuggestionStatus } from "@hassad/shared";
+import { AiProviderError, classifyProviderError } from "../adapters/provider.interface";
 
 @Injectable()
 export class AiService {
@@ -26,12 +27,9 @@ export class AiService {
       const aiResult = await this.registry.generateWithFallback(prompt);
       result = this.parseResponse(aiResult.text);
     } catch (err) {
-      this.logger.warn("All AI providers failed, using stub fallback", err);
-      result = {
-        summary: `تحليل ${dto.analysisType} لـ ${dto.entityType} ${dto.entityId}`,
-        score: Math.round(Math.random() * 10000) / 100,
-        recommendations: [],
-      };
+      const error = classifyProviderError(err);
+      this.logger.warn(`AI analysis failed (${error.code})`);
+      throw new AiProviderError(error.code, { status: error.status, retryable: error.retryable });
     }
 
     return this.prisma.aiAnalysisLog.create({
@@ -102,7 +100,7 @@ export class AiService {
     });
 
     if (!log) {
-      throw new NotFoundException(`AI Log with ID ${id} not found`);
+      throw new NotFoundException({ code: "AI_ANALYSIS_LOG_NOT_FOUND", details: { id } });
     }
 
     return log;

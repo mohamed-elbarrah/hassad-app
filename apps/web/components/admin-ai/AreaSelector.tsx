@@ -2,6 +2,7 @@
 
 import { AiAssistantArea } from "@hassad/shared";
 import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const AREA_LABELS: Record<AiAssistantArea, string> = {
   [AiAssistantArea.CRM]: "CRM",
@@ -38,19 +39,18 @@ export function AreaSelector({ selected, onChange }: AreaSelectorProps) {
       {allAreas.map((area) => {
         const active = isAll ? area === AiAssistantArea.ALL : selected.includes(area);
         return (
-          <button
+          <Button
             key={area}
             type="button"
+            variant={active ? "default" : "outline"}
+            size="sm"
             onClick={() => toggle(area)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
-              active
-                ? "bg-secondary-500 text-white shadow-sm"
-                : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
-            }`}
+            aria-pressed={active}
+            className="rounded-full"
           >
-            {active && <Check className="w-3.5 h-3.5" />}
+            {active && <Check />}
             {AREA_LABELS[area]}
-          </button>
+          </Button>
         );
       })}
     </div>

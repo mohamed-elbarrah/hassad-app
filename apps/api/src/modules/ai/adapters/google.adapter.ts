@@ -3,15 +3,22 @@ import {
   AiOptions,
   AiResult,
   AiProviderConfig,
+  AiModelInfo,
+  AiProviderCapabilities,
+  AiProviderError,
+  isSafeCustomBaseUrl,
 } from "./provider.interface";
 
 export class GoogleAdapter implements AiProvider {
+  readonly id: string;
   readonly name: string;
   readonly displayName: string;
+  readonly capabilities: AiProviderCapabilities = { textGeneration: true, modelListing: true, streaming: false };
   private config: AiProviderConfig;
 
   constructor(config: AiProviderConfig) {
     this.config = config;
+    this.id = config.id;
     this.name = config.name;
     this.displayName = config.displayName || "Google (Gemini)";
   }
@@ -21,18 +28,21 @@ export class GoogleAdapter implements AiProvider {
   }
 
   supportedModels(): string[] {
-    return this.config.models;
+    return [...this.config.models];
+  }
+
+  modelInfo(): AiModelInfo[] {
+    return this.supportedModels().map((id) => ({ id }));
   }
 
   async listModels(): Promise<string[]> {
-    const baseUrl = (
-      this.config.baseUrl || "https://generativelanguage.googleapis.com"
-    ).replace(/\/+$/, "");
-    const response = await fetch(
-      `${baseUrl}/v1beta/models?key=${this.config.apiKey}`,
-    );
-    if (!response.ok)
-      throw new Error(`Failed to fetch models (${response.status})`);
+    const baseUrl = this.getBaseUrl();
+    const response = await fetch(`${baseUrl}/v1beta/models`, {
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
+      headers: { "x-goog-api-key": this.config.apiKey },
+    });
+    if (!response.ok) throw new AiProviderError(response.status === 401 ? "AUTHENTICATION_FAILED" : response.status === 403 ? "PERMISSION_DENIED" : response.status === 429 ? "RATE_LIMITED" : response.status >= 500 ? "UPSTREAM_UNAVAILABLE" : "INVALID_REQUEST", { status: response.status });
     const json = (await response.json()) as { models: Array<{ name: string }> };
     return json.models
       .map((m) => m.name.replace(/^models\//, ""))
@@ -42,15 +52,18 @@ export class GoogleAdapter implements AiProvider {
 
   async generateText(prompt: string, options?: AiOptions): Promise<AiResult> {
     const model = options?.model || this.config.models[0] || "gemini-2.0-flash";
-    const baseUrl = (
-      this.config.baseUrl || "https://generativelanguage.googleapis.com"
-    ).replace(/\/+$/, "");
+    const baseUrl = this.getBaseUrl();
 
     const response = await fetch(
-      `${baseUrl}/v1beta/models/${model}:generateContent?key=${this.config.apiKey}`,
+      `${baseUrl}/v1beta/models/${encodeURIComponent(model)}:generateContent`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        redirect: "error",
+        signal: AbortSignal.timeout(10_000),
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": this.config.apiKey,
+        },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
@@ -62,10 +75,7 @@ export class GoogleAdapter implements AiProvider {
       },
     );
 
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => "unknown error");
-      throw new Error(`Google AI API error (${response.status}): ${errBody}`);
-    }
+    if (!response.ok) throw new AiProviderError(response.status === 401 ? "AUTHENTICATION_FAILED" : response.status === 403 ? "PERMISSION_DENIED" : response.status === 429 ? "RATE_LIMITED" : response.status >= 500 ? "UPSTREAM_UNAVAILABLE" : "INVALID_REQUEST", { status: response.status });
 
     const json = (await response.json()) as {
       candidates?: Array<{ content: { parts: Array<{ text: string }> } }>;
@@ -88,5 +98,14 @@ export class GoogleAdapter implements AiProvider {
           }
         : undefined,
     };
+  }
+
+  private getBaseUrl(): string {
+    if (!isSafeCustomBaseUrl(this.config.baseUrl)) {
+      throw new Error("UNSAFE_AI_PROVIDER_BASE_URL");
+    }
+    return (
+      this.config.baseUrl || "https://generativelanguage.googleapis.com"
+    ).replace(/\/+$/, "");
   }
 }

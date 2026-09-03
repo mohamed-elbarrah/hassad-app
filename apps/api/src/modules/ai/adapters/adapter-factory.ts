@@ -1,5 +1,5 @@
 import { AiProviderConfig, AiProvider } from "./provider.interface";
-import { OpenAICompatibleAdapter } from "./openai-compatible.adapter";
+import { OpenAIAdapter, OpenRouterAdapter } from "./openai-compatible.adapter";
 import { AnthropicAdapter } from "./anthropic.adapter";
 import { GoogleAdapter } from "./google.adapter";
 
@@ -7,14 +7,17 @@ export const ADAPTER_FACTORIES: Record<
   string,
   (config: AiProviderConfig) => AiProvider
 > = {
-  openai: (c) => new OpenAICompatibleAdapter(c),
-  openrouter: (c) =>
-    new OpenAICompatibleAdapter({
-      ...c,
-      displayName: c.displayName || "OpenRouter",
-    }),
+  openai: (c) => new OpenAIAdapter(c),
+  openrouter: (c) => new OpenRouterAdapter({ ...c, displayName: c.displayName || "OpenRouter" }),
   anthropic: (c) => new AnthropicAdapter(c),
   google: (c) => new GoogleAdapter(c),
+};
+
+export const DEFAULT_BASE_URLS: Record<string, string> = {
+  openai: "https://api.openai.com/v1",
+  openrouter: "https://openrouter.ai/api/v1",
+  anthropic: "https://api.anthropic.com/v1",
+  google: "https://generativelanguage.googleapis.com",
 };
 
 export const DEFAULT_MODELS: Record<string, string[]> = {
@@ -42,6 +45,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 export interface SupportedAiProvider {
   name: string;
   label: string;
+  defaultBaseUrl: string;
   defaultModels: string[];
 }
 
@@ -50,5 +54,6 @@ export const SUPPORTED_PROVIDERS: SupportedAiProvider[] = Object.keys(
 ).map((name) => ({
   name,
   label: PROVIDER_LABELS[name] ?? name,
+  defaultBaseUrl: DEFAULT_BASE_URLS[name],
   defaultModels: DEFAULT_MODELS[name] ?? [],
 }));

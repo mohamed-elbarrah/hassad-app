@@ -11,7 +11,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Response } from "express";
-import { AiAssistantService } from "./ai-assistant.service";
+import { AiAssistantError, AiAssistantService } from "./ai-assistant.service";
 import {
   CreateConversationDto,
   SendMessageDto,
@@ -27,7 +27,6 @@ import type { JwtPayload } from "../../common/decorators/current-user.decorator"
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AiAssistantController {
   private readonly logger = new Logger(AiAssistantController.name);
-
   constructor(private readonly service: AiAssistantService) {}
 
   @Post("conversations")
@@ -75,12 +74,10 @@ export class AiAssistantController {
     @Res() res: Response,
   ) {
     await this.service.getConversation(conversationId, user.id);
-
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.setHeader("X-Accel-Buffering", "no");
-
     const sendEvent = (event: string, data: Record<string, unknown>) => {
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
@@ -91,27 +88,47 @@ export class AiAssistantController {
         user.id,
         dto.content,
       );
-
       for (const tc of result.toolCalls) {
         sendEvent("tool_call", {
-          name: tc.name,
+          tool: tc.tool,
           args: tc.args,
-          result: tc.result,
+          callId: tc.callId,
         });
+        sendEvent("tool_result", { callId: tc.callId, result: tc.result });
       }
-
-      const words = result.finalText.split(/(\s+)/);
-      for (const word of words) {
+      for (const word of result.finalText.split(/(\s+)/)) {
         sendEvent("token", { content: word });
-        await new Promise((r) => setTimeout(r, 20));
+        await new Promise((resolve) => setTimeout(resolve, 20));
       }
-
-      sendEvent("done", {});
+      sendEvent("done", { messageId: result.messageId });
     } catch (err) {
-      this.logger.error("AI assistant error", err);
-      sendEvent("error", {
-        message: "حدث خطأ أثناء المعالجة. حاول مرة أخرى.",
-      });
+      this.logger.error(
+        `AI assistant request failed (${err instanceof AiAssistantError ? err.code : "AI_REQUEST_FAILED"})`,
+      );
+      if (err instanceof AiAssistantError) {
+        sendEvent("error", { code: err.code, details: err.details });
+      } else if (
+        err &&
+        typeof err === "object" &&
+        "getResponse" in err &&
+        typeof (err as { getResponse: () => unknown }).getResponse ===
+          "function"
+      ) {
+        const response = (err as { getResponse: () => unknown }).getResponse();
+        const body =
+          typeof response === "object" && response !== null
+            ? (response as Record<string, unknown>)
+            : {};
+        sendEvent("error", {
+          code: typeof body.code === "string" ? body.code : "AI_REQUEST_FAILED",
+          details:
+            body.details && typeof body.details === "object"
+              ? (body.details as Record<string, unknown>)
+              : {},
+        });
+      } else {
+        sendEvent("error", { code: "AI_REQUEST_FAILED", details: {} });
+      }
     } finally {
       res.end();
     }

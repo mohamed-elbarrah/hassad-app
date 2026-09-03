@@ -209,9 +209,8 @@ export default function AiPage() {
   function openEdit(provider: AiProvider) { setSelectedProvider(provider); setDialogOpen(true); }
   async function handleTest(provider: AiProvider) {
     try {
-      const result = await testProvider(provider.id).unwrap();
-      if (result.success) toast.success("تم اختبار الاتصال بالمزود بنجاح");
-      else toast.error("تعذر اختبار الاتصال بالمزود");
+      await testProvider(provider.id).unwrap();
+      toast.success("تم اختبار الاتصال بالمزود بنجاح");
     } catch (error) {
       toast.error(adminErrorMessage(error));
     }

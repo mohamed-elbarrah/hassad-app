@@ -6,6 +6,7 @@ export interface StreamToken {
   content: string;
 }
 
+/** A tool invocation emitted by the assistant stream. */
 export interface StreamToolCall {
   type: "tool_call";
   tool: string;
@@ -16,7 +17,7 @@ export interface StreamToolCall {
 export interface StreamToolResult {
   type: "tool_result";
   callId: string;
-  result: Record<string, unknown>;
+  result: unknown;
 }
 
 export interface StreamDone {
@@ -26,7 +27,8 @@ export interface StreamDone {
 
 export interface StreamError {
   type: "error";
-  message: string;
+  code: string;
+  details: Record<string, unknown>;
 }
 
 export type StreamEvent =
@@ -42,9 +44,55 @@ interface UseAiStreamResult {
   isStreaming: boolean;
 }
 
+type EventData = Record<string, unknown>;
+
+function isRecord(value: unknown): value is EventData {
+  return typeof value === "object" && value !== null;
+}
+
+function stringField(data: EventData, field: string): string | undefined {
+  return typeof data[field] === "string" ? data[field] : undefined;
+}
+
+function parseEvent(eventType: string, data: unknown): StreamEvent | undefined {
+  if (!isRecord(data)) return undefined;
+  if (eventType === "token") {
+    const content = stringField(data, "content");
+    return content === undefined ? undefined : { type: "token", content };
+  }
+  if (eventType === "tool_call") {
+    const tool = stringField(data, "tool");
+    const callId = stringField(data, "callId");
+    return tool && callId && isRecord(data.args)
+      ? { type: "tool_call", tool, args: data.args, callId }
+      : undefined;
+  }
+  if (eventType === "tool_result") {
+    const callId = stringField(data, "callId");
+    return callId === undefined || !("result" in data)
+      ? undefined
+      : { type: "tool_result", callId, result: data.result };
+  }
+  if (eventType === "done") {
+    const messageId = stringField(data, "messageId");
+    return messageId === undefined ? undefined : { type: "done", messageId };
+  }
+  if (eventType === "error") {
+    const code = stringField(data, "code");
+    return code === undefined
+      ? undefined
+      : {
+          type: "error",
+          code,
+          details: isRecord(data.details) ? data.details : {},
+        };
+  }
+  return undefined;
+}
+
 export function useAiAssistantStream(
   onEvent: (event: StreamEvent) => void,
-  onError?: (error: string) => void,
+  onError?: (code: string) => void,
 ): UseAiStreamResult {
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -67,64 +115,52 @@ export function useAiAssistantStream(
             signal: controller.signal,
           },
         );
-
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+          let code = "REQUEST_FAILED";
+          try {
+            const payload: unknown = await response.json();
+            if (isRecord(payload) && isRecord(payload.error) && typeof payload.error.code === "string") {
+              code = payload.error.code;
+            }
+          } catch {
+            // Use the stable fallback when the error response is not JSON.
+          }
+          throw new Error(code);
         }
-
         const reader = response.body?.getReader();
-        if (!reader) throw new Error("No response body");
+        if (!reader) throw new Error("REQUEST_FAILED");
 
         const decoder = new TextDecoder();
         let buffer = "";
+        let eventType = "";
+        const consume = (line: string) => {
+          if (line === "") {
+            eventType = "";
+            return;
+          }
+          if (line.startsWith("event: ")) eventType = line.slice(7).trim();
+          if (!line.startsWith("data: ")) return;
+          try {
+            const event = parseEvent(eventType, JSON.parse(line.slice(6)));
+            if (event) onEvent(event);
+          } catch {
+            // Ignore malformed SSE frames; a later valid frame can still finish the response.
+          }
+        };
 
         while (true) {
           const { done, value } = await reader.read();
+          buffer += decoder.decode(value, { stream: !done });
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() ?? "";
+          lines.forEach(consume);
           if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          let eventType = "";
-          for (const line of lines) {
-            if (line.startsWith("event: ")) {
-              eventType = line.slice(7).trim();
-            } else if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-
-                if (eventType === "token") {
-                  onEvent({ type: "token", content: data.content });
-                } else if (eventType === "tool_call") {
-                  onEvent({
-                    type: "tool_call",
-                    tool: data.tool,
-                    args: data.args,
-                    callId: data.callId,
-                  });
-                } else if (eventType === "tool_result") {
-                  onEvent({
-                    type: "tool_result",
-                    callId: data.callId,
-                    result: data.result,
-                  });
-                } else if (eventType === "done") {
-                  onEvent({ type: "done", messageId: data.messageId });
-                } else if (eventType === "error") {
-                  onEvent({ type: "error", message: data.message });
-                }
-              } catch {
-                // ignore parse errors
-              }
-            }
-          }
         }
-      } catch (err: any) {
-        if (err.name !== "AbortError") {
-          onError?.(err.message || "حدث خطأ في الاتصال");
-          onEvent({ type: "error", message: err.message || "حدث خطأ في الاتصال" });
-        }
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+        const code = error instanceof Error && error.message ? error.message : "REQUEST_FAILED";
+        onError?.(code);
+        onEvent({ type: "error", code, details: {} });
       } finally {
         setIsStreaming(false);
         abortRef.current = null;

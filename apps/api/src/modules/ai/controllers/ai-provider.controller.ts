@@ -8,6 +8,8 @@ import {
   Body,
   UseGuards,
   BadRequestException,
+  BadGatewayException,
+  HttpException,
 } from "@nestjs/common";
 import { AiProviderService } from "../services/ai-provider.service";
 import { ADAPTER_FACTORIES, DEFAULT_MODELS } from "../adapters/adapter-factory";
@@ -37,6 +39,12 @@ export class AiProviderController {
     return this.service.getSupportedProviders();
   }
 
+  @Get("status")
+  @RequirePermissions("admin.ai.read")
+  getStatus() {
+    return this.service.getRegistryStatus();
+  }
+
   @Get(":id")
   @RequirePermissions("admin.ai.read")
   findOne(@Param("id") id: string) {
@@ -48,9 +56,10 @@ export class AiProviderController {
   async fetchModelsPreview(@Body() dto: FetchModelsDto) {
     const factory = ADAPTER_FACTORIES[dto.name];
     if (!factory)
-      throw new BadRequestException(
-        `No adapter for provider type "${dto.name}"`,
-      );
+      throw new BadRequestException({
+        code: "UNSUPPORTED_AI_PROVIDER",
+        details: { name: dto.name },
+      });
 
     const config = {
       id: "preview",
@@ -70,14 +79,12 @@ export class AiProviderController {
     try {
       const adapter = factory(config);
       const models = await adapter.listModels();
-      return { success: true, models };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      return {
-        success: false,
-        message,
-        models: DEFAULT_MODELS[dto.name] || [],
-      };
+      return { models };
+    } catch {
+      throw new BadGatewayException({
+        code: "AI_PROVIDER_REQUEST_FAILED",
+        details: { models: DEFAULT_MODELS[dto.name] || [] },
+      });
     }
   }
 
@@ -104,13 +111,16 @@ export class AiProviderController {
   async listModels(@Param("id") id: string) {
     try {
       const models = await this.service.fetchModels(id);
-      return { success: true, models };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
+      return { models };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
       const defaults = await this.service.getDefaultModels(
         (await this.service.findOne(id)).name,
       );
-      return { success: false, message, models: defaults };
+      throw new BadGatewayException({
+        code: "AI_PROVIDER_REQUEST_FAILED",
+        details: { models: defaults },
+      });
     }
   }
 
@@ -119,12 +129,13 @@ export class AiProviderController {
   async test(@Param("id") id: string) {
     try {
       const result = await this.service.testProvider(id);
-      return { success: true, model: result.model, response: result.text };
-    } catch (err) {
-      return {
-        success: false,
-        message: err instanceof Error ? err.message : "Unknown error",
-      };
+      return { model: result.model, response: result.text };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new BadGatewayException({
+        code: "AI_PROVIDER_REQUEST_FAILED",
+        details: {},
+      });
     }
   }
 }

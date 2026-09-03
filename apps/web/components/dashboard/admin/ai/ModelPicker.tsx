@@ -6,7 +6,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { adminErrorMessage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import type { AiProviderModelsResponse } from "@/features/admin/adminApi";
 
 interface ModelPickerProps {
   providerType: string;
@@ -19,7 +21,7 @@ interface ModelPickerProps {
     type: string,
     key: string,
     baseUrl?: string,
-  ) => Promise<{ success: boolean; models: string[]; message?: string }>;
+  ) => Promise<AiProviderModelsResponse>;
 }
 
 export function ModelPicker({
@@ -57,17 +59,11 @@ export function ModelPicker({
     setFetching(true);
     setFetchError(null);
     try {
-      const result = await onFetch(providerType, apiKey, baseUrl);
-      if (result.success) {
-        setFetched(result.models);
-        onChange(result.models);
-      } else {
-        setFetched(result.models);
-        onChange(result.models);
-        setFetchError("تعذر جلب النماذج من المزود");
-      }
-    } catch {
-      setFetchError("تعذر الاتصال بالمزود");
+      const { models } = await onFetch(providerType, apiKey, baseUrl);
+      setFetched(models);
+      onChange(models);
+    } catch (error) {
+      setFetchError(adminErrorMessage(error));
     }
     setFetching(false);
   }

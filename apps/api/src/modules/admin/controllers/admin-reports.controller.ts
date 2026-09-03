@@ -3,6 +3,7 @@ import { AdminReportsService } from "../services/admin-reports.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { ReportPeriod } from "@prisma/client";
 import { SnapshotGenerateDto, SnapshotQueryDto } from "../dto/admin-kpi.dto";
 
 @Controller("admin/reports")
@@ -80,7 +81,10 @@ export class AdminReportsController {
   @Post("snapshots")
   @RequirePermissions("admin.reports")
   saveSnapshot(@Body() dto: SnapshotGenerateDto) {
-    return this.service.saveSnapshot(dto.reportType, dto.period as any);
+    return this.service.saveSnapshot(
+      dto.reportType,
+      dto.period as ReportPeriod,
+    );
   }
 
   @Get("snapshots")

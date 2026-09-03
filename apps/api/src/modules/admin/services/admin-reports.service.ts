@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminKpiService } from "./admin-kpi.service";
 import { AdminActionLogService } from "./admin-action-log.service";
@@ -14,12 +18,31 @@ export class AdminReportsService {
 
   private dateWhere(from?: string, to?: string) {
     const where: any = {};
-    if (from || to) {
+    const fromDate = from ? this.parseDate(from, "from") : undefined;
+    const toDate = to ? this.parseDate(to, "to") : undefined;
+    if (fromDate && toDate && fromDate > toDate) {
+      throw new BadRequestException({
+        code: "INVALID_DATE_RANGE",
+        details: { from, to },
+      });
+    }
+    if (fromDate || toDate) {
       where.createdAt = {};
-      if (from) where.createdAt.gte = new Date(from);
-      if (to) where.createdAt.lte = new Date(to);
+      if (fromDate) where.createdAt.gte = fromDate;
+      if (toDate) where.createdAt.lte = toDate;
     }
     return where;
+  }
+
+  private parseDate(value: string, field: "from" | "to") {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException({
+        code: "INVALID_DATE",
+        details: { field },
+      });
+    }
+    return date;
   }
 
   async getSalesReport(from?: string, to?: string) {
@@ -28,9 +51,22 @@ export class AdminReportsService {
     const [totalLeads, leadsByStage, leadsBySource, signedLeads] =
       await Promise.all([
         this.prisma.request.count({ where: dateFilter }),
-        this.prisma.request.groupBy({ by: ["status"], where: dateFilter, _count: { id: true } }),
-        this.prisma.request.groupBy({ by: ["source"], where: dateFilter, _count: { id: true } }),
-        this.prisma.request.count({ where: { status: { in: ["SIGNED", "PROJECT_CREATED"] }, ...dateFilter } }),
+        this.prisma.request.groupBy({
+          by: ["status"],
+          where: dateFilter,
+          _count: { id: true },
+        }),
+        this.prisma.request.groupBy({
+          by: ["source"],
+          where: dateFilter,
+          _count: { id: true },
+        }),
+        this.prisma.request.count({
+          where: {
+            status: { in: ["SIGNED", "PROJECT_CREATED"] },
+            ...dateFilter,
+          },
+        }),
       ]);
 
     const conversionRate =
@@ -382,39 +418,77 @@ export class AdminReportsService {
       case "system-health":
         return this.getSystemHealthReport(from, to);
       default:
-        throw new NotFoundException(`نوع التقرير "${type}" غير موجود`);
+        throw new NotFoundException({
+          code: "REPORT_TYPE_NOT_FOUND",
+          details: { type },
+        });
     }
   }
 
   // ── ReportSnapshot persistence ──────────────────────────────────────────────
 
-  async saveSnapshot(reportType: string, period: ReportPeriod) {
-    const now = new Date();
+  private getPeriodBounds(period: ReportPeriod, referenceDate: Date) {
+    const year = referenceDate.getFullYear();
+    const month = referenceDate.getMonth();
     let periodStart: Date;
     let periodEnd: Date;
 
     if (period === "DAILY") {
-      periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      periodEnd = new Date(periodStart.getTime() + 24 * 60 * 60 * 1000);
-    } else if (period === "WEEKLY") {
-      const day = now.getDay();
-      periodStart = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() - day,
-      );
-      periodEnd = new Date(periodStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-    } else {
-      periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      periodStart = new Date(year, month, referenceDate.getDate());
       periodEnd = new Date(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        0,
+        year,
+        month,
+        referenceDate.getDate(),
         23,
         59,
         59,
+        999,
       );
+    } else if (period === "WEEKLY") {
+      const weekStart = referenceDate.getDate() - referenceDate.getDay();
+      periodStart = new Date(year, month, weekStart);
+      periodEnd = new Date(year, month, weekStart + 6, 23, 59, 59, 999);
+    } else if (period === "MONTHLY") {
+      periodStart = new Date(year, month, 1);
+      periodEnd = new Date(year, month + 1, 0, 23, 59, 59, 999);
+    } else if (period === "YEARLY") {
+      periodStart = new Date(year, 0, 1);
+      periodEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+    } else {
+      throw new Error(`Unsupported snapshot period: ${period}`);
     }
+
+    return { periodStart, periodEnd };
+  }
+
+  async saveSnapshot(
+    reportType: string,
+    period: ReportPeriod,
+    referenceDate = new Date(),
+  ) {
+    const supportedTypes = new Set([
+      "all",
+      "sales",
+      "clients",
+      "projects",
+      "tasks",
+      "system-health",
+      "finance",
+    ]);
+    if (!supportedTypes.has(reportType)) {
+      throw new BadRequestException({
+        code: "REPORT_TYPE_NOT_SUPPORTED",
+        details: { reportType },
+      });
+    }
+    const { periodStart, periodEnd } = this.getPeriodBounds(
+      period,
+      referenceDate,
+    );
+    const existing = await this.prisma.reportSnapshot.findFirst({
+      where: { reportType, period, periodStart },
+    });
+    if (existing) return existing;
 
     const from = periodStart.toISOString();
     const to = periodEnd.toISOString();
@@ -478,17 +552,26 @@ export class AdminReportsService {
       }
     }
 
-    const snapshot = await this.prisma.reportSnapshot.create({
-      data: {
-        reportType,
-        period,
-        periodStart,
-        periodEnd,
-        data: data as any,
-      },
-    });
-
-    return snapshot;
+    try {
+      return await this.prisma.reportSnapshot.create({
+        data: {
+          reportType,
+          period,
+          periodStart,
+          periodEnd,
+          data: data as any,
+        },
+      });
+    } catch (error) {
+      // The unique period key makes concurrent application instances idempotent.
+      if ((error as { code?: string }).code === "P2002") {
+        const concurrentSnapshot = await this.prisma.reportSnapshot.findFirst({
+          where: { reportType, period, periodStart },
+        });
+        if (concurrentSnapshot) return concurrentSnapshot;
+      }
+      throw error;
+    }
   }
 
   async getSnapshots(reportType?: string, period?: string, limit = 12) {
@@ -504,7 +587,13 @@ export class AdminReportsService {
 
     // Add period-over-period change % if 2+ snapshots share same reportType/period
     const withTrends = snapshots.map((s, i) => {
-      const prev = snapshots[i + 1];
+      const prev = snapshots
+        .slice(i + 1)
+        .find(
+          (candidate) =>
+            candidate.reportType === s.reportType &&
+            candidate.period === s.period,
+        );
       const change =
         prev && typeof prev.data === "object" && prev.data !== null
           ? this.computeChange(
@@ -543,6 +632,7 @@ export class AdminReportsService {
 
     const staleLeads = await this.prisma.request.count({
       where: {
+        ...this.dateWhere(from, to),
         status: { notIn: ["PROJECT_CREATED", "CANCELLED"] },
         updatedAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       },
@@ -574,6 +664,7 @@ export class AdminReportsService {
       }),
       this.kpiService.getClientKpis(from, to),
       this.prisma.satisfactionRating.aggregate({
+        where: this.dateWhere(from, to),
         _avg: { score: true },
         _count: { id: true },
       }),

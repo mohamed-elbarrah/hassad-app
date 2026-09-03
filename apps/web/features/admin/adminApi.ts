@@ -281,6 +281,15 @@ export interface FetchModelsDto {
   baseUrl?: string;
 }
 
+export interface AiProviderModelsResponse {
+  models: string[];
+}
+
+export interface TestAiProviderResponse {
+  model: string;
+  response: string;
+}
+
 export interface UpdateAiProviderDto {
   baseUrl?: string;
   apiKey?: string;
@@ -683,16 +692,13 @@ export const adminApi = createApi({
       invalidatesTags: ["AiProviders"],
     }),
 
-    getAiProviderModels: builder.query<
-      { success: boolean; models: string[]; message?: string },
-      string
-    >({
+    getAiProviderModels: builder.query<AiProviderModelsResponse, string>({
       query: (id) => `/admin/ai/providers/${id}/models`,
       providesTags: (_result, _error, id) => [{ type: "AiProviders", id }],
     }),
 
     previewAiProviderModels: builder.mutation<
-      { success: boolean; models: string[]; message?: string },
+      AiProviderModelsResponse,
       FetchModelsDto
     >({
       query: (body) => ({
@@ -702,10 +708,7 @@ export const adminApi = createApi({
       }),
     }),
 
-    testAiProvider: builder.mutation<
-      { success: boolean; model?: string; message?: string; response?: string },
-      string
-    >({
+    testAiProvider: builder.mutation<TestAiProviderResponse, string>({
       query: (id) => ({
         url: `/admin/ai/providers/${id}/test`,
         method: "POST",

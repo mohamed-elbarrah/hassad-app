@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, Min, Max } from "class-validator";
+import { IsIn, IsOptional, IsString, IsInt, Min, Max } from "class-validator";
 import { Type } from "class-transformer";
 
 export class KpiQueryDto {
@@ -13,10 +13,20 @@ export class KpiQueryDto {
 
 export class SnapshotGenerateDto {
   @IsString()
+  @IsIn([
+    "all",
+    "sales",
+    "clients",
+    "projects",
+    "tasks",
+    "system-health",
+    "finance",
+  ])
   reportType: string;
 
   @IsString()
-  period: "DAILY" | "WEEKLY" | "MONTHLY";
+  @IsIn(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"])
+  period: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 }
 
 export class SnapshotQueryDto {
@@ -26,7 +36,8 @@ export class SnapshotQueryDto {
 
   @IsOptional()
   @IsString()
-  period?: "DAILY" | "WEEKLY" | "MONTHLY";
+  @IsIn(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"])
+  period?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 
   @IsOptional()
   @Type(() => Number)

@@ -13,22 +13,30 @@ export class EncryptionService {
   private key: Buffer | null = null;
 
   constructor(private config: ConfigService) {
-    const secret = this.config.get<string>("KEY_ENCRYPTION_SECRET");
-    if (secret) {
-      this.key = crypto.scryptSync(
-        secret,
-        "hassad-ai-provider-salt",
-        KEY_LENGTH,
-      );
-    } else {
+    const secret = this.config.get<string>("KEY_ENCRYPTION_SECRET")?.trim();
+    if (!secret) {
+      if (this.config.get<string>("NODE_ENV") === "production") {
+        throw new Error(
+          "KEY_ENCRYPTION_SECRET is required in production; refusing to start without provider-key encryption",
+        );
+      }
+
+      // Never fall back to plaintext. An ephemeral development key keeps this
+      // process safe, while making the loss of the secret visible at restart.
       this.logger.warn(
-        "KEY_ENCRYPTION_SECRET not set — API keys will be stored in plaintext",
+        "KEY_ENCRYPTION_SECRET is not set; using an ephemeral key for this process",
       );
+      this.key = crypto.randomBytes(KEY_LENGTH);
+      return;
     }
+
+    this.key = crypto.scryptSync(secret, "hassad-ai-provider-salt", KEY_LENGTH);
   }
 
   encrypt(plaintext: string): string {
-    if (!this.key) return plaintext;
+    if (!this.key) {
+      throw new Error("AI provider encryption is not configured");
+    }
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, this.key, iv);
     let encrypted = cipher.update(plaintext, "utf8", "hex");
@@ -38,10 +46,21 @@ export class EncryptionService {
   }
 
   decrypt(ciphertext: string): string {
-    if (!this.key) return ciphertext;
+    if (!this.key) {
+      throw new Error("AI provider encryption is not configured");
+    }
     const parts = ciphertext.split(":");
-    if (parts.length !== 3) return ciphertext;
     const [ivHex, tagHex, encrypted] = parts;
+    if (
+      parts.length !== 3 ||
+      !/^[0-9a-f]+$/i.test(ivHex) ||
+      !/^[0-9a-f]+$/i.test(tagHex) ||
+      !/^[0-9a-f]*$/i.test(encrypted) ||
+      ivHex.length !== IV_LENGTH * 2 ||
+      tagHex.length !== TAG_LENGTH * 2
+    ) {
+      throw new Error("AI_PROVIDER_KEY_NOT_ENCRYPTED");
+    }
     const iv = Buffer.from(ivHex, "hex");
     const tag = Buffer.from(tagHex, "hex");
     const decipher = crypto.createDecipheriv(ALGORITHM, this.key, iv);

@@ -79,6 +79,7 @@ import { AdminNotificationTemplatesService } from "./services/admin-notification
 import { AdminSystemEventsService } from "./services/admin-system-events.service";
 import { AdminAlertService } from "./services/admin-alert.service";
 import { AdminAlertScheduler } from "./schedulers/admin-alert.scheduler";
+import { AdminReportSnapshotScheduler } from "./schedulers/admin-report-snapshot.scheduler";
 import { AdminMarketingService } from "./services/admin-marketing.service";
 import { AdminBusinessGoalService } from "./services/admin-business-goal.service";
 import { AdminWorkspacesService } from "./services/admin-workspaces.service";
@@ -179,6 +180,7 @@ import { SettingsModule } from "../settings/settings.module";
     AdminSystemEventsService,
     AdminAlertService,
     AdminAlertScheduler,
+    AdminReportSnapshotScheduler,
     AdminReportsService,
     AdminDashboardService,
     AdminNotificationTemplatesService,
