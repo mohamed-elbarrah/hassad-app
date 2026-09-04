@@ -9,6 +9,8 @@ import { GetRevenueSummaryTool, GetInvoiceStatusTool, GetPendingPaymentsTool } f
 import { GetClientSummaryTool, GetClientStatusDistributionTool } from "./tools/client.tools";
 import { GetProjectSummaryTool, GetTaskDistributionTool, GetUpcomingDeadlinesTool } from "./tools/pm.tools";
 import { GetCampaignSummaryTool, GetCampaignPerformanceTool } from "./tools/marketing.tools";
+import { SemanticIntelligenceService } from "../semantic-intelligence/semantic-intelligence.service";
+import { CompareBusinessPeriodsTool, GetBusinessOverviewTool } from "./tools/semantic.tools";
 
 @Module({
   imports: [AiModule],
@@ -39,6 +41,11 @@ import { GetCampaignSummaryTool, GetCampaignPerformanceTool } from "./tools/mark
     // Marketing tools
     GetCampaignSummaryTool,
     GetCampaignPerformanceTool,
+
+    // Semantic intelligence (cross-area access is available only to ALL conversations)
+    SemanticIntelligenceService,
+    GetBusinessOverviewTool,
+    CompareBusinessPeriodsTool,
   ],
   exports: [AiAssistantService],
 })
@@ -60,6 +67,8 @@ export class AiAssistantModule implements OnModuleInit {
     private getUpcomingDeadlines: GetUpcomingDeadlinesTool,
     private getCampaignSummary: GetCampaignSummaryTool,
     private getCampaignPerformance: GetCampaignPerformanceTool,
+    private getBusinessOverview: GetBusinessOverviewTool,
+    private compareBusinessPeriods: CompareBusinessPeriodsTool,
   ) {}
 
   onModuleInit() {
@@ -77,6 +86,8 @@ export class AiAssistantModule implements OnModuleInit {
       this.getUpcomingDeadlines,
       this.getCampaignSummary,
       this.getCampaignPerformance,
+      this.getBusinessOverview,
+      this.compareBusinessPeriods,
     );
     this.logger.log("AI Assistant tools registered successfully");
   }

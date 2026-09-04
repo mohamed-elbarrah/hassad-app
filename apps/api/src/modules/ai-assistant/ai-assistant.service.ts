@@ -29,6 +29,119 @@ export interface GenerateResult {
   messageId: string;
 }
 
+/** Keep tool payloads useful to the model without allowing unbounded prompt growth. */
+export const MAX_TOOL_CONTEXT_CHARS = 16_000;
+export const MAX_PROMPT_HISTORY_MESSAGES = 24;
+export const MAX_PROMPT_HISTORY_CHARS = 32_000;
+export const PROMPT_TRUNCATION_MARKER =
+  "[سجل المحادثة السابق مختصر بسبب حد السياق]";
+export const TOOL_RESULTS_TRUNCATION_MARKER =
+  "[نتائج أدوات إضافية مختصرة بسبب حد السياق]";
+
+export function serializeToolContext(data: unknown): string {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new AiAssistantError("AI_TOOL_RESULT_INVALID", {
+      reason: "DATA_OBJECT_REQUIRED",
+    });
+  }
+  let serialized: string;
+  try {
+    const candidate = JSON.stringify(data);
+    if (typeof candidate !== "string") throw new Error("JSON_RESULT_UNDEFINED");
+    serialized = candidate;
+    // Round-trip validation prevents passing non-JSON values or malformed data onward.
+    JSON.parse(serialized);
+  } catch {
+    throw new AiAssistantError("AI_TOOL_RESULT_INVALID", {
+      reason: "DATA_NOT_SERIALIZABLE",
+    });
+  }
+  if (serialized.length <= MAX_TOOL_CONTEXT_CHARS) return serialized;
+  let preview = serialized.slice(0, MAX_TOOL_CONTEXT_CHARS);
+  let bounded = JSON.stringify({ truncated: true, serializedPreview: preview });
+  while (bounded.length > MAX_TOOL_CONTEXT_CHARS && preview.length > 0) {
+    preview = preview.slice(0, Math.floor(preview.length * 0.9));
+    bounded = JSON.stringify({ truncated: true, serializedPreview: preview });
+  }
+  return bounded;
+}
+
+export function boundToolResults(results: string[]): string {
+  if (results.length === 0) return "";
+  const first = results[0];
+  // Always retain a bounded representation of the first result. Previously a
+  // single oversized result caused the whole tool payload to disappear.
+  const firstBudget =
+    results.length > 1
+      ? MAX_TOOL_CONTEXT_CHARS - TOOL_RESULTS_TRUNCATION_MARKER.length - 1
+      : MAX_TOOL_CONTEXT_CHARS;
+  let firstResult = first;
+  if (firstResult.length > firstBudget) {
+    const marker = "[بيانات النتيجة مختصرة]";
+    firstResult = `${first.slice(0, Math.max(0, firstBudget - marker.length - 1))}\n${marker}`;
+  }
+  const output = [firstResult];
+  let length = firstResult.length;
+  for (const result of results.slice(1)) {
+    if (
+      length + 1 + result.length + TOOL_RESULTS_TRUNCATION_MARKER.length + 1 >
+      MAX_TOOL_CONTEXT_CHARS
+    )
+      break;
+    output.push(result);
+    length += 1 + result.length;
+  }
+  if (output.length < results.length)
+    output.push(TOOL_RESULTS_TRUNCATION_MARKER);
+  return output.join("\n").slice(0, MAX_TOOL_CONTEXT_CHARS);
+}
+
+/** Select a recent context while retaining the current user turn and newest tool result. */
+export function boundPromptHistory(
+  messages: Array<{ role: string; content: string }>,
+) {
+  if (messages.length === 0) return messages;
+  const currentUserIndex = messages.reduce(
+    (latest, message, index) => (message.role === "user" ? index : latest),
+    -1,
+  );
+  if (currentUserIndex < 0) return messages.slice(-MAX_PROMPT_HISTORY_MESSAGES);
+  const mandatory = new Set<number>([currentUserIndex]);
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "system") {
+      mandatory.add(i);
+      break;
+    }
+  }
+  const selected = new Set<number>(mandatory);
+  for (
+    let i = messages.length - 1;
+    i >= 0 && selected.size < MAX_PROMPT_HISTORY_MESSAGES;
+    i--
+  )
+    selected.add(i);
+  const ordered = [...selected].sort((a, b) => a - b);
+  const current = messages[currentUserIndex];
+  let history = ordered.map((index) => messages[index]);
+  let chars = history.reduce(
+    (total, message) => total + message.content.length,
+    0,
+  );
+  while (chars > MAX_PROMPT_HISTORY_CHARS && history.length > 1) {
+    const removable = history.findIndex(
+      (message) => message !== current && message.role !== "system",
+    );
+    if (removable < 0) break;
+    chars -= history[removable].content.length;
+    history.splice(removable, 1);
+  }
+  if (history.length < messages.length || chars > MAX_PROMPT_HISTORY_CHARS) {
+    const marker = { role: "system", content: PROMPT_TRUNCATION_MARKER };
+    history = [marker, ...history.filter((message) => message !== marker)];
+  }
+  return history;
+}
+
 @Injectable()
 export class AiAssistantService {
   private readonly logger = new Logger(AiAssistantService.name);
@@ -197,7 +310,7 @@ ${toolDescriptions}
       let result: AiResult;
       try {
         result = await this.providerRegistry.generateWithFallback(
-          this.buildSinglePrompt(systemPrompt, messages),
+          this.buildSinglePrompt(systemPrompt, boundPromptHistory(messages)),
           {
             temperature: 0.7,
             maxTokens: 2048,
@@ -249,12 +362,15 @@ ${toolDescriptions}
           callId,
           result: callResult,
         });
-        results.push(`${parsed.name}: ${callResult.summary}`);
+        const serializedData = serializeToolContext(callResult.data);
+        results.push(
+          `${parsed.name}: ${callResult.summary}\nبيانات الأداة (JSON): ${serializedData}`,
+        );
       }
       if (results.length) {
         messages.push({
           role: "system",
-          content: `[بيانات الأدوات]\n${results.join("\n")}`,
+          content: `[بيانات الأدوات]\n${boundToolResults(results)}`,
         });
         for (const summary of results)
           await this.saveMessage(

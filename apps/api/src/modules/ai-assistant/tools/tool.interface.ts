@@ -5,7 +5,8 @@ export interface ToolParameter {
   description: string;
   enum?: string[];
   items?: { type: string };
-  properties?: Record<string, Omit<ToolParameter, "properties">>;
+  properties?: Record<string, ToolParameter>;
+  required?: string[];
 }
 
 export interface ToolDefinition {

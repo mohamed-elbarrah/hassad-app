@@ -7,10 +7,9 @@ import { LoaderCircle } from "lucide-react";
 import { UserRole } from "@hassad/shared";
 import {
   PortalHeader,
-  PortalMobileNav,
   PortalSidebar,
 } from "@/components/portal/shared/PortalNavigation";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
 export default function PortalLayout({
@@ -67,6 +66,9 @@ export default function PortalLayout({
 
   return (
     <SidebarProvider
+      defaultOpen
+      dir="rtl"
+      className="overflow-hidden"
       style={
         {
           "--sidebar-width": "20rem",
@@ -74,16 +76,15 @@ export default function PortalLayout({
         } as CSSProperties
       }
     >
-      <div className="flex h-svh w-full overflow-hidden bg-muted/30" dir="rtl">
-        <PortalSidebar />
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <PortalSidebar />
+      <SidebarInset>
+        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
           <PortalHeader />
-          <main className="flex-1 overflow-y-auto p-4 pb-24 lg:p-6 lg:pb-6">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 lg:p-6">
             {children}
-          </main>
+          </div>
         </div>
-        <PortalMobileNav />
-      </div>
+      </SidebarInset>
     </SidebarProvider>
   );
 }
