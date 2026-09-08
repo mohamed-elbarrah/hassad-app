@@ -29,7 +29,7 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: hassad-api
     restart: always
-    env_file: .env
+    env_file: .env.production
     environment:
       - WEB_URL=https://${DOMAIN:-${SERVER_IP}}
       - FRONTEND_URL=https://${DOMAIN:-${SERVER_IP}}
@@ -40,7 +40,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/v1/health/live"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/v1/health/ready"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -61,7 +61,7 @@ services:
         - NEXT_PUBLIC_API_URL=//${DOMAIN:-${SERVER_IP}}/v1
     container_name: hassad-web
     restart: always
-    env_file: .env
+    env_file: .env.production
     environment:
       - APP_URL=https://${DOMAIN:-${SERVER_IP}}
       - JWT_SECRET=${JWT_SECRET}
@@ -113,7 +113,8 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
+    name: ${POSTGRES_VOLUME_NAME:?POSTGRES_VOLUME_NAME must reference the existing production volume}
+    external: true
 
 networks:
   hassad_network:

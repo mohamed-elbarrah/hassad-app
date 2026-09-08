@@ -8,9 +8,9 @@ This document defines the **single, non-negotiable** deployment pattern for Hass
 
 | #       | Rule                                                                                                                      | Why                                                                                              |
 | ------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **R1**  | **Everything runs in Docker Compose** — PostgreSQL, API, Web, Nginx. One `docker-compose.prod.yml` file.                  | Single source of truth. `docker compose up -d --build` deploys everything.                       |
-| **R2**  | **PostgreSQL in Docker with a named volume** — `postgres_data:/var/lib/postgresql/data`. Never bind-mount to host.        | Data survives container recreation and can be backed up or restored independently of containers. |
-| **R3**  | **`prisma migrate deploy` in production** — entrypoint runs migrations, never `db push`.                                  | Migration history, rollback capability, no accidental schema drift.                              |
+| **R1**  | **Everything runs in Docker Compose** — PostgreSQL, API, Web, Nginx. One `docker-compose.prod.yml` file.                  | Single source of truth. `scripts/deploy-production.sh` performs the validated deployment.                       |
+| **R2**  | **PostgreSQL in Docker with the existing external named volume** — `POSTGRES_VOLUME_NAME:/var/lib/postgresql/data`. The deployment refuses to create a missing volume.        | Data survives container recreation and can be backed up or restored independently of containers. |
+| **R3**  | **`prisma migrate deploy` in production** — the deployment job runs migrations, never `db push`.                                  | Migration history and no accidental schema drift; database migrations are forward-only.                              |
 | **R4**  | **`prisma migrate dev` in development** — generate migration files locally, commit them to `apps/api/prisma/migrations/`. | Migrations are versioned, reviewable in PRs.                                                     |
 | **R5**  | **Nginx is the ONLY publicly exposed service** — ports 80/443. API, Web, PostgreSQL are internal Docker network only.     | Single attack surface. UFW blocks everything else.                                               |
 | **R6**  | **UFW firewall on VPS** — allow 22, 80, 443. Deny all others.                                                             | Defense in depth. Even if a port is accidentally exposed in compose, UFW blocks it.              |
@@ -83,7 +83,7 @@ hassad-platform/
     │   └── hassad.conf.http.template   # HTTP-only server block (used when DOMAIN is empty)
 │
 └── scripts/
-    └── entrypoint.sh                # migrate deploy → start API
+    └── entrypoint.sh                # start API only (migrations run in deployment job)
 ```
 
 ---
@@ -107,19 +107,19 @@ git add apps/api/prisma/migrations/
 git commit -m "feat(db): add invoice table"
 ```
 
-### In production (automatic via entrypoint.sh):
+### In production (automatic via deploy-production.sh):
 
 ```bash
 npx prisma migrate deploy   # applies pending migrations, no drift risk
 npx prisma generate         # rebuild Prisma client
-node dist/main.js           # start API
+node dist/src/main.js       # start API
 ```
 
 ### Why this matters:
 
 - Migration files are **versioned** and **reviewable** in pull requests.
 - `migrate deploy` applies only what hasn't been applied — safe for repeated runs.
-- Rollback is possible by reverting a migration commit and deploying.
+- Migrations are forward-only. Reverting Git does not roll back an applied database migration.
 - No risk of `db push` accidentally dropping columns or data.
 
 ---
@@ -142,7 +142,7 @@ sudo ufw enable
 sudo ufw status verbose   # verify
 
 # 3. Let's Encrypt (Certbot) — only if you have a domain
-# Skip this section if using IP-only mode (DOMAIN is empty).
+# Production requires DOMAIN and valid TLS certificates.
 
 sudo apt install certbot python3-certbot-nginx
 
@@ -151,7 +151,7 @@ sudo certbot --nginx -d ${DOMAIN}
 
 # Option B: Standalone mode (if Nginx is not yet running)
 sudo certbot certonly --standalone -d ${DOMAIN}
-# ⚠️ For renewal: certbot renew --pre-hook "docker compose -f /opt/hassad/docker-compose.prod.yml stop nginx" --post-hook "docker compose -f /opt/hassad/docker-compose.prod.yml start nginx"
+# ⚠️ For renewal: certbot renew --pre-hook "docker compose --env-file /opt/hassad/.env.production -f /opt/hassad/docker-compose.prod.yml stop nginx" --post-hook "docker compose --env-file /opt/hassad/.env.production -f /opt/hassad/docker-compose.prod.yml start nginx"
 
 # Certs land in /etc/letsencrypt/live/${DOMAIN}/
 # Auto-renewal is handled by certbot systemd timer (verify: systemctl status certbot.timer)
@@ -170,35 +170,38 @@ nano .env.production   # fill in real secrets
 
 ## 6. Deploy Command
 
+Use the repository deployment script. It pulls fast-forward changes, validates Compose and TLS, waits for PostgreSQL, creates and verifies a backup, builds images, applies migrations, replaces application containers, and waits for health checks.
+
 ```bash
 cd /opt/hassad
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
+sudo ./scripts/deploy-production.sh
 ```
 
-**That's it.** One command. DB migrations run automatically. Nginx picks up renewed certs automatically.
+The script requires `.env.production`, a configured `DOMAIN`, and valid Let's Encrypt certificates. It never resets the database, runs the seed, uses `db push`, deletes volumes, or performs an automatic destructive rollback.
+
+If the script fails, it prints service logs and leaves the database and existing application containers available for investigation whenever replacement has not started.
 
 ### Useful operational commands:
 
 ```bash
 # View logs
-docker compose -f docker-compose.prod.yml logs -f --tail=100 api
-docker compose -f docker-compose.prod.yml logs -f --tail=100 web
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f --tail=100 api
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f --tail=100 web
 
 # Restart a single service
-docker compose -f docker-compose.prod.yml restart api
+docker compose --env-file .env.production -f docker-compose.prod.yml restart api
 
 # Reload Nginx after config change
-docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
+docker compose --env-file .env.production -f docker-compose.prod.yml exec nginx nginx -s reload
 
-# Database backup (using container name — more reliable, works in cron)
-docker exec hassad-postgres pg_dump -U hassad hassad | gzip > backup_$(date +%Y%m%d).sql.gz
+# Database backup (the deployment script creates verified backups in /var/backups/massar)
+docker compose --env-file .env.production -f docker-compose.prod.yml exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip > backup_$(date +%Y%m%d).sql.gz
 
 # Restore database
 gunzip -c backup_20260114.sql.gz | docker exec -i hassad-postgres psql -U hassad hassad
 
 # Check health
-docker compose -f docker-compose.prod.yml ps
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
 curl -s https://yourdomain.com/v1/health | jq
 ```
 
@@ -210,11 +213,11 @@ curl -s https://yourdomain.com/v1/health | jq
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Add a new env var    | `.env.production.example` (template) + `.env.production` (real) + `docker-compose.prod.yml` (pass to service)                    |
 | Change DB schema     | `schema.prisma` → `prisma migrate dev` → commit migration folder                                                                 |
-| Change Nginx routing | Edit `nginx/conf.d/hassad.conf.https.template` (or `.http.template`) → `docker compose restart nginx` (envsubst runs at startup) |
+| Change Nginx routing | Edit `nginx/conf.d/hassad.conf.https.template` (or `.http.template`) → `docker compose --env-file .env.production -f docker-compose.prod.yml restart nginx` (envsubst runs at startup) |
 | Add a new service    | `docker-compose.prod.yml` + Dockerfile in its folder                                                                             |
 | Renew TLS cert       | Automatic (certbot systemd timer). Ensure `/etc/letsencrypt` is mounted in compose.                                              |
 | Backup DB            | `docker exec hassad-postgres pg_dump ...` (see section 6)                                                                        |
-| View logs            | `docker compose logs -f --tail=100 <service>`                                                                                    |
+| View logs            | `docker compose --env-file .env.production -f docker-compose.prod.yml logs -f --tail=100 <service>`                            |
 
 ---
 
@@ -226,7 +229,7 @@ curl -s https://yourdomain.com/v1/health | jq
 
 3. **Never skip the migration step** — schema change → `prisma migrate dev` → commit migration. No exceptions.
 
-4. **Never bind-mount PostgreSQL data** — always use the named volume `postgres_data`.
+4. **Never replace PostgreSQL data** — use the pre-existing external volume named by `POSTGRES_VOLUME_NAME`; never run `down -v` or remove it.
 
 5. **Always include log rotation** — every new service gets the `logging:` block:
 
@@ -267,12 +270,7 @@ Then in location blocks: `proxy_set_header Connection $connection_upgrade;`
       - /etc/letsencrypt/live/${DOMAIN}/privkey.pem:/etc/nginx/ssl/privkey.pem:ro
     ```
 
-13. **Single source of truth: `DOMAIN` (or `SERVER_IP`)** — `.env.production` has two variables:
-
-- `DOMAIN=yourdomain.com` — set this for production with HTTPS
-- `SERVER_IP=123.45.67.89` — always required, used as fallback when DOMAIN is empty
-
-All URLs auto-adapt: `https://${DOMAIN:-${SERVER_IP}}`. Change one variable, everything follows.
+13. **Single source of truth: `DOMAIN`** — production requires a real domain with HTTPS. `SERVER_IP` may be kept for server administration, but it is not a production fallback.
 
 ---
 
@@ -280,22 +278,20 @@ All URLs auto-adapt: `https://${DOMAIN:-${SERVER_IP}}`. Change one variable, eve
 
 ### `.env.production` — all variables needed
 
-> **⚠️ Two modes:**
->
-> - **With domain:** set `DOMAIN=yourdomain.com` → HTTPS + TLS certs
-> - **IP-only (fallback):** leave `DOMAIN` empty → HTTP only, access via `http://<SERVER_IP>`  
->   All URLs auto-adapt based on whether `DOMAIN` is set.
+> **Production requires a domain:** set `DOMAIN=yourdomain.com` and install valid Let's Encrypt certificates. The canonical deployment script rejects IP-only mode because production authentication and secure cookies require HTTPS.
 
 ```bash
 # ── Domain / IP (SET ONE OF THESE) ─────────────────
-DOMAIN=yourdomain.com    # Your domain. Leave EMPTY to use IP-only mode.
-SERVER_IP=123.45.67.89   # Your VPS public IP. Always required.
+DOMAIN=yourdomain.com    # Required production domain with valid TLS certificates.
+SERVER_IP=123.45.67.89   # VPS public IP for administration/monitoring.
 
 # ── PostgreSQL ─────────────────────────────────────
 POSTGRES_USER=hassad
 POSTGRES_PASSWORD=<strong_random_password>
 POSTGRES_DB=hassad
-# DATABASE_URL is auto-constructed in docker-compose.yml from POSTGRES variables
+# Exact existing Docker volume name; never guess or change it.
+POSTGRES_VOLUME_NAME=massar_postgres_data
+# DATABASE_URL must be a complete URL. Keep the password URL-encoded.
 DATABASE_URL=postgresql://hassad:<POSTGRES_PASSWORD>@postgres:5432/hassad
 
 # ── JWT Secrets ────────────────────────────────────
@@ -311,17 +307,17 @@ COOKIE_REFRESH_TOKEN_MAX_AGE=604800000
 # ── API ────────────────────────────────────────────
 PORT=3001
 NODE_ENV=production
-# WEB_URL, FRONTEND_URL auto-constructed from DOMAIN (or SERVER_IP if DOMAIN is empty)
+# WEB_URL and FRONTEND_URL are provided by docker-compose.prod.yml from DOMAIN
 
 # ── Web (Next.js) ──────────────────────────────────
-# NEXT_PUBLIC_API_URL, APP_URL auto-constructed from DOMAIN (or SERVER_IP fallback)
+# NEXT_PUBLIC_API_URL and APP_URL are provided by docker-compose.prod.yml from DOMAIN
 
 # ── Email (SMTP) ───────────────────────────────────
 SMTP_HOST=<your_smtp_host>
 SMTP_PORT=587
 SMTP_USER=<your_smtp_user>
 SMTP_PASS=<your_smtp_password>
-# SMTP_FROM auto-constructed from DOMAIN (or noreply@<SERVER_IP> fallback)
+# SMTP_FROM is provided by docker-compose.prod.yml from DOMAIN
 
 # ── File Storage (Cloudflare R2) ───────────────────
 CLOUDFLARE_R2_BUCKET=<bucket_name>
@@ -336,13 +332,13 @@ MOYASAR_API_KEY=<api_key>
 # ── Google OAuth ───────────────────────────────────
 GOOGLE_CLIENT_ID=<client_id>
 GOOGLE_CLIENT_SECRET=<client_secret>
-# GOOGLE_CALLBACK_URL auto-constructed from DOMAIN (or SERVER_IP fallback)
-# ⚠️ OAuth providers require a real domain. IP-only mode won't work with OAuth.
+# GOOGLE_CALLBACK_URL is provided by docker-compose.prod.yml from DOMAIN
+# OAuth providers require a real domain.
 
 # ── Snapchat OAuth ─────────────────────────────────
 SNAPCHAT_CLIENT_ID=<client_id>
 SNAPCHAT_CLIENT_SECRET=<client_secret>
-# SNAPCHAT_CALLBACK_URL auto-constructed from DOMAIN (or SERVER_IP fallback)
+# SNAPCHAT_CALLBACK_URL is provided by docker-compose.prod.yml from DOMAIN
 
 # ── AI providers ───────────────────────────────────
 # Providers and API keys are managed in the admin AI settings; do not put keys here.
@@ -368,6 +364,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # postgres_data is declared external below and points to POSTGRES_VOLUME_NAME.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -461,7 +458,8 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
+    name: ${POSTGRES_VOLUME_NAME:?POSTGRES_VOLUME_NAME is required}
+    external: true
 ```
 
 ---
@@ -577,7 +575,7 @@ server {
 
 ### `nginx/conf.d/hassad.conf.http.template`
 
-> **Used when `DOMAIN` is empty (IP-only fallback).** `${SERVER_IP}` is replaced at container startup. HTTP only — no TLS.
+> **Legacy HTTP template only.** It is not supported by the canonical production deployment script; production deployments require the HTTPS template and a real domain.
 
 ```nginx
 upstream api_backend {
@@ -649,7 +647,7 @@ RUN npm run build --workspace=apps/api
 
 # NOTE: Do NOT run npm prune --production here.
 # The production stage copies node_modules as-is because:
-# 1. prisma CLI (devDependency) is needed at runtime for migrate deploy + generate
+# 1. prisma CLI (devDependency) is needed by the deployment migration job
 # 2. The production stage is a separate minimal image — only needed artifacts are copied
 
 # Stage 2: Production
@@ -772,19 +770,13 @@ backups/
 
 ### `scripts/entrypoint.sh`
 
-```bash
+The API entrypoint only starts the already-built application. Production migrations are executed separately by `scripts/deploy-production.sh` before application containers are replaced.
+
+```sh
 #!/bin/sh
-set -e
-
-echo "==> Running Prisma migrations..."
+set -eu
 cd /app/apps/api
-npx prisma migrate deploy
-
-echo "==> Generating Prisma client..."
-npx prisma generate
-
-echo "==> Starting API server..."
-exec node dist/main.js
+exec node dist/src/main.js
 ```
 
 ---
@@ -843,9 +835,9 @@ rsync -avz /backups/hassad/ user@offsite-server:/backups/hassad/
 
 | Symptom               | Check                                                         |
 | --------------------- | ------------------------------------------------------------- |
-| 502 Bad Gateway       | `docker compose ps` — are api/web healthy?                    |
-| DB connection refused | `docker compose logs postgres` — is it healthy?               |
-| Nginx config error    | `docker compose exec nginx nginx -t`                          |
+| 502 Bad Gateway       | `docker compose --env-file .env.production -f docker-compose.prod.yml ps` — are api/web healthy? |
+| DB connection refused | `docker compose --env-file .env.production -f docker-compose.prod.yml logs postgres` — is it healthy? |
+| Nginx config error    | `docker compose --env-file .env.production -f docker-compose.prod.yml exec nginx nginx -t` |
 | Certs expired         | `sudo certbot renew --dry-run`                                |
 | Disk full             | `docker system prune -a` (cleans old images), check log sizes |
-| Migration stuck       | `docker compose exec api npx prisma migrate status`           |
+| Migration stuck       | `docker compose --env-file .env.production -f docker-compose.prod.yml exec api npx prisma migrate status` |

@@ -14,7 +14,7 @@ import {
 import { formatShortDateLong } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export type DateRange = CalendarDateRange;
+export type DateRange = Partial<CalendarDateRange>;
 
 export function ContractsToolbar({
   search,
@@ -88,12 +88,15 @@ export function ContractsToolbar({
             dir="rtl"
           >
             <Calendar
-              initialFocus
               dir="rtl"
               locale={arSA}
               mode="range"
               defaultMonth={dateRange.from}
-              selected={dateRange}
+              selected={
+                dateRange.from
+                  ? { from: dateRange.from, to: dateRange.to }
+                  : undefined
+              }
               onSelect={(range) => onDateRangeChange(range ?? {})}
               numberOfMonths={2}
             />

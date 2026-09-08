@@ -2612,7 +2612,6 @@ async function main() {
       "services.read",
       "chat.read",
       "chat.message",
-      "clients.read",
     ],
   };
 

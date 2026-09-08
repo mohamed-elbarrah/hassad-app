@@ -19,7 +19,6 @@ const ROLE_ASSIGNMENTS: Record<string, string[]> = {
     "clients.read_activity",
   ],
   PM: ["clients.read"],
-  CLIENT: ["clients.read"],
 };
 
 async function main() {

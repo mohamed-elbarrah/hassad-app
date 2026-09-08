@@ -298,7 +298,9 @@ export function Step8_Review({
     <Card className="shadow-none">
       <CardContent className="flex flex-col gap-6 p-6">
         <div>
-          <p className="text-sm font-medium text-muted-foreground mb-1">الخطوة 8</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1">
+            الخطوة 8
+          </p>
           <h3 className="text-xl font-bold text-foreground">
             المراجعة والإرسال
           </h3>
@@ -387,11 +389,7 @@ export function Step8_Review({
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onEdit(7)}
-          >
+          <Button type="button" variant="outline" onClick={() => onEdit(7)}>
             السابق
           </Button>
           <Button
@@ -399,7 +397,6 @@ export function Step8_Review({
             size="lg"
             onClick={handleSubmit}
             disabled={!formData.communicationInfo || isSubmitting}
-            isLoading={isSubmitting}
             className="min-w-[140px]"
           >
             {isSubmitting ? "جاري الإرسال..." : "إرسال"}

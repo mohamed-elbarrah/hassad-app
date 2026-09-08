@@ -14,7 +14,7 @@
     "start:dev": "nest start --watch",
     "dev": "npm run start:dev",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main.js",
     "backfill:create-projects": "ts-node scripts/backfill-create-projects-from-signed-contracts.ts",
     "verify:crm-migration": "ts-node scripts/verify-legacy-crm-migration.ts",
     "verify:request-canonical": "ts-node scripts/verify-request-canonical.ts",
