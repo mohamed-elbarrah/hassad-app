@@ -143,7 +143,7 @@ $$;
 SQL
 
 log "Applying pending Prisma migrations"
-"${compose[@]}" run --rm --no-deps --entrypoint npx api prisma migrate deploy
+"${compose[@]}" run --rm --no-deps --entrypoint npx api prisma migrate deploy --schema=apps/api/prisma/schema.prisma
 
 log "Replacing application containers"
 "${compose[@]}" up -d --no-build --force-recreate api web nginx

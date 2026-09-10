@@ -202,19 +202,14 @@ export class AuthService {
       ]);
     }
 
-    // Get permissions for JWT payload
-    const permissions = [
-      ...user.role.permissions.map((p: any) => p.permission.name),
-      ...user.permissions.map((p: any) => p.permission.name),
-    ];
-
+    // Keep JWT cookies small and non-authoritative. PermissionsGuard always
+    // reads current permissions from the database for authorization decisions.
     const tokens = await this.createSessionTokens(
       {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role.name as UserRole,
-        permissions,
       },
       ip,
       userAgent,
@@ -259,7 +254,6 @@ export class AuthService {
       name: profile.name,
       email: profile.email,
       role: profile.role,
-      permissions: profile.permissions,
       sid: session.id,
       ...(user.impersonator && { impersonator: user.impersonator }),
       ...(user.impersonatorName && { impersonatorName: user.impersonatorName }),

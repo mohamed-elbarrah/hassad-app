@@ -7,8 +7,9 @@ cd "$ROOT_DIR"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/.env.production}"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.prod.yml}"
 DEFAULT_EMAIL_DOMAIN="${DEFAULT_EMAIL_DOMAIN:-massar.com}"
-DEFAULT_PASSWORD="${DEFAULT_PASSWORD:-Password123}"
+DEFAULT_PASSWORD="${DEFAULT_PASSWORD:-}"
 
+[[ -n "$DEFAULT_PASSWORD" ]] || { echo "DEFAULT_PASSWORD is required" >&2; exit 1; }
 [[ -f "$ENV_FILE" ]] || { echo "Missing env file: $ENV_FILE" >&2; exit 1; }
 [[ -f "$COMPOSE_FILE" ]] || { echo "Missing compose file: $COMPOSE_FILE" >&2; exit 1; }
 command -v docker >/dev/null 2>&1 || { echo "Docker is required" >&2; exit 1; }
@@ -203,11 +204,9 @@ INSERT INTO permissions (id, name)
 SELECT 'perm-' || replace(replace(name, '.', '-'), '_', '-'), name FROM permission_names
 ON CONFLICT (name) DO NOTHING;
 
--- Admin receives all known permissions; the API also has an ADMIN bypass, but rows keep the admin UI consistent.
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
-WHERE r.name = 'ADMIN'
-ON CONFLICT DO NOTHING;
+-- ADMIN does not need role_permission rows for API authorization because
+-- PermissionsGuard authorizes ADMIN through the role bypass. Admin UI permission
+-- presentation is served by /auth/me and does not require permissions in JWTs.
 
 -- Least-privilege baseline based on the local seed mapping, plus missing controller permissions for each portal.
 WITH map(role_name, permission_name) AS (VALUES
