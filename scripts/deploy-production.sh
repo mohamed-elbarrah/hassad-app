@@ -102,35 +102,41 @@ log "Checking known migration preconditions"
 "${compose[@]}" exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
 DO $$
 BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM "conversation_participants"
-    GROUP BY "conversation_id", "user_id"
-    HAVING COUNT(*) > 1
-  ) THEN
-    RAISE EXCEPTION 'CHAT_PARTICIPANT_DUPLICATES_REQUIRE_REVIEW';
+  IF to_regclass('public.conversation_participants') IS NOT NULL THEN
+    IF EXISTS (
+      SELECT 1
+      FROM "conversation_participants"
+      GROUP BY "conversation_id", "user_id"
+      HAVING COUNT(*) > 1
+    ) THEN
+      RAISE EXCEPTION 'CHAT_PARTICIPANT_DUPLICATES_REQUIRE_REVIEW';
+    END IF;
+
+    IF EXISTS (
+      SELECT 1
+      FROM "conversation_participants" cp
+      LEFT JOIN "conversations" c ON c."id" = cp."conversation_id"
+      WHERE c."id" IS NULL
+    ) THEN
+      RAISE EXCEPTION 'CHAT_PARTICIPANT_ORPHANS_REQUIRE_REVIEW';
+    END IF;
   END IF;
 
-  IF EXISTS (
-    SELECT 1
-    FROM "conversation_participants" cp
-    LEFT JOIN "conversations" c ON c."id" = cp."conversation_id"
-    WHERE c."id" IS NULL
-  ) THEN
-    RAISE EXCEPTION 'CHAT_PARTICIPANT_ORPHANS_REQUIRE_REVIEW';
+  IF to_regclass('public.campaigns') IS NOT NULL THEN
+    IF EXISTS (SELECT 1 FROM "campaigns" WHERE "task_id" IS NULL) THEN
+      RAISE EXCEPTION 'CAMPAIGN_TASK_ID_NULLS_REQUIRE_REVIEW';
+    END IF;
   END IF;
 
-  IF EXISTS (SELECT 1 FROM "campaigns" WHERE "task_id" IS NULL) THEN
-    RAISE EXCEPTION 'CAMPAIGN_TASK_ID_NULLS_REQUIRE_REVIEW';
-  END IF;
-
-  IF EXISTS (
-    SELECT 1
-    FROM "report_snapshots"
-    GROUP BY "report_type", "period", "period_start"
-    HAVING COUNT(*) > 1
-  ) THEN
-    RAISE EXCEPTION 'REPORT_SNAPSHOT_DUPLICATES_REQUIRE_REVIEW';
+  IF to_regclass('public.report_snapshots') IS NOT NULL THEN
+    IF EXISTS (
+      SELECT 1
+      FROM "report_snapshots"
+      GROUP BY "report_type", "period", "period_start"
+      HAVING COUNT(*) > 1
+    ) THEN
+      RAISE EXCEPTION 'REPORT_SNAPSHOT_DUPLICATES_REQUIRE_REVIEW';
+    END IF;
   END IF;
 END
 $$;
