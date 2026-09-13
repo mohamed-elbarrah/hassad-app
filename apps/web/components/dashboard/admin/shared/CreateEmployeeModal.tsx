@@ -1,13 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { UserPlus, User, Shield } from "lucide-react";
-import { Dialog } from "@/components/design-system/Dialog";
+import { Loader2, Shield, User } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/design-system/Select";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { useCreateAdminUserMutation } from "@/features/admin/adminUsersApi";
-import { UserRole, TaskDepartment } from "@hassad/shared";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  type CreateAdminUserPayload,
+  useCreateAdminUserMutation,
+} from "@/features/admin/adminUsersApi";
+import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
+import { toast } from "sonner";
+import { TaskDepartment, UserRole } from "@hassad/shared";
 
 const ROLE_OPTIONS = [
   { label: "مدير مشروع", value: UserRole.PM },
@@ -38,27 +59,6 @@ export function CreateEmployeeModal({ open, onOpenChange }: Props) {
   const [department, setDepartment] = useState("");
   const [createUser, { isLoading }] = useCreateAdminUserMutation();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name || !email || !password || !role) return;
-    try {
-      await createUser({
-        name,
-        email,
-        password,
-        role: role as UserRole,
-        department:
-          role === UserRole.TEAM && department
-            ? (department as TaskDepartment)
-            : undefined,
-      } as any).unwrap();
-      resetForm();
-      onOpenChange(false);
-    } catch {
-      /* error handled by RTK */
-    }
-  }
-
   function resetForm() {
     setName("");
     setEmail("");
@@ -67,148 +67,185 @@ export function CreateEmployeeModal({ open, onOpenChange }: Props) {
     setDepartment("");
   }
 
-  function handleClose(v: boolean) {
-    if (!v) resetForm();
-    onOpenChange(v);
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!name.trim() || !email.trim() || !password || !role) return;
+
+    const payload: CreateAdminUserPayload = {
+      name: name.trim(),
+      email: email.trim(),
+      password,
+      role: role as UserRole,
+      department:
+        role === UserRole.TEAM && department
+          ? (department as TaskDepartment)
+          : undefined,
+    };
+
+    try {
+      await createUser(payload).unwrap();
+      toast.success(adminSuccessMessage("USER_CREATED"));
+      resetForm();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(adminErrorMessage(error));
+    }
   }
 
-  const isValid = name && email && password && role;
+  function handleClose(nextOpen: boolean) {
+    if (!nextOpen && isLoading) return;
+    if (!nextOpen) resetForm();
+    onOpenChange(nextOpen);
+  }
+
+  function preventCloseWhileSubmitting(event: Event) {
+    if (isLoading) event.preventDefault();
+  }
+
+  function preventEscapeWhileSubmitting(event: KeyboardEvent) {
+    if (isLoading) event.preventDefault();
+  }
+
   const isTeamRole = role === UserRole.TEAM;
+  const isValid = Boolean(
+    name.trim() && email.trim() && password && role && (!isTeamRole || department),
+  );
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={handleClose}
-      contentClassName="sm:max-w-[480px]"
-    >
-      <div className="text-center space-y-1.5 pb-4">
-        <div className="flex justify-center mb-3">
-          <div className="h-14 w-14 rounded-full bg-secondary-500/10 flex items-center justify-center">
-            <UserPlus className="h-7 w-7 text-secondary-500" />
-          </div>
-        </div>
-        <h1 className="text-[22px] font-bold text-natural-100 leading-tight">
-          إضافة موظف جديد
-        </h1>
-        <p className="text-[13px] text-neutral-300 leading-relaxed px-2">
-          أدخل بيانات الموظف الجديد لإضافته إلى المنصة
-        </p>
-      </div>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent
+        className="max-h-[90vh] overflow-y-auto sm:max-w-lg"
+        dir="rtl"
+        showClose={!isLoading}
+        onInteractOutside={preventCloseWhileSubmitting}
+        onEscapeKeyDown={preventEscapeWhileSubmitting}
+      >
+        <DialogHeader className="text-right sm:text-right">
+          <DialogTitle>إضافة موظف جديد</DialogTitle>
+          <DialogDescription>
+            أدخل بيانات الموظف الجديد لإضافته إلى المنصة.
+          </DialogDescription>
+        </DialogHeader>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="border border-neutral-200 rounded-2xl p-5 space-y-4 bg-natural-0">
-          <p className="text-[15px] font-bold text-natural-100 flex items-center gap-2">
-            <User className="h-4 w-4 text-secondary-500" />
-            المعلومات الأساسية
-          </p>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <User data-icon="inline-start" />
+                المعلومات الأساسية
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="create-employee-name">الاسم *</Label>
+                <Input
+                  id="create-employee-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="الاسم الكامل"
+                  className="min-h-11"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="create-employee-email">البريد الإلكتروني *</Label>
+                <Input
+                  id="create-employee-email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="user@example.com"
+                  className="min-h-11"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="create-employee-password">كلمة المرور *</Label>
+                <Input
+                  id="create-employee-password"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="8 أحرف على الأقل"
+                  className="min-h-11"
+                  minLength={8}
+                  required
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="space-y-1.5">
-            <label className="text-[13px] font-bold text-natural-100 block">
-              الاسم <span className="text-danger-500">*</span>
-            </label>
-            <Input
-              placeholder="الاسم الكامل"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Shield data-icon="inline-start" />
+                الصلاحيات والقسم
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="create-employee-role">الدور *</Label>
+                <Select
+                  value={role}
+                  onValueChange={(value) => {
+                    setRole(value);
+                    if (value !== UserRole.TEAM) setDepartment("");
+                  }}
+                >
+                  <SelectTrigger id="create-employee-role" className="min-h-11" aria-required="true">
+                    <SelectValue placeholder="اختر الدور" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {ROLE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[13px] font-bold text-natural-100 block">
-              البريد الإلكتروني <span className="text-danger-500">*</span>
-            </label>
-            <Input
-              type="email"
-              placeholder="user@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+              {isTeamRole ? (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="create-employee-department">القسم *</Label>
+                  <Select value={department} onValueChange={setDepartment}>
+                    <SelectTrigger id="create-employee-department" className="min-h-11" aria-required="true">
+                      <SelectValue placeholder="اختر القسم" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {DEPT_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
 
-          <div className="space-y-1.5">
-            <label className="text-[13px] font-bold text-natural-100 block">
-              كلمة المرور <span className="text-danger-500">*</span>
-            </label>
-            <Input
-              type="password"
-              placeholder="8 أحرف على الأقل"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={8}
-              required
-            />
-          </div>
-        </div>
-
-        <div className="border border-neutral-200 rounded-2xl p-5 space-y-4 bg-natural-0">
-          <p className="text-[15px] font-bold text-natural-100 flex items-center gap-2">
-            <Shield className="h-4 w-4 text-secondary-500" />
-            الصلاحيات والقسم
-          </p>
-
-          <div className="space-y-1.5">
-            <label className="text-[13px] font-bold text-natural-100 block">
-              الدور <span className="text-danger-500">*</span>
-            </label>
-            <Select
-              value={role}
-              onValueChange={(v) => {
-                setRole(v);
-                if (v !== UserRole.TEAM) setDepartment("");
-              }}
-              placeholder="اختر الدور"
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleClose(false)}
+              className="min-h-11"
+              disabled={isLoading}
             >
-              {ROLE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </Select>
-          </div>
-
-          {isTeamRole && (
-            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
-              <label className="text-[13px] font-bold text-natural-100 block">
-                القسم <span className="text-danger-500">*</span>
-              </label>
-              <Select
-                value={department}
-                onValueChange={setDepartment}
-                placeholder="اختر القسم"
-              >
-                {DEPT_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </Select>
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-3 pt-1">
-          <ActionButton
-            variant="outline"
-            type="button"
-            onClick={() => handleClose(false)}
-            className="w-[30%] h-14 text-[13px] font-medium"
-          >
-            إلغاء
-          </ActionButton>
-          <ActionButton
-            type="submit"
-            variant="submit"
-            size="lg"
-            loading={isLoading}
-            disabled={!isValid || (isTeamRole && !department)}
-            className="flex-1 h-14 text-[15px] font-semibold"
-          >
-            {isLoading ? "جارٍ الإضافة..." : "إضافة الموظف"}
-          </ActionButton>
-        </div>
-      </form>
+              إلغاء
+            </Button>
+            <Button type="submit" className="min-h-11" disabled={!isValid || isLoading}>
+              {isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+              {isLoading ? "جارٍ الإضافة..." : "إضافة الموظف"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

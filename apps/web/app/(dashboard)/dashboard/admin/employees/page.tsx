@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Search, UserRound, Users } from "lucide-react";
+import { RefreshCw, Search, UserPlus, UserRound, Users } from "lucide-react";
 import { UserRole, USER_ROLE_AR, TaskDepartment, TASK_DEPARTMENT_AR } from "@hassad/shared";
 import { useGetAdminUsersQuery } from "@/features/admin/adminUsersApi";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { formatDateTime } from "@/lib/format";
 import { adminErrorMessage } from "@/lib/i18n";
+import { CreateEmployeeModal } from "@/components/dashboard/admin/shared/CreateEmployeeModal";
 
 const employeeRoles = Object.values(UserRole).filter((role) => role !== UserRole.CLIENT);
 
@@ -75,6 +76,7 @@ export default function EmployeesPage() {
   const [department, setDepartment] = useState<"ALL" | TaskDepartment>("ALL");
   const [status, setStatus] = useState<"ALL" | "active" | "inactive">("ALL");
   const [page, setPage] = useState(1);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const limit = 20;
 
   useEffect(() => {
@@ -128,10 +130,16 @@ export default function EmployeesPage() {
         description="عرض جميع الموظفين في النظام. حسابات العملاء مستبعدة من هذه القائمة."
         icon={Users}
         actions={(
-          <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw data-icon="inline-start" />
-            {isFetching ? "جاري التحديث" : "تحديث"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <UserPlus data-icon="inline-start" />
+              إضافة موظف
+            </Button>
+            <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCw data-icon="inline-start" />
+              {isFetching ? "جاري التحديث" : "تحديث"}
+            </Button>
+          </div>
         )}
       />
 
@@ -252,6 +260,7 @@ export default function EmployeesPage() {
             </>
           )}
       </div>
+      <CreateEmployeeModal open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </div>
   );
 }

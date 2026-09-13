@@ -255,6 +255,7 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   CONTRACT_ALREADY_CONVERTED: "تم تحويل هذا العقد إلى مشروع مسبقاً.",
   INVALID_CONTRACT_STATUS: "حالة العقد غير صالحة.",
   EMAIL_ALREADY_IN_USE: "البريد الإلكتروني مستخدم بالفعل.",
+  ROLE_NOT_FOUND: "الدور المحدد غير متاح.",
   PERMISSION_ASSIGNMENT_NOT_ALLOWED: "لا يمكنك منح هذه الصلاحية.",
   SELF_PERMISSION_ESCALATION_NOT_ALLOWED: "لا يمكنك تعديل صلاحيات حسابك.",
   SESSION_NOT_FOUND: "لم يتم العثور على الجلسة.",
@@ -281,6 +282,7 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
 };
 
 const ADMIN_SUCCESS_MESSAGES: Record<string, string> = {
+  USER_CREATED: "تمت إضافة الموظف بنجاح.",
   CURRENCY_CREATED: "تمت إضافة العملة بنجاح.",
   CURRENCY_UPDATED: "تم تحديث العملة بنجاح.",
   CURRENCY_DELETED: "تم حذف العملة بنجاح.",

@@ -286,7 +286,10 @@ export const adminUsersApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
     }),
 
-    createAdminUser: builder.mutation<AdminUserItem, CreateAdminUserPayload>({
+    createAdminUser: builder.mutation<
+      Pick<AdminUserItem, "id" | "name" | "email" | "role">,
+      CreateAdminUserPayload
+    >({
       query: (body) => ({ url: "/admin/users", method: "POST", body }),
       invalidatesTags: ["AdminUsers"],
     }),
