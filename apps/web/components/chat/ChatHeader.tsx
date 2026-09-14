@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import type { Conversation } from "@/features/chat/chatApi";
 import { useAppSelector } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
@@ -20,12 +21,16 @@ function getHeaderInfo(
   currentUserRole?: string,
 ) {
   if (conversation.type === "GROUP") {
+    const projectBase =
+      currentUserRole === "ADMIN"
+        ? "/dashboard/admin/projects"
+        : "/dashboard/pm/projects";
     return {
       name: conversation.title || "مجموعة",
       subtitle: `${conversation.participants.length} أعضاء`,
       avatarName: conversation.title || "G",
       projectLink: conversation.project?.id
-        ? `/dashboard/pm/projects/${conversation.project.id}`
+        ? `${projectBase}/${conversation.project.id}`
         : null,
       projectName: conversation.project?.name,
     };
@@ -45,7 +50,10 @@ function getHeaderInfo(
     if (conversation.project?.name) {
       subtitle = `مشروع ${conversation.project.name}`;
       projectName = conversation.project.name;
-      projectLink = `/dashboard/pm/projects/${conversation.project.id}`;
+      projectLink =
+        currentUserRole === "ADMIN"
+          ? `/dashboard/admin/projects/${conversation.project.id}`
+          : `/dashboard/pm/projects/${conversation.project.id}`;
     } else if (conversation.clientName) {
       subtitle = conversation.clientName;
     }
@@ -100,14 +108,14 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
     <div className="flex items-center gap-3 border-b border-border bg-background px-5 py-3.5">
       {/* Avatar with online status */}
       <div className="relative shrink-0">
-        <Avatar className="h-6 w-6 rounded-lg">
+        <Avatar className="size-6 rounded-lg">
           <AvatarFallback className="bg-muted text-xs text-foreground">
             {getInitials(info.avatarName)}
           </AvatarFallback>
         </Avatar>
         <span
           className={cn(
-            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
+            "absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background",
             conversation.type === "DIRECT" && isDirectOnline
               ? "bg-success"
               : "bg-muted-foreground/40",
@@ -155,30 +163,36 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-1">
-        <button
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => toast.info("البحث في المحادثة قريباً")}
-          className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="بحث في المحادثة"
           aria-label="بحث في المحادثة"
         >
-          <Search className="w-4 h-4" />
-        </button>
-        <button
+          <Search data-icon="inline-start" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => toast.info("المكالمات الصوتية قريباً")}
-          className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="مكالمة"
           aria-label="مكالمة"
         >
-          <Phone className="w-4 h-4" />
-        </button>
-        <button
+          <Phone data-icon="inline-start" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => toast.info("خيارات إضافية قريباً")}
-          className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="المزيد"
           aria-label="المزيد من الخيارات"
         >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+          <MoreHorizontal data-icon="inline-start" />
+        </Button>
       </div>
     </div>
   );

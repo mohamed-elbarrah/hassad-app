@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import { DashboardChatWorkspace } from "@/components/chat/DashboardChatWorkspace";
 
-export default function MessagesPage() {
+export default function SalesChatPage() {
   return (
     <Suspense fallback={null}>
-      <DashboardChatWorkspace />
+      <DashboardChatWorkspace scope="sales" />
     </Suspense>
   );
 }

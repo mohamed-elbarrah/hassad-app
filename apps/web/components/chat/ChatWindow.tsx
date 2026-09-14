@@ -4,7 +4,10 @@ import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react
 import { MessageBubble } from "./MessageBubble";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatShortDateLong } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare } from "lucide-react";
 import type { Message } from "@/features/chat/chatApi";
 
@@ -27,12 +30,7 @@ function formatDateSeparator(dateStr: string): string {
   if (diffDays === 0) return "اليوم";
   if (diffDays === 1) return "أمس";
 
-  return date.toLocaleDateString("ar-SA", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  return formatShortDateLong(dateStr);
 }
 
 function shouldShowDateSeparator(
@@ -136,17 +134,10 @@ export function ChatWindow({
               i % 2 === 0 ? "flex-row" : "flex-row-reverse",
             )}
           >
-            {i % 2 !== 0 && (
-              <div className="mt-1 h-8 w-8 shrink-0 animate-pulse rounded-full bg-muted" />
-            )}
-            <div className="space-y-2">
-              <div
-                className={cn(
-                  "h-10 animate-pulse rounded-2xl bg-muted",
-                  i % 2 === 0 ? "w-64" : "w-48",
-                )}
-              />
-              <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+            {i % 2 !== 0 && <Skeleton className="mt-1 size-8 shrink-0 rounded-full" />}
+            <div className="flex flex-col gap-2">
+              <Skeleton className={cn("h-10 rounded-2xl", i % 2 === 0 ? "w-64" : "w-48")} />
+              <Skeleton className="h-3 w-16 rounded" />
             </div>
           </div>
         ))}
@@ -156,19 +147,15 @@ export function ChatWindow({
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="px-6 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <MessageSquare className="h-8 w-8 text-primary" />
-          </div>
-          <p className="mb-1 text-base font-medium text-foreground">
-            لا توجد رسائل بعد
-          </p>
-          <p className="text-sm text-muted-foreground">
-            أرسل أول رسالة لبدء المحادثة 👋
-          </p>
-        </div>
-      </div>
+      <Empty className="border-0 p-6">
+        <EmptyMedia variant="icon">
+          <MessageSquare />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle>لا توجد رسائل بعد</EmptyTitle>
+          <EmptyDescription>أرسل أول رسالة لبدء المحادثة 👋</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
@@ -246,7 +233,7 @@ export function ChatWindow({
           aria-label="الانتقال إلى أحدث الرسائل"
           className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border-border bg-background text-muted-foreground shadow-lg transition-all hover:bg-muted hover:text-primary"
         >
-          <ChevronDown className="h-4 w-4" />
+          <ChevronDown data-icon="inline-start" />
         </Button>
       )}
     </div>

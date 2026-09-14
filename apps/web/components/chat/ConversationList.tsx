@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { cn } from "@/lib/utils";
+import { useState, useMemo, useId } from "react";
 import { ConversationItem } from "./ConversationItem";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Conversation } from "@/features/chat/chatApi";
 import { Search, MessageSquarePlus, Users, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -25,6 +28,7 @@ export function ConversationList({
   onFilterChange,
 }: ConversationListProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputId = useId();
 
   // Filter conversations by search
   const filteredConversations = useMemo(() => {
@@ -49,17 +53,17 @@ export function ConversationList({
   if (isLoading) {
     return (
       <div className="flex h-full flex-col">
-        <div className="space-y-4 border-b border-border p-4">
-          <div className="h-6 w-24 animate-pulse rounded-lg bg-muted" />
-          <div className="h-9 w-full animate-pulse rounded-xl bg-muted" />
+        <div className="flex flex-col gap-4 border-b border-border p-4">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-9 w-full rounded-xl" />
         </div>
-        <div className="flex-1 space-y-1 p-2">
+        <div className="flex flex-1 flex-col gap-1 p-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 px-4 py-3.5">
-              <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-muted" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
-                <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+              <Skeleton className="size-10 shrink-0 rounded-full" />
+              <div className="flex flex-1 flex-col gap-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
               </div>
             </div>
           ))}
@@ -74,56 +78,56 @@ export function ConversationList({
       <div className="border-b border-border p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">المحادثات</h2>
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => toast.info("إنشاء محادثة جديدة قريباً")}
-            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-            title="محادثة جديدة"
+            aria-label="محادثة جديدة"
           >
-            <MessageSquarePlus className="h-5 w-5" />
-          </button>
+            <MessageSquarePlus data-icon="inline-start" />
+          </Button>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
+          <label htmlFor={searchInputId} className="sr-only">
+            البحث في المحادثات
+          </label>
+          <Search aria-hidden="true" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id={searchInputId}
+            type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="ابحث عن محادثة..."
-            className="h-9 w-full rounded-xl border-none bg-muted pr-9 pl-3 text-sm text-foreground outline-none transition-all focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
+            className="h-9 rounded-xl border-none bg-muted pr-9 pl-3 text-sm transition-all focus:ring-2 focus:ring-primary/30"
             dir="rtl"
           />
         </div>
 
         {/* Filter tabs */}
         {onFilterChange && (
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              onClick={() => onFilterChange("DIRECT")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
-                filterType === "DIRECT"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80",
-              )}
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
+          <ToggleGroup
+            type="single"
+            value={filterType}
+            onValueChange={(value) => {
+              if (value === "DIRECT" || value === "GROUP") onFilterChange(value);
+            }}
+            variant="outline"
+            size="sm"
+            aria-label="نوع المحادثة"
+            className="mt-3 justify-start"
+          >
+            <ToggleGroupItem value="DIRECT" aria-label="المحادثات الخاصة">
+              <MessageCircle data-icon="inline-start" />
               خاصة
-            </button>
-            <button
-              onClick={() => onFilterChange("GROUP")}
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
-                filterType === "GROUP"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80",
-              )}
-            >
-              <Users className="h-3.5 w-3.5" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="GROUP" aria-label="المحادثات الجماعية">
+              <Users data-icon="inline-start" />
               مجموعات
-            </button>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
         )}
       </div>
 

@@ -73,6 +73,10 @@ export function resolveEntityUrl(
   }
   if (entityType === "conversation") {
     if (role === UserRole.CLIENT) return `/portal/projects`;
+    if (role === UserRole.ADMIN)
+      return `/dashboard/admin/chat?conversationId=${encodeURIComponent(entityId)}`;
+    if (role === UserRole.SALES)
+      return `/dashboard/sales/chat?conversationId=${encodeURIComponent(entityId)}`;
     return `/dashboard/messages`;
   }
   return null;

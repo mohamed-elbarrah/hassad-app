@@ -17,11 +17,14 @@ import { FilesInterceptor } from "@nestjs/platform-express";
 import {
   CurrentUser,
   type JwtPayload,
-} from "../../../common/decorators/current-user.decorator";
-import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
-import { PermissionsGuard } from "../../../common/guards/permissions.guard";
-import { ChatAttachmentService, CHAT_UPLOAD_LIMITS } from "../../../common/storage/chat-attachment.service";
-import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+} from "../../common/decorators/current-user.decorator";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
+import { PermissionsGuard } from "../../common/guards/permissions.guard";
+import {
+  ChatAttachmentService,
+  CHAT_UPLOAD_LIMITS,
+} from "../../common/storage/chat-attachment.service";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
 import {
   AddParticipantDto,
@@ -30,23 +33,18 @@ import {
   GetConversationsQueryDto,
   GetMessagesQueryDto,
   UpdateMessageDto,
-} from "../../chat/dto/chat.dto";
-import { ChatService } from "../../chat/services/chat.service";
-import { DirectConversationService } from "../../chat/services/direct-conversation.service";
-import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
-
-import { AdminWorkspaceChatTargetsQueryDto } from "../dto/admin-chat.dto";
-import { AdminWorkspaceChatService } from "../services/admin-chat-workspace.service";
-
-@Controller("admin/chat")
+} from "../chat/dto/chat.dto";
+import { ChatService } from "../chat/services/chat.service";
+import { DirectConversationService } from "../chat/services/direct-conversation.service";
+import { ProjectGroupChatService } from "../chat/services/project-group-chat.service";
+@Controller("sales/chat")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-export class AdminWorkspaceChatController {
+export class SalesChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly directConversationService: DirectConversationService,
     private readonly projectGroupChatService: ProjectGroupChatService,
     private readonly chatAttachmentService: ChatAttachmentService,
-    private readonly adminChatService: AdminWorkspaceChatService,
   ) {}
 
   @Get("conversations")
@@ -66,7 +64,10 @@ export class AdminWorkspaceChatController {
 
   @Post("conversations")
   @RequirePermissions("chat.create")
-  createConversation(@CurrentUser() user: JwtPayload, @Body() dto: CreateConversationDto) {
+  createConversation(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateConversationDto,
+  ) {
     return this.chatService.createConversation(user.id, dto);
   }
 
@@ -157,7 +158,11 @@ export class AdminWorkspaceChatController {
 
   @Post("conversations/:id/messages/with-files")
   @RequirePermissions("chat.message")
-  @UseInterceptors(FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, { limits: CHAT_UPLOAD_LIMITS }))
+  @UseInterceptors(
+    FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, {
+      limits: CHAT_UPLOAD_LIMITS,
+    }),
+  )
   async createMessageWithFiles(
     @CurrentUser() user: JwtPayload,
     @Param("id") conversationId: string,
@@ -165,21 +170,25 @@ export class AdminWorkspaceChatController {
     @UploadedFiles() files: Express.Multer.File[],
   ) {
     await this.chatService.assertConversationAccess(conversationId, user.id);
-    const attachments = await this.chatAttachmentService.upload(conversationId, files);
+    const attachments = await this.chatAttachmentService.upload(
+      conversationId,
+      files,
+    );
 
     return this.chatService.createMessageWithAttachments(
       user.id,
-      {
-        ...dto,
-        conversationId,
-      },
+      { ...dto, conversationId },
       attachments,
     );
   }
 
   @Post("conversations/direct/:userId/messages/with-files")
   @RequirePermissions("chat.message")
-  @UseInterceptors(FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, { limits: CHAT_UPLOAD_LIMITS }))
+  @UseInterceptors(
+    FilesInterceptor("files", CHAT_UPLOAD_LIMITS.files, {
+      limits: CHAT_UPLOAD_LIMITS,
+    }),
+  )
   async createDirectMessageWithFiles(
     @CurrentUser() user: JwtPayload,
     @Param("userId") otherUserId: string,
@@ -190,7 +199,6 @@ export class AdminWorkspaceChatController {
       user.id,
       otherUserId,
     );
-
     if (!conversation) {
       throw new NotFoundException({
         code: "DIRECT_CONVERSATION_CREATE_FAILED",
@@ -199,15 +207,14 @@ export class AdminWorkspaceChatController {
     }
 
     await this.chatService.assertConversationAccess(conversation.id, user.id);
-
-    const attachments = await this.chatAttachmentService.upload(conversation.id, files);
+    const attachments = await this.chatAttachmentService.upload(
+      conversation.id,
+      files,
+    );
 
     return this.chatService.createMessageWithAttachments(
       user.id,
-      {
-        ...dto,
-        conversationId: conversation.id,
-      },
+      { ...dto, conversationId: conversation.id },
       attachments,
     );
   }
@@ -230,7 +237,12 @@ export class AdminWorkspaceChatController {
     @Param("messageId") messageId: string,
     @Body() dto: UpdateMessageDto,
   ) {
-    return this.chatService.updateMessage(conversationId, messageId, user.id, dto);
+    return this.chatService.updateMessage(
+      conversationId,
+      messageId,
+      user.id,
+      dto,
+    );
   }
 
   @Delete("conversations/:conversationId/messages/:messageId")
@@ -241,17 +253,5 @@ export class AdminWorkspaceChatController {
     @Param("messageId") messageId: string,
   ) {
     return this.chatService.deleteMessage(conversationId, messageId, user.id);
-  }
-
-  @Get("targets/employees")
-  @RequirePermissions("chat.read")
-  searchEmployees(@Query() query: AdminWorkspaceChatTargetsQueryDto) {
-    return this.adminChatService.searchEmployees(query.search ?? "", query.limit ?? 6);
-  }
-
-  @Get("targets/clients")
-  @RequirePermissions("chat.read")
-  searchClients(@Query() query: AdminWorkspaceChatTargetsQueryDto) {
-    return this.adminChatService.searchClients(query.search ?? "", query.limit ?? 6);
   }
 }

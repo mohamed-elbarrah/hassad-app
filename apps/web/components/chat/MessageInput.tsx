@@ -3,7 +3,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { CHAT_MAX_FILES } from "@/features/chat/chatApi";
-import { portalErrorMessage } from "@/lib/i18n";
+import { chatErrorMessage } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 import { toast } from "sonner";
 import { Send, Paperclip, X, FileText, Smile } from "lucide-react";
@@ -41,18 +43,8 @@ const CHAT_ACCEPT = CHAT_ACCEPTED_FILE_TYPES.flatMap(({ extension, mimeType }) =
   extension,
 ]).join(",");
 
-const CHAT_ATTACHMENT_ERROR_MESSAGES: Record<string, string> = {
-  FILE_TYPE_NOT_ALLOWED: "نوع الملف غير مسموح.",
-  INVALID_FILE_TYPE: "نوع الملف غير مدعوم.",
-  INVALID_FILE_CONTENT: "محتوى الملف غير صالح.",
-  CHAT_SVG_NOT_ALLOWED: "ملفات SVG غير مسموحة.",
-};
-
 function chatAttachmentErrorMessage(code: string): string {
-  return (
-    CHAT_ATTACHMENT_ERROR_MESSAGES[code] ||
-    portalErrorMessage({ data: { error: { code, details: {} } } })
-  );
+  return chatErrorMessage({ data: { error: { code, details: {} } } });
 }
 
 function getFileKey(file: File): string {
@@ -76,7 +68,6 @@ export function MessageInput({
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -130,7 +121,6 @@ export function MessageInput({
       await onSend(trimmed || "📎", files.length > 0 ? files : undefined);
       setText("");
       setFiles([]);
-      if (textareaRef.current) textareaRef.current.style.height = "auto";
       onStopTyping?.();
     } catch {
       // The owning page presents the localized transport error.
@@ -154,14 +144,6 @@ export function MessageInput({
     typingTimeoutRef.current = setTimeout(() => {
       onStopTyping?.();
     }, 2000);
-  };
-
-  const handleInput = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height =
-        Math.min(textareaRef.current.scrollHeight, 120) + "px";
-    }
   };
 
   const addFiles = (candidates: File[]) => {
@@ -269,15 +251,17 @@ export function MessageInput({
                     </div>
                   </>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => removeFile(i)}
                   disabled={disabled}
-                  className="shrink-0 rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-danger-100 hover:text-danger-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="shrink-0 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   aria-label={`إزالة ${file.name}`}
                 >
-                  <X aria-hidden="true" className="h-3.5 w-3.5" />
-                </button>
+                  <X aria-hidden="true" data-icon="inline-start" />
+                </Button>
               </div>
             );
           })}
@@ -296,71 +280,60 @@ export function MessageInput({
         />
 
         {/* Attach file button */}
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary disabled:opacity-50"
           title="إرفاق ملف"
           aria-label="إرفاق ملف"
         >
-          <Paperclip className="h-4 w-4" />
-        </button>
+          <Paperclip data-icon="inline-start" />
+        </Button>
 
         {/* Emoji button */}
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => toast.info("إضافة رموز تعبيرية قريباً")}
           disabled={disabled}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary disabled:opacity-50"
           title="إضافة رمز تعبيري"
           aria-label="إضافة رمز تعبيري"
         >
-          <Smile className="h-4 w-4" />
-        </button>
+          <Smile data-icon="inline-start" />
+        </Button>
 
         {/* Textarea */}
         <label htmlFor="chat-message-input" className="sr-only">
           نص الرسالة
         </label>
-        <textarea
+        <Textarea
           id="chat-message-input"
-          ref={textareaRef}
           value={text}
           onChange={handleChange}
-          onInput={handleInput}
           onKeyDown={handleKeyDown}
           disabled={disabled}
           aria-label="نص الرسالة"
           placeholder={isDragging ? "أفلت الملفات هنا..." : placeholder}
-          rows={1}
-          className={cn(
-            "flex-1 resize-none rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-foreground transition-all",
-            "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30",
-            "max-h-[120px]",
-            "placeholder:text-muted-foreground",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-          )}
+          rows={3}
+          className="max-h-30 min-h-10 flex-1 resize-none rounded-xl border-border bg-muted px-4 py-2.5 text-sm transition-all focus:border-primary focus:ring-2 focus:ring-primary/30"
           dir="rtl"
         />
 
         {/* Send button */}
-        <button
+        <Button
           type="button"
+          variant={text.trim() || files.length > 0 ? "default" : "secondary"}
+          size="icon"
           onClick={handleSend}
           disabled={disabled || (!text.trim() && files.length === 0)}
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all",
-            text.trim() || files.length > 0
-              ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary"
-              : "bg-muted text-muted-foreground",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-          )}
           title="إرسال"
           aria-label="إرسال"
         >
-          <Send className="h-4 w-4" />
-        </button>
+          <Send data-icon="inline-start" />
+        </Button>
       </div>
     </div>
   );

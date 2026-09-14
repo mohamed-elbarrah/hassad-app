@@ -2,10 +2,18 @@
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { formatRelativeTime } from "@/lib/format";
 import { useAppSelector } from "@/lib/hooks";
 import { useState } from "react";
-import { FileIcon, Download, CheckCheck, X, Maximize2 } from "lucide-react";
+import { FileIcon, Download, CheckCheck, Maximize2 } from "lucide-react";
 import type { Message, MessageAttachment } from "@/features/chat/chatApi";
 import { CHAT_DELETED_MESSAGE_LABEL } from "@/lib/i18n";
 
@@ -32,54 +40,56 @@ function AttachmentCard({
 
   if (isImageType(attachment.fileType) && attachment.url) {
     return (
-      <>
-        <button
-          onClick={() => setPreviewOpen(true)}
-          className="group relative overflow-hidden rounded-xl"
-          aria-label={`معاينة ${attachment.fileName}`}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={attachment.url}
-            alt={attachment.fileName}
-            className="max-h-48 max-w-full rounded-xl object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 transition-colors group-hover:bg-black/10">
-            <Maximize2 className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
-          </div>
-        </button>
-
-        {/* Image preview modal */}
-        {previewOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-            onClick={() => setPreviewOpen(false)}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setPreviewOpen(true)}
+            className="group relative h-auto overflow-hidden rounded-xl p-0 hover:bg-transparent"
+            aria-label={`معاينة ${attachment.fileName}`}
           >
-            <button
-              onClick={() => setPreviewOpen(false)}
-              className="absolute left-4 top-4 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
-              aria-label="إغلاق المعاينة"
-            >
-              <X className="h-5 w-5" />
-            </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={attachment.url}
               alt={attachment.fileName}
-              className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
-              onClick={(e) => e.stopPropagation()}
+              className="max-h-48 max-w-full rounded-xl object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             />
-          </div>
-        )}
-      </>
+            <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 transition-colors group-hover:bg-black/10">
+              <Maximize2 className="h-5 w-5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+            </span>
+          </Button>
+        </DialogTrigger>
+
+        <DialogContent
+          dir="rtl"
+          closeLabel="إغلاق المعاينة"
+          className="flex max-h-[95vh] max-w-[95vw] items-center justify-center border-0 bg-transparent p-4 shadow-none"
+        >
+          <DialogTitle className="sr-only">معاينة {attachment.fileName}</DialogTitle>
+          <DialogDescription className="sr-only">
+            عرض الصورة المرفقة بحجم كبير.
+          </DialogDescription>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={attachment.url}
+            alt={attachment.fileName}
+            className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain"
+          />
+        </DialogContent>
+      </Dialog>
     );
   }
 
   return (
     <a
-      href={attachment.url || "#"}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={attachment.url ?? undefined}
+      target={attachment.url ? "_blank" : undefined}
+      rel={attachment.url ? "noopener noreferrer" : undefined}
+      aria-disabled={!attachment.url}
+      onClick={(event) => {
+        if (!attachment.url) event.preventDefault();
+      }}
       className={cn(
         "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-all hover:shadow-sm",
         isOwn

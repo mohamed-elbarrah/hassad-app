@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsOptional, IsString, MinLength } from "class-validator";
+import { IsInt, IsOptional, IsString, Max, Min, MinLength } from "class-validator";
 
 export class AdminWorkspaceChatTargetsQueryDto {
   @IsOptional()
@@ -9,5 +9,8 @@ export class AdminWorkspaceChatTargetsQueryDto {
 
   @IsOptional()
   @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
   limit?: number;
 }

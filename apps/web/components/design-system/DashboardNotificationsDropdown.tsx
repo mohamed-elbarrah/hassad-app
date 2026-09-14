@@ -46,7 +46,13 @@ export function resolveDashboardUrl(
     return `/dashboard/finance/invoices/${entityId}`;
   }
 
-  if (entityType === "conversation") return `/dashboard/messages`;
+  if (entityType === "conversation") {
+    if (role === UserRole.ADMIN)
+      return `/dashboard/admin/chat?conversationId=${encodeURIComponent(entityId)}`;
+    if (role === UserRole.SALES)
+      return `/dashboard/sales/chat?conversationId=${encodeURIComponent(entityId)}`;
+    return `/dashboard/messages`;
+  }
 
   return null;
 }

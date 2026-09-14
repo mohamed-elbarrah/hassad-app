@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, CheckSquare, Mail, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckSquare, Mail, MessageSquare, ShieldCheck, Users } from "lucide-react";
 import {
   CAMPAIGN_PLATFORM_AR,
   CAMPAIGN_STATUS_AR,
@@ -66,7 +66,22 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ id: s
         title={employee.name}
         description={`${roleLabel} · ${departmentLabel}`}
         icon={Users}
-        actions={<Button variant="outline" asChild><Link href="/dashboard/admin/employees"><ArrowLeft data-icon="inline-start" />العودة للموظفين</Link></Button>}
+        actions={
+          <>
+            {employee.isActive ? (
+              <Button variant="outline" asChild>
+                <Link href={`/dashboard/admin/chat?userId=${encodeURIComponent(employee.id)}`}>
+                  <MessageSquare data-icon="inline-start" />بدء محادثة
+                </Link>
+              </Button>
+            ) : null}
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/admin/employees">
+                <ArrowLeft data-icon="inline-start" />العودة للموظفين
+              </Link>
+            </Button>
+          </>
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">

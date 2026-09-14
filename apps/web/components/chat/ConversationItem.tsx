@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { formatRelativeTime } from "@/lib/format";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { useAppSelector } from "@/lib/hooks";
@@ -103,10 +104,12 @@ export function ConversationItem({
   const isOnline = conversation.type === "DIRECT" && Boolean(otherParticipant?.isOnline);
 
   return (
-    <button
+    <Button
+      type="button"
+      variant="ghost"
       onClick={onClick}
       className={cn(
-        "group relative flex w-full items-start gap-3 px-4 py-3.5 text-right transition-all duration-200",
+        "group relative min-h-11 w-full items-start justify-start gap-3 px-4 py-3.5 text-right transition-all duration-200",
         "hover:bg-primary/5",
         isActive && "bg-primary/10",
         unreadCount > 0 && !isActive && "font-semibold",
@@ -122,7 +125,7 @@ export function ConversationItem({
 
       {/* Avatar with online status */}
       <div className="relative mt-0.5 shrink-0">
-        <Avatar className="h-6 w-6 rounded-lg">
+        <Avatar className="size-6 rounded-lg">
           <AvatarFallback className="bg-muted text-xs text-foreground">
             {getInitials(info.avatarName)}
           </AvatarFallback>
@@ -130,7 +133,7 @@ export function ConversationItem({
         {/* Online status dot */}
         <span
           className={cn(
-            "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background",
+            "absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background",
             conversation.type === "DIRECT" && isOnline
               ? "bg-success"
               : "bg-muted-foreground/40",
@@ -215,6 +218,6 @@ export function ConversationItem({
           </div>
         </div>
       </div>
-    </button>
+    </Button>
   );
 }

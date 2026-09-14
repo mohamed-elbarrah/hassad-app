@@ -153,59 +153,104 @@ function normalizeMessageHistory(
   return { data: [], nextCursor: null, hasMore: false };
 }
 
+export type ChatScope = "admin" | "sales";
+
 export interface GetConversationsParams {
   page?: number;
   limit?: number;
   type?: "DIRECT" | "GROUP";
   clientId?: string;
   projectId?: string;
+  scope?: ChatScope;
 }
 
 export interface CreateDirectConversationInput {
   userId: string;
+  scope?: ChatScope;
 }
 
 export interface CreateGroupConversationInput {
   title: string;
   participantIds: string[];
+  scope?: ChatScope;
 }
 
 export interface CreateMessageInput {
   conversationId: string;
   content: string;
+  scope?: ChatScope;
 }
 
 export interface AddParticipantInput {
   conversationId: string;
   userId: string;
+  scope?: ChatScope;
 }
 
 export interface GetMessagesParams {
   conversationId: string;
   limit?: number;
   cursor?: string;
+  scope?: ChatScope;
 }
+
+export interface GetConversationParams {
+  id: string;
+  scope?: ChatScope;
+}
+
+export interface GetProjectGroupChatParams {
+  projectId: string;
+  scope?: ChatScope;
+}
+
+export type ScopedConversationId = string | GetConversationParams;
+export type ScopedDirectConversationTarget =
+  | string
+  | CreateDirectConversationInput;
+export type ScopedConversationAction =
+  | string
+  | { conversationId: string; scope?: ChatScope };
 
 /** Must stay aligned with the server's chat upload limit. */
 export const CHAT_MAX_FILES = 5;
 
 // ── API slice ─────────────────────────────────────────────────────────────────
 
-// Keep the shared slice compatible with dashboard/PM consumers while routing
-// the portal page through its portal-owned API. The backend adapter delegates
-// to the same ChatService, so DTOs and cache behavior remain identical.
+// Keep one chat slice compatible with dashboard/PM consumers while routing
+// portal and admin workspaces through their portal-owned APIs. Each adapter
+// delegates to the same ChatService, so DTOs and cache behavior remain identical.
 const isPortalChat = () =>
   typeof window !== "undefined" &&
   window.location.pathname.startsWith("/portal");
 
-const chatUrl = (path: string) =>
-  isPortalChat() ? `/portal/chat${path}` : path;
+const chatUrl = (path: string, scope?: ChatScope) => {
+  if (scope === "admin") return `/admin/chat${path}`;
+  if (scope === "sales") return `/sales/chat${path}`;
+  return isPortalChat() ? `/portal/chat${path}` : path;
+};
+
+const chatCacheScope = (scope?: ChatScope) =>
+  scope === "admin"
+    ? "admin"
+    : scope === "sales"
+      ? "sales"
+      : isPortalChat()
+        ? "portal"
+        : "shared";
+
+const readChatScope = (value: unknown): ChatScope | undefined => {
+  if (!isRecord(value)) return undefined;
+  return value.scope === "admin" || value.scope === "sales"
+    ? value.scope
+    : undefined;
+};
 
 export const chatApi = createApi({
   // The URL is portal-aware, so keep portal and dashboard responses in
   // separate caches even when they use the same endpoint arguments.
   serializeQueryArgs: ({ endpointName, queryArgs }) =>
-    `${isPortalChat() ? "portal" : "shared"}:${endpointName}:${JSON.stringify(queryArgs)}`,
+    `${chatCacheScope(readChatScope(queryArgs))}:${endpointName}:${JSON.stringify(queryArgs)}`,
   reducerPath: "chatApi",
   baseQuery,
   tagTypes: ["Conversation", "Message"],
@@ -222,7 +267,7 @@ export const chatApi = createApi({
         if (params?.clientId) searchParams.set("clientId", params.clientId);
         if (params?.projectId) searchParams.set("projectId", params.projectId);
         const qs = searchParams.toString();
-        return chatUrl(`/conversations${qs ? `?${qs}` : ""}`);
+        return chatUrl(`/conversations${qs ? `?${qs}` : ""}`, params?.scope);
       },
       providesTags: (result) =>
         result
@@ -236,24 +281,37 @@ export const chatApi = createApi({
           : [{ type: "Conversation", id: "LIST" }],
     }),
 
-    getConversation: builder.query<Conversation, string>({
-      query: (id) => chatUrl(`/conversations/${id}`),
-      providesTags: (_, __, id) => [{ type: "Conversation", id }],
+    getConversation: builder.query<Conversation, ScopedConversationId>({
+      query: (input) => {
+        const params = typeof input === "string" ? { id: input } : input;
+        return chatUrl(`/conversations/${params.id}`, params.scope);
+      },
+      providesTags: (_, __, input) => {
+        const id = typeof input === "string" ? input : input.id;
+        return [{ type: "Conversation", id }];
+      },
     }),
 
-    getProjectGroupChat: builder.query<Conversation, string>({
-      query: (projectId) =>
-        chatUrl(`/conversations/project/${projectId}/group`),
-      providesTags: (_, __, projectId) => [
-        { type: "Conversation", id: `project-${projectId}-group` },
-      ],
+    getProjectGroupChat: builder.query<Conversation, string | GetProjectGroupChatParams>({
+      query: (input) => {
+        const params = typeof input === "string" ? { projectId: input } : input;
+        return chatUrl(`/conversations/project/${params.projectId}/group`, params.scope);
+      },
+      providesTags: (_, __, input) => {
+        const projectId = typeof input === "string" ? input : input.projectId;
+        return [{ type: "Conversation", id: `project-${projectId}-group` }];
+      },
     }),
 
-    getDirectConversation: builder.query<Conversation, string>({
-      query: (userId) => chatUrl(`/conversations/direct/${userId}`),
-      providesTags: (_, __, userId) => [
-        { type: "Conversation", id: `direct-${userId}` },
-      ],
+    getDirectConversation: builder.query<Conversation, ScopedDirectConversationTarget>({
+      query: (input) => {
+        const params = typeof input === "string" ? { userId: input } : input;
+        return chatUrl(`/conversations/direct/${params.userId}`, params.scope);
+      },
+      providesTags: (_, __, input) => {
+        const userId = typeof input === "string" ? input : input.userId;
+        return [{ type: "Conversation", id: `direct-${userId}` }];
+      },
     }),
 
     createDirectConversation: builder.mutation<
@@ -261,7 +319,7 @@ export const chatApi = createApi({
       CreateDirectConversationInput
     >({
       query: (body) => ({
-        url: chatUrl("/conversations"),
+        url: chatUrl("/conversations", body.scope),
         method: "POST",
         body: { type: "DIRECT", participantIds: [body.userId] },
       }),
@@ -272,8 +330,8 @@ export const chatApi = createApi({
       Conversation,
       CreateGroupConversationInput
     >({
-      query: (body) => ({
-        url: chatUrl("/conversations"),
+      query: ({ scope, ...body }) => ({
+        url: chatUrl("/conversations", scope),
         method: "POST",
         body: { type: "GROUP", ...body },
       }),
@@ -281,8 +339,8 @@ export const chatApi = createApi({
     }),
 
     addParticipant: builder.mutation<Conversation, AddParticipantInput>({
-      query: ({ conversationId, userId }) => ({
-        url: chatUrl(`/conversations/${conversationId}/participants`),
+      query: ({ conversationId, userId, scope }) => ({
+        url: chatUrl(`/conversations/${conversationId}/participants`, scope),
         method: "POST",
         body: { userId },
       }),
@@ -293,13 +351,14 @@ export const chatApi = createApi({
     }),
 
     getMessages: builder.query<MessageHistory, GetMessagesParams>({
-      query: ({ conversationId, cursor, limit }) => {
+      query: ({ conversationId, cursor, limit, scope }) => {
         const params = new URLSearchParams();
         if (limit) params.set("limit", String(limit));
         if (cursor) params.set("cursor", cursor);
         const qs = params.toString();
         return chatUrl(
           `/conversations/${conversationId}/messages${qs ? `?${qs}` : ""}`,
+          scope,
         );
       },
       transformResponse: (response: MessageHistoryResponse, meta) =>
@@ -307,7 +366,7 @@ export const chatApi = createApi({
       // Keep history pages in RTK Query's cache. Components never maintain a
       // second copy of server messages; a cursor fetch only extends this entry.
       serializeQueryArgs: ({ endpointName, queryArgs }) =>
-        `${isPortalChat() ? "portal" : "shared"}:${endpointName}:${queryArgs.conversationId}:${queryArgs.limit ?? 50}`,
+        `${chatCacheScope(queryArgs.scope)}:${endpointName}:${queryArgs.conversationId}:${queryArgs.limit ?? 50}`,
       merge: (currentCache, incoming, { arg }) => {
         const incomingIds = new Set(incoming.data.map((message) => message.id));
         const retained = arg.cursor
@@ -347,21 +406,27 @@ export const chatApi = createApi({
 
     markConversationRead: builder.mutation<
       { conversationId: string; lastReadAt: string; unreadCount: number },
-      string
+      ScopedConversationAction
     >({
-      query: (conversationId) => ({
-        url: chatUrl(`/conversations/${conversationId}/read`),
-        method: "POST",
-      }),
-      invalidatesTags: (_, __, conversationId) => [
-        { type: "Conversation", id: conversationId },
-        { type: "Conversation", id: "LIST" },
-      ],
+      query: (input) => {
+        const params = typeof input === "string" ? { conversationId: input } : input;
+        return {
+          url: chatUrl(`/conversations/${params.conversationId}/read`, params.scope),
+          method: "POST",
+        };
+      },
+      invalidatesTags: (_, __, input) => {
+        const conversationId = typeof input === "string" ? input : input.conversationId;
+        return [
+          { type: "Conversation", id: conversationId },
+          { type: "Conversation", id: "LIST" },
+        ];
+      },
     }),
 
     sendMessage: builder.mutation<Message, CreateMessageInput>({
-      query: ({ conversationId, content }) => ({
-        url: chatUrl(`/conversations/${conversationId}/messages`),
+      query: ({ conversationId, content, scope }) => ({
+        url: chatUrl(`/conversations/${conversationId}/messages`, scope),
         method: "POST",
         body: { content },
       }),
@@ -374,16 +439,16 @@ export const chatApi = createApi({
 
     sendMessageWithFiles: builder.mutation<
       Message,
-      { conversationId: string; content: string; files: File[] }
+      { conversationId: string; content: string; files: File[]; scope?: ChatScope }
     >({
-      query: ({ conversationId, content, files }) => {
+      query: ({ conversationId, content, files, scope }) => {
         const formData = new FormData();
         formData.append("content", content);
         files.forEach((file) => {
           formData.append("files", file);
         });
         return {
-          url: chatUrl(`/conversations/${conversationId}/messages/with-files`),
+          url: chatUrl(`/conversations/${conversationId}/messages/with-files`, scope),
           method: "POST",
           body: formData,
         };

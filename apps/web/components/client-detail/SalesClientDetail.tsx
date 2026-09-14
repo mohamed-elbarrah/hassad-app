@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   FileText,
   FolderKanban,
+  MessageSquare,
   History,
   Mail,
   Pencil,
@@ -76,6 +77,7 @@ export interface SalesClientDetailData {
     totalInvoiced?: number | null;
     totalPaid?: number | null;
     user?: {
+      id: string;
       name?: string;
       email?: string;
       phoneWhatsapp?: string | null;
@@ -651,10 +653,20 @@ export function SalesClientDetail({
                   </a>
                 )}
               </div>
-              <Button variant="outline" onClick={onEditProfile}>
-                <Pencil data-icon="inline-start" />
-                تعديل الملف
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                {user?.id ? (
+                  <Button variant="outline" asChild>
+                    <Link href={`/dashboard/sales/chat?userId=${encodeURIComponent(user.id)}`}>
+                      <MessageSquare data-icon="inline-start" />
+                      بدء محادثة
+                    </Link>
+                  </Button>
+                ) : null}
+                <Button variant="outline" onClick={onEditProfile}>
+                  <Pencil data-icon="inline-start" />
+                  تعديل الملف
+                </Button>
+              </div>
             </CardContent>
           </Card>
           <Card>

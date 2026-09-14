@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft, Building2, MessageSquare } from "lucide-react";
 import { useGetAdminClientByIdQuery, useGetAdminClientHistoryQuery } from "@/features/admin/adminClientsApi";
 import { adminErrorMessage, clientSourceLabel } from "@/lib/i18n";
 import { useGetAdminProposalsQuery } from "@/features/admin/adminProposalsApi";
@@ -98,6 +98,15 @@ export default function ClientDetailPage({
         companyName={client.companyName}
         backHref="/dashboard/admin/clients"
         backLabel="العملاء"
+        actions={
+          client.user?.id && client.isActive ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/dashboard/admin/chat?userId=${encodeURIComponent(client.user.id)}`}>
+                <MessageSquare data-icon="inline-start" />بدء محادثة
+              </Link>
+            </Button>
+          ) : null
+        }
       />
 
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">

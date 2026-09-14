@@ -25,6 +25,7 @@ import { UserRole } from "@hassad/shared";
 
 import {
   adminNavSections,
+  adminChatNavSection,
   roleNavSections,
   sharedNavSections,
   type NavItem,
@@ -528,7 +529,7 @@ function DashboardSidebarContent() {
     if (!user) return [];
 
     const sourceSections = isAdmin
-      ? [...adminNavSections, ...sharedNavSections]
+      ? [...adminNavSections, adminChatNavSection, ...sharedNavSections]
       : [...roleNavSections, ...sharedNavSections];
 
     return sourceSections

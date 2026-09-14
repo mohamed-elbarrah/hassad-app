@@ -244,6 +244,11 @@ export const roleNavSections: NavSection[] = [
         roles: ["SALES"],
       },
       {
+        title: "المحادثات",
+        url: "/dashboard/sales/chat",
+        roles: ["SALES"],
+      },
+      {
         title: "العروض الفنية",
         url: "/dashboard/sales/proposals",
         roles: ["SALES"],
@@ -319,6 +324,19 @@ export const roleNavSections: NavSection[] = [
 
 /* ── Shared dashboard navigation ───────────────────────────────────────────── */
 
+export const adminChatNavSection: NavSection = {
+  label: "التواصل",
+  icon: MessageSquare,
+  items: [
+    {
+      title: "المحادثات",
+      url: "/dashboard/admin/chat",
+      exact: true,
+      roles: ["ADMIN"],
+    },
+  ],
+};
+
 export const sharedNavSections: NavSection[] = [
   {
     label: "التواصل",
@@ -328,7 +346,7 @@ export const sharedNavSections: NavSection[] = [
         title: "المحادثات",
         url: "/dashboard/messages",
         exact: true,
-        roles: ["ADMIN", "PM", "SALES", "TEAM", "MARKETING", "ACCOUNTANT"],
+        roles: ["PM", "TEAM", "MARKETING", "ACCOUNTANT"],
       },
     ],
   },
@@ -339,6 +357,7 @@ export const sharedNavSections: NavSection[] = [
 /** @deprecated Use adminNavSections or roleNavSections directly */
 export const navSections: NavSection[] = [
   ...adminNavSections,
+  adminChatNavSection,
   ...roleNavSections,
   ...sharedNavSections,
 ];

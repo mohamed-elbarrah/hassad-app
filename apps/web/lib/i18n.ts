@@ -1335,6 +1335,17 @@ export function portalErrorMessage(error: unknown): string {
     CONVERSATION_PARTICIPATION_FORBIDDEN:
       "ليس لديك صلاحية للوصول إلى هذه المحادثة.",
     CONVERSATION_INACTIVE: "هذه المحادثة غير متاحة حالياً.",
+    CHAT_USER_NOT_FOUND: "لم يتم العثور على المستخدم.",
+    CHAT_USER_INACTIVE: "هذا المستخدم غير نشط.",
+    CHAT_TARGET_USER_INACTIVE: "لا يمكن بدء محادثة مع مستخدم غير نشط.",
+    DIRECT_CONVERSATION_CREATE_FAILED: "تعذر بدء المحادثة المباشرة.",
+    DIRECT_CONVERSATION_SELF_FORBIDDEN: "لا يمكنك بدء محادثة مع حسابك.",
+    DIRECT_CONVERSATION_TARGET_FORBIDDEN:
+      "ليس لديك صلاحية لمحادثة هذا المستخدم.",
+    FILE_TYPE_NOT_ALLOWED: "نوع الملف غير مسموح.",
+    INVALID_FILE_TYPE: "نوع الملف غير مدعوم.",
+    INVALID_FILE_CONTENT: "محتوى الملف غير صالح.",
+    CHAT_SVG_NOT_ALLOWED: "ملفات SVG غير مسموحة.",
     SOCKET_NOT_CONNECTED: "تعذر الاتصال بالمحادثة. يرجى المحاولة لاحقاً.",
     SOCKET_ACK_TIMEOUT: "استغرق تحديث حالة القراءة وقتاً أطول من المتوقع.",
     INITIAL_PAYMENT_REQUIRED: "يجب سداد الدفعة الأولى قبل توقيع العقد.",
@@ -1345,6 +1356,11 @@ export function portalErrorMessage(error: unknown): string {
   return (
     (code && messages[code]) || "تعذر تحميل البيانات. يرجى المحاولة لاحقاً."
   );
+}
+
+/** Presentation mapping shared by dashboard and portal chat workspaces. */
+export function chatErrorMessage(error: unknown): string {
+  return portalErrorMessage(error);
 }
 
 export function marketingErrorMessage(error: unknown): string {
