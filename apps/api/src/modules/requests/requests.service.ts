@@ -4,6 +4,8 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcrypt";
@@ -18,6 +20,7 @@ import {
   UserRole,
 } from "@hassad/shared";
 import { PrismaService } from "../../prisma/prisma.service";
+import { ClientInvitationService } from "../../auth/client-invitation.service";
 import { CanonicalClientService } from "./canonical-client.service";
 import { NotificationsService } from "../notifications/services/notifications.service";
 import { SalesAssignmentService } from "./sales-assignment.service";
@@ -61,6 +64,8 @@ export class RequestsService {
     private readonly canonicalClientService: CanonicalClientService,
     private readonly notificationsService: NotificationsService,
     private readonly salesAssignmentService: SalesAssignmentService,
+    @Inject(forwardRef(() => ClientInvitationService))
+    private readonly clientInvitationService: ClientInvitationService,
   ) {}
 
   private getDbClient(tx?: Prisma.TransactionClient): DbClient {
@@ -803,7 +808,7 @@ export class RequestsService {
     const normalizedEmail = dto.email.trim().toLowerCase();
     const preferredManagerId = accessScope?.assignedSalesId ?? userId;
 
-    return this.prisma.$transaction(async (tx) => {
+    const createdRequest = await this.prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findUnique({
         where: { email: normalizedEmail },
         select: { id: true },
@@ -826,13 +831,13 @@ export class RequestsService {
         });
       }
 
-      const passwordHash = await bcrypt.hash(dto.password, 12);
       const user = await tx.user.create({
         data: {
           name: normalizedEmail.split("@")[0],
           email: normalizedEmail,
           phoneWhatsapp: dto.phoneWhatsapp.trim(),
-          passwordHash,
+          passwordHash: null,
+          passwordSetAt: null,
           roleId: role.id,
         },
         select: { id: true, name: true, email: true, phoneWhatsapp: true },
@@ -897,53 +902,76 @@ export class RequestsService {
         },
       });
 
-      return tx.request.findUniqueOrThrow({
-        where: { id: request.id },
-        select: {
-          id: true,
-          clientId: true,
-          submittedBy: true,
-          assignedSalesId: true,
-          companyName: true,
-          contactName: true,
-          phoneWhatsapp: true,
-          email: true,
-          businessName: true,
-          businessType: true,
-          source: true,
-          notes: true,
-          status: true,
-          contactAttemptCount: true,
-          lastContactAt: true,
-          createdAt: true,
-          updatedAt: true,
-          client: {
-            select: {
-              id: true,
-              companyName: true,
-              userId: true,
-              kind: true,
-              status: true,
-              intakeCompleted: true,
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  phoneWhatsapp: true,
+      const invitation = await this.clientInvitationService.createInvitation(
+        {
+          createdById: userId,
+          userId: user.id,
+          clientId: client.id,
+          requestId: request.id,
+        },
+        tx,
+      );
+
+      return {
+        request: await tx.request.findUniqueOrThrow({
+          where: { id: request.id },
+          select: {
+            id: true,
+            clientId: true,
+            submittedBy: true,
+            assignedSalesId: true,
+            companyName: true,
+            contactName: true,
+            phoneWhatsapp: true,
+            email: true,
+            businessName: true,
+            businessType: true,
+            source: true,
+            notes: true,
+            status: true,
+            contactAttemptCount: true,
+            lastContactAt: true,
+            createdAt: true,
+            updatedAt: true,
+            client: {
+              select: {
+                id: true,
+                companyName: true,
+                userId: true,
+                kind: true,
+                status: true,
+                intakeCompleted: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phoneWhatsapp: true,
+                  },
                 },
               },
             },
-          },
-          assignee: { select: USER_SUMMARY_SELECT },
-          services: {
-            include: {
-              service: { select: { id: true, name: true, nameAr: true } },
+            assignee: { select: USER_SUMMARY_SELECT },
+            services: {
+              include: {
+                service: { select: { id: true, name: true, nameAr: true } },
+              },
             },
           },
-        },
-      });
+        }),
+        userId: user.id,
+        clientId: client.id,
+        invitation,
+      };
     });
+
+    return {
+      ...createdRequest.request,
+      code: "SALES_REQUEST_CREATED_WITH_SETUP",
+      invitationId: createdRequest.invitation.invitationId,
+      setupUrl: createdRequest.invitation.setupUrl,
+      invitationExpiresAt: createdRequest.invitation.expiresAt,
+    };
   }
 
   async createForClient(

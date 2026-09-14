@@ -12,6 +12,7 @@ model User {
   name                String
   email               String    @unique
   passwordHash        String?   @map("password_hash")
+  passwordSetAt       DateTime? @map("password_set_at")
   roleId              String    @map("role_id")
   isActive            Boolean   @default(true) @map("is_active")
   isPayrollEligible   Boolean   @default(false) @map("is_payroll_eligible")
@@ -39,6 +40,8 @@ model User {
 
   securityEvents SecurityEvent[]
   sessions       Session[]
+  createdClientInvitations ClientInvitation[] @relation("ClientInvitationCreatedBy")
+  clientInvitations        ClientInvitation[] @relation("ClientInvitationUser")
 
   triggeredAiLogs       AiAnalysisLog[]
   actionedAiSuggs       AiSuggestion[]
@@ -303,12 +306,37 @@ model Client {
   satRatings           SatisfactionRating[]
   profile              ClientProfile?
   disputeTickets       DisputeTicket[]
+  invitations          ClientInvitation[]
 
   @@index([userId])
   @@index([accountManager])
   @@index([status])
   @@index([createdAt])
   @@map("clients")
+}
+
+model ClientInvitation {
+  id          String    @id @default(uuid())
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at")
+  consumedAt  DateTime? @map("consumed_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  createdById String    @map("created_by_id")
+  userId      String    @map("user_id")
+  clientId    String    @map("client_id")
+  requestId   String?   @map("request_id")
+
+  createdBy User     @relation("ClientInvitationCreatedBy", fields: [createdById], references: [id])
+  user      User     @relation("ClientInvitationUser", fields: [userId], references: [id], onDelete: Cascade)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  request   Request? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  @@index([userId, revokedAt, consumedAt])
+  @@index([clientId, revokedAt, consumedAt])
+  @@index([requestId])
+  @@index([expiresAt])
+  @@map("client_invitations")
 }
 
 model ClientHistoryLog {
@@ -454,6 +482,7 @@ model Request {
   assignee            User?                  @relation("RequestAssignee", fields: [assignedSalesId], references: [id])
   client              Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   submitter           User?                  @relation("RequestSubmitter", fields: [submittedBy], references: [id])
+  clientInvitations   ClientInvitation[]
 
   @@index([clientId])
   @@index([submittedBy])

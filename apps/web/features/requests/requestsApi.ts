@@ -30,9 +30,15 @@ export interface CreateRequestPayload {
 export interface CreateSalesNewClientRequestPayload {
   email: string;
   phoneWhatsapp: string;
-  password: string;
   notes?: string;
   services: RequestServiceItem[];
+}
+
+export interface SalesNewClientRequestResult extends RequestItem {
+  code: string;
+  invitationId: string;
+  setupUrl: string;
+  invitationExpiresAt: string;
 }
 
 export interface RequestAssignee {

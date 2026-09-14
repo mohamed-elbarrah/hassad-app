@@ -9,7 +9,6 @@ import {
   Matches,
   MaxLength,
   Min,
-  MinLength,
   ValidateNested,
 } from "class-validator";
 
@@ -39,13 +38,6 @@ export class CreateSalesNewClientRequestDto {
   @MaxLength(30)
   @Matches(/^[0-9+()\s.-]{7,30}$/)
   phoneWhatsapp: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(8)
-  @MaxLength(128)
-  @Matches(/\S/)
-  password: string;
 
   @IsArray()
   @ArrayMinSize(1)

@@ -12,6 +12,7 @@ import {
 import { Throttle } from "@nestjs/throttler"; // NEW
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "./auth.service";
+import { ClientInvitationService } from "./client-invitation.service";
 import { UserRole } from "@hassad/shared";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { RolesGuard } from "./guards/roles.guard";
@@ -28,6 +29,7 @@ import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { EmailService } from "../common/services/email.service";
+import { AcceptClientInvitationDto } from "./dto/accept-client-invitation.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -35,6 +37,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly clientInvitationService: ClientInvitationService,
   ) {}
 
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 req/minute
@@ -176,6 +179,17 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto.token, dto.password);
     return { code: "PASSWORD_RESET" };
+  }
+
+  /** POST /auth/accept-invitation — atomically consumes a client setup invitation. */
+  @Throttle({ default: { limit: 5, ttl: 900000 } })
+  @Post("accept-invitation")
+  @HttpCode(HttpStatus.OK)
+  async acceptInvitation(@Body() dto: AcceptClientInvitationDto) {
+    return this.clientInvitationService.acceptInvitation(
+      dto.token,
+      dto.password,
+    );
   }
 
   /** POST /auth/register — public client self-registration */

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, Briefcase } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ClientInvitationLinkDialog } from "@/components/client-onboarding/ClientInvitationLinkDialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,21 +32,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserRole, BusinessType, CreateClientSchema } from "@hassad/shared";
-import type { CreateClientInput } from "@hassad/shared";
+import { UserRole } from "@hassad/shared";
 
-import { useCreateAdminClientMutation } from "@/features/admin/adminClientsApi";
+import {
+  useCreateAdminClientMutation,
+  type AdminCreateClientInput,
+} from "@/features/admin/adminClientsApi";
 import { useGetAdminUsersQuery } from "@/features/admin/adminUsersApi";
 import { useAppSelector } from "@/lib/hooks";
-import { adminErrorMessage } from "@/lib/i18n";
-
-const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
-  [BusinessType.RESTAURANT]: "مطعم",
-  [BusinessType.CLINIC]: "عيادة",
-  [BusinessType.STORE]: "متجر",
-  [BusinessType.SERVICE]: "خدمة",
-  [BusinessType.OTHER]: "أخرى",
-};
+import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
 
 interface CreateClientDialogProps {
   open: boolean;
@@ -58,22 +54,28 @@ export function CreateClientDialog({
   const { user } = useAppSelector((state) => state.auth);
   const isAdmin = user?.role === UserRole.ADMIN;
   const [createClient, { isLoading }] = useCreateAdminClientMutation();
+  const [setupUrl, setSetupUrl] = useState<string | null>(null);
 
   const { data: salesUsers } = useGetAdminUsersQuery(
     { roles: UserRole.SALES, limit: 50 },
     { skip: !isAdmin || !open },
   );
 
-  const form = useForm<CreateClientInput>({
-    resolver: zodResolver(CreateClientSchema) as unknown as Resolver<CreateClientInput>,
+  const form = useForm<AdminCreateClientInput>({
+    resolver: zodResolver(
+      z.object({
+        email: z.string().trim().email("أدخل بريداً إلكترونياً صحيحاً"),
+        phoneWhatsapp: z
+          .string()
+          .trim()
+          .regex(/^[0-9+()\s.-]{7,30}$/, "أدخل رقم واتساب صحيحاً"),
+        accountManager: z.string().uuid().optional(),
+      }),
+    ) as unknown as Resolver<AdminCreateClientInput>,
     mode: "onChange",
     defaultValues: {
-      companyName: "",
-      contactName: "",
       phoneWhatsapp: "",
       email: "",
-      businessName: "",
-      businessType: undefined,
       accountManager: undefined,
     },
   });
@@ -82,10 +84,11 @@ export function CreateClientDialog({
     if (!open) form.reset();
   }, [form, open]);
 
-  async function onSubmit(values: CreateClientInput) {
+  async function onSubmit(values: AdminCreateClientInput) {
     try {
-      await createClient(values).unwrap();
-      toast.success("تم إضافة العميل بنجاح");
+      const result = await createClient(values).unwrap();
+      toast.success(adminSuccessMessage(result.code));
+      setSetupUrl(result.invitation.setupUrl);
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -99,7 +102,8 @@ export function CreateClientDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -112,30 +116,24 @@ export function CreateClientDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-6"
+          >
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
-                name="companyName"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>اسم الشركة</FormLabel>
-                    <FormControl>
-                      <Input placeholder="مثال: شركة النجوم" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="contactName"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>اسم جهة الاتصال</FormLabel>
+                    <FormLabel>البريد الإلكتروني</FormLabel>
                     <FormControl>
-                      <Input placeholder="الاسم الكامل للمسؤول" {...field} />
+                      <Input
+                        dir="ltr"
+                        type="email"
+                        placeholder="email@example.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -149,79 +147,12 @@ export function CreateClientDialog({
                   <FormItem>
                     <FormLabel>رقم الواتساب</FormLabel>
                     <FormControl>
-                      <Input dir="ltr" placeholder="+966 5x xxx xxxx" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>البريد الإلكتروني</FormLabel>
-                    <FormControl>
                       <Input
                         dir="ltr"
-                        type="email"
-                        placeholder="email@example.com"
+                        placeholder="+966 5x xxx xxxx"
                         {...field}
-                        value={field.value ?? ""}
                       />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Briefcase className="size-4" />
-              النشاط التجاري
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="businessName"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>اسم النشاط التجاري</FormLabel>
-                    <FormControl>
-                      <Input placeholder="الاسم التجاري المعروف به" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="businessType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>نوع النشاط</FormLabel>
-                    <Select
-                      value={field.value ?? ""}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر النوع" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {(Object.values(BusinessType) as BusinessType[]).map(
-                          (type) => (
-                            <SelectItem key={type} value={type}>
-                              {BUSINESS_TYPE_LABELS[type]}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -262,16 +193,32 @@ export function CreateClientDialog({
             </div>
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+              >
                 إلغاء
               </Button>
-              <Button type="submit" disabled={!form.formState.isValid || isLoading}>
+              <Button
+                type="submit"
+                disabled={!form.formState.isValid || isLoading}
+              >
                 {isLoading ? "جارٍ الحفظ..." : "إضافة العميل"}
               </Button>
             </div>
           </form>
         </Form>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+      <ClientInvitationLinkDialog
+      key={setupUrl ?? "empty"}
+      open={Boolean(setupUrl)}
+      setupUrl={setupUrl}
+      onOpenChange={(open) => {
+        if (!open) setSetupUrl(null);
+      }}
+      />
+    </>
   );
 }

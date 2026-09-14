@@ -20,8 +20,10 @@ import { useCreateSalesRequestForNewClientMutation } from "@/features/sales/sale
 import { useGetSalesClientsQuery } from "@/features/clients/clientsApi";
 import {
   salesRequestCreationLoadErrorMessage,
+  salesSuccessMessage,
   salesWorkflowErrorMessage,
 } from "@/lib/i18n";
+import { ClientInvitationLinkDialog } from "@/components/client-onboarding/ClientInvitationLinkDialog";
 import { ErrorState } from "@/components/design-system/EmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
 import {
@@ -348,8 +350,9 @@ export default function NewOrderPage() {
 
   const [phoneWhatsapp, setPhoneWhatsapp] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [setupUrl, setSetupUrl] = useState<string | null>(null);
+  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
 
   const {
     data: clientsData,
@@ -425,8 +428,8 @@ export default function NewOrderPage() {
   }
 
   async function handleNewSubmit() {
-    if (!email.trim() || !phoneWhatsapp.trim() || password.length < 8) {
-      toast.error("أدخل البريد والهاتف وكلمة مرور من 8 أحرف على الأقل");
+    if (!email.trim() || !phoneWhatsapp.trim()) {
+      toast.error("أدخل البريد والهاتف");
       return;
     }
 
@@ -439,15 +442,13 @@ export default function NewOrderPage() {
       const request = await createNewClientRequest({
         email: email.trim(),
         phoneWhatsapp: phoneWhatsapp.trim(),
-        password,
         notes: newNotes.trim() || undefined,
         services: selectedServicesPayload,
       }).unwrap();
 
-      toast.success(
-        "تم إنشاء حساب العميل والطلب. سيكمل العميل بيانات نشاطه من البوابة.",
-      );
-      router.push(`/dashboard/sales/requests/${request.id}`);
+      toast.success(salesSuccessMessage(request.code));
+      setSetupUrl(request.setupUrl);
+      setPendingRequestId(request.id);
     } catch (error) {
       toast.error(salesWorkflowErrorMessage(error));
     }
@@ -477,7 +478,8 @@ export default function NewOrderPage() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 ">
+    <>
+      <div dir="rtl" className="flex flex-col gap-6 ">
       <PageHeader
         title="طلب جديد"
         description="أنشئ طلبًا لعميل موجود أو سجل عميلًا جديدًا ثم أضف الخدمات المطلوبة."
@@ -683,8 +685,8 @@ export default function NewOrderPage() {
               <CardHeader className="gap-2">
                 <CardTitle>إنشاء حساب العميل الجديد</CardTitle>
                 <CardDescription>
-                  أدخل بيانات الدخول فقط. سيكمل العميل بيانات نشاطه التجاري من
-                  البوابة بعد تسجيل الدخول.
+                  أدخل بيانات التواصل. سيستلم العميل رابطًا آمنًا لإعداد كلمة
+                  المرور واستكمال بيانات نشاطه التجاري.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
@@ -714,25 +716,6 @@ export default function NewOrderPage() {
                       maxLength={30}
                     />
                   </div>
-                  <div className="flex flex-col gap-2 md:col-span-2">
-                    <Label htmlFor="newClientPassword">
-                      كلمة المرور المؤقتة
-                    </Label>
-                    <Input
-                      id="newClientPassword"
-                      type="password"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      placeholder="8 أحرف على الأقل"
-                      className="min-h-11"
-                      autoComplete="new-password"
-                      maxLength={128}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      سلّم كلمة المرور للعميل بأمان، ويفضل استخدام رابط دعوة في
-                      بيئة الإنتاج.
-                    </p>
-                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -750,8 +733,8 @@ export default function NewOrderPage() {
                   <div className="flex flex-col gap-1">
                     <span className="text-sm font-medium">جاهز للإنشاء</span>
                     <span className="text-sm text-muted-foreground">
-                      سيتم إنشاء حساب العميل والطلب والخدمات، ثم يكمل العميل
-                      بياناته من البوابة.
+                      سيتم إنشاء الحساب والطلب والخدمات، ثم يكمل العميل إعداد
+                      كلمة المرور وبياناته من البوابة.
                     </span>
                   </div>
                   <Button
@@ -799,6 +782,22 @@ export default function NewOrderPage() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+      <ClientInvitationLinkDialog
+        key={setupUrl ?? "empty"}
+        open={Boolean(setupUrl)}
+        setupUrl={setupUrl}
+        onOpenChange={(open) => {
+          if (!open) {
+            const requestId = pendingRequestId;
+            setSetupUrl(null);
+            setPendingRequestId(null);
+            if (requestId) {
+              router.push(`/dashboard/sales/requests/${requestId}`);
+            }
+          }
+        }}
+      />
+    </>
   );
 }

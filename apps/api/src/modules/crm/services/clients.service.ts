@@ -14,6 +14,11 @@ import {
 } from "../dto/client.dto";
 import { BusinessType, ClientKind, ClientStatus } from "@hassad/shared";
 import { CanonicalClientService } from "../../requests/canonical-client.service";
+type AdminClientCreationInput = {
+  email: string;
+  phoneWhatsapp: string;
+  accountManager?: string;
+};
 
 const BCRYPT_ROUNDS = 12;
 
@@ -24,9 +29,101 @@ export class ClientsService {
     private readonly canonicalClientService: CanonicalClientService,
   ) {}
 
+  async createAdminClient(
+    adminId: string,
+    dto: AdminClientCreationInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const email = dto.email.trim().toLowerCase();
+    const phoneWhatsapp = dto.phoneWhatsapp.trim();
+    if (!phoneWhatsapp) {
+      throw new BadRequestException({
+        code: "PHONE_WHATSAPP_REQUIRED",
+        details: { field: "phoneWhatsapp" },
+      });
+    }
+    const pendingIntakeName = "PENDING_INTAKE";
+
+    const create = async (tx: Prisma.TransactionClient) => {
+      const existingUser = await tx.user.findUnique({ where: { email } });
+      if (existingUser) {
+        throw new ConflictException({
+          code: "EMAIL_ALREADY_IN_USE",
+          details: { email },
+        });
+      }
+
+      let accountManagerId: string | undefined;
+      if (dto.accountManager) {
+        const manager = await tx.user.findFirst({
+          where: {
+            id: dto.accountManager,
+            isActive: true,
+            role: { name: "SALES" },
+          },
+          select: { id: true },
+        });
+        if (!manager) {
+          throw new BadRequestException({
+            code: "INVALID_ACCOUNT_MANAGER",
+            details: { accountManager: dto.accountManager },
+          });
+        }
+        accountManagerId = manager.id;
+      }
+
+      const role = await tx.role.findFirst({ where: { name: "CLIENT" } });
+      if (!role) {
+        throw new BadRequestException({
+          code: "CLIENT_ROLE_NOT_FOUND",
+          details: {},
+        });
+      }
+
+      const user = await tx.user.create({
+        data: {
+          name: email.split("@")[0],
+          email,
+          phoneWhatsapp,
+          passwordHash: null,
+          passwordSetAt: null,
+          roleId: role.id,
+        },
+      });
+
+      // Do not use the generic canonical upsert here: its legacy business-name
+      // fallback could merge two pending-intake accounts with the same placeholder.
+      const client = await tx.client.create({
+        data: {
+          userId: user.id,
+          companyName: pendingIntakeName,
+          businessName: pendingIntakeName,
+          businessType: BusinessType.OTHER,
+          accountManager: accountManagerId,
+          kind: ClientKind.LEAD,
+          status: ClientStatus.ACTIVE,
+          intakeCompleted: false,
+        },
+      });
+
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId: client.id,
+          userId: adminId,
+          eventType: "CLIENT_CREATED",
+          description: "CLIENT_CREATED",
+          metadata: { source: "ADMIN_ONBOARDING", intakeCompleted: false },
+        },
+      });
+
+      return { clientId: client.id, userId: user.id };
+    };
+
+    return tx ? create(tx) : this.prisma.$transaction(create);
+  }
+
   async create(userId: string, dto: CreateClientDto) {
     const { client } = await this.prisma.$transaction(async (tx) => {
-      let userCreated = false;
       let newUserId: string | null = null;
 
       if (dto.password && dto.email) {
@@ -64,7 +161,6 @@ export class ClientsService {
           },
         });
         newUserId = user.id;
-        userCreated = true;
       }
 
       const nameFallback =
@@ -319,7 +415,7 @@ export class ClientsService {
     });
   }
 
-  async handover(id: string, userId: string, dto: HandoverClientDto) {
+  async handover(_id: string, _userId: string, _dto: HandoverClientDto) {
     throw new BadRequestException({
       code: "CLIENT_HANDOVER_DISABLED",
       details: {},

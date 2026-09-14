@@ -8,7 +8,6 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AdminClientsService } from "../services/admin-clients.service";
-import { ClientsService } from "../../crm/services/clients.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -26,10 +25,7 @@ import {
 @Controller("admin/clients")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AdminClientsController {
-  constructor(
-    private readonly service: AdminClientsService,
-    private readonly clientsService: ClientsService,
-  ) {}
+  constructor(private readonly service: AdminClientsService) {}
 
   @Post()
   @RequirePermissions("admin.clients.intervene")
@@ -37,8 +33,7 @@ export class AdminClientsController {
     @CurrentUser("id") adminId: string,
     @Body() dto: AdminCreateClientDto,
   ) {
-    const client = await this.clientsService.create(adminId, dto);
-    return { id: client.id };
+    return this.service.createClientWithInvitation(adminId, dto);
   }
 
   @Get()

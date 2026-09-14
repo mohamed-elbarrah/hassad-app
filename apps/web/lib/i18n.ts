@@ -189,6 +189,12 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   SOCIAL_LOGIN_REQUIRED: "يرجى تسجيل الدخول باستخدام مزود الخدمة الاجتماعي.",
   EMAIL_ALREADY_IN_USE: "البريد الإلكتروني مستخدم بالفعل.",
   INVALID_RESET_TOKEN: "رابط إعادة التعيين غير صالح أو منتهي الصلاحية.",
+  INVALID_CLIENT_INVITATION: "رابط الدعوة غير صالح أو منتهي الصلاحية.",
+  INVITATION_CREATOR_NOT_FOUND: "تعذر إنشاء رابط الدعوة.",
+  INVITATION_USER_NOT_FOUND: "تعذر العثور على حساب العميل.",
+  INVITATION_CLIENT_NOT_FOUND: "تعذر العثور على بيانات العميل.",
+  INVITATION_REQUEST_NOT_FOUND: "تعذر العثور على الطلب المرتبط.",
+  CLIENT_PASSWORD_ALREADY_SET: "تم إعداد كلمة مرور هذا الحساب مسبقاً.",
   AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
   INVALID_TOKEN: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
 };
@@ -250,6 +256,13 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   USER_NOT_FOUND: "لم يتم العثور على الموظف.",
   TASK_NOT_FOUND: "لم يتم العثور على المهمة.",
   CLIENT_NOT_FOUND: "لم يتم العثور على العميل.",
+  INVALID_ACCOUNT_MANAGER: "مدير الحساب المحدد غير صالح.",
+  PHONE_WHATSAPP_REQUIRED: "رقم واتساب مطلوب.",
+  INVITATION_CREATOR_NOT_FOUND: "تعذر إنشاء رابط الدعوة.",
+  INVITATION_USER_NOT_FOUND: "تعذر العثور على حساب العميل.",
+  INVITATION_CLIENT_NOT_FOUND: "تعذر العثور على بيانات العميل.",
+  INVITATION_REQUEST_NOT_FOUND: "تعذر العثور على الطلب المرتبط.",
+  INVALID_CLIENT_INVITATION: "رابط الدعوة غير صالح أو منتهي الصلاحية.",
   CONTRACT_NOT_FOUND: "لم يتم العثور على العقد.",
   CONTRACT_MUST_BE_ACTIVE: "لا يمكن تحويل إلا العقود النشطة إلى مشاريع.",
   CONTRACT_ALREADY_CONVERTED: "تم تحويل هذا العقد إلى مشروع مسبقاً.",
@@ -283,6 +296,7 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
 
 const ADMIN_SUCCESS_MESSAGES: Record<string, string> = {
   USER_CREATED: "تمت إضافة الموظف بنجاح.",
+  CLIENT_CREATED_WITH_SETUP: "تم إنشاء العميل وإصدار رابط إعداد الحساب.",
   CURRENCY_CREATED: "تمت إضافة العملة بنجاح.",
   CURRENCY_UPDATED: "تم تحديث العملة بنجاح.",
   CURRENCY_DELETED: "تم حذف العملة بنجاح.",
@@ -311,6 +325,16 @@ const ADMIN_SUCCESS_MESSAGES: Record<string, string> = {
 
 export function adminSuccessMessage(code: string | undefined): string {
   return (code && ADMIN_SUCCESS_MESSAGES[code]) || "تمت العملية بنجاح.";
+}
+
+const SALES_SUCCESS_MESSAGES: Record<string, string> = {
+  SALES_REQUEST_CREATED: "تم إنشاء الطلب بنجاح.",
+  SALES_REQUEST_CREATED_WITH_SETUP:
+    "تم إنشاء الحساب والطلب وإصدار رابط إعداد الحساب.",
+};
+
+export function salesSuccessMessage(code: string | undefined): string {
+  return (code && SALES_SUCCESS_MESSAGES[code]) || "تمت العملية بنجاح.";
 }
 
 export function adminErrorMessage(error: unknown): string {
@@ -714,6 +738,13 @@ const SALES_WORKFLOW_ERROR_MESSAGES: Record<string, string> = {
     "تم تحديث الطلب من مستخدم آخر. حدّث الصفحة وحاول مرة أخرى.",
   EMAIL_ALREADY_IN_USE: "البريد الإلكتروني مستخدم بالفعل.",
   CLIENT_ROLE_NOT_FOUND: "تعذر إنشاء حساب العميل. تواصل مع مسؤول النظام.",
+  INVALID_ACCOUNT_MANAGER: "مدير الحساب المحدد غير صالح.",
+  PHONE_WHATSAPP_REQUIRED: "رقم واتساب مطلوب.",
+  INVITATION_CREATOR_NOT_FOUND: "تعذر إنشاء رابط الدعوة.",
+  INVITATION_USER_NOT_FOUND: "تعذر العثور على حساب العميل.",
+  INVITATION_CLIENT_NOT_FOUND: "تعذر العثور على بيانات العميل.",
+  INVITATION_REQUEST_NOT_FOUND: "تعذر العثور على الطلب المرتبط.",
+  INVALID_CLIENT_INVITATION: "رابط الدعوة غير صالح أو منتهي الصلاحية.",
 };
 
 const SALES_WORKFLOW_FIELD_MESSAGES: Record<string, string> = {

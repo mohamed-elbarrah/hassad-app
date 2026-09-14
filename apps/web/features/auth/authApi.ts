@@ -11,6 +11,10 @@ interface AuthCodeResponse {
   code: string;
 }
 
+interface AcceptInvitationResponse {
+  code: string;
+}
+
 interface RegisterInput {
   name: string;
   email: string;
@@ -57,6 +61,16 @@ export const authApi = createApi({
         body,
       }),
     }),
+    acceptInvitation: builder.mutation<
+      AcceptInvitationResponse,
+      { token: string; password: string }
+    >({
+      query: (body) => ({
+        url: "/auth/accept-invitation",
+        method: "POST",
+        body,
+      }),
+    }),
     logout: builder.mutation<AuthCodeResponse, void>({
       query: () => ({
         url: "/auth/logout",
@@ -73,4 +87,5 @@ export const {
   useLogoutMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
+  useAcceptInvitationMutation,
 } = authApi;

@@ -4,9 +4,12 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ClientInvitationService } from "../../../auth/client-invitation.service";
+import { ClientsService } from "../../crm/services/clients.service";
 import { AdminActionLogService } from "./admin-action-log.service";
 import {
   AdminClientActivityResponse,
+  AdminCreateClientDto,
   QueryClientUsersDto,
 } from "../dto/admin-clients.dto";
 
@@ -15,7 +18,40 @@ export class AdminClientsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly actionLog: AdminActionLogService,
+    private readonly clientsService: ClientsService,
+    private readonly clientInvitationService: ClientInvitationService,
   ) {}
+
+  async createClientWithInvitation(
+    adminId: string,
+    dto: AdminCreateClientDto,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const created = await this.clientsService.createAdminClient(
+        adminId,
+        dto,
+        tx,
+      );
+      const invitation = await this.clientInvitationService.createInvitation(
+        {
+          createdById: adminId,
+          userId: created.userId,
+          clientId: created.clientId,
+        },
+        tx,
+      );
+
+      return {
+        id: created.clientId,
+        code: "CLIENT_CREATED_WITH_SETUP",
+        invitation: {
+          invitationId: invitation.invitationId,
+          setupUrl: invitation.setupUrl,
+          expiresAt: invitation.expiresAt,
+        },
+      };
+    });
+  }
 
   async findClientUsers(query: QueryClientUsersDto) {
     const conditions: any[] = [{ role: { name: "CLIENT" } }];

@@ -10,6 +10,7 @@ import {
   type RequestContactLogItem,
   type RequestDetail,
   type RequestItem,
+  type SalesNewClientRequestResult,
 } from "@/features/requests/requestsApi";
 
 export type SalesPipelineGroup =
@@ -112,7 +113,7 @@ export const salesApi = createApi({
     }),
 
     createSalesRequestForNewClient: builder.mutation<
-      RequestItem,
+      SalesNewClientRequestResult,
       CreateSalesNewClientRequestPayload
     >({
       query: (body) => ({

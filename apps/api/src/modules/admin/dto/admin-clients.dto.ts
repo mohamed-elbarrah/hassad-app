@@ -9,48 +9,29 @@ import {
   IsEnum,
   IsIn,
   MinLength,
+  MaxLength,
+  Matches,
   IsEmail,
+  IsNotEmpty,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { BusinessType, ClientKind, ClientStatus } from "@hassad/shared";
+import { ClientKind, ClientStatus } from "@hassad/shared";
 
 export class AdminCreateClientDto {
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  companyName?: string;
-
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  contactName?: string;
-
-  @IsOptional()
-  @IsString()
-  @MinLength(5)
-  phoneWhatsapp?: string;
-
-  @IsOptional()
   @IsEmail()
-  email?: string;
+  @IsNotEmpty()
+  email!: string;
 
-  @IsOptional()
   @IsString()
-  @MinLength(2)
-  businessName?: string;
-
-  @IsOptional()
-  @IsEnum(BusinessType)
-  businessType?: BusinessType;
+  @IsNotEmpty()
+  @MaxLength(30)
+  @Matches(/^[0-9+()\s.-]{7,30}$/)
+  @Matches(/\S/)
+  phoneWhatsapp!: string;
 
   @IsOptional()
   @IsUUID()
   accountManager?: string;
-
-  @IsOptional()
-  @IsString()
-  @MinLength(8)
-  password?: string;
 }
 
 export class SuspendClientDto {

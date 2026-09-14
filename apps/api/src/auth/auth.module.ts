@@ -1,9 +1,10 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { Reflector } from "@nestjs/core";
 import { AuthService } from "./auth.service";
+import { ClientInvitationService } from "./client-invitation.service";
 import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { JwtRefreshStrategy } from "./strategies/jwt-refresh.strategy";
@@ -15,7 +16,7 @@ import { RequestsModule } from "../modules/requests/requests.module";
 @Module({
   imports: [
     PassportModule,
-    RequestsModule,
+    forwardRef(() => RequestsModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -31,6 +32,7 @@ import { RequestsModule } from "../modules/requests/requests.module";
   controllers: [AuthController],
   providers: [
     AuthService,
+    ClientInvitationService,
     EmailService,
     JwtStrategy,
     JwtRefreshStrategy,
@@ -38,6 +40,6 @@ import { RequestsModule } from "../modules/requests/requests.module";
     Reflector,
     ...(process.env.GOOGLE_CLIENT_ID ? [GoogleStrategy] : []),
   ],
-  exports: [AuthService, EmailService],
+  exports: [AuthService, ClientInvitationService, EmailService],
 })
 export class AuthModule {}
