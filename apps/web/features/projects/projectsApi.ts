@@ -24,6 +24,17 @@ export interface ProjectListItem extends Project {
   completionPercentage?: number;
 }
 
+/** PM project detail relation returned by /pm/projects/:id. */
+export interface PmProjectDetail extends Project {
+  client?: { id: string; companyName: string; userId: string | null };
+  taskStats?: {
+    total: number;
+    completed: number;
+    inProgress: number;
+    overdue: number;
+  };
+}
+
 export interface PmProjectCard {
   id: string;
   name: string;
@@ -168,7 +179,7 @@ export const projectsApi = createApi({
     }),
 
     /** GET /v1/pm/projects/:id — PM-owned project detail */
-    getPmProjectById: builder.query<Project, string>({
+    getPmProjectById: builder.query<PmProjectDetail, string>({
       query: (id) => `/pm/projects/${id}`,
       providesTags: (_result, _error, id) => [{ type: "Project", id }],
     }),

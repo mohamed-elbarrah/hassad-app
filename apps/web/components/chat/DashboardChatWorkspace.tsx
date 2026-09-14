@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   chatApi,
+  chatTagId,
   useGetConversationsQuery,
   useGetConversationQuery,
   useGetMessagesQuery,
@@ -40,6 +41,7 @@ export function DashboardChatWorkspace({ scope }: { scope?: ChatScope } = {}) {
   const deepLinkKey = `${scope ?? "shared"}:${initialConversationId ?? ""}:${openUserId ?? ""}`;
   const resolvingTargetRef = useRef<string | null>(null);
   const lastDeepLinkRef = useRef<string | null>(null);
+  const deepLinkFilterRef = useRef<string | null>(null);
   const chatScope = scope;
 
   const currentUserId = useAppSelector((s) => s.auth.user?.id);
@@ -76,6 +78,21 @@ export function DashboardChatWorkspace({ scope }: { scope?: ChatScope } = {}) {
   );
   const selectedConversation =
     conversations.find((c) => c.id === selectedId) ?? selectedConversationDetails;
+
+  // Deep links must select the matching list filter. In particular, PM
+  // conversation links may target a GROUP conversation while the default
+  // workspace filter is DIRECT.
+  useEffect(() => {
+    if (deepLinkFilterRef.current === deepLinkKey) return;
+
+    if (openUserId) {
+      deepLinkFilterRef.current = deepLinkKey;
+      startTransition(() => setFilterType("DIRECT"));
+    } else if (initialConversationId && selectedConversationDetails) {
+      deepLinkFilterRef.current = deepLinkKey;
+      startTransition(() => setFilterType(selectedConversationDetails.type));
+    }
+  }, [deepLinkKey, initialConversationId, openUserId, selectedConversationDetails]);
 
   const {
     data: messagesData,
@@ -121,7 +138,11 @@ export function DashboardChatWorkspace({ scope }: { scope?: ChatScope } = {}) {
       .unwrap()
       .then((conversation) => {
         setSelectedId(conversation.id);
-        dispatch(chatApi.util.invalidateTags([{ type: "Conversation", id: "LIST" }]));
+        dispatch(
+          chatApi.util.invalidateTags([
+            { type: "Conversation", id: chatTagId(chatScope, "LIST") },
+          ]),
+        );
       })
       .catch((error) => {
         resolvingTargetRef.current = null;

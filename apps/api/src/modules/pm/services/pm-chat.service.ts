@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "../../../prisma/prisma.service";
@@ -7,6 +7,20 @@ import { ChatPresenceService } from "../../chat/services/chat-presence.service";
 @Injectable()
 export class PmChatService {
   constructor(private readonly prisma: PrismaService, private readonly presence: ChatPresenceService) {}
+
+  async assertProjectOwnership(projectId: string, userId: string): Promise<void> {
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, projectManagerId: userId, isArchived: false },
+      select: { id: true },
+    });
+
+    if (!project) {
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId },
+      });
+    }
+  }
 
   async searchEmployees(search = "", limit = 6) {
     const where: Prisma.UserWhereInput = {

@@ -1342,6 +1342,8 @@ export function portalErrorMessage(error: unknown): string {
     DIRECT_CONVERSATION_SELF_FORBIDDEN: "لا يمكنك بدء محادثة مع حسابك.",
     DIRECT_CONVERSATION_TARGET_FORBIDDEN:
       "ليس لديك صلاحية لمحادثة هذا المستخدم.",
+    PROJECT_GROUP_CHAT_NOT_FOUND: "لم يتم العثور على محادثة المشروع.",
+    PROJECT_NOT_FOUND: "لم يتم العثور على المشروع.",
     FILE_TYPE_NOT_ALLOWED: "نوع الملف غير مسموح.",
     INVALID_FILE_TYPE: "نوع الملف غير مدعوم.",
     INVALID_FILE_CONTENT: "محتوى الملف غير صالح.",

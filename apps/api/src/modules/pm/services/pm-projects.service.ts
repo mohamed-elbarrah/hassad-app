@@ -15,7 +15,7 @@ import type {
 } from "../dto/pm-projects.dto";
 
 const pmProjectDetailInclude = Prisma.validator<Prisma.ProjectInclude>()({
-  client: { select: { id: true, companyName: true } },
+  client: { select: { id: true, companyName: true, userId: true } },
   manager: { select: { id: true, name: true, email: true } },
   contract: {
     select: { id: true, type: true, totalValue: true, monthlyValue: true },

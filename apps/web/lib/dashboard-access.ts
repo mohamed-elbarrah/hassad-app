@@ -4,7 +4,7 @@ import { UserRole, type User } from "@hassad/shared";
  * Routes shared by dashboard roles.
  * Workspace-specific routes must stay in rolePrefixes instead of being added
  * here, otherwise the client and edge guards will allow the wrong workspace.
- * Sales and Admin use their owned chat routes instead of the legacy shared path.
+ * Admin, PM, and Sales use their owned chat routes instead of the legacy shared path.
  */
 export const sharedDashboardPrefixes = [
   "/dashboard/account",
@@ -60,7 +60,7 @@ export function canAccessDashboardPath(
 ) {
   if (pathname === "/dashboard") return true;
   if (
-    (role === UserRole.ADMIN || role === UserRole.SALES) &&
+    (role === UserRole.ADMIN || role === UserRole.PM || role === UserRole.SALES) &&
     pathMatchesPrefix(pathname, "/dashboard/messages")
   ) {
     return false;

@@ -1,12 +1,14 @@
 "use client";
 
 import { use, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Eye,
   AlertTriangle,
   Upload,
   FolderKanban,
+  MessageCircle,
 } from "lucide-react";
 import {
   Card,
@@ -28,6 +30,7 @@ import {
   useGetPmProjectPeriodQuery,
   useGetPmProjectFilesQuery,
   useUploadPmProjectFileMutation,
+  type PmProjectDetail,
 } from "@/features/projects/projectsApi";
 import { useLazyGetProjectGroupChatQuery } from "@/features/chat/chatApi";
 import { useAppSelector } from "@/lib/hooks";
@@ -36,11 +39,17 @@ import { type ProjectWithMeta } from "@/lib/utils/project-status";
 import { cn } from "@/lib/utils";
 import { ProjectStatus } from "@hassad/shared";
 import { daysUntil, formatShortDate } from "@/lib/format";
+import { chatErrorMessage, projectErrorMessage } from "@/lib/i18n";
+import { toast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ProjectDetailPageProps {
   params: Promise<{ id: string }>;
+}
+
+function pClientUserId(project: PmProjectDetail | undefined): string | null {
+  return project?.client?.userId ?? null;
 }
 
 // ── Main Page Component ──────────────────────────────────────────────────────
@@ -72,19 +81,19 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     useGetPmProjectFilesQuery(id);
   const [getGroupChat, { isFetching: isLoadingGroupChat }] =
     useLazyGetProjectGroupChatQuery();
-
   const [uploadFile, { isLoading: isUploading }] =
     useUploadPmProjectFileMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openGroupChat = async () => {
     try {
-      const conversation = await getGroupChat(id).unwrap();
-      if (conversation?.id) {
-        router.push(`/dashboard/messages?conversationId=${conversation.id}`);
-      }
-    } catch {
-      // Group chat may not exist yet; ignore silently
+      const conversation = await getGroupChat({
+        projectId: id,
+        scope: "pm",
+      }).unwrap();
+      router.push(`/dashboard/pm/chat?conversationId=${conversation.id}`);
+    } catch (error) {
+      toast.error(chatErrorMessage(error));
     }
   };
 
@@ -107,7 +116,8 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     );
   }
 
-  const p = project as ProjectWithMeta;
+  const p = project as ProjectWithMeta & PmProjectDetail;
+  const clientUserId = pClientUserId(project);
   const totalTasks = p.taskStats?.total ?? 0;
   const completedTasks = p.taskStats?.completed ?? 0;
   const overdueTasks = p.taskStats?.overdue ?? 0;
@@ -173,6 +183,16 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
           <Upload data-icon="inline-start" />
           {isUploading ? "جارٍ الرفع..." : "رفع ملف"}
         </Button>
+        {clientUserId ? (
+          <Button variant="outline" size="sm" asChild>
+            <Link
+              href={`/dashboard/pm/chat?userId=${encodeURIComponent(clientUserId)}`}
+            >
+              <MessageCircle data-icon="inline-start" />
+              بدء محادثة
+            </Link>
+          </Button>
+        ) : null}
         <Button
           variant="outline"
           size="sm"
@@ -196,8 +216,8 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 file,
                 periodId: selectedPeriod?.id,
               }).unwrap();
-            } catch {
-              /* best-effort operation; the UI remains usable without this refresh */
+            } catch (error) {
+              toast.error(projectErrorMessage(error));
             }
             if (fileInputRef.current) fileInputRef.current.value = "";
           }}

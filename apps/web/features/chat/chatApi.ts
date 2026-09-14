@@ -153,7 +153,7 @@ function normalizeMessageHistory(
   return { data: [], nextCursor: null, hasMore: false };
 }
 
-export type ChatScope = "admin" | "sales";
+export type ChatScope = "admin" | "sales" | "pm";
 
 export interface GetConversationsParams {
   page?: number;
@@ -217,8 +217,8 @@ export const CHAT_MAX_FILES = 5;
 
 // ── API slice ─────────────────────────────────────────────────────────────────
 
-// Keep one chat slice compatible with dashboard/PM consumers while routing
-// portal and admin workspaces through their portal-owned APIs. Each adapter
+// Keep one chat slice compatible with dashboard consumers while routing
+// portal and role-specific workspaces through their owned APIs. Each adapter
 // delegates to the same ChatService, so DTOs and cache behavior remain identical.
 const isPortalChat = () =>
   typeof window !== "undefined" &&
@@ -227,6 +227,7 @@ const isPortalChat = () =>
 const chatUrl = (path: string, scope?: ChatScope) => {
   if (scope === "admin") return `/admin/chat${path}`;
   if (scope === "sales") return `/sales/chat${path}`;
+  if (scope === "pm") return `/pm/chat${path}`;
   return isPortalChat() ? `/portal/chat${path}` : path;
 };
 
@@ -235,20 +236,28 @@ const chatCacheScope = (scope?: ChatScope) =>
     ? "admin"
     : scope === "sales"
       ? "sales"
-      : isPortalChat()
+      : scope === "pm"
+        ? "pm"
+        : isPortalChat()
         ? "portal"
         : "shared";
 
 const readChatScope = (value: unknown): ChatScope | undefined => {
   if (!isRecord(value)) return undefined;
-  return value.scope === "admin" || value.scope === "sales"
+  return value.scope === "admin" || value.scope === "sales" || value.scope === "pm"
     ? value.scope
     : undefined;
 };
 
+// RTK Query tags are global to this slice, so include the portal scope as
+// well as the entity ID. This prevents a PM mutation from invalidating or
+// refreshing an identically-IDed conversation in another workspace.
+export const chatTagId = (scope: ChatScope | undefined, id: string) =>
+  `${chatCacheScope(scope)}:${id}`;
+
 export const chatApi = createApi({
-  // The URL is portal-aware, so keep portal and dashboard responses in
-  // separate caches even when they use the same endpoint arguments.
+  // Keep portal and role-specific dashboard responses in separate caches even
+  // when they use the same endpoint arguments.
   serializeQueryArgs: ({ endpointName, queryArgs }) =>
     `${chatCacheScope(readChatScope(queryArgs))}:${endpointName}:${JSON.stringify(queryArgs)}`,
   reducerPath: "chatApi",
@@ -269,16 +278,16 @@ export const chatApi = createApi({
         const qs = searchParams.toString();
         return chatUrl(`/conversations${qs ? `?${qs}` : ""}`, params?.scope);
       },
-      providesTags: (result) =>
+      providesTags: (result, _, params) =>
         result
           ? [
               ...result.data.map(({ id }) => ({
                 type: "Conversation" as const,
-                id,
+                id: chatTagId(params.scope, id),
               })),
-              { type: "Conversation", id: "LIST" },
+              { type: "Conversation", id: chatTagId(params.scope, "LIST") },
             ]
-          : [{ type: "Conversation", id: "LIST" }],
+          : [{ type: "Conversation", id: chatTagId(params.scope, "LIST") }],
     }),
 
     getConversation: builder.query<Conversation, ScopedConversationId>({
@@ -287,8 +296,8 @@ export const chatApi = createApi({
         return chatUrl(`/conversations/${params.id}`, params.scope);
       },
       providesTags: (_, __, input) => {
-        const id = typeof input === "string" ? input : input.id;
-        return [{ type: "Conversation", id }];
+        const params = typeof input === "string" ? { id: input } : input;
+        return [{ type: "Conversation", id: chatTagId(params.scope, params.id) }];
       },
     }),
 
@@ -298,8 +307,8 @@ export const chatApi = createApi({
         return chatUrl(`/conversations/project/${params.projectId}/group`, params.scope);
       },
       providesTags: (_, __, input) => {
-        const projectId = typeof input === "string" ? input : input.projectId;
-        return [{ type: "Conversation", id: `project-${projectId}-group` }];
+        const params = typeof input === "string" ? { projectId: input } : input;
+        return [{ type: "Conversation", id: chatTagId(params.scope, `project-${params.projectId}-group`) }];
       },
     }),
 
@@ -309,8 +318,8 @@ export const chatApi = createApi({
         return chatUrl(`/conversations/direct/${params.userId}`, params.scope);
       },
       providesTags: (_, __, input) => {
-        const userId = typeof input === "string" ? input : input.userId;
-        return [{ type: "Conversation", id: `direct-${userId}` }];
+        const params = typeof input === "string" ? { userId: input } : input;
+        return [{ type: "Conversation", id: chatTagId(params.scope, `direct-${params.userId}`) }];
       },
     }),
 
@@ -323,7 +332,9 @@ export const chatApi = createApi({
         method: "POST",
         body: { type: "DIRECT", participantIds: [body.userId] },
       }),
-      invalidatesTags: [{ type: "Conversation", id: "LIST" }],
+      invalidatesTags: (_, __, body) => [
+        { type: "Conversation", id: chatTagId(body.scope, "LIST") },
+      ],
     }),
 
     createGroupConversation: builder.mutation<
@@ -335,7 +346,9 @@ export const chatApi = createApi({
         method: "POST",
         body: { type: "GROUP", ...body },
       }),
-      invalidatesTags: [{ type: "Conversation", id: "LIST" }],
+      invalidatesTags: (_, __, body) => [
+        { type: "Conversation", id: chatTagId(body.scope, "LIST") },
+      ],
     }),
 
     addParticipant: builder.mutation<Conversation, AddParticipantInput>({
@@ -344,9 +357,9 @@ export const chatApi = createApi({
         method: "POST",
         body: { userId },
       }),
-      invalidatesTags: (_, __, { conversationId }) => [
-        { type: "Conversation", id: conversationId },
-        { type: "Conversation", id: "LIST" },
+      invalidatesTags: (_, __, { conversationId, scope }) => [
+        { type: "Conversation", id: chatTagId(scope, conversationId) },
+        { type: "Conversation", id: chatTagId(scope, "LIST") },
       ],
     }),
 
@@ -399,8 +412,8 @@ export const chatApi = createApi({
         currentArg?.conversationId !== previousArg?.conversationId ||
         currentArg?.limit !== previousArg?.limit ||
         currentArg?.cursor !== previousArg?.cursor,
-      providesTags: (_, __, { conversationId }) => [
-        { type: "Message", id: conversationId },
+      providesTags: (_, __, { conversationId, scope }) => [
+        { type: "Message", id: chatTagId(scope, conversationId) },
       ],
     }),
 
@@ -416,10 +429,11 @@ export const chatApi = createApi({
         };
       },
       invalidatesTags: (_, __, input) => {
-        const conversationId = typeof input === "string" ? input : input.conversationId;
+        const params = typeof input === "string" ? { conversationId: input } : input;
+        const conversationId = params.conversationId;
         return [
-          { type: "Conversation", id: conversationId },
-          { type: "Conversation", id: "LIST" },
+          { type: "Conversation", id: chatTagId(params.scope, conversationId) },
+          { type: "Conversation", id: chatTagId(params.scope, "LIST") },
         ];
       },
     }),
@@ -430,10 +444,10 @@ export const chatApi = createApi({
         method: "POST",
         body: { content },
       }),
-      invalidatesTags: (_, __, { conversationId }) => [
-        { type: "Message", id: conversationId },
-        { type: "Conversation", id: conversationId },
-        { type: "Conversation", id: "LIST" },
+      invalidatesTags: (_, __, { conversationId, scope }) => [
+        { type: "Message", id: chatTagId(scope, conversationId) },
+        { type: "Conversation", id: chatTagId(scope, conversationId) },
+        { type: "Conversation", id: chatTagId(scope, "LIST") },
       ],
     }),
 
@@ -453,10 +467,10 @@ export const chatApi = createApi({
           body: formData,
         };
       },
-      invalidatesTags: (_, __, { conversationId }) => [
-        { type: "Message", id: conversationId },
-        { type: "Conversation", id: conversationId },
-        { type: "Conversation", id: "LIST" },
+      invalidatesTags: (_, __, { conversationId, scope }) => [
+        { type: "Message", id: chatTagId(scope, conversationId) },
+        { type: "Conversation", id: chatTagId(scope, conversationId) },
+        { type: "Conversation", id: chatTagId(scope, "LIST") },
       ],
     }),
   }),

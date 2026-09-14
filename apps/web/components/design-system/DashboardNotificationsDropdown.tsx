@@ -51,6 +51,8 @@ export function resolveDashboardUrl(
       return `/dashboard/admin/chat?conversationId=${encodeURIComponent(entityId)}`;
     if (role === UserRole.SALES)
       return `/dashboard/sales/chat?conversationId=${encodeURIComponent(entityId)}`;
+    if (role === UserRole.PM)
+      return `/dashboard/pm/chat?conversationId=${encodeURIComponent(entityId)}`;
     return `/dashboard/messages`;
   }
 

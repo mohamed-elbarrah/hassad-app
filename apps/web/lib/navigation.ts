@@ -221,6 +221,11 @@ export const roleNavSections: NavSection[] = [
         url: "/dashboard/pm/disputes",
         roles: ["PM"],
       },
+      {
+        title: "المحادثات",
+        url: "/dashboard/pm/chat",
+        roles: ["PM"],
+      },
     ],
   },
   {
@@ -346,7 +351,7 @@ export const sharedNavSections: NavSection[] = [
         title: "المحادثات",
         url: "/dashboard/messages",
         exact: true,
-        roles: ["PM", "TEAM", "MARKETING", "ACCOUNTANT"],
+        roles: ["TEAM", "MARKETING", "ACCOUNTANT"],
       },
     ],
   },

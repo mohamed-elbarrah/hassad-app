@@ -24,6 +24,7 @@ import { ChatAttachmentService, CHAT_UPLOAD_LIMITS } from "../../../common/stora
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 
 import {
+  AddParticipantDto,
   CreateConversationDto,
   CreateMessageDto,
   GetConversationsQueryDto,
@@ -32,6 +33,7 @@ import {
 } from "../../chat/dto/chat.dto";
 import { ChatService } from "../../chat/services/chat.service";
 import { DirectConversationService } from "../../chat/services/direct-conversation.service";
+import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 
 import { PmChatTargetsQueryDto } from "../dto/pm-chat.dto";
 import { PmChatService } from "../services/pm-chat.service";
@@ -42,8 +44,9 @@ export class PmChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly directConversationService: DirectConversationService,
+    private readonly projectGroupChatService: ProjectGroupChatService,
     private readonly chatAttachmentService: ChatAttachmentService,
-    private readonly crmChatService: PmChatService,
+    private readonly pmChatService: PmChatService,
   ) {}
 
   @Get("conversations")
@@ -76,6 +79,23 @@ export class PmChatController {
     return this.chatService.findConversation(id, user.id);
   }
 
+  @Get("conversations/project/:projectId/group")
+  @RequirePermissions("chat.read")
+  async getProjectGroupChat(
+    @CurrentUser() user: JwtPayload,
+    @Param("projectId") projectId: string,
+  ) {
+    await this.pmChatService.assertProjectOwnership(projectId, user.id);
+    const conversation = await this.projectGroupChatService.ensure(projectId);
+    if (!conversation) {
+      throw new NotFoundException({
+        code: "PROJECT_GROUP_CHAT_NOT_FOUND",
+        details: { projectId },
+      });
+    }
+    return this.chatService.getConversationDetails(conversation.id, user.id);
+  }
+
   @Get("conversations/direct/:userId")
   @RequirePermissions("chat.read")
   async getDirectConversation(
@@ -93,6 +113,26 @@ export class PmChatController {
       });
     }
     return this.chatService.getConversationDetails(conversation.id, user.id);
+  }
+
+  @Post("conversations/:id/participants")
+  @RequirePermissions("chat.update")
+  addParticipant(
+    @CurrentUser() user: JwtPayload,
+    @Param("id") id: string,
+    @Body() dto: AddParticipantDto,
+  ) {
+    return this.chatService.addParticipant(id, dto, user.id);
+  }
+
+  @Delete("conversations/:id/participants/:userId")
+  @RequirePermissions("chat.update")
+  removeParticipant(
+    @CurrentUser() user: JwtPayload,
+    @Param("id") id: string,
+    @Param("userId") userId: string,
+  ) {
+    return this.chatService.removeParticipant(id, userId, user.id);
   }
 
   @Post("conversations/:id/messages")
@@ -214,7 +254,7 @@ export class PmChatController {
   @Get("targets/employees")
   @RequirePermissions("chat.read")
   searchEmployees(@Query() query: PmChatTargetsQueryDto) {
-    return this.crmChatService.searchEmployees(
+    return this.pmChatService.searchEmployees(
       query.search ?? "",
       query.limit ?? 6,
     );
@@ -223,7 +263,7 @@ export class PmChatController {
   @Get("targets/clients")
   @RequirePermissions("chat.read")
   searchClients(@Query() query: PmChatTargetsQueryDto) {
-    return this.crmChatService.searchClients(
+    return this.pmChatService.searchClients(
       query.search ?? "",
       query.limit ?? 6,
     );
