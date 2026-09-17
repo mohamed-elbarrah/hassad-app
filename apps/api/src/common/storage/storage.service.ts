@@ -16,6 +16,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomBytes } from "crypto";
+import { R2ConfigProvider } from "./r2-config.provider";
 import { extname } from "path";
 import {
   StorageCategory,
@@ -48,32 +49,51 @@ export interface UploadOptions {
 export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
   private s3: S3Client;
-  private bucket: string;
+  private bucket = "";
+  private configured = false;
+  private configurationCode = "R2_CONFIGURATION_MISSING";
 
-  constructor() {
-    const endpoint = process.env.CLOUDFLARE_R2_ENDPOINT;
-    const accessKey = process.env.CLOUDFLARE_R2_ACCESS_KEY;
-    const secretKey = process.env.CLOUDFLARE_R2_SECRET_KEY;
-    this.bucket = process.env.CLOUDFLARE_R2_BUCKET || "";
+  constructor(private readonly configProvider: R2ConfigProvider) {
+    this.s3 = new S3Client({ region: "auto" });
+  }
 
-    if (!endpoint || !accessKey || !secretKey || !this.bucket) {
-      this.logger.warn(
-        "CLOUDFLARE_R2_* environment variables are not fully configured. File storage will not work until they are set.",
-      );
-    }
-
-    this.s3 = new S3Client({
+  async reload(): Promise<void> {
+    const config = await this.configProvider.getEffectiveConfig();
+    const previousClient = this.s3;
+    const nextClient = new S3Client({
       region: "auto",
-      endpoint,
+      endpoint: config.endpoint,
       credentials: {
-        accessKeyId: accessKey || "",
-        secretAccessKey: secretKey || "",
+        accessKeyId: config.accessKey || "",
+        secretAccessKey: config.secretKey || "",
       },
     });
+
+    this.bucket = config.bucket || "";
+    this.configured = !!(
+      config.endpoint &&
+      config.accessKey &&
+      config.secretKey &&
+      config.bucket
+    );
+    this.configurationCode = this.configured
+      ? "R2_CONFIGURATION_READY"
+      : "R2_CONFIGURATION_MISSING";
+    this.s3 = nextClient;
+    previousClient?.destroy();
   }
 
   async onModuleInit() {
-    if (!process.env.CLOUDFLARE_R2_ENDPOINT) {
+    try {
+      await this.reload();
+    } catch {
+      this.configured = false;
+      this.bucket = "";
+      this.configurationCode = "R2_CONFIGURATION_INVALID";
+      this.logger.error(this.configurationCode);
+    }
+
+    if (!this.configured) {
       this.logger.warn(
         "R2 storage is not configured. Skipping connectivity check.",
       );
@@ -81,13 +101,24 @@ export class StorageService implements OnModuleInit {
     }
 
     try {
-      await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
+      await this.checkConnection();
       this.logger.log("R2 storage connected successfully");
     } catch (error) {
       this.logger.error(
         `Failed to connect to R2 storage: ${error instanceof Error ? error.message : error}`,
       );
     }
+  }
+
+  async checkConnection(): Promise<void> {
+    if (!this.configured) {
+      throw new Error(this.configurationCode);
+    }
+    await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
+  }
+
+  getConfigurationCode(): string {
+    return this.configurationCode;
   }
 
   generateKey(
@@ -416,11 +447,6 @@ export class StorageService implements OnModuleInit {
   }
 
   isConfigured(): boolean {
-    return !!(
-      process.env.CLOUDFLARE_R2_ENDPOINT &&
-      process.env.CLOUDFLARE_R2_ACCESS_KEY &&
-      process.env.CLOUDFLARE_R2_SECRET_KEY &&
-      process.env.CLOUDFLARE_R2_BUCKET
-    );
+    return this.configured;
   }
 }

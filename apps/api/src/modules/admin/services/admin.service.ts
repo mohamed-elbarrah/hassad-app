@@ -602,7 +602,7 @@ export class AdminService {
       failedWebhooks: {
         count: failedWebhooks,
         label: "Webhooks فاشلة",
-        link: "/dashboard/admin/integrations?status=failed",
+        link: "/dashboard/admin/settings/integrations?status=failed",
         items: [],
       },
       expiringContracts: {

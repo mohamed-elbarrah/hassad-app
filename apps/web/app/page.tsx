@@ -1,11 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  BriefcaseBusiness,
-  FileText,
-  FolderKanban,
-  MessageCircle,
-} from "lucide-react";
+import { BriefcaseBusiness, FileText, FolderKanban } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +10,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getWhatsAppUrl } from "@/lib/contact";
+import {
+  WhatsAppSupportButton,
+  WhatsAppSupportSection,
+} from "@/components/home/WhatsAppSupport";
 
 const features = [
   {
@@ -36,8 +34,6 @@ const features = [
 ];
 
 export default function HomePage() {
-  const whatsappUrl = getWhatsAppUrl();
-
   return (
     <main className="min-h-screen bg-background text-foreground" dir="rtl">
       <header className="border-b border-border">
@@ -71,14 +67,10 @@ export default function HomePage() {
             <Button asChild size="lg">
               <Link href="/login">تسجيل الدخول</Link>
             </Button>
-            {whatsappUrl ? (
-              <Button asChild variant="outline" size="lg">
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle data-icon="inline-start" aria-hidden="true" />
-                  تواصل مع الدعم عبر واتساب
-                </a>
-              </Button>
-            ) : null}
+            <WhatsAppSupportButton
+              label="تواصل مع الدعم عبر واتساب"
+              size="lg"
+            />
           </div>
         </section>
 
@@ -111,25 +103,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {whatsappUrl ? (
-          <section
-            className="flex flex-col items-center gap-4 text-center"
-            aria-labelledby="support-title"
-          >
-            <h2 id="support-title" className="text-xl font-semibold">
-              هل تحتاج إلى حساب؟
-            </h2>
-            <p className="max-w-xl text-muted-foreground">
-              تواصل مع فريق الدعم عبر واتساب لمساعدتك في الوصول إلى مسار.
-            </p>
-            <Button asChild variant="outline">
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                <MessageCircle data-icon="inline-start" aria-hidden="true" />
-                تواصل مع الدعم
-              </a>
-            </Button>
-          </section>
-        ) : null}
+        <WhatsAppSupportSection />
       </div>
     </main>
   );

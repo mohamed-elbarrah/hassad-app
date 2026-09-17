@@ -176,7 +176,7 @@ export const adminNavSections: NavSection[] = [
     items: [
       {
         title: "التكاملات",
-        url: "/dashboard/admin/integrations",
+        url: "/dashboard/admin/settings/integrations",
         roles: ["ADMIN"],
       },
       {

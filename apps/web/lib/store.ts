@@ -1,7 +1,4 @@
-import {
-  configureStore,
-  createListenerMiddleware,
-} from "@reduxjs/toolkit";
+import { configureStore, createListenerMiddleware } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import authReducer, { logout } from "@/features/auth/authSlice";
 import { authApi } from "@/features/auth/authApi";
@@ -25,6 +22,7 @@ import { portalNotificationsApi } from "@/features/portal-notifications/portalNo
 import { servicesApi } from "@/features/services/servicesApi";
 import { chatApi } from "@/features/chat/chatApi";
 import { settingsApi } from "@/features/settings/settingsApi";
+import { integrationsApi } from "@/features/settings/integrationsApi";
 import { departmentsApi } from "@/features/departments/departmentsApi";
 import { rolesApi } from "@/features/roles/rolesApi";
 import { permissionsApi } from "@/features/permissions/permissionsApi";
@@ -75,6 +73,7 @@ export const store = configureStore({
     [servicesApi.reducerPath]: servicesApi.reducer,
     [chatApi.reducerPath]: chatApi.reducer,
     [settingsApi.reducerPath]: settingsApi.reducer,
+    [integrationsApi.reducerPath]: integrationsApi.reducer,
     [departmentsApi.reducerPath]: departmentsApi.reducer,
     [rolesApi.reducerPath]: rolesApi.reducer,
     [permissionsApi.reducerPath]: permissionsApi.reducer,
@@ -121,6 +120,7 @@ export const store = configureStore({
       servicesApi.middleware,
       chatApi.middleware,
       settingsApi.middleware,
+      integrationsApi.middleware,
       departmentsApi.middleware,
       rolesApi.middleware,
       permissionsApi.middleware,
@@ -176,6 +176,7 @@ authLifecycleMiddleware.startListening({
       servicesApi,
       chatApi,
       settingsApi,
+      integrationsApi,
       departmentsApi,
       rolesApi,
       permissionsApi,

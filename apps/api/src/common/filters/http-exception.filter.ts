@@ -72,13 +72,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
             }
           : {};
 
-    const path = request.originalUrl ?? request.url;
+    const path = (request.originalUrl ?? request.url).split("?", 1)[0];
     const method = request.method;
     const userId = (request as any).user?.id;
 
     // Capture request body for debugging (be careful with sensitive data)
     const requestBody = this.sanitizeRequestBody(request.body);
-    const queryParams = request.query;
+    const queryParams = this.sanitizeRequestBody(request.query);
 
     // Build comprehensive context
     const context: Record<string, any> = {
@@ -239,27 +239,37 @@ export class HttpExceptionFilter implements ExceptionFilter {
     return "API";
   }
 
-  private sanitizeRequestBody(body: any): any {
+  private sanitizeRequestBody(body: unknown): unknown {
     if (!body || typeof body !== "object") return body;
 
     const sensitiveFields = [
       "password",
       "token",
       "secret",
+      "accesskey",
+      "privatekey",
+      "apikey",
+      "clientsecret",
       "authorization",
       "cookie",
-      "credit_card",
+      "creditcard",
       "cvv",
     ];
-    const sanitized = { ...body };
-
-    for (const key of Object.keys(sanitized)) {
-      const lowerKey = key.toLowerCase();
-      if (sensitiveFields.some((field) => lowerKey.includes(field))) {
-        sanitized[key] = "[REDACTED]";
+    const sanitize = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(sanitize);
+      if (!value || typeof value !== "object") return value;
+      const sanitized = { ...(value as Record<string, unknown>) };
+      for (const key of Object.keys(sanitized)) {
+        const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+        sanitized[key] = sensitiveFields.some((field) =>
+          normalizedKey.includes(field),
+        )
+          ? "[REDACTED]"
+          : sanitize(sanitized[key]);
       }
-    }
+      return sanitized;
+    };
 
-    return sanitized;
+    return sanitize(body);
   }
 }

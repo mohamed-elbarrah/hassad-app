@@ -5,13 +5,13 @@ const WHATSAPP_HOSTS = new Set([
   "api.whatsapp.com",
 ]);
 
-export function getWhatsAppUrl() {
-  const configuredUrl = process.env.NEXT_PUBLIC_WHATSAPP_URL;
-
-  if (!configuredUrl) return undefined;
+export function getSafeWhatsAppUrl(
+  value: string | null | undefined,
+): string | undefined {
+  if (!value) return undefined;
 
   try {
-    const url = new URL(configuredUrl);
+    const url = new URL(value);
     return url.protocol === "https:" && WHATSAPP_HOSTS.has(url.hostname)
       ? url.toString()
       : undefined;

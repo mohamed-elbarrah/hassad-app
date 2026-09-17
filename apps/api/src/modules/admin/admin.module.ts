@@ -45,6 +45,7 @@ import { AdminWorkspacesController } from "./controllers/admin-workspaces.contro
 import { AdminCrmOrdersController } from "./controllers/admin-crm-orders.controller";
 import { AdminContractMigrationReviewController } from "./controllers/admin-contract-migration-review.controller";
 import { AdminCurrencySettingsController } from "./controllers/admin-currency-settings.controller";
+import { AdminIntegrationSettingsController } from "./controllers/admin-integration-settings.controller";
 
 import { AdminActionLogService } from "./services/admin-action-log.service";
 import { AdminKpiService } from "./services/admin-kpi.service";
@@ -113,6 +114,7 @@ import { SettingsModule } from "../settings/settings.module";
     AdminCrmOrdersController,
     AdminContractMigrationReviewController,
     AdminCurrencySettingsController,
+    AdminIntegrationSettingsController,
     AdminKpiController,
     AdminAuditController,
     AdminSettingsController,

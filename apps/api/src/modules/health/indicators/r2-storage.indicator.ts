@@ -4,6 +4,7 @@ import {
   HealthIndicatorResult,
 } from "@nestjs/terminus";
 import { StorageService } from "../../../common/storage/storage.service";
+import { classifyR2ConnectionError } from "../../../common/storage/r2-config.provider";
 import { HealthPersistenceService } from "../services/health-persistence.service";
 import { RobustErrorLoggerService } from "../services/robust-error-logger.service";
 import {
@@ -31,23 +32,23 @@ export class R2StorageHealthIndicator {
       // Check if R2 is configured
       if (!this.storageService.isConfigured()) {
         const responseTime = Date.now() - startTime;
+        const code = this.storageService.getConfigurationCode();
         await this.healthPersistence.updateServiceHealth(
           "R2_STORAGE",
           ServiceStatus.DOWN,
           responseTime,
-          "R2 not configured - check CLOUDFLARE_R2_* environment variables",
+          code,
         );
 
         return indicator.down({
-          message:
-            "R2 not configured - check CLOUDFLARE_R2_* environment variables",
+          code,
           configured: false,
           responseTimeMs: responseTime,
         });
       }
 
-      // Try to get a presigned URL for a test key (lightweight check)
-      await this.storageService.getPresignedUrl("health-check-test", 1);
+      // Verify the active credentials and bucket with a real R2 request.
+      await this.storageService.checkConnection();
 
       const responseTime = Date.now() - startTime;
 
@@ -63,7 +64,8 @@ export class R2StorageHealthIndicator {
 
       if (status === ServiceStatus.DEGRADED) {
         return indicator.down({
-          message: `R2 response time slow (${responseTime}ms)`,
+          code: "R2_CONNECTION_SLOW",
+          details: { responseTimeMs: responseTime },
           configured: true,
           responseTimeMs: responseTime,
         });
@@ -75,26 +77,28 @@ export class R2StorageHealthIndicator {
       });
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const code =
+        error instanceof Error && error.message.startsWith("R2_CONFIGURATION_")
+          ? error.message
+          : classifyR2ConnectionError(error);
 
       await this.healthPersistence.updateServiceHealth(
         "R2_STORAGE",
         ServiceStatus.DOWN,
         responseTime,
-        errorMessage,
+        code,
       );
 
       await this.errorLogger.logError({
         level: ErrorLevel.ERROR,
         category: ErrorCategory.STORAGE,
-        message: `R2 Storage health check failed: ${errorMessage}`,
+        message: code,
         error: error instanceof Error ? error : undefined,
         service: "R2StorageHealthIndicator",
       });
 
       return indicator.down({
-        message: errorMessage,
+        code,
         configured: true,
         responseTimeMs: responseTime,
       });
