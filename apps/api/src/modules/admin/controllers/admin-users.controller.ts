@@ -24,12 +24,12 @@ import {
   BulkUserActionDto,
   ImpersonateDto,
   AssignPermissionsDto,
-  ChangeRoleDto,
   CreateAdminUserDto,
   UpdateUserDto,
   QueryUserActivityDto,
   SuspendUserDto,
   ReactivateUserDto,
+  ChangeUserStatusDto,
 } from "../dto/admin-users.dto";
 
 @Controller("admin/users")
@@ -75,19 +75,13 @@ export class AdminUsersController {
 
   @Get(":id/permissions")
   @RequirePermissions("admin.users.read")
-  getPermissions(
-    @Param("id") id: string,
-    @CurrentUser("id") adminId: string,
-  ) {
+  getPermissions(@Param("id") id: string, @CurrentUser("id") adminId: string) {
     return this.adminUsersService.getPermissions(id, adminId);
   }
 
   @Get(":id/activity")
   @RequirePermissions("admin.users.read")
-  getActivity(
-    @Param("id") id: string,
-    @Query() query: QueryUserActivityDto,
-  ) {
+  getActivity(@Param("id") id: string, @Query() query: QueryUserActivityDto) {
     return this.adminUsersService.getActivity(id, query.page, query.limit);
   }
 
@@ -99,8 +93,11 @@ export class AdminUsersController {
 
   @Post("bulk")
   @RequirePermissions("admin.users.manage")
-  bulkAction(@Body() dto: BulkUserActionDto) {
-    return this.adminUsersService.bulkAction(dto);
+  bulkAction(
+    @Body() dto: BulkUserActionDto,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.adminUsersService.bulkAction(dto, adminId);
   }
 
   @Post(":id/reset-password")
@@ -147,11 +144,28 @@ export class AdminUsersController {
 
   @Post(":id/revoke-sessions")
   @RequirePermissions("admin.users.manage")
-  revokeSessions(
+  revokeSessions(@Param("id") id: string, @CurrentUser("id") adminId: string) {
+    return this.adminUsersService.revokeSessions(id, adminId);
+  }
+
+  @Post(":id/activate")
+  @RequirePermissions("admin.users.manage")
+  activate(
     @Param("id") id: string,
+    @Body() dto: ChangeUserStatusDto,
     @CurrentUser("id") adminId: string,
   ) {
-    return this.adminUsersService.revokeSessions(id, adminId);
+    return this.adminUsersService.activate(id, dto.reason, adminId);
+  }
+
+  @Post(":id/deactivate")
+  @RequirePermissions("admin.users.manage")
+  deactivate(
+    @Param("id") id: string,
+    @Body() dto: ChangeUserStatusDto,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.adminUsersService.deactivate(id, dto.reason, adminId);
   }
 
   @Post(":id/suspend")
@@ -161,7 +175,12 @@ export class AdminUsersController {
     @Body() dto: SuspendUserDto,
     @CurrentUser("id") adminId: string,
   ) {
-    return this.adminUsersService.suspend(id, dto.reason, adminId, dto.suspendedUntil);
+    return this.adminUsersService.suspend(
+      id,
+      dto.reason,
+      adminId,
+      dto.suspendedUntil,
+    );
   }
 
   @Post(":id/reactivate")

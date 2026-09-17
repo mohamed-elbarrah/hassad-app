@@ -58,6 +58,9 @@ export class AuthService {
         departments: {
           include: { department: true },
         },
+        clientProfile: {
+          select: { status: true, suspendedUntil: true },
+        },
       },
     });
 
@@ -88,6 +91,25 @@ export class AuthService {
       await this.prisma.user.update({
         where: { id: user.id },
         data: {
+          suspendedAt: null,
+          suspendedUntil: null,
+          suspendReason: null,
+          suspendedById: null,
+        },
+      });
+    }
+
+    if (user.clientProfile?.status === ClientStatus.SUSPENDED) {
+      if (
+        !user.clientProfile.suspendedUntil ||
+        user.clientProfile.suspendedUntil > new Date()
+      ) {
+        throw new UnauthorizedException({ code: "ACCOUNT_SUSPENDED" });
+      }
+      await this.prisma.client.updateMany({
+        where: { userId: user.id, status: ClientStatus.SUSPENDED },
+        data: {
+          status: ClientStatus.ACTIVE,
           suspendedAt: null,
           suspendedUntil: null,
           suspendReason: null,

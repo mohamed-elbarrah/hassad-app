@@ -15,6 +15,7 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import {
   SuspendClientDto,
   ReactivateClientDto,
+  ChangeClientStatusDto,
   AssignManagerDto,
   QueryClientUsersDto,
   QueryAdminClientsDto,
@@ -73,6 +74,26 @@ export class AdminClientsController {
     @Query() query: QueryAdminClientHistoryDto,
   ) {
     return this.service.getHistory(id, query.page, query.limit);
+  }
+
+  @Post(":id/activate")
+  @RequirePermissions("admin.clients.intervene")
+  activate(
+    @Param("id") id: string,
+    @Body() dto: ChangeClientStatusDto,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.service.activate(id, dto.reason, adminId);
+  }
+
+  @Post(":id/deactivate")
+  @RequirePermissions("admin.clients.intervene")
+  deactivate(
+    @Param("id") id: string,
+    @Body() dto: ChangeClientStatusDto,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.service.deactivate(id, dto.reason, adminId);
   }
 
   @Post(":id/suspend")

@@ -8,7 +8,6 @@ import {
   IsArray,
   ArrayUnique,
   IsEnum,
-  IsBoolean,
   IsEmail,
   IsIn,
   IsDateString,
@@ -71,7 +70,13 @@ export class BulkUserActionDto {
   @IsUUID("4", { each: true })
   userIds: string[];
 
-  @IsIn(["activate", "deactivate", "changeRole", "reassignDepartment", "export"])
+  @IsIn([
+    "activate",
+    "deactivate",
+    "changeRole",
+    "reassignDepartment",
+    "export",
+  ])
   action:
     | "activate"
     | "deactivate"
@@ -101,6 +106,12 @@ export class SuspendUserDto {
 }
 
 export class ReactivateUserDto {
+  @IsString()
+  @MinLength(1)
+  reason: string;
+}
+
+export class ChangeUserStatusDto {
   @IsString()
   @MinLength(1)
   reason: string;
@@ -175,6 +186,9 @@ export class UserDetailResponse {
   email: string;
   role: string;
   isActive: boolean;
+  suspendedAt: string | null;
+  suspendedUntil: string | null;
+  suspendReason: string | null;
   department: string | null;
   phoneWhatsapp: string | null;
   avatarUrl: string | null;
@@ -185,6 +199,7 @@ export class UserDetailResponse {
   activeRequestsCount: number;
   activeTasksCount: number;
   activeProjectsCount: number;
+  activeSessionsCount?: number;
   createdAt: string;
   updatedAt: string;
 }

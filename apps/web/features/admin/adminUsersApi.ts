@@ -8,6 +8,9 @@ export interface AdminUserItem {
   email: string;
   role: UserRole;
   isActive: boolean;
+  suspendedAt?: string | null;
+  suspendedUntil?: string | null;
+  suspendReason?: string | null;
   department?: TaskDepartment | null;
   lastLoginAt?: string | null;
   createdAt: string;
@@ -82,9 +85,24 @@ export interface PaginatedAdminUserActivity {
 }
 
 export interface AdminUserWork {
-  projects: Array<{ id: string; name: string; status: string; clientName: string }>;
-  tasks: Array<{ id: string; title: string; status: string; projectName: string }>;
-  disputes: Array<{ id: string; title: string; status: string; priority: string }>;
+  projects: Array<{
+    id: string;
+    name: string;
+    status: string;
+    clientName: string;
+  }>;
+  tasks: Array<{
+    id: string;
+    title: string;
+    status: string;
+    projectName: string;
+  }>;
+  disputes: Array<{
+    id: string;
+    title: string;
+    status: string;
+    priority: string;
+  }>;
   campaigns: Array<{
     id: string;
     name: string;
@@ -222,6 +240,18 @@ export interface ReactivateAdminUserPayload {
   reason: string;
 }
 
+export interface ChangeAdminUserStatusPayload {
+  id: string;
+  reason: string;
+}
+
+export interface AdminUserLifecycleResult {
+  code: string;
+  userId: string;
+  isActive?: boolean;
+  status?: string;
+}
+
 export const adminUsersApi = createApi({
   reducerPath: "adminUsersApi",
   baseQuery,
@@ -266,8 +296,12 @@ export const adminUsersApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
     }),
 
-    getAdminUserActivity: builder.query<PaginatedAdminUserActivity, { id: string; page?: number; limit?: number }>({
-      query: ({ id, page = 1, limit = 20 }) => `/admin/users/${id}/activity?page=${page}&limit=${limit}`,
+    getAdminUserActivity: builder.query<
+      PaginatedAdminUserActivity,
+      { id: string; page?: number; limit?: number }
+    >({
+      query: ({ id, page = 1, limit = 20 }) =>
+        `/admin/users/${id}/activity?page=${page}&limit=${limit}`,
       providesTags: (_result, _error, params) => [
         { type: "AdminUserActivity", id: params.id },
       ],
@@ -317,7 +351,40 @@ export const adminUsersApi = createApi({
       invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
     }),
 
-    suspendAdminUser: builder.mutation<void, SuspendAdminUserPayload>({
+    activateAdminUser: builder.mutation<
+      AdminUserLifecycleResult,
+      ChangeAdminUserStatusPayload
+    >({
+      query: ({ id, reason }) => ({
+        url: `/admin/users/${id}/activate`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminUser", id },
+        "AdminUsers",
+      ],
+    }),
+
+    deactivateAdminUser: builder.mutation<
+      AdminUserLifecycleResult,
+      ChangeAdminUserStatusPayload
+    >({
+      query: ({ id, reason }) => ({
+        url: `/admin/users/${id}/deactivate`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminUser", id },
+        "AdminUsers",
+      ],
+    }),
+
+    suspendAdminUser: builder.mutation<
+      AdminUserLifecycleResult,
+      SuspendAdminUserPayload
+    >({
       query: ({ id, reason, suspendedUntil }) => ({
         url: `/admin/users/${id}/suspend`,
         method: "POST",
@@ -329,7 +396,10 @@ export const adminUsersApi = createApi({
       ],
     }),
 
-    reactivateAdminUser: builder.mutation<void, ReactivateAdminUserPayload>({
+    reactivateAdminUser: builder.mutation<
+      AdminUserLifecycleResult,
+      ReactivateAdminUserPayload
+    >({
       query: ({ id, reason }) => ({
         url: `/admin/users/${id}/reactivate`,
         method: "POST",
@@ -352,16 +422,18 @@ export const adminUsersApi = createApi({
       }),
     }),
 
-    revokeAdminUserSessions: builder.mutation<{ revokedCount: number }, string>({
-      query: (id) => ({
-        url: `/admin/users/${id}/revoke-sessions`,
-        method: "POST",
-      }),
-      invalidatesTags: (_result, _error, id) => [
-        { type: "AdminUser", id },
-        "AdminSessions",
-      ],
-    }),
+    revokeAdminUserSessions: builder.mutation<{ revokedCount: number }, string>(
+      {
+        query: (id) => ({
+          url: `/admin/users/${id}/revoke-sessions`,
+          method: "POST",
+        }),
+        invalidatesTags: (_result, _error, id) => [
+          { type: "AdminUser", id },
+          "AdminSessions",
+        ],
+      },
+    ),
 
     updateAdminUserPermissions: builder.mutation<
       { permissionIds: string[] },
@@ -445,6 +517,8 @@ export const {
   useCreateAdminUserMutation,
   useUpdateAdminUserMutation,
   useResetAdminUserPasswordMutation,
+  useActivateAdminUserMutation,
+  useDeactivateAdminUserMutation,
   useSuspendAdminUserMutation,
   useReactivateAdminUserMutation,
   useImpersonateAdminUserMutation,

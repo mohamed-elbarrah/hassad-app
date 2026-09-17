@@ -8,6 +8,18 @@ export interface AdminCreateClientInput {
   accountManager?: string;
 }
 
+export interface AdminClientStatusPayload {
+  id: string;
+  reason: string;
+}
+
+export interface AdminClientLifecycleResult {
+  code: string;
+  clientId: string;
+  isActive?: boolean;
+  status?: string;
+}
+
 export interface AdminCreateClientResult {
   id: string;
   code: string;
@@ -24,6 +36,9 @@ export interface AdminClientItem {
   name: string;
   email: string | null;
   isActive: boolean;
+  suspendedAt?: string | null;
+  suspendedUntil?: string | null;
+  suspendReason?: string | null;
   lastActiveAt: string | null;
   status: string;
   kind: string;
@@ -73,6 +88,9 @@ export interface AdminClientDetail {
   businessName: string | null;
   businessType: string;
   status: string;
+  suspendedAt?: string | null;
+  suspendedUntil?: string | null;
+  suspendReason?: string | null;
   contactName: string | null;
   email: string | null;
   phone: string | null;
@@ -243,24 +261,64 @@ export const adminClientsApi = createApi({
       invalidatesTags: ["AdminClients", "AdminClientStats", "AdminClientUsers"],
     }),
 
-    suspendAdminClient: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/admin/clients/${id}/suspend`,
+    activateAdminClient: builder.mutation<
+      AdminClientLifecycleResult,
+      AdminClientStatusPayload
+    >({
+      query: ({ id, reason }) => ({
+        url: `/admin/clients/${id}/activate`,
         method: "POST",
+        body: { reason },
       }),
-      invalidatesTags: (_result, _error, id) => [
+      invalidatesTags: (_result, _error, { id }) => [
         { type: "AdminClient", id },
         "AdminClients",
         "AdminClientStats",
       ],
     }),
 
-    reactivateAdminClient: builder.mutation<void, string>({
-      query: (id) => ({
+    deactivateAdminClient: builder.mutation<
+      AdminClientLifecycleResult,
+      AdminClientStatusPayload
+    >({
+      query: ({ id, reason }) => ({
+        url: `/admin/clients/${id}/deactivate`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminClient", id },
+        "AdminClients",
+        "AdminClientStats",
+      ],
+    }),
+
+    suspendAdminClient: builder.mutation<
+      AdminClientLifecycleResult,
+      AdminClientStatusPayload & { suspendedUntil?: string }
+    >({
+      query: ({ id, reason, suspendedUntil }) => ({
+        url: `/admin/clients/${id}/suspend`,
+        method: "POST",
+        body: { reason, suspendedUntil },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminClient", id },
+        "AdminClients",
+        "AdminClientStats",
+      ],
+    }),
+
+    reactivateAdminClient: builder.mutation<
+      AdminClientLifecycleResult,
+      AdminClientStatusPayload
+    >({
+      query: ({ id, reason }) => ({
         url: `/admin/clients/${id}/reactivate`,
         method: "POST",
+        body: { reason },
       }),
-      invalidatesTags: (_result, _error, id) => [
+      invalidatesTags: (_result, _error, { id }) => [
         { type: "AdminClient", id },
         "AdminClients",
         "AdminClientStats",
@@ -358,6 +416,8 @@ export const {
   useGetAdminClientHistoryQuery,
   useGetAdminClientStatsQuery,
   useGetAdminClientUsersQuery,
+  useActivateAdminClientMutation,
+  useDeactivateAdminClientMutation,
   useSuspendAdminClientMutation,
   useReactivateAdminClientMutation,
   useAssignAdminClientManagerMutation,

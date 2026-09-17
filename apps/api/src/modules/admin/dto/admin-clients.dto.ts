@@ -50,6 +50,12 @@ export class ReactivateClientDto {
   reason: string;
 }
 
+export class ChangeClientStatusDto {
+  @IsString()
+  @MinLength(1)
+  reason: string;
+}
+
 export class AssignManagerDto {
   @IsUUID()
   accountManagerId: string;

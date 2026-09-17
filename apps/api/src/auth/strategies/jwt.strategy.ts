@@ -1,6 +1,7 @@
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PassportStrategy } from "@nestjs/passport";
 import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ClientStatus } from "@hassad/shared";
 import { ConfigService } from "@nestjs/config";
 import { Request } from "express";
 import { JwtPayload } from "../../common/decorators/current-user.decorator";
@@ -38,12 +39,38 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sid, userId: payload.id },
       include: {
         user: {
-          select: { isActive: true, suspendedAt: true, suspendedUntil: true },
+          select: {
+            isActive: true,
+            suspendedAt: true,
+            suspendedUntil: true,
+            clientProfile: { select: { status: true, suspendedUntil: true } },
+          },
         },
       },
     });
     if (!session || session.revokedAt || session.expiresAt <= new Date()) {
       throw new UnauthorizedException({ code: "SESSION_REVOKED", details: {} });
+    }
+    if (session.user.clientProfile?.status === ClientStatus.SUSPENDED) {
+      if (
+        !session.user.clientProfile.suspendedUntil ||
+        session.user.clientProfile.suspendedUntil > new Date()
+      ) {
+        throw new UnauthorizedException({
+          code: "ACCOUNT_SUSPENDED",
+          details: {},
+        });
+      }
+      await this.prisma.client.updateMany({
+        where: { userId: payload.id, status: ClientStatus.SUSPENDED },
+        data: {
+          status: ClientStatus.ACTIVE,
+          suspendedAt: null,
+          suspendedUntil: null,
+          suspendReason: null,
+          suspendedById: null,
+        },
+      });
     }
     if (!session.user.isActive) {
       throw new UnauthorizedException({
@@ -68,7 +95,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       permissions: payload.permissions,
       sid: payload.sid,
       ...(payload.impersonator && { impersonator: payload.impersonator }),
-      ...(payload.impersonatorName && { impersonatorName: payload.impersonatorName }),
+      ...(payload.impersonatorName && {
+        impersonatorName: payload.impersonatorName,
+      }),
       ...(payload.reason && { reason: payload.reason }),
       ...(payload.type && { type: payload.type }),
     };

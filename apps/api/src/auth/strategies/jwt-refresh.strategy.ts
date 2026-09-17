@@ -1,6 +1,7 @@
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PassportStrategy } from "@nestjs/passport";
 import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ClientStatus } from "@hassad/shared";
 import { ConfigService } from "@nestjs/config";
 import { Request } from "express";
 import * as bcrypt from "bcrypt";
@@ -49,7 +50,12 @@ export class JwtRefreshStrategy extends PassportStrategy(
       where: { id: payload.sid, userId: payload.id },
       include: {
         user: {
-          select: { isActive: true, suspendedAt: true, suspendedUntil: true },
+          select: {
+            isActive: true,
+            suspendedAt: true,
+            suspendedUntil: true,
+            clientProfile: { select: { status: true, suspendedUntil: true } },
+          },
         },
       },
     });
@@ -60,6 +66,27 @@ export class JwtRefreshStrategy extends PassportStrategy(
       throw new UnauthorizedException({
         code: "INVALID_REFRESH_TOKEN",
         details: {},
+      });
+    }
+    if (session.user.clientProfile?.status === ClientStatus.SUSPENDED) {
+      if (
+        !session.user.clientProfile.suspendedUntil ||
+        session.user.clientProfile.suspendedUntil > new Date()
+      ) {
+        throw new UnauthorizedException({
+          code: "ACCOUNT_SUSPENDED",
+          details: {},
+        });
+      }
+      await this.prisma.client.updateMany({
+        where: { userId: payload.id, status: ClientStatus.SUSPENDED },
+        data: {
+          status: ClientStatus.ACTIVE,
+          suspendedAt: null,
+          suspendedUntil: null,
+          suspendReason: null,
+          suspendedById: null,
+        },
       });
     }
     if (!session.user.isActive) {

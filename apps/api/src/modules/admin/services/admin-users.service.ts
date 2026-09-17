@@ -42,12 +42,17 @@ export class AdminUsersService {
       ];
     }
     if (query.roles) {
-      const roleNames = query.roles.split(",").map((r) => r.trim()).filter(Boolean);
+      const roleNames = query.roles
+        .split(",")
+        .map((r) => r.trim())
+        .filter(Boolean);
       const roles = await this.prisma.role.findMany({
         where: { name: { in: roleNames } },
       });
       const excludedRole = query.excludeRole
-        ? await this.prisma.role.findFirst({ where: { name: query.excludeRole } })
+        ? await this.prisma.role.findFirst({
+            where: { name: query.excludeRole },
+          })
         : null;
       const roleIds = roles
         .map((role) => role.id)
@@ -143,8 +148,25 @@ export class AdminUsersService {
     const profile = await this.findOne(userId);
     const role = profile.role;
 
-    const [requests, proposals, contracts, projects, tasks, campaigns, invoices, securityEvents, disputes, activeSessions, workload] = await Promise.all([
-      this.prisma.request.count({ where: { assignedSalesId: userId, status: { in: ["SUBMITTED", "QUALIFYING"] } } }),
+    const [
+      requests,
+      proposals,
+      contracts,
+      projects,
+      tasks,
+      campaigns,
+      invoices,
+      securityEvents,
+      disputes,
+      activeSessions,
+      workload,
+    ] = await Promise.all([
+      this.prisma.request.count({
+        where: {
+          assignedSalesId: userId,
+          status: { in: ["SUBMITTED", "QUALIFYING"] },
+        },
+      }),
       this.prisma.proposal.count({ where: { createdBy: userId } }),
       this.prisma.contract.count({ where: { createdBy: userId } }),
       this.prisma.project.count({ where: { projectManagerId: userId } }),
@@ -152,19 +174,41 @@ export class AdminUsersService {
       this.prisma.campaign.count({ where: { createdBy: userId } }),
       this.prisma.invoice.count({ where: { createdBy: userId } }),
       this.prisma.securityEvent.count({ where: { userId } }),
-      this.prisma.disputeTicket.count({ where: { pmId: userId, status: { not: "CLOSED" } } }),
-      this.prisma.session.count({ where: { userId, revokedAt: null, expiresAt: { gte: new Date() } } }),
-      this.prisma.staffWorkload.findUnique({ where: { userId }, select: { avgQualityScore: true } }),
+      this.prisma.disputeTicket.count({
+        where: { pmId: userId, status: { not: "CLOSED" } },
+      }),
+      this.prisma.session.count({
+        where: { userId, revokedAt: null, expiresAt: { gte: new Date() } },
+      }),
+      this.prisma.staffWorkload.findUnique({
+        where: { userId },
+        select: { avgQualityScore: true },
+      }),
     ]);
 
     const activeTasks = await this.prisma.task.count({
-      where: { assignedTo: userId, status: { in: ["TODO", "IN_PROGRESS", "IN_REVIEW"] } },
+      where: {
+        assignedTo: userId,
+        status: { in: ["TODO", "IN_PROGRESS", "IN_REVIEW"] },
+      },
     });
-    const completedTasks = await this.prisma.task.count({ where: { assignedTo: userId, status: "DONE" } });
-    const activeCampaigns = await this.prisma.campaign.count({ where: { createdBy: userId, status: "ACTIVE", isArchived: false } });
-    const activeProjects = await this.prisma.project.count({ where: { projectManagerId: userId, status: { in: ["ACTIVE", "PLANNING"] } } });
+    const completedTasks = await this.prisma.task.count({
+      where: { assignedTo: userId, status: "DONE" },
+    });
+    const activeCampaigns = await this.prisma.campaign.count({
+      where: { createdBy: userId, status: "ACTIVE", isArchived: false },
+    });
+    const activeProjects = await this.prisma.project.count({
+      where: {
+        projectManagerId: userId,
+        status: { in: ["ACTIVE", "PLANNING"] },
+      },
+    });
 
-    const roleMetrics: Record<string, Array<{ key: string; value: number; format: "number" }>> = {
+    const roleMetrics: Record<
+      string,
+      Array<{ key: string; value: number; format: "number" }>
+    > = {
       SALES: [
         { key: "ACTIVE_REQUESTS", value: requests, format: "number" },
         { key: "PROPOSALS_CREATED", value: proposals, format: "number" },
@@ -181,7 +225,11 @@ export class AdminUsersService {
         { key: "ASSIGNED_TASKS", value: tasks, format: "number" },
         { key: "ACTIVE_TASKS", value: activeTasks, format: "number" },
         { key: "COMPLETED_TASKS", value: completedTasks, format: "number" },
-        { key: "QUALITY_SCORE", value: workload?.avgQualityScore ?? 0, format: "number" },
+        {
+          key: "QUALITY_SCORE",
+          value: workload?.avgQualityScore ?? 0,
+          format: "number",
+        },
       ],
       MARKETING: [
         { key: "CAMPAIGNS_CREATED", value: campaigns, format: "number" },
@@ -196,7 +244,11 @@ export class AdminUsersService {
         { key: "SECURITY_EVENTS", value: securityEvents, format: "number" },
       ],
       ADMIN: [
-        { key: "MANAGED_USERS", value: await this.prisma.user.count(), format: "number" },
+        {
+          key: "MANAGED_USERS",
+          value: await this.prisma.user.count(),
+          format: "number",
+        },
         { key: "ACTIVE_TASKS", value: activeTasks, format: "number" },
         { key: "SECURITY_EVENTS", value: securityEvents, format: "number" },
         { key: "ACTIVE_SESSIONS", value: activeSessions, format: "number" },
@@ -223,7 +275,9 @@ export class AdminUsersService {
       this.prisma.user.findUnique({
         where: { id: adminId },
         include: {
-          role: { include: { permissions: { select: { permissionId: true } } } },
+          role: {
+            include: { permissions: { select: { permissionId: true } } },
+          },
           permissions: { select: { permissionId: true } },
         },
       }),
@@ -233,8 +287,10 @@ export class AdminUsersService {
       }),
     ]);
 
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
-    if (!actor) throw new ForbiddenException({ code: "PERMISSION_DENIED", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!actor)
+      throw new ForbiddenException({ code: "PERMISSION_DENIED", details: {} });
 
     if (!actor.role) {
       throw new ForbiddenException({ code: "PERMISSION_DENIED", details: {} });
@@ -250,14 +306,17 @@ export class AdminUsersService {
 
     return {
       permissions,
-      assignedPermissionIds: user.permissions.map(({ permissionId }) => permissionId),
+      assignedPermissionIds: user.permissions.map(
+        ({ permissionId }) => permissionId,
+      ),
       canAssignPermissionIds: [...new Set(canAssignPermissionIds)],
     };
   }
 
   async getActivity(userId: string, page = 1, limit = 20) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const skip = (page - 1) * limit;
 
@@ -292,7 +351,8 @@ export class AdminUsersService {
 
   async getPerformance(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const [workload, tasksCompleted] = await Promise.all([
       this.prisma.staffWorkload.findUnique({ where: { userId } }),
@@ -310,7 +370,8 @@ export class AdminUsersService {
 
   async getWork(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const [projects, tasks, disputes, campaigns] = await Promise.all([
       this.prisma.project.findMany({
@@ -393,14 +454,20 @@ export class AdminUsersService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new BadRequestException({ code: "EMAIL_ALREADY_IN_USE", details: {} });
+      throw new BadRequestException({
+        code: "EMAIL_ALREADY_IN_USE",
+        details: {},
+      });
     }
 
     const role = await this.prisma.role.findFirst({
       where: { name: dto.role },
     });
     if (!role) {
-      throw new BadRequestException({ code: "ROLE_NOT_FOUND", details: { role: dto.role } });
+      throw new BadRequestException({
+        code: "ROLE_NOT_FOUND",
+        details: { role: dto.role },
+      });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -441,14 +508,18 @@ export class AdminUsersService {
 
   async update(id: string, dto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.prisma.user.findUnique({
         where: { email: dto.email },
       });
       if (existing)
-        throw new BadRequestException({ code: "EMAIL_ALREADY_IN_USE", details: {} });
+        throw new BadRequestException({
+          code: "EMAIL_ALREADY_IN_USE",
+          details: {},
+        });
     }
 
     const data: any = {};
@@ -460,7 +531,10 @@ export class AdminUsersService {
         where: { name: dto.role },
       });
       if (!role) {
-        throw new BadRequestException({ code: "ROLE_NOT_FOUND", details: { role: dto.role } });
+        throw new BadRequestException({
+          code: "ROLE_NOT_FOUND",
+          details: { role: dto.role },
+        });
       }
       data.roleId = role.id;
     }
@@ -518,7 +592,7 @@ export class AdminUsersService {
 
   // ── Mutations ───────────────────────────────────────────────────────────────
 
-  async bulkAction(dto: BulkUserActionDto) {
+  async bulkAction(dto: BulkUserActionDto, adminId: string) {
     const results = await this.prisma.$transaction(async (tx) => {
       const failed: string[] = [];
       let affected = 0;
@@ -540,17 +614,30 @@ export class AdminUsersService {
               break;
 
             case "deactivate":
-              if (user.roleId === (await this.getAdminRoleId(tx))) {
+              if (userId === adminId) {
                 failed.push(userId);
                 continue;
+              }
+              if (user.roleId === (await this.getAdminRoleId(tx))) {
+                const activeAdmins = await tx.user.count({
+                  where: { roleId: user.roleId, isActive: true },
+                });
+                if (activeAdmins <= 1) {
+                failed.push(userId);
+                continue;
+              }
               }
               await tx.user.update({
                 where: { id: userId },
                 data: { isActive: false },
               });
+              await tx.session.updateMany({
+                where: { userId, revokedAt: null },
+                data: { revokedAt: new Date() },
+              });
               break;
 
-            case "changeRole":
+            case "changeRole": {
               if (!dto.value) {
                 failed.push(userId);
                 continue;
@@ -574,8 +661,9 @@ export class AdminUsersService {
                 },
               });
               break;
+            }
 
-            case "reassignDepartment":
+            case "reassignDepartment": {
               if (!dto.value) {
                 failed.push(userId);
                 continue;
@@ -594,6 +682,7 @@ export class AdminUsersService {
                 });
               }
               break;
+            }
 
             case "export":
               // Export is handled client-side; just validate users exist
@@ -607,6 +696,7 @@ export class AdminUsersService {
               action: `admin.users.${dto.action}`,
               entity: "user",
               entityId: userId,
+              userId: adminId,
               after: { action: dto.action, value: dto.value },
             },
           });
@@ -625,7 +715,8 @@ export class AdminUsersService {
 
   async resetPassword(userId: string): Promise<{ temporaryPassword: string }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     // Generate a secure random password
     const temporaryPassword = this.generatePassword();
@@ -697,12 +788,18 @@ export class AdminUsersService {
 
     // Cannot impersonate another admin
     if (target.role.name === "ADMIN") {
-      throw new ForbiddenException({ code: "ADMIN_IMPERSONATION_NOT_ALLOWED", details: {} });
+      throw new ForbiddenException({
+        code: "ADMIN_IMPERSONATION_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     // Cannot impersonate self
     if (adminId === targetUserId) {
-      throw new BadRequestException({ code: "SELF_IMPERSONATION_NOT_ALLOWED", details: {} });
+      throw new BadRequestException({
+        code: "SELF_IMPERSONATION_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     // Impersonation is a normal sid-backed session, so it can be revoked and
@@ -710,7 +807,8 @@ export class AdminUsersService {
     const expiresAt = new Date(
       Date.now() + IMPERSONATION_EXPIRY_MINUTES * 60 * 1000,
     );
-    const { accessToken, refreshToken } = await this.authService.createSessionTokens(
+    const { accessToken, refreshToken } =
+      await this.authService.createSessionTokens(
       {
         id: targetUserId,
         name: target.name,
@@ -756,9 +854,13 @@ export class AdminUsersService {
     return { accessToken, refreshToken, expiresAt };
   }
 
-  async revokeSessions(userId: string, adminId: string): Promise<{ revokedCount: number }> {
+  async revokeSessions(
+    userId: string,
+    adminId: string,
+  ): Promise<{ revokedCount: number }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
 
     const result = await this.prisma.session.updateMany({
       where: {
@@ -813,13 +915,17 @@ export class AdminUsersService {
       this.prisma.user.findUnique({
         where: { id: adminId },
         include: {
-          role: { include: { permissions: { select: { permissionId: true } } } },
+          role: {
+            include: { permissions: { select: { permissionId: true } } },
+          },
           permissions: { select: { permissionId: true } },
         },
       }),
     ]);
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
-    if (!actor || !actor.role) throw new ForbiddenException({ code: "PERMISSION_DENIED", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!actor || !actor.role)
+      throw new ForbiddenException({ code: "PERMISSION_DENIED", details: {} });
 
     const validPermissionIds = new Set(
       (
@@ -829,7 +935,11 @@ export class AdminUsersService {
         })
       ).map(({ id }) => id),
     );
-    if (dto.permissionIds.some((permissionId) => !validPermissionIds.has(permissionId))) {
+    if (
+      dto.permissionIds.some(
+        (permissionId) => !validPermissionIds.has(permissionId),
+      )
+    ) {
       throw new BadRequestException({
         code: "INVALID_PERMISSION_ID",
         details: {},
@@ -838,9 +948,9 @@ export class AdminUsersService {
 
     const actorPermissionIds = new Set(
       actor.role.name === "ADMIN"
-        ? (
-            await this.prisma.permission.findMany({ select: { id: true } })
-          ).map(({ id }) => id)
+        ? (await this.prisma.permission.findMany({ select: { id: true } })).map(
+            ({ id }) => id,
+          )
         : [
             ...actor.role.permissions.map(({ permissionId }) => permissionId),
             ...actor.permissions.map(({ permissionId }) => permissionId),
@@ -904,6 +1014,91 @@ export class AdminUsersService {
     return { permissionIds: dto.permissionIds };
   }
 
+  async activate(userId: string, reason: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (user.isActive) {
+      throw new BadRequestException({
+        code: "USER_ALREADY_ACTIVE",
+        details: { userId },
+      });
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { isActive: true },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.users.activate",
+          entity: "user",
+          entityId: userId,
+          userId: adminId,
+          before: { isActive: false },
+          after: { isActive: true, reason },
+        },
+      }),
+    ]);
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "user",
+      targetId: userId,
+      actionType: "admin.users.activate",
+      reason,
+      beforeState: { isActive: false },
+      afterState: { isActive: true },
+    });
+
+    return { code: "USER_ACTIVATED", userId, isActive: true };
+  }
+
+  async deactivate(userId: string, reason: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    await this.assertCanRestrictUser(userId, adminId, user.roleId);
+    if (!user.isActive) {
+      throw new BadRequestException({
+        code: "USER_ALREADY_INACTIVE",
+        details: { userId },
+      });
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { isActive: false },
+      }),
+      this.prisma.session.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.users.deactivate",
+          entity: "user",
+          entityId: userId,
+          userId: adminId,
+          before: { isActive: true },
+          after: { isActive: false, reason },
+        },
+      }),
+    ]);
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "user",
+      targetId: userId,
+      actionType: "admin.users.deactivate",
+      reason,
+      beforeState: { isActive: true },
+      afterState: { isActive: false },
+    });
+
+    return { code: "USER_DEACTIVATED", userId, isActive: false };
+  }
+
   async suspend(
     userId: string,
     reason: string,
@@ -911,12 +1106,18 @@ export class AdminUsersService {
     suspendedUntil?: string,
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
     if (
       user.suspendedAt &&
       (!user.suspendedUntil || user.suspendedUntil > new Date())
     )
-      throw new BadRequestException({ code: "USER_ALREADY_SUSPENDED", details: {} });
+      throw new BadRequestException({
+        code: "USER_ALREADY_SUSPENDED",
+        details: {},
+      });
+
+    await this.assertCanRestrictUser(userId, adminId, user.roleId);
 
     const before = { isActive: user.isActive, suspendedAt: user.suspendedAt };
     const after = { reason, suspendedUntil: suspendedUntil ?? null };
@@ -937,6 +1138,10 @@ export class AdminUsersService {
           type: "ACCOUNT_LOCKED",
           metadata: { reason, triggeredBy: adminId },
         },
+      }),
+      this.prisma.session.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
       }),
       this.prisma.ledger.create({
         data: {
@@ -960,13 +1165,18 @@ export class AdminUsersService {
       afterState: after,
     });
 
-    return { userId, status: "SUSPENDED" };
+    return { code: "USER_SUSPENDED", userId, status: "SUSPENDED" };
   }
 
   async reactivate(userId: string, reason: string, adminId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
-    if (!user.suspendedAt) throw new BadRequestException({ code: "USER_NOT_SUSPENDED", details: {} });
+    if (!user)
+      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    if (!user.suspendedAt)
+      throw new BadRequestException({
+        code: "USER_NOT_SUSPENDED",
+        details: {},
+      });
 
     const before = {
       suspendedAt: user.suspendedAt,
@@ -1013,7 +1223,36 @@ export class AdminUsersService {
       afterState: after,
     });
 
-    return { userId, status: "ACTIVE" };
+    return { code: "USER_REACTIVATED", userId, status: "ACTIVE" };
+  }
+
+  private async assertCanRestrictUser(
+    userId: string,
+    adminId: string,
+    roleId: string,
+  ) {
+    if (userId === adminId) {
+      throw new ForbiddenException({
+        code: "SELF_ACCOUNT_ACTION_FORBIDDEN",
+        details: {},
+      });
+    }
+
+    const adminRole = await this.prisma.role.findFirst({
+      where: { name: UserRole.ADMIN },
+      select: { id: true },
+    });
+    if (adminRole?.id !== roleId) return;
+
+    const activeAdmins = await this.prisma.user.count({
+      where: { roleId: adminRole.id, isActive: true },
+    });
+    if (activeAdmins <= 1) {
+      throw new ForbiddenException({
+        code: "LAST_ADMIN_PROTECTED",
+        details: {},
+      });
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -1054,6 +1293,9 @@ export class AdminUsersService {
       email: user.email,
       role: roleName,
       isActive: user.isActive,
+      suspendedAt: user.suspendedAt?.toISOString() ?? null,
+      suspendedUntil: user.suspendedUntil?.toISOString() ?? null,
+      suspendReason: user.suspendReason ?? null,
       department: deptEntry?.department?.name ?? null,
       phoneWhatsapp: user.phoneWhatsapp ?? null,
       avatarUrl: user.avatarUrl ?? null,
@@ -1066,6 +1308,7 @@ export class AdminUsersService {
       activeProjectsCount: user.managedProjects?.length ?? 0,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
+      activeSessionsCount: activeSessions,
     };
   }
 }

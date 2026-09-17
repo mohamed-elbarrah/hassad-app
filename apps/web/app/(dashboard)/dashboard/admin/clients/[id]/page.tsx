@@ -3,8 +3,16 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Building2, MessageSquare } from "lucide-react";
-import { useGetAdminClientByIdQuery, useGetAdminClientHistoryQuery } from "@/features/admin/adminClientsApi";
+import {
+  useActivateAdminClientMutation,
+  useDeactivateAdminClientMutation,
+  useGetAdminClientByIdQuery,
+  useGetAdminClientHistoryQuery,
+  useReactivateAdminClientMutation,
+  useSuspendAdminClientMutation,
+} from "@/features/admin/adminClientsApi";
 import { adminErrorMessage, clientSourceLabel } from "@/lib/i18n";
+import { AccountLifecycleActions } from "@/components/dashboard/admin/shared/AccountLifecycleActions";
 import { useGetAdminProposalsQuery } from "@/features/admin/adminProposalsApi";
 import {
   buildDefaultClientStats,
@@ -37,10 +45,25 @@ export default function ClientDetailPage({
 }) {
   const { id } = use(params);
   const [historyPage, setHistoryPage] = useState(1);
-  const { data: client, isLoading, isError, error: clientError } = useGetAdminClientByIdQuery(id);
-  const { data: historyData, isLoading: historyLoading, isError: historyErrorState, error: historyError, refetch: refetchHistory } = useGetAdminClientHistoryQuery({ id, page: historyPage, limit: 20 });
+  const {
+    data: client,
+    isLoading,
+    isError,
+    error: clientError,
+  } = useGetAdminClientByIdQuery(id);
+  const {
+    data: historyData,
+    isLoading: historyLoading,
+    isError: historyErrorState,
+    error: historyError,
+    refetch: refetchHistory,
+  } = useGetAdminClientHistoryQuery({ id, page: historyPage, limit: 20 });
   const { data: proposalData, isLoading: proposalsLoading } =
     useGetAdminProposalsQuery({ clientId: id, limit: 50 });
+  const [activate] = useActivateAdminClientMutation();
+  const [deactivate] = useDeactivateAdminClientMutation();
+  const [suspend] = useSuspendAdminClientMutation();
+  const [reactivate] = useReactivateAdminClientMutation();
 
   if (isLoading) {
     return <ClientDetailLoading />;
@@ -77,6 +100,17 @@ export default function ClientDetailPage({
   }
 
   const proposals = proposalData?.items ?? [];
+  const runLifecycleAction = async (
+    action: "activate" | "deactivate" | "suspend" | "reactivate",
+    input: { reason: string; suspendedUntil?: string },
+  ) => {
+    if (action === "activate")
+      return activate({ id, reason: input.reason }).unwrap();
+    if (action === "deactivate")
+      return deactivate({ id, reason: input.reason }).unwrap();
+    if (action === "suspend") return suspend({ id, ...input }).unwrap();
+    return reactivate({ id, reason: input.reason }).unwrap();
+  };
   const badges = [
     client.intakeCompleted ? (
       <Badge key="intake" variant="secondary">
@@ -99,13 +133,25 @@ export default function ClientDetailPage({
         backHref="/dashboard/admin/clients"
         backLabel="العملاء"
         actions={
-          client.user?.id && client.isActive ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <AccountLifecycleActions
+              subject={client.companyName}
+              isActive={client.isActive}
+              isSuspended={client.status === "SUSPENDED"}
+              hasAccount={Boolean(client.user?.id)}
+              onAction={runLifecycleAction}
+            />
+            {client.user?.id && client.isActive ? (
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/dashboard/admin/chat?userId=${encodeURIComponent(client.user.id)}`}>
-                <MessageSquare data-icon="inline-start" />بدء محادثة
+                <Link
+                  href={`/dashboard/admin/chat?userId=${encodeURIComponent(client.user.id)}`}
+                >
+                  <MessageSquare data-icon="inline-start" />
+                  بدء محادثة
               </Link>
             </Button>
-          ) : null
+            ) : null}
+          </div>
         }
       />
 
@@ -181,7 +227,38 @@ export default function ClientDetailPage({
               value: "history",
               label: "سجل النشاط",
               count: historyData?.total ?? client.historyLogs.length,
-              content: historyErrorState ? <Empty><EmptyMedia variant="icon"><Building2 /></EmptyMedia><EmptyHeader><EmptyTitle>تعذر تحميل سجل النشاط</EmptyTitle><EmptyDescription>{adminErrorMessage(historyError)}</EmptyDescription></EmptyHeader><EmptyContent><Button variant="outline" onClick={() => refetchHistory()}>إعادة المحاولة</Button></EmptyContent></Empty> : <ClientHistoryTable history={historyData?.items ?? client.historyLogs} loading={historyLoading} pagination={historyData && historyData.totalPages > 1 ? { page: historyPage, totalPages: historyData.totalPages, onPageChange: setHistoryPage } : undefined} />,
+              content: historyErrorState ? (
+                <Empty>
+                  <EmptyMedia variant="icon">
+                    <Building2 />
+                  </EmptyMedia>
+                  <EmptyHeader>
+                    <EmptyTitle>تعذر تحميل سجل النشاط</EmptyTitle>
+                    <EmptyDescription>
+                      {adminErrorMessage(historyError)}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button variant="outline" onClick={() => refetchHistory()}>
+                      إعادة المحاولة
+                    </Button>
+                  </EmptyContent>
+                </Empty>
+              ) : (
+                <ClientHistoryTable
+                  history={historyData?.items ?? client.historyLogs}
+                  loading={historyLoading}
+                  pagination={
+                    historyData && historyData.totalPages > 1
+                      ? {
+                          page: historyPage,
+                          totalPages: historyData.totalPages,
+                          onPageChange: setHistoryPage,
+                        }
+                      : undefined
+                  }
+                />
+              ),
             },
           ]}
         />

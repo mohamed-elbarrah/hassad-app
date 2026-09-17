@@ -22,10 +22,7 @@ export class AdminClientsService {
     private readonly clientInvitationService: ClientInvitationService,
   ) {}
 
-  async createClientWithInvitation(
-    adminId: string,
-    dto: AdminCreateClientDto,
-  ) {
+  async createClientWithInvitation(adminId: string, dto: AdminCreateClientDto) {
     return this.prisma.$transaction(async (tx) => {
       const created = await this.clientsService.createAdminClient(
         adminId,
@@ -127,9 +124,14 @@ export class AdminClientsService {
 
   async getStats() {
     const clientWhere = {};
-    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const monthStart = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      1,
+    );
 
-    const [total, lead, active, inactive, newThisMonth, revenue] = await Promise.all([
+    const [total, lead, active, inactive, newThisMonth, revenue] =
+      await Promise.all([
       this.prisma.client.count({ where: clientWhere }),
       this.prisma.client.count({ where: { kind: "LEAD" } }),
       this.prisma.client.count({ where: { status: "ACTIVE" } }),
@@ -138,7 +140,14 @@ export class AdminClientsService {
       this.prisma.client.aggregate({ _sum: { totalPaid: true } }),
     ]);
 
-    return { total, lead, active, inactive, newThisMonth, totalRevenue: revenue._sum.totalPaid ?? 0 };
+    return {
+      total,
+      lead,
+      active,
+      inactive,
+      newThisMonth,
+      totalRevenue: revenue._sum.totalPaid ?? 0,
+    };
   }
 
   async findAll(filters: {
@@ -152,7 +161,8 @@ export class AdminClientsService {
     const clientWhere: any = {};
 
     if (filters.status === "active") clientWhere.status = "ACTIVE";
-    if (filters.status === "stopped" || filters.status === "inactive") clientWhere.status = "SUSPENDED";
+    if (filters.status === "stopped" || filters.status === "inactive")
+      clientWhere.status = "SUSPENDED";
     if (filters.status === "lead") clientWhere.kind = "LEAD";
 
     if (filters.search?.trim()) {
@@ -184,7 +194,9 @@ export class AdminClientsService {
               lastSeenAt: true,
             },
           },
-          _count: { select: { contracts: true, projects: true, invoices: true } },
+          _count: {
+            select: { contracts: true, projects: true, invoices: true },
+          },
         },
       }),
       this.prisma.client.count({ where: clientWhere }),
@@ -193,10 +205,15 @@ export class AdminClientsService {
     const clientIds = clientRecords.map((client) => client.id);
     const overdueGroups = await this.prisma.invoice.groupBy({
       by: ["clientId"],
-      where: { clientId: { in: clientIds }, status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] } },
+      where: {
+        clientId: { in: clientIds },
+        status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] },
+      },
       _count: { id: true },
     });
-    const overdueMap = new Map(overdueGroups.map((item) => [item.clientId, item._count.id]));
+    const overdueMap = new Map(
+      overdueGroups.map((item) => [item.clientId, item._count.id]),
+    );
 
     const items = clientRecords.map((client) => ({
       id: client.id,
@@ -204,8 +221,14 @@ export class AdminClientsService {
       name: client.user?.name ?? client.companyName ?? client.businessName,
       email: client.user?.email ?? null,
       isActive: client.user?.isActive ?? true,
-      lastActiveAt: client.user?.lastSeenAt?.toISOString() ?? client.user?.lastLoginAt?.toISOString() ?? null,
+      lastActiveAt:
+        client.user?.lastSeenAt?.toISOString() ??
+        client.user?.lastLoginAt?.toISOString() ??
+        null,
       status: client.status,
+      suspendedAt: client.suspendedAt?.toISOString() ?? null,
+      suspendedUntil: client.suspendedUntil?.toISOString() ?? null,
+      suspendReason: client.suspendReason ?? null,
       kind: client.kind,
       businessType: client.businessType,
       createdAt: client.createdAt.toISOString(),
@@ -442,7 +465,12 @@ export class AdminClientsService {
         where: { clientId, status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] } },
       }),
       this.prisma.contract.aggregate({
-        where: { clientId, status: { in: ["SIGNED", "ACTIVE", "ON_HOLD", "COMPLETED", "EXPIRED"] } },
+        where: {
+          clientId,
+          status: {
+            in: ["SIGNED", "ACTIVE", "ON_HOLD", "COMPLETED", "EXPIRED"],
+          },
+        },
         _sum: { totalValue: true },
       }),
     ]);
@@ -568,6 +596,130 @@ export class AdminClientsService {
     };
   }
 
+  async activate(clientId: string, reason: string, adminId: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, userId: true },
+    });
+    if (!client) {
+      throw new NotFoundException({ code: "CLIENT_NOT_FOUND", details: {} });
+    }
+    if (!client.userId) {
+      throw new BadRequestException({
+        code: "CLIENT_ACCOUNT_NOT_FOUND",
+        details: { clientId },
+      });
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: client.userId },
+      select: { isActive: true },
+    });
+    if (!user) {
+      throw new BadRequestException({
+        code: "CLIENT_ACCOUNT_NOT_FOUND",
+        details: { clientId },
+      });
+    }
+    if (user.isActive) {
+      throw new BadRequestException({
+        code: "CLIENT_ALREADY_ACTIVE",
+        details: { clientId },
+      });
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: client.userId },
+        data: { isActive: true },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.clients.activate",
+          entity: "client",
+          entityId: clientId,
+          userId: adminId,
+          before: { isActive: false },
+          after: { isActive: true, reason },
+        },
+      }),
+    ]);
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "client",
+      targetId: clientId,
+      actionType: "admin.clients.activate",
+      reason,
+      beforeState: { isActive: false },
+      afterState: { isActive: true },
+    });
+
+    return { code: "CLIENT_ACTIVATED", clientId, isActive: true };
+  }
+
+  async deactivate(clientId: string, reason: string, adminId: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, userId: true },
+    });
+    if (!client) {
+      throw new NotFoundException({ code: "CLIENT_NOT_FOUND", details: {} });
+    }
+    if (!client.userId) {
+      throw new BadRequestException({
+        code: "CLIENT_ACCOUNT_NOT_FOUND",
+        details: { clientId },
+      });
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: client.userId },
+      select: { isActive: true },
+    });
+    if (!user) {
+      throw new BadRequestException({
+        code: "CLIENT_ACCOUNT_NOT_FOUND",
+        details: { clientId },
+      });
+    }
+    if (!user.isActive) {
+      throw new BadRequestException({
+        code: "CLIENT_ALREADY_INACTIVE",
+        details: { clientId },
+      });
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: client.userId },
+        data: { isActive: false },
+      }),
+      this.prisma.session.updateMany({
+        where: { userId: client.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.clients.deactivate",
+          entity: "client",
+          entityId: clientId,
+          userId: adminId,
+          before: { isActive: true },
+          after: { isActive: false, reason },
+        },
+      }),
+    ]);
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "client",
+      targetId: clientId,
+      actionType: "admin.clients.deactivate",
+      reason,
+      beforeState: { isActive: true },
+      afterState: { isActive: false },
+    });
+
+    return { code: "CLIENT_DEACTIVATED", clientId, isActive: false };
+  }
+
   async suspend(
     clientId: string,
     reason: string,
@@ -606,6 +758,14 @@ export class AdminClientsService {
           suspendedById: adminId,
         },
       }),
+      ...(client.userId
+        ? [
+            this.prisma.session.updateMany({
+              where: { userId: client.userId, revokedAt: null },
+              data: { revokedAt: new Date() },
+            }),
+          ]
+        : []),
       this.prisma.clientHistoryLog.create({
         data: {
           clientId,
@@ -637,7 +797,7 @@ export class AdminClientsService {
       afterState: after,
     });
 
-    return { clientId, status: "SUSPENDED" };
+    return { code: "CLIENT_SUSPENDED", clientId, status: "SUSPENDED" };
   }
 
   async reactivate(clientId: string, reason: string, adminId: string) {
@@ -700,7 +860,7 @@ export class AdminClientsService {
       afterState: after,
     });
 
-    return { clientId, status: "ACTIVE" };
+    return { code: "CLIENT_REACTIVATED", clientId, status: "ACTIVE" };
   }
 
   async assignManager(
@@ -776,6 +936,9 @@ export class AdminClientsService {
       businessName: client.businessName,
       businessType: client.businessType,
       status: client.status,
+      suspendedAt: client.suspendedAt?.toISOString() ?? null,
+      suspendedUntil: client.suspendedUntil?.toISOString() ?? null,
+      suspendReason: client.suspendReason ?? null,
       contactName: client.user?.name ?? null,
       email: client.user?.email ?? null,
       phone: client.user?.phoneWhatsapp ?? null,
