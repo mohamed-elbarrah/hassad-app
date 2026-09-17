@@ -174,7 +174,6 @@ export function paymentPlanTriggerLabel(
 
 const AUTH_SUCCESS_MESSAGES: Record<string, string> = {
   UNKNOWN_SUCCESS: "تمت العملية بنجاح.",
-  USER_REGISTERED: "تم إنشاء حسابك بنجاح!",
   PASSWORD_RESET_REQUEST_ACCEPTED: "تم إرسال رابط إعادة التعيين!",
   PASSWORD_RESET: "تم إعادة تعيين كلمة المرور بنجاح!",
   SIGNED_OUT: "تم تسجيل الخروج بنجاح.",
@@ -197,6 +196,11 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   CLIENT_PASSWORD_ALREADY_SET: "تم إعداد كلمة مرور هذا الحساب مسبقاً.",
   AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
   INVALID_TOKEN: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+  REGISTRATION_DISABLED: "التسجيل متاح بدعوة فقط.",
+  OAUTH_NOT_CONFIGURED: "تسجيل الدخول عبر هذا المزود غير متاح حالياً.",
+  OAUTH_EMAIL_REQUIRED: "تعذر التحقق من البريد الإلكتروني لدى المزود.",
+  OAUTH_EMAIL_NOT_VERIFIED: "يجب استخدام بريد إلكتروني موثق لدى المزود.",
+  OAUTH_FAILED: "تعذر تسجيل الدخول عبر المزود الخارجي. حاول مرة أخرى.",
 };
 
 export function authSuccessMessage(code: string | undefined): string {
@@ -207,10 +211,14 @@ export function authSuccessMessage(code: string | undefined): string {
 }
 
 export function authErrorMessage(error: unknown): string {
-  const code = (error as { data?: { error?: { code?: string } } })?.data?.error
-    ?.code;
+  const code =
+    typeof error === "string"
+      ? error
+      : (error as { data?: { error?: { code?: string } } })?.data?.error?.code;
+  const normalizedCode = code?.toUpperCase();
   return (
-    (code && AUTH_ERROR_MESSAGES[code]) || AUTH_ERROR_MESSAGES.UNKNOWN_ERROR
+    (normalizedCode && AUTH_ERROR_MESSAGES[normalizedCode]) ||
+    AUTH_ERROR_MESSAGES.UNKNOWN_ERROR
   );
 }
 

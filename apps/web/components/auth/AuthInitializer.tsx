@@ -7,16 +7,19 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setCredentials, setInitialized } from "@/features/auth/authSlice";
 
 const PUBLIC_PATHS = [
+  "/",
   "/login",
-  "/signup",
   "/forgot-password",
   "/reset-password",
+  "/setup-password",
   "/proposal/",
   "/contract/",
 ];
 
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p));
+  return PUBLIC_PATHS.some((p) =>
+    p === "/" ? pathname === p : pathname === p || pathname.startsWith(`${p}/`),
+  );
 }
 
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
@@ -34,10 +37,10 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    if (isPublic) {
-      if (!isInitialized) dispatch(setInitialized(true));
-      return;
-    }
+    // Public routes intentionally do not initialize auth state. This keeps the
+    // homepage and onboarding pages free of an auth request while allowing a
+    // later protected-route navigation to discover an existing session.
+    if (isPublic) return;
     if (isSuccess && user) {
       dispatch(setCredentials({ user }));
     } else if (isError) {

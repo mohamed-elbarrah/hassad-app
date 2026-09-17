@@ -12,8 +12,9 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "Hassad Platform",
-  description: "Full-stack SaaS platform for marketing agencies",
+  title: "مسار Massar | وضوح أكبر لأعمالك",
+  description:
+    "مسار منصة عربية تساعد فرق الخدمات والتسويق على تنظيم العملاء والمشاريع والعمليات.",
 };
 
 export default function RootLayout({

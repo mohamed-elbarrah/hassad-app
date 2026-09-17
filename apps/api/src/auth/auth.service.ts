@@ -5,6 +5,8 @@ import {
   HttpStatus,
   InternalServerErrorException,
   ConflictException,
+  ForbiddenException,
+  Logger,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
@@ -29,6 +31,8 @@ const LOCKOUT_DURATION_MINUTES = 30;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -272,11 +276,18 @@ export class AuthService {
     });
     const rotated = await this.prisma.session.updateMany({
       // Compare-and-swap prevents two concurrent refreshes from reusing one token.
-      where: { id: session.id, refreshTokenHash: session.refreshTokenHash, revokedAt: null },
+      where: {
+        id: session.id,
+        refreshTokenHash: session.refreshTokenHash,
+        revokedAt: null,
+      },
       data: { refreshTokenHash: await bcrypt.hash(refreshToken, 12) },
     });
     if (rotated.count !== 1) {
-      throw new UnauthorizedException({ code: "INVALID_REFRESH_TOKEN", details: {} });
+      throw new UnauthorizedException({
+        code: "INVALID_REFRESH_TOKEN",
+        details: {},
+      });
     }
     return {
       accessToken: this.jwtService.sign(payload),
@@ -339,7 +350,8 @@ export class AuthService {
           secret,
           ignoreExpiration: true,
         });
-        if (payload.sid && payload.id) sessionIds.add(`${payload.sid}:${payload.id}`);
+        if (payload.sid && payload.id)
+          sessionIds.add(`${payload.sid}:${payload.id}`);
       } catch {
         // Invalid credentials are still cleaned from the browser below.
       }
@@ -455,9 +467,37 @@ export class AuthService {
     };
   }
 
+  /**
+   * Public registration is controlled by the admin feature flag and is
+   * disabled when the setting is missing or cannot be read.
+   */
+  async assertPublicRegistrationEnabled() {
+    let enabled = false;
+    try {
+      const setting = await this.prisma.companySetting.findUnique({
+        where: { key: "feature.public_registration" },
+        select: { value: true },
+      });
+      enabled = setting?.value === true || setting?.value === "true";
+    } catch {
+      // Registration must remain fail-closed if the feature setting is unavailable.
+      this.logger.warn("Unable to read the public registration feature flag");
+    }
+
+    if (!enabled) {
+      throw new ForbiddenException({
+        code: "REGISTRATION_DISABLED",
+        details: {},
+      });
+    }
+  }
+
   async registerClient(dto: RegisterClientDto) {
+    await this.assertPublicRegistrationEnabled();
+
+    const normalizedEmail = dto.email.trim().toLowerCase();
     const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
     if (existing) {
       throw new ConflictException({ code: "EMAIL_ALREADY_IN_USE" });
@@ -469,7 +509,7 @@ export class AuthService {
       const user = await tx.user.create({
         data: {
           name: dto.name,
-          email: dto.email,
+          email: normalizedEmail,
           phoneWhatsapp: dto.phone, // OWNERSHIP: User owns phone — single source of truth
           passwordHash,
           role: { connect: { name: UserRole.CLIENT } },
@@ -490,8 +530,9 @@ export class AuthService {
   }
 
   async registerInternal(dto: RegisterInternalDto) {
+    const normalizedEmail = dto.email.trim().toLowerCase();
     const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+      where: { email: normalizedEmail },
     });
     if (existing) {
       throw new ConflictException({ code: "EMAIL_ALREADY_IN_USE" });
@@ -502,7 +543,7 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         name: dto.name,
-        email: dto.email,
+        email: normalizedEmail,
         passwordHash,
         role: { connect: { name: dto.role } },
       },
@@ -547,6 +588,8 @@ export class AuthService {
     provider: string;
     providerId: string;
   }) {
+    const normalizedEmail = data.email.trim().toLowerCase();
+
     // 1. Try to find by providerId
     let user = await this.prisma.user.findUnique({
       where: { providerId: data.providerId },
@@ -565,7 +608,7 @@ export class AuthService {
 
     // 2. Try to find by email (auto-link)
     user = await this.prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email: normalizedEmail },
       include: { role: true },
     });
 
@@ -588,12 +631,15 @@ export class AuthService {
       };
     }
 
-    // 3. Create new user and attach it to the canonical client profile
+    // 3. New OAuth users are public self-registration and must be explicitly enabled.
+    await this.assertPublicRegistrationEnabled();
+
+    // 4. Create new user and attach it to the canonical client profile
     const newUser = await this.prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
         data: {
           name: data.name,
-          email: data.email,
+          email: normalizedEmail,
           provider: data.provider,
           providerId: data.providerId,
           role: { connect: { name: UserRole.CLIENT } },
@@ -624,8 +670,9 @@ export class AuthService {
   // ── Password Reset ──────────────────────────────────────────────────────────
 
   async findByEmail(email: string) {
+    const normalizedEmail = email.trim().toLowerCase();
     return this.prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
       select: { id: true, name: true, email: true },
     });
   }

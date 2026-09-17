@@ -15,14 +15,6 @@ interface AcceptInvitationResponse {
   code: string;
 }
 
-interface RegisterInput {
-  name: string;
-  email: string;
-  password: string;
-  phone: string;
-  businessType: string;
-}
-
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery,
@@ -36,13 +28,6 @@ export const authApi = createApi({
     }),
     getProfile: builder.query<User, void>({
       query: () => "/auth/me",
-    }),
-    register: builder.mutation<AuthCodeResponse, RegisterInput>({
-      query: (body) => ({
-        url: "/auth/register",
-        method: "POST",
-        body,
-      }),
     }),
     forgotPassword: builder.mutation<AuthCodeResponse, { email: string }>({
       query: (body) => ({
@@ -83,7 +68,6 @@ export const authApi = createApi({
 export const {
   useLoginMutation,
   useGetProfileQuery,
-  useRegisterMutation,
   useLogoutMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,

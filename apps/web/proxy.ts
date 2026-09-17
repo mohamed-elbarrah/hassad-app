@@ -59,15 +59,11 @@ export default async function proxy(request: NextRequest) {
   if (
     pathname === "/" ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
     pathname.startsWith("/proposal/") ||
     pathname.startsWith("/contract/")
   ) {
-    // If authenticated, redirect away from login/signup to role home
-    if (
-      isAuthenticated &&
-      (pathname.startsWith("/login") || pathname.startsWith("/signup"))
-    ) {
+    // If authenticated, redirect away from login to role home
+    if (isAuthenticated && pathname.startsWith("/login")) {
       const home = role ? getRoleHome(role) : "/dashboard";
       return NextResponse.redirect(new URL(home, request.url));
     }
@@ -104,5 +100,5 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/portal/:path*", "/login", "/signup"],
+  matcher: ["/dashboard/:path*", "/portal/:path*", "/login"],
 };

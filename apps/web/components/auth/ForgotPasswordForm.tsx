@@ -5,7 +5,6 @@ import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { AuthButton } from "@/components/auth/AuthButton";
-import { AuthFooter } from "@/components/auth/AuthFooter";
 import { Link } from "@/components/auth/AuthLink";
 import { useForgotPasswordMutation } from "@/features/auth/authApi";
 import { authErrorMessage, authSuccessMessage } from "@/lib/i18n";
@@ -73,12 +72,6 @@ export function ForgotPasswordForm() {
       <div className="flex items-center justify-center">
         <Link href="/login">العودة لتسجيل الدخول</Link>
       </div>
-
-      <AuthFooter
-        text="ليس لديك حساب؟"
-        buttonText="انشاء حساب"
-        href="/signup"
-      />
     </form>
   );
 }

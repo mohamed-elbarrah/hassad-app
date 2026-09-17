@@ -4,7 +4,9 @@ WORKDIR /app
 
 # Build args — only pass what Next.js needs at build time (public URLs only, NEVER secrets)
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_WHATSAPP_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_WHATSAPP_URL=${NEXT_PUBLIC_WHATSAPP_URL}
 
 # Copy workspace config and package files
 COPY package.json package-lock.json ./

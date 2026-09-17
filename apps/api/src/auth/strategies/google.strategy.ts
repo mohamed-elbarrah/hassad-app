@@ -1,6 +1,10 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
-import { Strategy, VerifyCallback } from "passport-google-oauth20";
+import {
+  Strategy,
+  type Profile,
+  type VerifyCallback,
+} from "passport-google-oauth20";
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "../auth.service";
 
@@ -23,11 +27,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
   async validate(
     _accessToken: string,
     _refreshToken: string,
-    profile: any,
+    profile: Profile,
     done: VerifyCallback,
   ) {
     const { emails, name, id } = profile;
-    const email = emails?.[0]?.value;
+    const emailRecord = emails?.[0];
+    const email = emailRecord?.value;
     const firstName = name?.givenName ?? "";
     const lastName = name?.familyName ?? "";
     const fullName =
@@ -36,6 +41,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, "google") {
     if (!email) {
       return done(
         new UnauthorizedException({ code: "OAUTH_EMAIL_REQUIRED" }),
+        false,
+      );
+    }
+
+    if (emailRecord.verified !== true) {
+      return done(
+        new UnauthorizedException({ code: "OAUTH_EMAIL_NOT_VERIFIED" }),
         false,
       );
     }

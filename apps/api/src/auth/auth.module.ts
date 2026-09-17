@@ -9,6 +9,7 @@ import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { JwtRefreshStrategy } from "./strategies/jwt-refresh.strategy";
 import { GoogleStrategy } from "./strategies/google.strategy";
+import { GoogleOAuthGuard } from "./guards/google-oauth.guard";
 import { RolesGuard } from "./guards/roles.guard";
 import { EmailService } from "../common/services/email.service";
 import { RequestsModule } from "../modules/requests/requests.module";
@@ -36,6 +37,7 @@ import { RequestsModule } from "../modules/requests/requests.module";
     EmailService,
     JwtStrategy,
     JwtRefreshStrategy,
+    GoogleOAuthGuard,
     RolesGuard,
     Reflector,
     ...(process.env.GOOGLE_CLIENT_ID ? [GoogleStrategy] : []),

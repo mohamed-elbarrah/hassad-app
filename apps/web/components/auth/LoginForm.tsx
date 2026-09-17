@@ -31,6 +31,9 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const oauthErrorCode = searchParams.get("error");
+  const queryError = oauthErrorCode ? authErrorMessage(oauthErrorCode) : null;
+  const displayedError = globalError ?? queryError;
 
   const {
     register,
@@ -57,9 +60,9 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-      {globalError && (
+      {displayedError && (
         <Alert variant="destructive">
-          <AlertDescription>{globalError}</AlertDescription>
+          <AlertDescription>{displayedError}</AlertDescription>
         </Alert>
       )}
 

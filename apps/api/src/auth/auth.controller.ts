@@ -30,6 +30,10 @@ import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { EmailService } from "../common/services/email.service";
 import { AcceptClientInvitationDto } from "./dto/accept-client-invitation.dto";
+import {
+  GoogleOAuthGuard,
+  OAuthGuardFailure,
+} from "./guards/google-oauth.guard";
 
 @Controller("auth")
 export class AuthController {
@@ -213,28 +217,42 @@ export class AuthController {
 
   /** GET /auth/google — initiates Google OAuth flow */
   @Get("google")
-  @UseGuards(AuthGuard("google"))
+  @UseGuards(GoogleOAuthGuard)
   googleAuth() {
     // Guard redirects to Google
   }
 
   /** GET /auth/google/callback — handles Google OAuth callback */
   @Get("google/callback")
-  @UseGuards(AuthGuard("google"))
+  @UseGuards(GoogleOAuthGuard)
   async googleAuthRedirect(
-    @Request() req: ExpressRequest & { user: any },
+    @Request()
+    req: ExpressRequest & {
+      user?:
+        | {
+            id: string;
+            name: string;
+            email: string;
+            role: UserRole;
+          }
+        | OAuthGuardFailure;
+    },
     @Res({ passthrough: true }) res: Response,
   ) {
+    if (res.headersSent) return;
+
     const user = req.user;
     const frontendUrl =
       this.configService.get<string>("FRONTEND_URL") ?? "http://localhost:3000";
 
-    if (!process.env.GOOGLE_CLIENT_ID) {
-      return res.redirect(`${frontendUrl}/login?error=oauth_not_configured`);
+    if (!user) {
+      return res.redirect(`${frontendUrl}/login?error=OAUTH_FAILED`);
     }
 
-    if (!user) {
-      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+    if ("authErrorCode" in user) {
+      return res.redirect(
+        `${frontendUrl}/login?error=${encodeURIComponent(user.authErrorCode)}`,
+      );
     }
 
     const { accessToken, refreshToken } =
