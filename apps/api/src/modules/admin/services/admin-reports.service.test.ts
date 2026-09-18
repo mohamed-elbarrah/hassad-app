@@ -18,6 +18,7 @@ describe("AdminReportsService report snapshots", () => {
       prisma as never,
       kpiService as never,
       {} as never,
+      {} as never,
     );
     vi.spyOn(service, "getSalesReport").mockResolvedValue({
       totalLeads: 2,
@@ -58,6 +59,7 @@ describe("AdminReportsService report snapshots", () => {
     const service = new AdminReportsService(
       prisma as never,
       { getSalesKpis: vi.fn() } as never,
+      {} as never,
       {} as never,
     );
     const report = vi.spyOn(service, "getSalesReport");

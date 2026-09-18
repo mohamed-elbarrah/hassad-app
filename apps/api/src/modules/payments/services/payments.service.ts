@@ -24,6 +24,8 @@ import { UpdateGatewayDto } from "../dto/update-gateway.dto";
 import { StorageService } from "../../../common/storage/storage.service";
 import * as crypto from "crypto";
 
+const SUPPORTED_GATEWAY_NAMES = new Set(["stripe", "bank_transfer"]);
+
 @Injectable()
 export class PaymentsService implements OnModuleInit {
   private readonly ALGORITHM = "aes-256-cbc";
@@ -170,6 +172,37 @@ export class PaymentsService implements OnModuleInit {
     }
   }
 
+  private parseGatewayConfig(
+    configJson: Prisma.JsonValue | null,
+  ): Record<string, unknown> {
+    let config: unknown = configJson;
+    if (typeof config === "string") {
+      try {
+        config = JSON.parse(this.decrypt(config));
+      } catch {
+        throw new BadRequestException({
+          code: "PAYMENT_GATEWAY_CONFIG_INVALID",
+          details: {},
+        });
+      }
+    }
+    if (!config || typeof config !== "object" || Array.isArray(config)) {
+      throw new BadRequestException({
+        code: "PAYMENT_GATEWAY_CONFIG_INVALID",
+        details: {},
+      });
+    }
+    return config as Record<string, unknown>;
+  }
+
+  private isCompleteStripeConfig(config: Record<string, unknown>) {
+    return ["secretKey", "webhookSecret", "publishableKey"].every(
+      (key) =>
+        typeof config[key] === "string" &&
+        Boolean((config[key] as string).trim()),
+    );
+  }
+
   async getProvider(gatewayName: string): Promise<PaymentProvider> {
     const gateway = await this.prisma.paymentGateway.findUnique({
       where: { name: gatewayName },
@@ -182,17 +215,24 @@ export class PaymentsService implements OnModuleInit {
       });
     }
 
-    let config: any = gateway.configJson;
-    if (typeof config === "string") {
-      config = JSON.parse(this.decrypt(config));
-    }
-
     switch (gatewayName) {
-      case "stripe":
+      case "stripe": {
+        const config = this.parseGatewayConfig(gateway.configJson);
+        const secretKey =
+          typeof config.secretKey === "string" ? config.secretKey : "";
+        const webhookSecret =
+          typeof config.webhookSecret === "string" ? config.webhookSecret : "";
+        if (!this.isCompleteStripeConfig(config)) {
+          throw new BadRequestException({
+            code: "PAYMENT_GATEWAY_CONFIG_INVALID",
+            details: { gateway: gatewayName },
+          });
+        }
         return new StripeProvider({
-          secretKey: config.secretKey,
-          webhookSecret: config.webhookSecret,
+          secretKey,
+          webhookSecret,
         });
+      }
       case "bank_transfer":
         return new BankTransferProvider();
       default:
@@ -1177,15 +1217,20 @@ export class PaymentsService implements OnModuleInit {
   }
 
   async getGateways() {
-    const gateways = await this.prisma.paymentGateway.findMany();
+    const gateways = await this.prisma.paymentGateway.findMany({
+      where: { name: { in: [...SUPPORTED_GATEWAY_NAMES] } },
+    });
     return gateways.map((g) => {
       let config: any = g.configJson;
       if (typeof config === "string") {
         try {
           config = JSON.parse(this.decrypt(config));
-        } catch (e) {
+        } catch {
           config = {};
         }
+      }
+      if (!config || typeof config !== "object" || Array.isArray(config)) {
+        config = {};
       }
       const fields: Record<string, boolean> = {};
       for (const key of ["secretKey", "webhookSecret", "publishableKey"]) {
@@ -1195,46 +1240,92 @@ export class PaymentsService implements OnModuleInit {
         ...g,
         configJson: {
           fields,
-          isConfigured: fields.secretKey || fields.publishableKey,
+          isConfigured:
+            g.name === "bank_transfer" ||
+            (g.name === "stripe" && this.isCompleteStripeConfig(config)),
         },
       };
     });
   }
 
   async updateGatewayConfig(name: string, dto: UpdateGatewayDto) {
-    const { isActive, secretKey, webhookSecret, publishableKey } = dto;
-    const hasConfigFields = secretKey || webhookSecret || publishableKey;
-
-    const updateData: any = {};
-    if (isActive !== undefined) updateData.isActive = isActive;
-    if (hasConfigFields) {
-      const config: Record<string, string> = {};
-      if (secretKey) config.secretKey = secretKey;
-      if (webhookSecret) config.webhookSecret = webhookSecret;
-      if (publishableKey) config.publishableKey = publishableKey;
-      updateData.configJson = this.encrypt(JSON.stringify(config)) as any;
+    if (!SUPPORTED_GATEWAY_NAMES.has(name)) {
+      throw new BadRequestException({
+        code: "PAYMENT_GATEWAY_UNSUPPORTED",
+        details: { gateway: name },
+      });
     }
 
-    return this.prisma.paymentGateway.upsert({
-      where: { name },
-      update: updateData,
-      create: {
-        name,
-        type:
-          name === "stripe"
-            ? PaymentGatewayType.ONLINE
-            : PaymentGatewayType.MANUAL,
-        configJson: hasConfigFields
-          ? (this.encrypt(
-              JSON.stringify({ secretKey, webhookSecret, publishableKey }),
-            ) as any)
-          : undefined,
-        isActive: isActive ?? true,
-      },
+    const { isActive, secretKey, webhookSecret, publishableKey } = dto;
+    const providedConfig = { secretKey, webhookSecret, publishableKey };
+    const hasConfigFields = Object.values(providedConfig).some(Boolean);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updateData: any = {};
+      if (isActive !== undefined) updateData.isActive = isActive;
+
+      let config: Record<string, string> = {};
+      if (hasConfigFields) {
+        const lockedRows = await tx.$queryRaw<
+          Array<{ config_json: Prisma.JsonValue | null }>
+        >(
+          Prisma.sql`SELECT config_json FROM payment_gateways WHERE name = ${name} FOR UPDATE`,
+        );
+        const existingConfig = lockedRows[0]?.config_json;
+        if (existingConfig) {
+          try {
+            const rawConfig =
+              typeof existingConfig === "string"
+                ? JSON.parse(this.decrypt(existingConfig))
+                : existingConfig;
+            if (
+              rawConfig &&
+              typeof rawConfig === "object" &&
+              !Array.isArray(rawConfig)
+            ) {
+              config = rawConfig as Record<string, string>;
+            }
+          } catch {
+            throw new BadRequestException({
+              code: "PAYMENT_GATEWAY_CONFIG_INVALID",
+              details: { gateway: name },
+            });
+          }
+        }
+
+        config = { ...config };
+        for (const [key, value] of Object.entries(providedConfig)) {
+          if (value) config[key] = value;
+        }
+        updateData.configJson = this.encrypt(JSON.stringify(config)) as any;
+      }
+
+      return tx.paymentGateway.upsert({
+        where: { name },
+        update: updateData,
+        create: {
+          name,
+          type:
+            name === "stripe"
+              ? PaymentGatewayType.ONLINE
+              : PaymentGatewayType.MANUAL,
+          configJson: hasConfigFields
+            ? (this.encrypt(JSON.stringify(config)) as any)
+            : undefined,
+          isActive: isActive ?? true,
+        },
+      });
     });
   }
 
   async deleteGateway(name: string) {
+    if (!SUPPORTED_GATEWAY_NAMES.has(name)) {
+      throw new BadRequestException({
+        code: "PAYMENT_GATEWAY_UNSUPPORTED",
+        details: { gateway: name },
+      });
+    }
+
     return this.prisma.paymentGateway.update({
       where: { name },
       data: { isActive: false },
@@ -1272,28 +1363,40 @@ export class PaymentsService implements OnModuleInit {
       return { publishableKey: null, isActive: false };
     }
 
-    let config: any = gateway.configJson;
-    if (typeof config === "string") {
-      try {
-        config = JSON.parse(this.decrypt(config));
-      } catch {
-        config = {};
+    try {
+      const config = this.parseGatewayConfig(gateway.configJson);
+      if (!this.isCompleteStripeConfig(config)) {
+        return { publishableKey: null, isActive: false };
       }
+      return {
+        publishableKey: config.publishableKey,
+        isActive: true,
+      };
+    } catch {
+      return { publishableKey: null, isActive: false };
     }
-
-    return {
-      publishableKey: config.publishableKey ?? null,
-      isActive: gateway.isActive,
-    };
   }
 
   async getPublicGateways() {
     const gateways = await this.prisma.paymentGateway.findMany({
-      where: { isActive: true },
-      select: { name: true },
+      where: {
+        isActive: true,
+        name: { in: [...SUPPORTED_GATEWAY_NAMES] },
+      },
+      select: { name: true, configJson: true },
     });
 
-    return gateways.map((g) => g.name);
+    return gateways
+      .filter((gateway) => {
+        if (gateway.name === "bank_transfer") return true;
+        try {
+          const config = this.parseGatewayConfig(gateway.configJson);
+          return this.isCompleteStripeConfig(config);
+        } catch {
+          return false;
+        }
+      })
+      .map((gateway) => gateway.name);
   }
 
   private mapBankAccountDto(dto: any) {

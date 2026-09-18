@@ -96,6 +96,7 @@ export class AdminIntegrationsService {
   // ── Payment Gateways ──────────────────────────────────────────────────────────
   async getGateways() {
     return this.prisma.paymentGateway.findMany({
+      where: { name: { in: ["stripe", "bank_transfer"] } },
       select: {
         id: true,
         name: true,

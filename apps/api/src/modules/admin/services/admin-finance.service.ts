@@ -560,6 +560,7 @@ export class AdminFinanceService {
   async getGatewaysHealth() {
     const [gateways, failures] = await Promise.all([
       this.prisma.paymentGateway.findMany({
+        where: { name: { in: ["stripe", "bank_transfer"] } },
         select: {
           id: true,
           name: true,
@@ -586,6 +587,9 @@ export class AdminFinanceService {
       }),
     ]);
 
+    const availableGateways = new Set(
+      await this.paymentsService.getPublicGateways(),
+    );
     const failuresByGateway = new Map<string, typeof failures>();
     for (const f of failures) {
       const gwName = (f.metadata as any)?.gatewayName || "unknown";
@@ -598,7 +602,11 @@ export class AdminFinanceService {
     return gateways.map((g) => ({
       ...g,
       totalPayments: g._count.payments,
-      healthStatus: g.isActive ? "healthy" : "down",
+      healthStatus: !g.isActive
+        ? "down"
+        : availableGateways.has(g.name)
+          ? "healthy"
+          : "degraded",
       lastHealthCheck: g.updatedAt,
       recentFailures: failuresByGateway.get(g.name) || [],
     }));
@@ -606,7 +614,10 @@ export class AdminFinanceService {
 
   async checkGatewayHealth(userId: string) {
     const gateways = await this.prisma.paymentGateway.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        name: { in: ["stripe", "bank_transfer"] },
+      },
     });
 
     const results: any[] = [];

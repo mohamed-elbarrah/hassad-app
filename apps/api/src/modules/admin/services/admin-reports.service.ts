@@ -7,6 +7,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminKpiService } from "./admin-kpi.service";
 import { AdminActionLogService } from "./admin-action-log.service";
 import { ReportPeriod } from "@prisma/client";
+import { PaymentsService } from "../../payments/services/payments.service";
 
 @Injectable()
 export class AdminReportsService {
@@ -14,6 +15,7 @@ export class AdminReportsService {
     private readonly prisma: PrismaService,
     private readonly kpiService: AdminKpiService,
     private readonly actionLog: AdminActionLogService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   private dateWhere(from?: string, to?: string) {
@@ -694,6 +696,7 @@ export class AdminReportsService {
       [
         this.kpiService.getSystemKpis(from, to),
         this.prisma.paymentGateway.findMany({
+          where: { name: { in: ["stripe", "bank_transfer"] } },
           select: {
             id: true,
             name: true,
@@ -721,6 +724,9 @@ export class AdminReportsService {
     const paymentCountMap = new Map(
       paymentCounts.map((p) => [p.gatewayId, p._count.id]),
     );
+    const availableGateways = new Set(
+      await this.paymentsService.getPublicGateways(),
+    );
 
     return {
       ...kpis,
@@ -728,7 +734,11 @@ export class AdminReportsService {
         id: g.id,
         provider: g.name,
         type: g.type,
-        healthStatus: g.isActive ? "HEALTHY" : "DOWN",
+        healthStatus: !g.isActive
+          ? "DOWN"
+          : availableGateways.has(g.name)
+            ? "HEALTHY"
+            : "DEGRADED",
         totalPayments: paymentCountMap.get(g.id) ?? 0,
       })),
       externalServices: externalServices.map((s) => ({

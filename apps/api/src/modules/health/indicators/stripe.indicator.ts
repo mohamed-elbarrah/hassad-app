@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import * as crypto from "crypto";
 import {
   HealthIndicatorService,
   HealthIndicatorResult,
@@ -60,24 +61,45 @@ export class StripeHealthIndicator {
         try {
           config = JSON.parse(config);
         } catch {
-          const responseTime = Date.now() - startTime;
-          await this.healthPersistence.updateServiceHealth(
-            "STRIPE",
-            ServiceStatus.DOWN,
-            responseTime,
-            "Invalid Stripe configuration format",
-          );
+          try {
+            const [ivHex, encryptedHex] = config.split(":");
+            const key = process.env.PAYMENT_ENCRYPTION_KEY;
+            if (!key || !ivHex || !encryptedHex) throw new Error();
+            const decipher = crypto.createDecipheriv(
+              "aes-256-cbc",
+              Buffer.from(key.padEnd(32).slice(0, 32)),
+              Buffer.from(ivHex, "hex"),
+            );
+            let decrypted = decipher.update(Buffer.from(encryptedHex, "hex"));
+            decrypted = Buffer.concat([decrypted, decipher.final()]);
+            config = JSON.parse(decrypted.toString());
+          } catch {
+            const responseTime = Date.now() - startTime;
+            await this.healthPersistence.updateServiceHealth(
+              "STRIPE",
+              ServiceStatus.DOWN,
+              responseTime,
+              "Invalid Stripe configuration format",
+            );
 
-          return indicator.down({
-            message: "Invalid Stripe configuration format",
-            configured: true,
-            active: true,
-            responseTimeMs: responseTime,
-          });
+            return indicator.down({
+              message: "Invalid Stripe configuration format",
+              configured: true,
+              active: true,
+              responseTimeMs: responseTime,
+            });
+          }
         }
       }
 
-      if (!config?.secretKey) {
+      if (
+        typeof config?.secretKey !== "string" ||
+        !config.secretKey.trim() ||
+        typeof config?.webhookSecret !== "string" ||
+        !config.webhookSecret.trim() ||
+        typeof config?.publishableKey !== "string" ||
+        !config.publishableKey.trim()
+      ) {
         const responseTime = Date.now() - startTime;
         await this.healthPersistence.updateServiceHealth(
           "STRIPE",
@@ -87,7 +109,7 @@ export class StripeHealthIndicator {
         );
 
         return indicator.down({
-          message: "Stripe secret key not configured",
+          message: "STRIPE_CONFIGURATION_INCOMPLETE",
           configured: true,
           active: true,
           responseTimeMs: responseTime,

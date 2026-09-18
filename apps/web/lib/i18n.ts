@@ -1454,6 +1454,7 @@ export function portalErrorMessage(error: unknown): string {
     PAYMENT_GATEWAY_REQUIRED: "بوابة الدفع مطلوبة.",
     PAYMENT_GATEWAY_UNAVAILABLE: "بوابة الدفع غير متاحة حالياً.",
     PAYMENT_GATEWAY_UNSUPPORTED: "بوابة الدفع غير مدعومة.",
+    PAYMENT_GATEWAY_CONFIG_INVALID: "إعدادات بوابة الدفع غير صالحة.",
     REFUND_NOT_ALLOWED: "لا يمكن استرداد هذه الفاتورة حالياً.",
     WEBHOOK_LOG_NOT_FOUND: "لم يتم العثور على سجل العملية.",
     WEBHOOK_ALREADY_PROCESSED: "تمت معالجة العملية مسبقاً.",

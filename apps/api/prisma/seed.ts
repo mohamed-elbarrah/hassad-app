@@ -301,16 +301,18 @@ async function main() {
     },
   });
 
-  // Payment gateway — manual (bank transfer) for dev; online gateways (Moyasar) added in prod
+  // Canonical manual gateway for bank transfers. Bank accounts are managed
+  // separately; this record only represents the payment method configuration.
   await prisma.paymentGateway.upsert({
-    where: { id: "gw-manual-bank" },
-    update: {},
+    where: { name: "bank_transfer" },
+    update: {
+      type: "MANUAL",
+    },
     create: {
-      id: "gw-manual-bank",
-      name: "Manual Bank Transfer",
+      name: "bank_transfer",
       type: "MANUAL",
       isActive: true,
-      configJson: { bankAccountId: "bank-alrajhi-main" },
+      configJson: {},
     },
   });
 
