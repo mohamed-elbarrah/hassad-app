@@ -1,9 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type {
-  InvoicePaymentDetails,
-  PaginatedInvoices,
-} from "@/features/finance/financeApi";
+import type { Invoice, Payment } from "@hassad/shared";
 
 export interface AdminFinanceSummary {
   revenue: number;
@@ -96,19 +93,47 @@ export interface AdminFinanceOverview {
   };
 }
 
-export type AdminFinanceInvoiceItem = PaginatedInvoices["items"][number];
+export type AdminFinanceInvoiceItem = Invoice & {
+  paidAmount?: number;
+  pendingAmount?: number;
+  remainingAmount?: number;
+};
 
-export type AdminInvoicePaymentDetails = InvoicePaymentDetails;
+export type AdminInvoicePaymentDetails = Invoice & {
+  paidAmount: number;
+  pendingAmount: number;
+  remainingAmount: number;
+  client?: {
+    id: string;
+    companyName: string;
+    user?: { id: string; name: string; email: string } | null;
+  } | null;
+  contract?: { id: string; title: string; status: string } | null;
+  payments: Array<
+    Payment & {
+      receiptUrl: string | null;
+      reviewedAt?: string | null;
+      reviewReason?: string | null;
+      reviewer?: { id: string; name: string } | null;
+      events: Array<{
+        id: string;
+        type: string;
+        createdAt: string;
+      }>;
+    }
+  >;
+};
 
-export interface AdminFinancePaymentItem {
-  id: string;
-  amount: number;
-  method: string;
-  status: string;
-  createdAt: string;
-  invoiceNumber: string | null;
-  invoiceId: string | null;
-}
+export type AdminFinancePaymentItem = Payment & {
+  invoice:
+    | (Invoice & {
+        client?: {
+          companyName: string;
+          user?: { name: string } | null;
+        };
+      })
+    | null;
+};
 
 export interface AdminWebhookLog {
   id: string;
@@ -210,13 +235,20 @@ export const adminFinanceApi = createApi({
         limit: number;
         totalPages: number;
       },
-      { status?: string; method?: string; page?: number; limit?: number } | void
+      {
+        status?: string;
+        method?: string;
+        search?: string;
+        page?: number;
+        limit?: number;
+      } | void
     >({
       query: (filters) => {
         if (!filters) return "/admin/finance/payments";
         const params = new URLSearchParams();
         if (filters.status) params.set("status", filters.status);
         if (filters.method) params.set("method", filters.method);
+        if (filters.search) params.set("search", filters.search);
         if (filters.page) params.set("page", String(filters.page));
         if (filters.limit) params.set("limit", String(filters.limit));
         return `/admin/finance/payments?${params.toString()}`;

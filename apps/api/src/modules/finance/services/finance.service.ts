@@ -1660,16 +1660,57 @@ export class FinanceService {
     limit?: number;
     method?: string;
     status?: string;
+    search?: string;
   }) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
     const where: any = {};
     if (filters.method) where.method = filters.method;
     if (filters.status) where.status = filters.status;
+    if (filters.search?.trim()) {
+      const search = filters.search.trim();
+      where.OR = [
+        { id: { contains: search, mode: "insensitive" } },
+        {
+          providerPaymentId: { contains: search, mode: "insensitive" },
+        },
+        {
+          invoice: {
+            invoiceNumber: { contains: search, mode: "insensitive" },
+          },
+        },
+        {
+          invoice: {
+            client: {
+              companyName: { contains: search, mode: "insensitive" },
+            },
+          },
+        },
+        {
+          invoice: {
+            client: {
+              user: { name: { contains: search, mode: "insensitive" } },
+            },
+          },
+        },
+      ];
+    }
     const [items, total] = await Promise.all([
       this.prisma.payment.findMany({
         where,
-        include: { invoice: { include: { client: true } } },
+        include: {
+          invoice: {
+            include: {
+              client: {
+                select: {
+                  id: true,
+                  companyName: true,
+                  user: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,

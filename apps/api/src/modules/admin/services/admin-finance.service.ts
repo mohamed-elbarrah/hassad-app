@@ -140,6 +140,7 @@ export class AdminFinanceService {
     limit?: number;
     method?: string;
     status?: string;
+    search?: string;
   }) {
     return this.financeService.findAllPayments(filters);
   }

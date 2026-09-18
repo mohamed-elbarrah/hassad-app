@@ -20,9 +20,9 @@ import {
   PaymentStatus,
 } from "@hassad/shared";
 import {
-  useGetInvoiceByIdQuery,
-  useGetPaymentsQuery,
-} from "@/features/finance/financeApi";
+  useGetAdminInvoicePaymentDetailsQuery,
+  useGetAdminPaymentsQuery,
+} from "@/features/admin/adminFinanceApi";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +48,13 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -166,37 +173,22 @@ function PaymentsPageLoading() {
 export default function AdminFinancePaymentsPage() {
   const [statusTab, setStatusTab] = useState("ALL");
   const [methodFilter, setMethodFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(
     null,
   );
 
-  const { data, isLoading, isError, refetch } = useGetPaymentsQuery({
-    limit: 100,
+  const { data, isLoading, isError, refetch } = useGetAdminPaymentsQuery({
+    page,
+    limit: 25,
     status: statusTab === "ALL" ? undefined : statusTab,
+    method: methodFilter === "ALL" ? undefined : methodFilter,
+    search: search.trim() || undefined,
   });
 
   const payments = useMemo(() => data?.items ?? [], [data?.items]);
-  const filteredPayments = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return payments.filter((payment) => {
-      const matchesSearch =
-        !query ||
-        [
-          payment.id,
-          payment.providerPaymentId,
-          payment.invoice?.invoiceNumber,
-          payment.invoice?.client?.companyName,
-        ]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(query));
-
-      const matchesMethod =
-        methodFilter === "ALL" || payment.method === methodFilter;
-
-      return matchesSearch && matchesMethod;
-    });
-  }, [methodFilter, payments, search]);
+  const filteredPayments = payments;
 
   const selectedPayment =
     filteredPayments.find((item) => item.id === selectedPaymentId) ||
@@ -204,11 +196,15 @@ export default function AdminFinancePaymentsPage() {
     null;
 
   const { data: linkedInvoice, isFetching: isInvoiceLoading } =
-    useGetInvoiceByIdQuery(selectedPayment?.invoiceId || "", {
+    useGetAdminInvoicePaymentDetailsQuery(selectedPayment?.invoiceId || "", {
       skip: !selectedPayment?.invoiceId,
     });
 
   const metrics = useMemo(() => {
+    const currencies = new Set(
+      filteredPayments.map((payment) => payment.currency.toUpperCase()),
+    );
+    const currency = currencies.size === 1 ? [...currencies][0] : null;
     const totalAmount = filteredPayments.reduce(
       (sum, payment) => sum + payment.amount,
       0,
@@ -227,6 +223,7 @@ export default function AdminFinancePaymentsPage() {
     );
 
     return {
+      currency,
       totalAmount,
       successfulAmount: successful.reduce(
         (sum, payment) => sum + payment.amount,
@@ -281,19 +278,31 @@ export default function AdminFinancePaymentsPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <PaymentMetricCard
           title="القيمة المعروضة"
-          value={formatCurrency(metrics.totalAmount)}
+          value={
+            metrics.currency
+              ? formatCurrency(metrics.totalAmount, metrics.currency)
+              : "متعدد العملات"
+          }
           hint={`${formatNumber(filteredPayments.length)} عملية`}
           icon={CircleDollarSign}
         />
         <PaymentMetricCard
           title="المحصل بنجاح"
-          value={formatCurrency(metrics.successfulAmount)}
+          value={
+            metrics.currency
+              ? formatCurrency(metrics.successfulAmount, metrics.currency)
+              : "متعدد العملات"
+          }
           hint={`نسبة النجاح ${metrics.successRate}%`}
           icon={CheckCircle2}
         />
         <PaymentMetricCard
           title="معلّق"
-          value={formatCurrency(metrics.pendingAmount)}
+          value={
+            metrics.currency
+              ? formatCurrency(metrics.pendingAmount, metrics.currency)
+              : "متعدد العملات"
+          }
           hint="مدفوعات تحتاج تأكيد أو متابعة"
           icon={ShieldAlert}
         />
@@ -308,7 +317,13 @@ export default function AdminFinancePaymentsPage() {
       <Card>
         <CardHeader className="gap-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <Tabs value={statusTab} onValueChange={setStatusTab}>
+            <Tabs
+              value={statusTab}
+              onValueChange={(value) => {
+                setStatusTab(value);
+                setPage(1);
+              }}
+            >
               <TabsList className="h-auto flex-wrap">
                 {PAYMENT_TABS.map((tab) => (
                   <TabsTrigger key={tab.value} value={tab.value}>
@@ -323,12 +338,21 @@ export default function AdminFinancePaymentsPage() {
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   placeholder="ابحث برقم العملية أو الفاتورة أو العميل"
                   className="pr-10"
                 />
               </div>
-              <Select value={methodFilter} onValueChange={setMethodFilter}>
+              <Select
+                value={methodFilter}
+                onValueChange={(value) => {
+                  setMethodFilter(value);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="طريقة الدفع" />
                 </SelectTrigger>
@@ -409,7 +433,7 @@ export default function AdminFinancePaymentsPage() {
                               {payment.invoice?.client?.companyName || "—"}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {payment.invoice?.client?.name || "—"}
+                              {payment.invoice?.client?.user?.name || "—"}
                             </span>
                           </div>
                         </TableCell>
@@ -455,6 +479,37 @@ export default function AdminFinancePaymentsPage() {
               </Table>
             </div>
           )}
+          {!isError && data && data.totalPages > 1 ? (
+            <Pagination className="mt-4">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    text="السابق"
+                    disabled={page === 1}
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="px-3 text-sm text-muted-foreground">
+                    صفحة {page} من {data.totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    text="التالي"
+                    disabled={page === data.totalPages}
+                    onClick={() =>
+                      setPage((current) =>
+                        Math.min(data.totalPages, current + 1),
+                      )
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -595,7 +650,10 @@ export default function AdminFinancePaymentsPage() {
                               إجمالي الفاتورة
                             </p>
                             <p className="mt-2 font-medium">
-                              {formatCurrency(linkedInvoice.amount)}
+                              {formatCurrency(
+                                linkedInvoice.amount,
+                                linkedInvoice.currency,
+                              )}
                             </p>
                           </div>
                           <div className="rounded-lg border p-4">
@@ -603,7 +661,10 @@ export default function AdminFinancePaymentsPage() {
                               المتبقي بعد هذه العملية
                             </p>
                             <p className="mt-2 font-medium">
-                              {formatCurrency(linkedInvoiceRemaining)}
+                              {formatCurrency(
+                                linkedInvoiceRemaining,
+                                linkedInvoice.currency,
+                              )}
                             </p>
                           </div>
                         </div>
