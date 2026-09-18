@@ -127,6 +127,8 @@ export class AdminFinanceService {
     status?: string;
     clientId?: string;
     contractId?: string;
+    method?: string;
+    search?: string;
     page?: number;
     limit?: number;
   }) {
@@ -142,6 +144,60 @@ export class AdminFinanceService {
     return this.financeService.findAllPayments(filters);
   }
 
+  async getInvoicePaymentDetails(invoiceId: string) {
+    return this.paymentsService.getInvoicePaymentDetails(invoiceId);
+  }
+
+  async reviewBankTransfer(
+    paymentId: string,
+    reviewerId: string,
+    decision: "APPROVE" | "REJECT",
+    reason?: string,
+  ) {
+    return this.paymentsService.reviewBankTransfer(
+      paymentId,
+      reviewerId,
+      decision,
+      reason,
+    );
+  }
+
+  async getGateways() {
+    return this.paymentsService.getGateways();
+  }
+
+  async updateGateway(
+    name: string,
+    dto: Parameters<PaymentsService["updateGatewayConfig"]>[1],
+  ) {
+    return this.paymentsService.updateGatewayConfig(name, dto);
+  }
+
+  async deleteGateway(name: string) {
+    return this.paymentsService.deleteGateway(name);
+  }
+
+  async getBankAccounts(includeInactive: boolean) {
+    return this.paymentsService.getBankAccounts(includeInactive);
+  }
+
+  async createBankAccount(
+    dto: Parameters<PaymentsService["createBankAccount"]>[0],
+  ) {
+    return this.paymentsService.createBankAccount(dto);
+  }
+
+  async updateBankAccount(
+    id: string,
+    dto: Parameters<PaymentsService["updateBankAccount"]>[1],
+  ) {
+    return this.paymentsService.updateBankAccount(id, dto);
+  }
+
+  async deleteBankAccount(id: string) {
+    return this.paymentsService.deleteBankAccount(id);
+  }
+
   async getPayroll() {
     const items = await this.financeService.findAllEmployees();
     return { items, total: items.length };
@@ -152,49 +208,50 @@ export class AdminFinanceService {
     const limit = Math.min(100, Math.max(1, Number(filters.limit) || 20));
     const skip = (page - 1) * limit;
 
-    const [lateInvoices, failedPayments, failedWebhooks, totals] = await Promise.all([
-      this.prisma.invoice.findMany({
-        where: { status: "LATE" },
-        include: { client: { select: { id: true, companyName: true } } },
-        orderBy: { dueDate: "asc" },
-        skip,
-        take: limit,
-      }),
-      this.prisma.payment.findMany({
-        where: { status: "FAILED" },
-        select: {
-          id: true,
-          invoiceId: true,
-          amount: true,
-          method: true,
-          status: true,
-          createdAt: true,
-          invoice: { select: { id: true, invoiceNumber: true } },
-        },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      this.prisma.webhookLog.findMany({
-        where: { processed: false },
-        select: {
-          id: true,
-          provider: true,
-          eventType: true,
-          processed: true,
-          error: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      Promise.all([
-        this.prisma.invoice.count({ where: { status: "LATE" } }),
-        this.prisma.payment.count({ where: { status: "FAILED" } }),
-        this.prisma.webhookLog.count({ where: { processed: false } }),
-      ]),
-    ]);
+    const [lateInvoices, failedPayments, failedWebhooks, totals] =
+      await Promise.all([
+        this.prisma.invoice.findMany({
+          where: { status: "LATE" },
+          include: { client: { select: { id: true, companyName: true } } },
+          orderBy: { dueDate: "asc" },
+          skip,
+          take: limit,
+        }),
+        this.prisma.payment.findMany({
+          where: { status: "FAILED" },
+          select: {
+            id: true,
+            invoiceId: true,
+            amount: true,
+            method: true,
+            status: true,
+            createdAt: true,
+            invoice: { select: { id: true, invoiceNumber: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          skip,
+          take: limit,
+        }),
+        this.prisma.webhookLog.findMany({
+          where: { processed: false },
+          select: {
+            id: true,
+            provider: true,
+            eventType: true,
+            processed: true,
+            error: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          skip,
+          take: limit,
+        }),
+        Promise.all([
+          this.prisma.invoice.count({ where: { status: "LATE" } }),
+          this.prisma.payment.count({ where: { status: "FAILED" } }),
+          this.prisma.webhookLog.count({ where: { processed: false } }),
+        ]),
+      ]);
 
     return {
       page,
@@ -221,7 +278,9 @@ export class AdminFinanceService {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
-    if (!invoice) throw new NotFoundException("الفاتورة غير موجودة");
+    if (!invoice) {
+      throw new NotFoundException({ code: "INVOICE_NOT_FOUND", details: {} });
+    }
 
     const before = { status: invoice.status, reason };
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -259,7 +318,7 @@ export class AdminFinanceService {
 
   // ── D2. Invoices — Write-off ──────────────────────────────────────────────────
   async writeOffInvoice(invoiceId: string, reason: string, userId: string) {
-    return this.forceInvoiceStatus(invoiceId, "VOID", `شطب: ${reason}`, userId);
+    return this.forceInvoiceStatus(invoiceId, "VOID", reason, userId);
   }
 
   // ── D2. Invoices — Refund trigger ─────────────────────────────────────────────
@@ -273,12 +332,31 @@ export class AdminFinanceService {
       where: { id: invoiceId },
       include: { payments: { where: { status: "SUCCESS" } } },
     });
-    if (!invoice) throw new NotFoundException("الفاتورة غير موجودة");
+    if (!invoice) {
+      throw new NotFoundException({ code: "INVOICE_NOT_FOUND", details: {} });
+    }
     if (invoice.status !== "PAID" && invoice.status !== "PARTIAL") {
-      throw new BadRequestException("يمكن استرداد الفواتير المدفوعة فقط");
+      throw new BadRequestException({
+        code: "REFUND_NOT_ALLOWED",
+        details: { status: invoice.status },
+      });
     }
 
-    const refundAmount = amount ?? invoice.amount;
+    const paidAmount = invoice.payments.reduce(
+      (sum, payment) => sum + payment.amount,
+      0,
+    );
+    const refundAmount = amount ?? paidAmount;
+    if (
+      !Number.isFinite(refundAmount) ||
+      refundAmount <= 0 ||
+      refundAmount > paidAmount
+    ) {
+      throw new BadRequestException({
+        code: "REFUND_AMOUNT_INVALID",
+        details: { paidAmount },
+      });
+    }
     const before = { status: invoice.status, refundAmount };
 
     const refundPayment = await this.prisma.$transaction(async (tx) => {
@@ -288,7 +366,23 @@ export class AdminFinanceService {
           amount: -refundAmount,
           method: "BANK_TRANSFER",
           status: "REFUNDED",
-          notes: `استرداد: ${reason}`,
+          notes: reason,
+        },
+      });
+
+      const remainingPaid =
+        invoice.payments.reduce((sum, item) => sum + item.amount, 0) -
+        refundAmount;
+      await tx.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          status:
+            remainingPaid <= 0
+              ? "DUE"
+              : remainingPaid >= invoice.amount
+                ? "PAID"
+                : "PARTIAL",
+          paidAt: remainingPaid >= invoice.amount ? new Date() : null,
         },
       });
 
@@ -367,9 +461,18 @@ export class AdminFinanceService {
     const log = await this.prisma.webhookLog.findUnique({
       where: { id: webhookId },
     });
-    if (!log) throw new NotFoundException("سجل الويب هوك غير موجود");
-    if (log.processed)
-      throw new BadRequestException("تمت معالجة هذا الويب هوك بالفعل");
+    if (!log) {
+      throw new NotFoundException({
+        code: "WEBHOOK_LOG_NOT_FOUND",
+        details: {},
+      });
+    }
+    if (log.processed) {
+      throw new BadRequestException({
+        code: "WEBHOOK_ALREADY_PROCESSED",
+        details: {},
+      });
+    }
 
     const before = {
       provider: log.provider,
@@ -425,7 +528,7 @@ export class AdminFinanceService {
           data: {
             eventType: "WEBHOOK_FAILURE",
             source: "admin.finance.retry-webhook",
-            message: `Webhook retry failed: ${error.message}`,
+            message: "WEBHOOK_RETRY_FAILED",
             metadata: {
               webhookId,
               provider: log.provider,
@@ -446,7 +549,10 @@ export class AdminFinanceService {
         afterState: after,
       });
 
-      throw new BadRequestException(`فشلت إعادة المحاولة: ${error.message}`);
+      throw new BadRequestException({
+        code: "WEBHOOK_RETRY_FAILED",
+        details: {},
+      });
     }
   }
 
@@ -518,8 +624,8 @@ export class AdminFinanceService {
           // Lightweight health check: attempt to verify connectivity
           status = "UP";
         }
-      } catch (e: any) {
-        error = e.message;
+      } catch {
+        error = "GATEWAY_HEALTH_CHECK_FAILED";
       }
 
       const responseTime = Date.now() - start;
@@ -537,7 +643,7 @@ export class AdminFinanceService {
           data: {
             eventType: "GATEWAY_FAILURE",
             source: "admin.finance.check-gateway-health",
-            message: `Gateway ${gw.name} health check failed: ${error}`,
+            message: "GATEWAY_HEALTH_CHECK_FAILED",
             metadata: {
               gatewayId: gw.id,
               gatewayName: gw.name,

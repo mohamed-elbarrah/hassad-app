@@ -71,6 +71,7 @@ const PAYMENT_STATUS_AR: Record<string, string> = {
   SUCCESS: "ناجحة",
   FAILED: "فاشلة",
   REFUNDED: "مسترجعة",
+  REJECTED: "مرفوضة",
   PENDING: "معلقة",
 };
 
@@ -82,6 +83,7 @@ const PAYMENT_STATUS_VARIANT: Record<
   PENDING: "outline",
   FAILED: "destructive",
   REFUNDED: "destructive",
+  REJECTED: "destructive",
 };
 
 const PAYMENT_TABS = [
@@ -90,6 +92,7 @@ const PAYMENT_TABS = [
   { value: PaymentStatus.PENDING, label: "معلقة" },
   { value: PaymentStatus.FAILED, label: "فاشلة" },
   { value: PaymentStatus.REFUNDED, label: "مسترجعة" },
+  { value: PaymentStatus.REJECTED, label: "مرفوضة" },
 ];
 
 function getMethodIcon(method: string) {

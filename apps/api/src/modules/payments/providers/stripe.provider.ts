@@ -1,3 +1,4 @@
+import { BadRequestException } from "@nestjs/common";
 import { Stripe } from "stripe";
 import {
   PaymentProvider,
@@ -6,6 +7,50 @@ import {
 import { PaymentStatus } from "@hassad/shared";
 
 const STRIPE_API_VERSION = "2025-03-31.basil";
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  "BIF",
+  "CLP",
+  "DJF",
+  "GNF",
+  "JPY",
+  "MGA",
+  "KMF",
+  "KRW",
+  "PYG",
+  "RWF",
+  "UGX",
+  "VND",
+  "VUV",
+  "XAF",
+  "XOF",
+  "XPF",
+]);
+const THREE_DECIMAL_CURRENCIES = new Set(["BHD", "JOD", "KWD", "OMR", "TND"]);
+
+function stripeCurrencyMultiplier(currency: string) {
+  const normalizedCurrency = currency.toUpperCase();
+  return ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency)
+    ? 1
+    : THREE_DECIMAL_CURRENCIES.has(normalizedCurrency)
+      ? 1000
+      : 100;
+}
+
+function toStripeMinorUnits(amount: number, currency: string) {
+  const minorAmount = amount * stripeCurrencyMultiplier(currency);
+  const roundedAmount = Math.round(minorAmount);
+  if (Math.abs(minorAmount - roundedAmount) > 1e-8) {
+    throw new BadRequestException({
+      code: "PAYMENT_AMOUNT_PRECISION_INVALID",
+      details: { currency: currency.toUpperCase() },
+    });
+  }
+  return roundedAmount;
+}
+
+function fromStripeMinorUnits(amount: number, currency: string) {
+  return amount / stripeCurrencyMultiplier(currency);
+}
 
 export class StripeProvider implements PaymentProvider {
   private stripe: Stripe;
@@ -40,7 +85,7 @@ export class StripeProvider implements PaymentProvider {
             product_data: {
               name: `فاتورة ${params.invoiceId}`,
             },
-            unit_amount: Math.round(params.amount * 100),
+            unit_amount: toStripeMinorUnits(params.amount, params.currency),
           },
           quantity: 1,
         },
@@ -70,7 +115,7 @@ export class StripeProvider implements PaymentProvider {
     metadata?: any;
   }): Promise<PaymentIntentResponse> {
     const paymentIntent = await this.stripe.paymentIntents.create({
-      amount: Math.round(params.amount * 100),
+      amount: toStripeMinorUnits(params.amount, params.currency),
       currency: params.currency.toLowerCase(),
       metadata: {
         invoiceId: params.invoiceId,
@@ -98,6 +143,8 @@ export class StripeProvider implements PaymentProvider {
   async handleWebhookEvent(event: any): Promise<{
     providerPaymentId: string;
     status: PaymentStatus;
+    amount?: number;
+    currency?: string;
     metadata?: any;
   }> {
     const object = event.data.object as any;
@@ -117,11 +164,42 @@ export class StripeProvider implements PaymentProvider {
       case "payment_intent.canceled":
         status = PaymentStatus.FAILED;
         break;
+      case "charge.refunded":
+      case "charge.refund.updated":
+        if (
+          event.type === "charge.refund.updated" &&
+          object.status !== "succeeded"
+        ) {
+          status = PaymentStatus.PENDING;
+        } else {
+          status = PaymentStatus.REFUNDED;
+        }
+        break;
     }
 
+    const currency =
+      typeof object.currency === "string"
+        ? object.currency.toUpperCase()
+        : undefined;
+    const minorAmount =
+      object.amount_received ??
+      object.amount_total ??
+      object.amount ??
+      object.amount_refunded;
+
     return {
-      providerPaymentId: object.id,
+      providerPaymentId:
+        event.type === "checkout.session.completed"
+          ? object.id
+          : typeof object.payment_intent === "string"
+            ? object.payment_intent
+            : object.id,
       status,
+      amount:
+        typeof minorAmount === "number" && currency
+          ? fromStripeMinorUnits(minorAmount, currency)
+          : undefined,
+      currency,
       metadata: object.metadata,
     };
   }

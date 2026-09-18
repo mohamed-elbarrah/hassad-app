@@ -10,6 +10,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { MarketingModule } from "../marketing/marketing.module";
 import { CrmModule } from "../crm/crm.module";
 import { ChatModule } from "../chat/chat.module";
+import { PaymentsModule } from "../payments/payments.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ChatModule } from "../chat/chat.module";
     MarketingModule,
     CrmModule,
     ChatModule,
+    PaymentsModule,
     MulterModule.register({
       storage: memoryStorage(),
       limits: {

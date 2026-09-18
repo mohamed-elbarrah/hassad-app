@@ -10,6 +10,8 @@ import {
   Delete,
 } from "@nestjs/common";
 import { FinanceService } from "../services/finance.service";
+import { PaymentsService } from "../../payments/services/payments.service";
+import { ReviewPaymentDto } from "../../payments/dto/review-payment.dto";
 import {
   FinanceMetricsDto,
   DateRangeDto,
@@ -33,7 +35,10 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService) {}
+  constructor(
+    private readonly financeService: FinanceService,
+    private readonly paymentsService: PaymentsService,
+  ) {}
 
   @Get("finance/summary")
   @RequirePermissions("finance.read")
@@ -106,6 +111,12 @@ export class FinanceController {
     return this.financeService.findInvoice(id);
   }
 
+  @Get("invoices/:id/payment-details")
+  @RequirePermissions("finance.read")
+  getInvoicePaymentDetails(@Param("id") id: string) {
+    return this.paymentsService.getInvoicePaymentDetails(id);
+  }
+
   @Post("invoices/:id/send")
   @RequirePermissions("finance.update_invoice")
   sendInvoice(@Param("id") id: string) {
@@ -148,14 +159,13 @@ export class FinanceController {
   payInvoicePublic(
     @CurrentUser() user: any,
     @Param("id") id: string,
-    @Body() dto: any,
+    @Body("notes") notes?: string,
   ) {
-    return this.financeService.registerPayment(user.id, {
-      invoiceId: id,
-      amount: dto.amount,
-      method: dto.method,
-      notes: dto.notes,
-    });
+    return this.paymentsService.createBankTransferSubmission(
+      id,
+      user.id,
+      notes,
+    );
   }
 
   @Post("payments")
@@ -168,6 +178,36 @@ export class FinanceController {
   @RequirePermissions("finance.read")
   findAllPayments(@Query() filters: any) {
     return this.financeService.findAllPayments(filters);
+  }
+
+  @Post("payments/:id/approve")
+  @RequirePermissions("finance.review_payments")
+  approvePayment(
+    @Param("id") id: string,
+    @Body() dto: ReviewPaymentDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.paymentsService.reviewBankTransfer(
+      id,
+      user.id,
+      "APPROVE",
+      dto.reason,
+    );
+  }
+
+  @Post("payments/:id/reject")
+  @RequirePermissions("finance.review_payments")
+  rejectPayment(
+    @Param("id") id: string,
+    @Body() dto: ReviewPaymentDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.paymentsService.reviewBankTransfer(
+      id,
+      user.id,
+      "REJECT",
+      dto.reason,
+    );
   }
 
   @Get("payroll")

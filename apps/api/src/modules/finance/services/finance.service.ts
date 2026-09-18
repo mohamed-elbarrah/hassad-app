@@ -26,6 +26,7 @@ import {
   PaymentStatus,
   SalaryStatus,
   PaymentMethod,
+  PaymentEventType,
 } from "@hassad/shared";
 import type { ServiceItem } from "@hassad/shared";
 import { NotificationsService } from "../../notifications/services/notifications.service";
@@ -142,7 +143,7 @@ export class FinanceService {
     });
 
     if (!contract) {
-      throw new NotFoundException("Contract not found");
+      throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
     }
 
     const services = (contract.servicesList as ServiceItem[]) || [];
@@ -159,6 +160,7 @@ export class FinanceService {
           createdBy: userId,
           invoiceNumber,
           amount: contract.totalValue,
+          currency: contract.currency,
           status: InvoiceStatus.PENDING,
           paymentMethod: PaymentMethod.BANK_TRANSFER,
           issueDate: new Date(),
@@ -398,7 +400,7 @@ export class FinanceService {
     });
 
     if (!invoice) {
-      throw new NotFoundException(`Invoice with ID ${id} not found`);
+      throw new NotFoundException({ code: "INVOICE_NOT_FOUND", details: {} });
     }
 
     const history = await this.prisma.ledger.findMany({
@@ -412,41 +414,146 @@ export class FinanceService {
 
   async registerPayment(userId: string, dto: RegisterPaymentDto) {
     const invoice = await this.findInvoice(dto.invoiceId);
+    const isBankTransfer = dto.method === PaymentMethod.BANK_TRANSFER;
+    const existingPending = isBankTransfer
+      ? invoice.payments.find(
+          (payment) =>
+            payment.method === PaymentMethod.BANK_TRANSFER &&
+            payment.status === PaymentStatus.PENDING,
+        )
+      : undefined;
+    if (existingPending) return existingPending;
 
-    const { payment, becameFullyPaid } = await this.prisma.$transaction(
-      async (tx) => {
-        const p = await tx.payment.create({
-          data: {
-            invoiceId: dto.invoiceId,
-            amount: dto.amount,
-            method: dto.method,
-            status: PaymentStatus.SUCCESS,
-            notes: dto.notes,
-            date: dto.date ? new Date(dto.date) : new Date(),
-          },
-        });
+    if (!Number.isFinite(dto.amount) || dto.amount <= 0) {
+      throw new BadRequestException({
+        code: "PAYMENT_AMOUNT_INVALID",
+        details: {},
+      });
+    }
 
-        const totalPaid =
-          invoice.payments.reduce((sum, pay) => sum + pay.amount, 0) +
-          dto.amount;
-        let newStatus: InvoiceStatus = InvoiceStatus.PARTIAL;
-        let fullyPaid = false;
-        if (totalPaid >= invoice.amount) {
-          newStatus = InvoiceStatus.PAID;
-          fullyPaid = true;
-        }
-
-        await tx.invoice.update({
-          where: { id: dto.invoiceId },
-          data: {
-            status: newStatus,
-            paidAt: fullyPaid ? new Date() : undefined,
-          },
-        });
-
-        return { payment: p, becameFullyPaid: fullyPaid };
-      },
+    const paidAmount = invoice.payments
+      .filter((payment) => payment.status === PaymentStatus.SUCCESS)
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    const pendingAmount = invoice.payments
+      .filter((payment) => payment.status === PaymentStatus.PENDING)
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    const remainingAmount = Math.max(
+      0,
+      invoice.amount - paidAmount - pendingAmount,
     );
+    if (remainingAmount <= 0 || dto.amount > remainingAmount) {
+      throw new BadRequestException({
+        code: "PAYMENT_AMOUNT_EXCEEDS_REMAINING",
+        details: { remainingAmount },
+      });
+    }
+
+    let result;
+    try {
+      result = await this.prisma.$transaction(
+        async (tx) => {
+          const currentInvoice = await tx.invoice.findUnique({
+            where: { id: dto.invoiceId },
+            select: { amount: true, status: true },
+          });
+          const currentPayments = await tx.payment.findMany({
+            where: {
+              invoiceId: dto.invoiceId,
+              status: { in: [PaymentStatus.SUCCESS, PaymentStatus.PENDING] },
+            },
+            select: { amount: true, status: true },
+          });
+          const currentPaidAmount = currentPayments
+            .filter((payment) => payment.status === PaymentStatus.SUCCESS)
+            .reduce((sum, payment) => sum + payment.amount, 0);
+          const currentPendingAmount = currentPayments
+            .filter((payment) => payment.status === PaymentStatus.PENDING)
+            .reduce((sum, payment) => sum + payment.amount, 0);
+          const currentRemainingAmount = Math.max(
+            0,
+            (currentInvoice?.amount ?? 0) -
+              currentPaidAmount -
+              currentPendingAmount,
+          );
+          if (
+            !currentInvoice ||
+            currentInvoice.status === InvoiceStatus.CANCELLED ||
+            dto.amount > currentRemainingAmount
+          ) {
+            throw new BadRequestException({
+              code:
+                currentInvoice?.status === InvoiceStatus.CANCELLED
+                  ? "INVOICE_NOT_PAYABLE"
+                  : "PAYMENT_AMOUNT_EXCEEDS_REMAINING",
+              details: { remainingAmount: currentRemainingAmount },
+            });
+          }
+
+          const p = await tx.payment.create({
+            data: {
+              invoiceId: dto.invoiceId,
+              clientId: invoice.clientId,
+              amount: dto.amount,
+              method: dto.method,
+              status: isBankTransfer
+                ? PaymentStatus.PENDING
+                : PaymentStatus.SUCCESS,
+              notes: dto.notes,
+              currency: invoice.currency,
+              date: dto.date ? new Date(dto.date) : new Date(),
+              metadataJson: isBankTransfer
+                ? { source: "FINANCE_BANK_TRANSFER" }
+                : undefined,
+            },
+          });
+
+          if (isBankTransfer) {
+            await tx.paymentEvent.create({
+              data: {
+                paymentId: p.id,
+                type: PaymentEventType.CREATED,
+                payloadJson: {
+                  status: PaymentStatus.PENDING,
+                  source: "FINANCE_BANK_TRANSFER",
+                },
+              },
+            });
+            return { payment: p, becameFullyPaid: false };
+          }
+
+          const totalPaid = currentPaidAmount + dto.amount;
+          const fullyPaid = totalPaid >= currentInvoice!.amount;
+          await tx.invoice.update({
+            where: { id: dto.invoiceId },
+            data: {
+              status: fullyPaid ? InvoiceStatus.PAID : InvoiceStatus.PARTIAL,
+              paidAt: fullyPaid ? new Date() : null,
+            },
+          });
+
+          return { payment: p, becameFullyPaid: fullyPaid };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (
+        isBankTransfer &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        const concurrentPayment = await this.prisma.payment.findFirst({
+          where: {
+            invoiceId: dto.invoiceId,
+            method: PaymentMethod.BANK_TRANSFER,
+            status: PaymentStatus.PENDING,
+          },
+        });
+        if (concurrentPayment) return concurrentPayment;
+      }
+      throw error;
+    }
+
+    const { payment, becameFullyPaid } = result;
 
     await this.logToLedger({
       action: "REGISTER_PAYMENT",
@@ -455,6 +562,8 @@ export class FinanceService {
       userId,
       after: payment,
     });
+
+    if (payment.status !== PaymentStatus.SUCCESS) return payment;
 
     this.clientCounterService
       .onInvoicePaid(dto.invoiceId)
@@ -1073,7 +1182,9 @@ export class FinanceService {
     };
 
     for (const inv of unpaid) {
-      const paid = inv.payments.reduce((s, p) => s + p.amount, 0);
+      const paid = inv.payments
+        .filter((payment) => payment.status === PaymentStatus.SUCCESS)
+        .reduce((s, p) => s + p.amount, 0);
       const remaining = inv.amount - paid;
       if (remaining <= 0) continue;
 
@@ -1258,7 +1369,11 @@ export class FinanceService {
         });
         const totalInvoiced = invoices.reduce((s, i) => s + i.amount, 0);
         const totalPaid = invoices.reduce(
-          (s, i) => s + i.payments.reduce((ps, p) => ps + p.amount, 0),
+          (s, i) =>
+            s +
+            i.payments
+              .filter((payment) => payment.status === PaymentStatus.SUCCESS)
+              .reduce((ps, p) => ps + p.amount, 0),
           0,
         );
         return {
@@ -1451,21 +1566,64 @@ export class FinanceService {
     status?: string;
     clientId?: string;
     contractId?: string;
+    method?: string;
+    search?: string;
     page?: number;
     limit?: number;
   }) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
     const where: any = {};
-    if (filters.status) where.status = filters.status;
+    if (filters.status === "PENDING_REVIEW") {
+      if (filters.method && filters.method !== PaymentMethod.BANK_TRANSFER) {
+        where.id = "__NO_PENDING_BANK_REVIEW_MATCH__";
+      } else {
+        where.payments = {
+          some: {
+            method: PaymentMethod.BANK_TRANSFER,
+            status: PaymentStatus.PENDING,
+          },
+        };
+      }
+    } else if (filters.status) {
+      where.status = filters.status;
+      if (filters.method) {
+        where.payments = { some: { method: filters.method } };
+      }
+    } else if (filters.method) {
+      where.payments = { some: { method: filters.method } };
+    }
     if (filters.clientId) where.clientId = filters.clientId;
     if (filters.contractId) where.contractId = filters.contractId;
+    if (filters.search?.trim()) {
+      const search = filters.search.trim();
+      where.OR = [
+        { invoiceNumber: { contains: search, mode: "insensitive" } },
+        { client: { companyName: { contains: search, mode: "insensitive" } } },
+        {
+          client: {
+            user: { name: { contains: search, mode: "insensitive" } },
+          },
+        },
+        {
+          client: {
+            user: { email: { contains: search, mode: "insensitive" } },
+          },
+        },
+      ];
+    }
     const [items, total] = await Promise.all([
       this.prisma.invoice.findMany({
         where,
         include: {
-          client: { select: { id: true, companyName: true } },
-          payments: true,
+          client: {
+            select: {
+              id: true,
+              companyName: true,
+              user: { select: { id: true, name: true, email: true } },
+            },
+          },
+          payments: { select: { amount: true, status: true, method: true } },
           contract: { select: { id: true, title: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -1474,7 +1632,27 @@ export class FinanceService {
       }),
       this.prisma.invoice.count({ where }),
     ]);
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+    const enrichedItems = items.map((invoice) => {
+      const paidAmount = invoice.payments
+        .filter((payment) => payment.status === PaymentStatus.SUCCESS)
+        .reduce((sum, payment) => sum + payment.amount, 0);
+      const pendingAmount = invoice.payments
+        .filter((payment) => payment.status === PaymentStatus.PENDING)
+        .reduce((sum, payment) => sum + payment.amount, 0);
+      return {
+        ...invoice,
+        paidAmount,
+        pendingAmount,
+        remainingAmount: Math.max(0, invoice.amount - paidAmount),
+      };
+    });
+    return {
+      items: enrichedItems,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findAllPayments(filters: {
@@ -1550,7 +1728,12 @@ export class FinanceService {
 
     return contracts.map((contract) => {
       const totalPaid = contract.invoices.reduce((acc, inv) => {
-        return acc + inv.payments.reduce((sum, p) => sum + p.amount, 0);
+        return (
+          acc +
+          inv.payments
+            .filter((payment) => payment.status === PaymentStatus.SUCCESS)
+            .reduce((sum, p) => sum + p.amount, 0)
+        );
       }, 0);
 
       return {

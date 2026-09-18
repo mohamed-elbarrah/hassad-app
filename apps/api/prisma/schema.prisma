@@ -99,6 +99,7 @@ model User {
   disputesAgainstPm     DisputeTicket[]     @relation("DisputesAgainstPM")
   disputeReviews        DisputeTicket[]     @relation("DisputeReviewer")
   disputeResolutions    DisputeTicket[]     @relation("DisputeResolver")
+  reviewedPayments      Payment[]          @relation("PaymentReviewer")
   newPmAssignments      DisputeTicket[]     @relation("NewPmAssignment")
   disputeMessages       DisputeMessage[]
   disputeAttachments    DisputeAttachment[]
@@ -1305,6 +1306,10 @@ model Payment {
   updatedAt         DateTime        @updatedAt @map("updated_at")
   status            PaymentStatus
   receiptImage      String?         @map("receipt_image")
+  reviewedBy        String?         @map("reviewed_by")
+  reviewedAt        DateTime?       @map("reviewed_at")
+  reviewReason      String?         @map("review_reason")
+  reviewer          User?           @relation("PaymentReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
   events            PaymentEvent[]
   client            Client?         @relation(fields: [clientId], references: [id])
   gateway           PaymentGateway? @relation(fields: [gatewayId], references: [id])
@@ -1360,14 +1365,16 @@ model PaymentEvent {
 }
 
 model WebhookLog {
-  id        String   @id @default(uuid())
-  provider  String
-  eventType String   @map("event_type")
-  payload   Json
-  processed Boolean  @default(false)
-  error     String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid())
+  provider        String
+  providerEventId String?  @map("provider_event_id")
+  eventType       String   @map("event_type")
+  payload         Json
+  processed       Boolean  @default(false)
+  error           String?
+  createdAt       DateTime @default(now()) @map("created_at")
 
+  @@unique([provider, providerEventId])
   @@map("webhook_logs")
 }
 
@@ -2264,6 +2271,7 @@ enum PaymentStatus {
   PENDING
   SUCCESS
   FAILED
+  REJECTED
   REFUNDED
 }
 
@@ -2271,6 +2279,7 @@ enum PaymentEventType {
   CREATED
   SUCCESS
   FAILED
+  REJECTED
   REFUNDED
 }
 

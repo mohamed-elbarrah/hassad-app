@@ -25,6 +25,10 @@ export class AdminFinanceListQueryDto {
 
   @IsOptional()
   @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsString()
   clientId?: string;
 
   @IsOptional()

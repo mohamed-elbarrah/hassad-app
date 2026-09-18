@@ -21,14 +21,23 @@ export class WebhooksController {
     @Req() req: RawBodyRequest<any>,
   ) {
     if (provider === "stripe") {
-      if (!stripeSignature)
-        throw new BadRequestException("Missing stripe signature");
+      if (!stripeSignature) {
+        throw new BadRequestException({
+          code: "WEBHOOK_SIGNATURE_REQUIRED",
+          details: {},
+        });
+      }
       const payload = req.rawBody ?? Buffer.from(JSON.stringify(req.body));
       await this.paymentsService.processWebhook(
         "stripe",
         payload,
         stripeSignature,
       );
+    } else {
+      throw new BadRequestException({
+        code: "WEBHOOK_PROVIDER_UNSUPPORTED",
+        details: { provider },
+      });
     }
 
     return { received: true };

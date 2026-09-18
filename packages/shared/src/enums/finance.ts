@@ -41,6 +41,7 @@ export enum PaymentStatus {
   PENDING = "PENDING",
   SUCCESS = "SUCCESS",
   FAILED = "FAILED",
+  REJECTED = "REJECTED",
   REFUNDED = "REFUNDED",
 }
 
@@ -48,6 +49,7 @@ export enum PaymentEventType {
   CREATED = "CREATED",
   SUCCESS = "SUCCESS",
   FAILED = "FAILED",
+  REJECTED = "REJECTED",
   REFUNDED = "REFUNDED",
 }
 

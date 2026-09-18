@@ -39,6 +39,8 @@ export interface PaymentProvider {
   handleWebhookEvent(event: any): Promise<{
     providerPaymentId: string;
     status: PaymentStatus;
+    amount?: number;
+    currency?: string;
     metadata?: any;
   }>;
 }

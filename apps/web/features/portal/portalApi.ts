@@ -286,11 +286,27 @@ export interface PortalRequestList {
   statusCounts: Record<string, number>;
 }
 
+export interface PortalBankAccount {
+  id: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string | null;
+  iban: string;
+  swiftCode: string | null;
+  instructions: string | null;
+  isDefault: boolean;
+}
+
 export interface PortalInvoiceSummary {
   id: string;
   invoiceNumber: string;
   amount: number;
+  currency?: string | null;
   paidAmount?: number;
+  pendingPaymentAmount?: number;
+  hasPendingPayment?: boolean;
+  hasPendingBankTransfer?: boolean;
+  hasPendingReceipt?: boolean;
   remainingAmount?: number;
   status: string;
   dueDate: string;
@@ -550,6 +566,7 @@ export interface PortalInvoiceDetail {
   issueDate: string;
   dueDate: string;
   paidAmount: number;
+  pendingPaymentAmount: number;
   remainingAmount: number;
   notes?: string | null;
   currency: string;
@@ -1011,7 +1028,55 @@ export const portalApi = createApi({
       query: (invoiceId) => `/portal/invoices/${invoiceId}`,
       providesTags: (_result, _error, id) => [{ type: "PortalInvoices", id }],
     }),
-
+    getPortalPaymentGateways: builder.query<string[], void>({
+      query: () => "/portal/payments/gateways",
+    }),
+    getPortalPaymentBankAccounts: builder.query<PortalBankAccount[], void>({
+      query: () => "/portal/payments/bank-accounts",
+    }),
+    getPortalStripeConfig: builder.query<
+      { publishableKey: string | null; isActive: boolean },
+      void
+    >({
+      query: () => "/portal/payments/stripe-config",
+    }),
+    createPortalElementIntent: builder.mutation<
+      { clientSecret: string; id: string },
+      { invoiceId: string; amount: number; currency?: string }
+    >({
+      query: (body) => ({
+        url: "/portal/payments/stripe/element-intent",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PortalInvoices"],
+    }),
+    createPortalBankTransfer: builder.mutation<
+      { id: string; invoiceId: string; status: string },
+      { invoiceId: string; notes?: string }
+    >({
+      query: ({ invoiceId, notes }) => ({
+        url: `/portal/invoices/${invoiceId}/bank-transfer`,
+        method: "POST",
+        body: { notes },
+      }),
+      invalidatesTags: ["PortalInvoices", "PortalFinanceSummary"],
+    }),
+    uploadPortalPaymentReceipt: builder.mutation<
+      { id: string; status: string },
+      { paymentId: string; file: File }
+    >({
+      query: ({ paymentId, file }) => {
+        const formData = new FormData();
+        formData.append("receipt", file);
+        return {
+          url: `/portal/payments/${paymentId}/receipt`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: ["PortalInvoices", "PortalFinanceSummary"],
+    }),
     /**
      * Resolves a `deliverableId` (embedded in action items' `actionUrl`)
      * back to its owning `projectId`. The detail page uses this to deep-link
@@ -1293,6 +1358,12 @@ export const {
   useLazyDownloadPeriodFileQuery,
   useGetPortalProjectDetailQuery,
   useGetPortalInvoiceDetailQuery,
+  useGetPortalPaymentGatewaysQuery,
+  useGetPortalPaymentBankAccountsQuery,
+  useGetPortalStripeConfigQuery,
+  useCreatePortalElementIntentMutation,
+  useCreatePortalBankTransferMutation,
+  useUploadPortalPaymentReceiptMutation,
   useGetDeliverableRedirectQuery,
   // Strategy hooks
   useGetClientStrategiesQuery,

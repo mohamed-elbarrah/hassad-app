@@ -1,22 +1,63 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import { getApiBaseUrl } from "@/lib/utils";
-import type { Invoice, Payment, PaymentTicket, Employee, Salary, Ledger, InvoiceStatus, PaymentMethod } from "@hassad/shared";
+import type {
+  Invoice,
+  Payment,
+  PaymentTicket,
+  Employee,
+  Salary,
+  Ledger,
+  InvoiceStatus,
+  PaymentMethod,
+} from "@hassad/shared";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface PaginatedInvoices {
-  items: Invoice[];
+  items: Array<
+    Invoice & {
+      paidAmount?: number;
+      pendingAmount?: number;
+      remainingAmount?: number;
+    }
+  >;
   total: number;
   page: number;
   limit: number;
   totalPages: number;
 }
 
+export interface InvoicePaymentDetails extends Invoice {
+  paidAmount: number;
+  pendingAmount: number;
+  remainingAmount: number;
+  client?: {
+    id: string;
+    companyName: string;
+    user?: { id: string; name: string; email: string } | null;
+  } | null;
+  contract?: { id: string; title: string; status: string } | null;
+  payments: Array<
+    Payment & {
+      receiptUrl: string | null;
+      reviewedAt?: string | null;
+      reviewReason?: string | null;
+      reviewer?: { id: string; name: string } | null;
+      events: Array<{
+        id: string;
+        type: string;
+        createdAt: string;
+      }>;
+    }
+  >;
+}
+
 export interface InvoiceFilters {
-  status?: InvoiceStatus;
+  status?: string;
   clientId?: string;
   contractId?: string;
+  method?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -214,6 +255,13 @@ export const financeApi = createApi({
       query: (id) => `/invoices/${id}`,
       providesTags: (_r, _e, id) => [{ type: "Invoice", id }],
     }),
+    getInvoicePaymentDetails: builder.query<InvoicePaymentDetails, string>({
+      query: (id) => `/invoices/${id}/payment-details`,
+      providesTags: (_r, _e, id) => [
+        { type: "Invoice", id },
+        { type: "Payment", id: `DETAILS-${id}` },
+      ],
+    }),
     createInvoice: builder.mutation<Invoice, CreateInvoiceInput>({
       query: (body) => ({ url: "/invoices", method: "POST", body }),
       invalidatesTags: [{ type: "Invoice", id: "LIST" }, "FinanceSummary"],
@@ -278,16 +326,27 @@ export const financeApi = createApi({
       }),
       invalidatesTags: ["Payment", "Invoice", "FinanceSummary", "Ledger"],
     }),
-    payInvoicePublic: builder.mutation<
+    approveBankTransfer: builder.mutation<
       Payment,
-      { id: string; amount: number; method: PaymentMethod; notes?: string }
+      { id: string; reason?: string }
     >({
-      query: ({ id, ...body }) => ({
-        url: `/invoices/${id}/pay-public`,
+      query: ({ id, reason }) => ({
+        url: `/payments/${id}/approve`,
         method: "POST",
-        body,
+        body: { reason },
       }),
-      invalidatesTags: ["Payment", "Invoice"],
+      invalidatesTags: ["Payment", "Invoice", "FinanceSummary", "Ledger"],
+    }),
+    rejectBankTransfer: builder.mutation<
+      Payment,
+      { id: string; reason: string }
+    >({
+      query: ({ id, reason }) => ({
+        url: `/payments/${id}/reject`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: ["Payment", "Invoice", "FinanceSummary", "Ledger"],
     }),
 
     // Payroll
@@ -513,28 +572,6 @@ export const financeApi = createApi({
       invalidatesTags: ["Payment", "Invoice"],
     }),
 
-    uploadPaymentReceipt: builder.mutation<
-      any,
-      { paymentId: string; file: File }
-    >({
-      queryFn: async ({ paymentId, file }, _api, _extraOptions) => {
-        const formData = new FormData();
-        formData.append("receipt", file);
-        formData.append("paymentId", paymentId);
-        const apiBase = getApiBaseUrl();
-        const res = await fetch(`${apiBase}/payments/upload-receipt`, {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        });
-        const json = await res.json();
-        if (!res.ok) return { error: { status: res.status, data: json } };
-        const data = json?.data !== undefined ? json.data : json;
-        return { data };
-      },
-      invalidatesTags: ["Payment", "Invoice"],
-    }),
-
     getStripePublishableKey: builder.query<
       { publishableKey: string | null; isActive: boolean },
       void
@@ -556,6 +593,7 @@ export const {
   useGetPaymentMethodsQuery,
   useGetInvoicesQuery,
   useGetInvoiceByIdQuery,
+  useGetInvoicePaymentDetailsQuery,
   useCreateInvoiceMutation,
   useSendInvoiceMutation,
   useUpdateInvoiceMutation,
@@ -563,10 +601,10 @@ export const {
   useGetPaymentsQuery,
   useRegisterPaymentMutation,
   usePayInvoiceMutation,
-  usePayInvoicePublicMutation,
+  useApproveBankTransferMutation,
+  useRejectBankTransferMutation,
   useCreatePaymentIntentMutation,
   useCreateElementPaymentIntentMutation,
-  useUploadPaymentReceiptMutation,
   useGetStripePublishableKeyQuery,
   useGetEmployeesQuery,
   useGetEmployeeByIdQuery,

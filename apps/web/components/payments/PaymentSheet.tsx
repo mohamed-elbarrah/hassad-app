@@ -31,13 +31,13 @@ import { cn } from "@/lib/utils";
 import { portalErrorMessage } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/format";
 import {
-  useCreateElementPaymentIntentMutation,
-  useUploadPaymentReceiptMutation,
-  useGetPublicGatewaysQuery,
-  useGetStripePublishableKeyQuery,
-  useGetPublicBankAccountsQuery,
-  usePayInvoicePublicMutation,
-} from "@/features/finance/financeApi";
+  useCreatePortalBankTransferMutation,
+  useCreatePortalElementIntentMutation,
+  useGetPortalPaymentBankAccountsQuery,
+  useGetPortalPaymentGatewaysQuery,
+  useGetPortalStripeConfigQuery,
+  useUploadPortalPaymentReceiptMutation,
+} from "@/features/portal/portalApi";
 import { PaymentMethod } from "@hassad/shared";
 
 export interface PayableInvoice {
@@ -46,6 +46,10 @@ export interface PayableInvoice {
   amount: number;
   currency?: string | null;
   status: string;
+  remainingAmount?: number;
+  hasPendingPayment?: boolean;
+  hasPendingBankTransfer?: boolean;
+  hasPendingReceipt?: boolean;
 }
 
 /* ═════════════ Shared utilities ═════════════ */
@@ -75,6 +79,10 @@ function fmtAmount(n: number, currency?: string | null) {
   return formatCurrency(n, currency);
 }
 
+function getPayableAmount(invoice: PayableInvoice) {
+  return invoice.remainingAmount ?? invoice.amount;
+}
+
 /* ═════════════ Simple Checkout Card (inline, no sheet) ═════════════════ */
 
 export interface InlinePaymentProps {
@@ -93,13 +101,13 @@ export function InlinePaymentCard({
   compact: _compact = false,
 }: InlinePaymentProps) {
   const { data: activeGateways = [], isLoading: loadingGateways } =
-    useGetPublicGatewaysQuery(undefined);
+    useGetPortalPaymentGatewaysQuery(undefined);
   const { data: stripeConfig, isLoading: loadingStripeConfig } =
-    useGetStripePublishableKeyQuery(undefined, {
+    useGetPortalStripeConfigQuery(undefined, {
       skip: !!stripeKeyProp,
     });
   const { data: bankData, isLoading: loadingBankAccounts } =
-    useGetPublicBankAccountsQuery(undefined, {
+    useGetPortalPaymentBankAccountsQuery(undefined, {
       skip:
         !!(bankAccountsProp && bankAccountsProp.length > 0) ||
         !activeGateways.includes("bank_transfer"),
@@ -122,9 +130,22 @@ export function InlinePaymentCard({
 
   useEffect(() => {
     if (resolvedMethods.length > 0 && !selectedMethod) {
-      setSelectedMethod(resolvedMethods[0].key);
+      const preferredMethod =
+        invoice.hasPendingBankTransfer && !invoice.hasPendingReceipt
+          ? PaymentMethod.BANK_TRANSFER
+          : resolvedMethods[0].key;
+      setSelectedMethod(
+        resolvedMethods.some((method) => method.key === preferredMethod)
+          ? preferredMethod
+          : resolvedMethods[0].key,
+      );
     }
-  }, [resolvedMethods, selectedMethod]);
+  }, [
+    invoice.hasPendingBankTransfer,
+    invoice.hasPendingReceipt,
+    resolvedMethods,
+    selectedMethod,
+  ]);
 
   const showTabs = resolvedMethods.length > 1;
   const loadingPaymentConfiguration =
@@ -133,14 +154,14 @@ export function InlinePaymentCard({
     (activeGateways.includes("stripe") && loadingStripeConfig);
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="flex flex-col gap-4" dir="rtl">
       <div className="flex items-center justify-between rounded-lg border bg-muted/20 p-4">
-        <div className="space-y-0.5">
+        <div className="flex flex-col gap-0.5">
           <p className="text-sm font-medium">{invoice.invoiceNumber}</p>
           <p className="text-xs text-muted-foreground">المبلغ المستحق</p>
         </div>
         <p className="text-lg font-bold">
-          {fmtAmount(invoice.amount, invoice.currency)}
+          {fmtAmount(getPayableAmount(invoice), invoice.currency)}
         </p>
       </div>
 
@@ -206,19 +227,25 @@ export function CardPaymentForm({
 }) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [createElementIntent, { isLoading: creating }] =
-    useCreateElementPaymentIntentMutation();
+    useCreatePortalElementIntentMutation();
 
   const load = useCallback(async () => {
     try {
       const result = await createElementIntent({
         invoiceId: invoice.id,
-        amount: invoice.amount,
+        amount: getPayableAmount(invoice),
+        currency: invoice.currency ?? "SAR",
       }).unwrap();
       if (result?.clientSecret) setClientSecret(result.clientSecret);
     } catch (err: unknown) {
       toast.error(portalErrorMessage(err));
     }
-  }, [invoice.id, invoice.amount, createElementIntent]);
+  }, [
+    invoice.id,
+    invoice.amount,
+    invoice.remainingAmount,
+    createElementIntent,
+  ]);
 
   useEffect(() => {
     if (!clientSecret && !creating) load();
@@ -227,7 +254,7 @@ export function CardPaymentForm({
   if (!clientSecret) {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="size-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">
           جاري تجهيز نموذج الدفع...
         </p>
@@ -296,7 +323,7 @@ function StripePaymentForm({
 
     const cardElement = elements.getElement(CardNumberElement);
     if (!cardElement) {
-      setError("لم يتم تحميل نموذج الدفع");
+      setError("PAYMENT_FORM_NOT_READY");
       setProcessing(false);
       return;
     }
@@ -307,7 +334,7 @@ function StripePaymentForm({
       });
 
     if (submitError) {
-      setError(submitError.message ?? "فشل الدفع");
+      setError("STRIPE_PAYMENT_FAILED");
       setProcessing(false);
       return;
     }
@@ -319,9 +346,9 @@ function StripePaymentForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {/* Card number */}
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-muted-foreground">
           رقم البطاقة
         </label>
@@ -344,7 +371,7 @@ function StripePaymentForm({
 
       {/* Expiry + CVC in a grid */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">
             تاريخ الانتهاء
           </label>
@@ -364,7 +391,7 @@ function StripePaymentForm({
             />
           </div>
         </div>
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">
             رمز الأمان (CVV)
           </label>
@@ -387,9 +414,9 @@ function StripePaymentForm({
       </div>
 
       {error && (
-        <p className="text-xs text-danger-500 flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
-          {error}
+        <p className="flex items-center gap-1 text-xs text-destructive">
+          <AlertCircle className="size-3" />
+          {portalErrorMessage({ code: error })}
         </p>
       )}
 
@@ -428,8 +455,8 @@ export function BankTransferForm({
 }) {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [uploadReceipt] = useUploadPaymentReceiptMutation();
-  const [payInvoiceManual] = usePayInvoicePublicMutation();
+  const [uploadReceipt] = useUploadPortalPaymentReceiptMutation();
+  const [createBankTransfer] = useCreatePortalBankTransferMutation();
 
   const handleConfirm = async () => {
     if (!receiptFile) {
@@ -438,10 +465,8 @@ export function BankTransferForm({
     }
     setConfirming(true);
     try {
-      const payment = await payInvoiceManual({
-        id: invoice.id,
-        amount: invoice.amount,
-        method: PaymentMethod.BANK_TRANSFER,
+      const payment = await createBankTransfer({
+        invoiceId: invoice.id,
       }).unwrap();
 
       await uploadReceipt({
@@ -459,7 +484,7 @@ export function BankTransferForm({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {bankAccounts.length > 0 ? (
         <div className="overflow-hidden rounded-lg border">
           <Table>
@@ -495,7 +520,7 @@ export function BankTransferForm({
           </span>{" "}
           قم بتحويل المبلغ{" "}
           <span className="font-semibold text-foreground">
-            {fmtAmount(invoice.amount, invoice.currency)}
+            {fmtAmount(getPayableAmount(invoice), invoice.currency)}
           </span>{" "}
           إلى أحد الحسابات أعلاه. يرجى إرفاق رقم الفاتورة{" "}
           <span className="font-semibold text-foreground">
@@ -505,7 +530,7 @@ export function BankTransferForm({
         </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label className="text-xs">إرفاق صورة الإيصال</Label>
         <div className="flex items-center gap-3">
           <Button
@@ -574,15 +599,15 @@ export function PaymentSheet({
   onPaymentComplete,
 }: PaymentSheetProps) {
   const { data: activeGateways = [], isLoading: loadingGateways } =
-    useGetPublicGatewaysQuery(undefined, {
+    useGetPortalPaymentGatewaysQuery(undefined, {
       skip: !invoice,
     });
   const { data: stripeConfig, isLoading: loadingStripeConfig } =
-    useGetStripePublishableKeyQuery(undefined, {
+    useGetPortalStripeConfigQuery(undefined, {
       skip: !invoice,
     });
   const { data: bankAccounts, isLoading: loadingBankAccounts } =
-    useGetPublicBankAccountsQuery(undefined, {
+    useGetPortalPaymentBankAccountsQuery(undefined, {
       skip: !invoice || !activeGateways.includes("bank_transfer"),
     });
 
@@ -606,12 +631,23 @@ export function PaymentSheet({
   );
 
   useEffect(() => {
-    if (availableMethods.length === 1) {
-      setSelectedMethod(availableMethods[0].key);
-    } else if (availableMethods.length > 1 && !selectedMethod) {
-      setSelectedMethod(availableMethods[0].key);
+    if (availableMethods.length > 0 && !selectedMethod) {
+      const preferredMethod =
+        invoice?.hasPendingBankTransfer && !invoice.hasPendingReceipt
+          ? PaymentMethod.BANK_TRANSFER
+          : availableMethods[0].key;
+      setSelectedMethod(
+        availableMethods.some((method) => method.key === preferredMethod)
+          ? preferredMethod
+          : availableMethods[0].key,
+      );
     }
-  }, [availableMethods, selectedMethod]);
+  }, [
+    availableMethods,
+    invoice?.hasPendingBankTransfer,
+    invoice?.hasPendingReceipt,
+    selectedMethod,
+  ]);
 
   useEffect(() => {
     if (!open) {
@@ -639,7 +675,7 @@ export function PaymentSheet({
             <div className="sticky top-0 z-10 bg-background border-b border-border px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-primary" />
+                  <Receipt className="size-5 text-primary" />
                   <h2 className="text-base font-semibold text-foreground">
                     دفع الفاتورة
                   </h2>
@@ -655,10 +691,10 @@ export function PaymentSheet({
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4">
+            <div className="flex flex-col gap-4 p-6">
               {/* Invoice summary */}
               <div className="flex items-center justify-between rounded-xl border border-border bg-portal-bg p-4">
-                <div className="space-y-0.5">
+                <div className="flex flex-col gap-0.5">
                   <p className="text-sm font-medium text-foreground">
                     {invoice.invoiceNumber}
                   </p>
@@ -667,7 +703,7 @@ export function PaymentSheet({
                   </p>
                 </div>
                 <p className="text-lg font-bold text-foreground">
-                  {fmtAmount(invoice.amount, invoice.currency)}
+                  {fmtAmount(getPayableAmount(invoice), invoice.currency)}
                 </p>
               </div>
 
@@ -687,7 +723,7 @@ export function PaymentSheet({
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className="size-4" />
                         {m.label}
                       </button>
                     );

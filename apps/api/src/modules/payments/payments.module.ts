@@ -11,7 +11,10 @@ import { CrmModule } from "../crm/crm.module";
   imports: [
     NotificationsModule,
     CrmModule,
-    MulterModule.register({ storage: memoryStorage() }),
+    MulterModule.register({
+      storage: memoryStorage(),
+      limits: { fileSize: 25 * 1024 * 1024, files: 1 },
+    }),
   ],
   controllers: [PaymentsController, WebhooksController],
   providers: [PaymentsService],

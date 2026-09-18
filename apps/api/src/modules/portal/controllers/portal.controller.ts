@@ -13,6 +13,7 @@ import {
   UploadedFiles,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Logger,
   ParseUUIDPipe,
 } from "@nestjs/common";
@@ -36,6 +37,8 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
+import { PaymentsService } from "../../payments/services/payments.service";
+import { CreatePaymentIntentDto } from "../../payments/dto/create-payment-intent.dto";
 import {
   ClientApproveStrategyDto,
   ClientRequestRevisionDto as StrategyRevisionDto,
@@ -50,6 +53,7 @@ export class PortalController {
     private readonly portalService: PortalService,
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   /** Parse and validate page limit parameter (NEW) */
@@ -941,6 +945,85 @@ export class PortalController {
         details: {},
       });
     return this.portalService.getInvoiceDetail(clientId, id);
+  }
+
+  @Get("portal/payments/gateways")
+  @RequirePermissions("invoices.pay_public")
+  getPortalPaymentGateways() {
+    return this.paymentsService.getPublicGateways();
+  }
+
+  @Get("portal/payments/bank-accounts")
+  @RequirePermissions("invoices.pay_public")
+  getPortalPaymentBankAccounts() {
+    return this.paymentsService.getPublicBankAccounts();
+  }
+
+  @Get("portal/payments/stripe-config")
+  @RequirePermissions("invoices.pay_public")
+  getPortalStripeConfig() {
+    return this.paymentsService.getPublicConfig();
+  }
+
+  @Post("portal/payments/stripe/element-intent")
+  @RequirePermissions("invoices.pay_public")
+  createPortalElementIntent(
+    @Body() dto: CreatePaymentIntentDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.paymentsService.createElementPayment({
+      ...dto,
+      clientUserId: user.id,
+    });
+  }
+
+  @Post("portal/invoices/:id/bank-transfer")
+  @RequirePermissions("invoices.pay_public")
+  async createBankTransferSubmission(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body("notes") notes?: string,
+  ) {
+    return this.paymentsService.createBankTransferSubmission(
+      id,
+      user.id,
+      notes,
+    );
+  }
+
+  @Post("portal/payments/:id/receipt")
+  @RequirePermissions("invoices.pay_public")
+  @UseInterceptors(FileInterceptor("receipt"))
+  async uploadPaymentReceipt(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    if (!file) {
+      throw new BadRequestException({ code: "FILE_REQUIRED", details: {} });
+    }
+    await this.paymentsService.assertReceiptUploadAllowed(id, user.id);
+    const uploadResult = await this.storageService.upload({
+      category: StorageCategory.RECEIPT,
+      entityId: id,
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+      subPath: "receipts",
+    });
+    try {
+      return await this.paymentsService.attachReceipt(
+        id,
+        uploadResult.key,
+        user.id,
+      );
+    } catch (error) {
+      await this.storageService.deleteByKey(uploadResult.key);
+      throw error;
+    }
   }
 
   /**

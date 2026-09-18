@@ -759,9 +759,13 @@ export class PortalService {
     const paidAmount = invoice.payments
       .filter((p) => p.status === "SUCCESS")
       .reduce((sum, p) => sum + p.amount, 0);
+    const pendingPaymentAmount = invoice.payments
+      .filter((p) => p.status === "PENDING")
+      .reduce((sum, p) => sum + p.amount, 0);
     return {
       ...invoice,
       paidAmount,
+      pendingPaymentAmount,
       remainingAmount: Math.max(0, invoice.amount - paidAmount),
     };
   }
@@ -2035,7 +2039,14 @@ export class PortalService {
         where,
         include: {
           contract: { select: { id: true, title: true } },
-          payments: { select: { amount: true, status: true } },
+          payments: {
+            select: {
+              amount: true,
+              status: true,
+              method: true,
+              receiptImage: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip: (query.page - 1) * query.limit,
@@ -2048,9 +2059,30 @@ export class PortalService {
       const paidAmount = inv.payments
         .filter((p) => p.status === "SUCCESS")
         .reduce((sum, p) => sum + p.amount, 0);
+      const pendingPayments = inv.payments.filter(
+        (payment) => payment.status === "PENDING",
+      );
+      const pendingPaymentAmount = pendingPayments.reduce(
+        (sum, payment) => sum + payment.amount,
+        0,
+      );
+      const pendingBankTransfers = pendingPayments.filter(
+        (payment) => payment.method === "BANK_TRANSFER",
+      );
       return {
         ...inv,
         paidAmount,
+        pendingPaymentAmount,
+        hasPendingPayment: pendingPayments.length > 0,
+        hasPendingBankTransfer: pendingBankTransfers.length > 0,
+        hasPendingReceipt: pendingBankTransfers.some((payment) =>
+          Boolean(payment.receiptImage),
+        ),
+        payments: inv.payments.map((payment) => ({
+          amount: payment.amount,
+          status: payment.status,
+          method: payment.method,
+        })),
         remainingAmount: Math.max(0, inv.amount - paidAmount),
       };
     });

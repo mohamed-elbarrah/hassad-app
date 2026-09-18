@@ -483,6 +483,7 @@ export interface Invoice {
   createdBy: string;
   invoiceNumber: string;
   amount: number;
+  currency?: string | null;
   status: InvoiceStatus;
   paymentMethod: PaymentMethod;
   issueDate: Date | string;
@@ -496,6 +497,9 @@ export interface Invoice {
   contract?: any;
   payments?: any[];
   updatedAt: Date | string;
+  paidAmount?: number;
+  pendingAmount?: number;
+  remainingAmount?: number;
 }
 
 export interface Payment {
@@ -513,6 +517,11 @@ export interface Payment {
   date: Date | string;
   createdAt: Date | string;
   updatedAt: Date | string;
+  receiptImage?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: Date | string | null;
+  reviewReason?: string | null;
+  reviewer?: { id: string; name: string } | null;
 }
 
 export interface PaymentGateway {

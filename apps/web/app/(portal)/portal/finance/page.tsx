@@ -199,25 +199,46 @@ export default function PortalFinancePage() {
                     {formatShortDateLong(invoice.issueDate ?? invoice.dueDate)}
                   </TableCell>
                   <TableCell>
-                    <p>{formatCurrency(invoice.amount)}</p>
+                    <p>{formatCurrency(invoice.amount, invoice.currency)}</p>
                     {invoice.remainingAmount > 0 &&
                     invoice.remainingAmount !== invoice.amount ? (
                       <p className="text-sm text-muted-foreground">
-                        متبقي {formatCurrency(invoice.remainingAmount)}
+                        متبقي{" "}
+                        {formatCurrency(
+                          invoice.remainingAmount,
+                          invoice.currency,
+                        )}
+                      </p>
+                    ) : null}
+                    {invoice.pendingPaymentAmount > 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        قيد المراجعة{" "}
+                        {formatCurrency(
+                          invoice.pendingPaymentAmount,
+                          invoice.currency,
+                        )}
                       </p>
                     ) : null}
                   </TableCell>
                   <TableCell>
-                    <DomainStatusPill
-                      domain="invoice"
-                      status={invoice.status}
-                    />
+                    <div className="flex flex-col items-start gap-1">
+                      <DomainStatusPill
+                        domain="invoice"
+                        status={invoice.status}
+                      />
+                      {invoice.pendingPaymentAmount > 0 ? (
+                        <Badge variant="outline">بانتظار التأكيد</Badge>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    {isInvoicePayable(
+                    {(isInvoicePayable(
                       invoice.status,
                       invoice.remainingAmount,
-                    ) ? (
+                    ) &&
+                      !invoice.hasPendingPayment) ||
+                    (invoice.hasPendingBankTransfer &&
+                      !invoice.hasPendingReceipt) ? (
                       <Button
                         size="sm"
                         onClick={() => {
@@ -225,13 +246,21 @@ export default function PortalFinancePage() {
                             id: invoice.id,
                             invoiceNumber: invoice.invoiceNumber,
                             amount: invoice.amount,
+                            currency: invoice.currency,
+                            remainingAmount: invoice.remainingAmount,
+                            hasPendingPayment: invoice.hasPendingPayment,
+                            hasPendingBankTransfer:
+                              invoice.hasPendingBankTransfer,
+                            hasPendingReceipt: invoice.hasPendingReceipt,
                             status: invoice.status,
                           });
                           setPaymentOpen(true);
                         }}
                       >
                         <CreditCard />
-                        دفع
+                        {invoice.hasPendingBankTransfer
+                          ? "إرفاق الإيصال"
+                          : "دفع"}
                       </Button>
                     ) : (
                       "—"

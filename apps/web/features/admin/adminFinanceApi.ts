@@ -1,5 +1,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import type {
+  InvoicePaymentDetails,
+  PaginatedInvoices,
+} from "@/features/finance/financeApi";
 
 export interface AdminFinanceSummary {
   revenue: number;
@@ -92,24 +96,9 @@ export interface AdminFinanceOverview {
   };
 }
 
-export interface AdminFinanceInvoiceItem {
-  id: string;
-  invoiceNumber: string;
-  clientName?: string;
-  amount: number;
-  remainingAmount: number;
-  status: string;
-  issueDate: string | null;
-  dueDate: string | null;
-  paidAt: string | null;
-  createdAt: string;
-  payments: Array<{
-    id: string;
-    amount: number;
-    status: string;
-    createdAt: string;
-  }>;
-}
+export type AdminFinanceInvoiceItem = PaginatedInvoices["items"][number];
+
+export type AdminInvoicePaymentDetails = InvoicePaymentDetails;
 
 export interface AdminFinancePaymentItem {
   id: string;
@@ -159,7 +148,13 @@ export interface AdminPaymentEvent {
 export const adminFinanceApi = createApi({
   reducerPath: "adminFinanceApi",
   baseQuery,
-  tagTypes: ["AdminFinance", "AdminWebhookLogs", "AdminPaymentEvents", "AdminGateways", "AdminBankAccounts"],
+  tagTypes: [
+    "AdminFinance",
+    "AdminWebhookLogs",
+    "AdminPaymentEvents",
+    "AdminGateways",
+    "AdminBankAccounts",
+  ],
   endpoints: (builder) => ({
     getAdminFinanceOverview: builder.query<AdminFinanceOverview, void>({
       query: () => "/admin/finance/overview",
@@ -167,36 +162,90 @@ export const adminFinanceApi = createApi({
     }),
 
     getAdminInvoices: builder.query<
-      { items: AdminFinanceInvoiceItem[]; total: number; page: number; limit: number; totalPages: number },
-      { status?: string; clientId?: string; contractId?: string; page?: number; limit?: number } | void
+      {
+        items: AdminFinanceInvoiceItem[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      },
+      {
+        status?: string;
+        clientId?: string;
+        contractId?: string;
+        method?: string;
+        search?: string;
+        page?: number;
+        limit?: number;
+      } | void
     >({
       query: (filters) => {
-        if (!filters) return "/invoices";
+        if (!filters) return "/admin/finance/invoices";
         const params = new URLSearchParams();
         if (filters.status) params.set("status", filters.status);
         if (filters.clientId) params.set("clientId", filters.clientId);
         if (filters.contractId) params.set("contractId", filters.contractId);
+        if (filters.method) params.set("method", filters.method);
+        if (filters.search) params.set("search", filters.search);
         if (filters.page) params.set("page", String(filters.page));
         if (filters.limit) params.set("limit", String(filters.limit));
-        return `/invoices?${params.toString()}`;
+        return `/admin/finance/invoices?${params.toString()}`;
       },
       providesTags: ["AdminFinance"],
     }),
 
+    getAdminInvoicePaymentDetails: builder.query<
+      AdminInvoicePaymentDetails,
+      string
+    >({
+      query: (id) => `/admin/finance/invoices/${id}/payment-details`,
+      providesTags: (_result, _error, id) => [{ type: "AdminFinance", id }],
+    }),
+
     getAdminPayments: builder.query<
-      { items: AdminFinancePaymentItem[]; total: number; page: number; limit: number; totalPages: number },
+      {
+        items: AdminFinancePaymentItem[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      },
       { status?: string; method?: string; page?: number; limit?: number } | void
     >({
       query: (filters) => {
-        if (!filters) return "/payments";
+        if (!filters) return "/admin/finance/payments";
         const params = new URLSearchParams();
         if (filters.status) params.set("status", filters.status);
         if (filters.method) params.set("method", filters.method);
         if (filters.page) params.set("page", String(filters.page));
         if (filters.limit) params.set("limit", String(filters.limit));
-        return `/payments?${params.toString()}`;
+        return `/admin/finance/payments?${params.toString()}`;
       },
       providesTags: ["AdminFinance"],
+    }),
+
+    approveAdminBankTransfer: builder.mutation<
+      unknown,
+      { id: string; reason?: string }
+    >({
+      query: ({ id, reason }) => ({
+        url: `/admin/finance/payments/${id}/approve`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: ["AdminFinance", "AdminPaymentEvents"],
+    }),
+
+    rejectAdminBankTransfer: builder.mutation<
+      unknown,
+      { id: string; reason: string }
+    >({
+      query: ({ id, reason }) => ({
+        url: `/admin/finance/payments/${id}/reject`,
+        method: "POST",
+        body: { reason },
+      }),
+      invalidatesTags: ["AdminFinance", "AdminPaymentEvents"],
     }),
 
     getAdminPaymentEvents: builder.query<AdminPaymentEvent[], string | void>({
@@ -209,7 +258,12 @@ export const adminFinanceApi = createApi({
 
     getAdminWebhookLogs: builder.query<
       PaginatedWebhookLogs,
-      { status?: string; provider?: string; page?: number; limit?: number } | void
+      {
+        status?: string;
+        provider?: string;
+        page?: number;
+        limit?: number;
+      } | void
     >({
       query: (filters) => {
         if (!filters) return "/admin/finance/webhook-logs";
@@ -252,30 +306,49 @@ export const adminFinanceApi = createApi({
       invalidatesTags: ["AdminFinance"],
     }),
 
-    refundInvoice: builder.mutation<void, { id: string; reason: string }>({
-      query: ({ id, reason }) => ({
+    refundInvoice: builder.mutation<
+      void,
+      { id: string; amount?: number; reason: string }
+    >({
+      query: ({ id, amount, reason }) => ({
         url: `/admin/finance/invoices/${id}/refund`,
         method: "POST",
-        body: { reason },
+        body: { amount, reason },
       }),
       invalidatesTags: ["AdminFinance"],
     }),
 
-    getAdminGateways: builder.query<Array<{
-      id: string; name: string; type: string; isActive: boolean;
-      configJson: { fields: Record<string, boolean>; isConfigured: boolean } | null;
-      createdAt: string; updatedAt: string;
-    }>, void>({
-      query: () => "/payments/gateways",
+    getAdminGateways: builder.query<
+      Array<{
+        id: string;
+        name: string;
+        type: string;
+        isActive: boolean;
+        configJson: {
+          fields: Record<string, boolean>;
+          isConfigured: boolean;
+        } | null;
+        createdAt: string;
+        updatedAt: string;
+      }>,
+      void
+    >({
+      query: () => "/admin/finance/gateways",
       providesTags: ["AdminGateways"],
     }),
 
-    updateAdminGateway: builder.mutation<void, {
-      name: string; isActive?: boolean;
-      secretKey?: string; webhookSecret?: string; publishableKey?: string;
-    }>({
+    updateAdminGateway: builder.mutation<
+      void,
+      {
+        name: string;
+        isActive?: boolean;
+        secretKey?: string;
+        webhookSecret?: string;
+        publishableKey?: string;
+      }
+    >({
       query: ({ name, ...body }) => ({
-        url: `/payments/gateways/${name}`,
+        url: `/admin/finance/gateways/${name}`,
         method: "POST",
         body,
       }),
@@ -284,44 +357,65 @@ export const adminFinanceApi = createApi({
 
     deleteAdminGateway: builder.mutation<void, string>({
       query: (name) => ({
-        url: `/payments/gateways/${name}`,
+        url: `/admin/finance/gateways/${name}`,
         method: "DELETE",
       }),
       invalidatesTags: ["AdminGateways"],
     }),
 
-    getAdminBankAccounts: builder.query<Array<{
-      id: string; bankName: string; accountName: string;
-      accountNumber: string | null; iban: string;
-      swiftCode: string | null; instructions: string | null;
-      isActive: boolean; createdAt: string;
-    }>, void>({
-      query: () => "/payments/bank-accounts?all=true",
+    getAdminBankAccounts: builder.query<
+      Array<{
+        id: string;
+        bankName: string;
+        accountName: string;
+        accountNumber: string | null;
+        iban: string;
+        swiftCode: string | null;
+        instructions: string | null;
+        isActive: boolean;
+        createdAt: string;
+      }>,
+      void
+    >({
+      query: () => "/admin/finance/bank-accounts?all=true",
       providesTags: ["AdminBankAccounts"],
     }),
 
-    createAdminBankAccount: builder.mutation<void, {
-      bankName: string; accountName: string;
-      accountNumber?: string; iban: string;
-      swiftCode?: string; instructions?: string;
-      isActive?: boolean;
-    }>({
+    createAdminBankAccount: builder.mutation<
+      void,
+      {
+        bankName: string;
+        accountName: string;
+        accountNumber?: string;
+        iban: string;
+        swiftCode?: string;
+        instructions?: string;
+        isActive?: boolean;
+      }
+    >({
       query: (body) => ({
-        url: "/payments/bank-accounts",
+        url: "/admin/finance/bank-accounts",
         method: "POST",
         body,
       }),
       invalidatesTags: ["AdminBankAccounts"],
     }),
 
-    updateAdminBankAccount: builder.mutation<void, {
-      id: string; bankName?: string; accountName?: string;
-      accountNumber?: string; iban?: string;
-      swiftCode?: string; instructions?: string;
-      isActive?: boolean;
-    }>({
+    updateAdminBankAccount: builder.mutation<
+      void,
+      {
+        id: string;
+        bankName?: string;
+        accountName?: string;
+        accountNumber?: string;
+        iban?: string;
+        swiftCode?: string;
+        instructions?: string;
+        isActive?: boolean;
+      }
+    >({
       query: ({ id, ...body }) => ({
-        url: `/payments/bank-accounts/${id}`,
+        url: `/admin/finance/bank-accounts/${id}`,
         method: "PATCH",
         body,
       }),
@@ -330,16 +424,24 @@ export const adminFinanceApi = createApi({
 
     deleteAdminBankAccount: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/payments/bank-accounts/${id}`,
+        url: `/admin/finance/bank-accounts/${id}`,
         method: "DELETE",
       }),
       invalidatesTags: ["AdminBankAccounts"],
     }),
 
-    getAdminGatewaysHealth: builder.query<Array<{
-      id: string; name: string; type: string; isActive: boolean;
-      status: string; lastCheckedAt: string | null; error: string | null;
-    }>, void>({
+    getAdminGatewaysHealth: builder.query<
+      Array<{
+        id: string;
+        name: string;
+        type: string;
+        isActive: boolean;
+        status: string;
+        lastCheckedAt: string | null;
+        error: string | null;
+      }>,
+      void
+    >({
       query: () => "/admin/finance/gateways-health",
       providesTags: ["AdminGateways"],
     }),
@@ -357,8 +459,11 @@ export const adminFinanceApi = createApi({
 export const {
   useGetAdminFinanceOverviewQuery,
   useGetAdminInvoicesQuery,
+  useGetAdminInvoicePaymentDetailsQuery,
   useGetAdminPaymentsQuery,
   useGetAdminPaymentEventsQuery,
+  useApproveAdminBankTransferMutation,
+  useRejectAdminBankTransferMutation,
   useGetAdminWebhookLogsQuery,
   useRetryAdminWebhookMutation,
   useForceInvoiceStatusMutation,

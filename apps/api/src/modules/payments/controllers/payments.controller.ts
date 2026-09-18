@@ -23,8 +23,10 @@ import { StorageCategory } from "../../../common/storage/storage.constants";
 import { UpdateGatewayDto } from "../dto/update-gateway.dto";
 import { CreateBankAccountDto } from "../dto/create-bank-account.dto";
 import { UpdateBankAccountDto } from "../dto/update-bank-account.dto";
+import { CreatePaymentIntentDto } from "../dto/create-payment-intent.dto";
 
 @Controller("payments")
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
@@ -36,17 +38,23 @@ export class PaymentsController {
   @RequirePermissions("invoices.pay_public")
   async createIntent(
     @CurrentUser() user: any,
-    @Body()
-    dto: {
-      invoiceId: string;
-      gatewayName: string;
-      amount: number;
-      currency?: string;
-      successUrl?: string;
-      cancelUrl?: string;
-    },
+    @Body() dto: CreatePaymentIntentDto,
   ) {
-    return this.paymentsService.createPayment(dto);
+    if (!dto.gatewayName) {
+      throw new BadRequestException({
+        code: "PAYMENT_GATEWAY_REQUIRED",
+        details: {},
+      });
+    }
+    return this.paymentsService.createPayment({
+      invoiceId: dto.invoiceId,
+      gatewayName: dto.gatewayName,
+      amount: dto.amount,
+      currency: dto.currency,
+      successUrl: dto.successUrl,
+      cancelUrl: dto.cancelUrl,
+      clientUserId: user.id,
+    });
   }
 
   @Post("create-element-intent")
@@ -54,14 +62,12 @@ export class PaymentsController {
   @RequirePermissions("invoices.pay_public")
   async createElementIntent(
     @CurrentUser() user: any,
-    @Body()
-    dto: {
-      invoiceId: string;
-      amount: number;
-      currency?: string;
-    },
+    @Body() dto: CreatePaymentIntentDto,
   ) {
-    return this.paymentsService.createElementPayment(dto);
+    return this.paymentsService.createElementPayment({
+      ...dto,
+      clientUserId: user.id,
+    });
   }
 
   @Post("upload-receipt")
@@ -73,8 +79,16 @@ export class PaymentsController {
     @UploadedFile() file: Express.Multer.File,
     @Body("paymentId") paymentId: string,
   ) {
-    if (!file) throw new BadRequestException("Receipt image is required");
-    if (!paymentId) throw new BadRequestException("paymentId is required");
+    if (!file) {
+      throw new BadRequestException({ code: "FILE_REQUIRED", details: {} });
+    }
+    if (!paymentId) {
+      throw new BadRequestException({
+        code: "PAYMENT_ID_REQUIRED",
+        details: {},
+      });
+    }
+    await this.paymentsService.assertReceiptUploadAllowed(paymentId, user.id);
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.RECEIPT,
       entityId: paymentId,
@@ -86,7 +100,16 @@ export class PaymentsController {
       },
       subPath: "receipts",
     });
-    return this.paymentsService.attachReceipt(paymentId, uploadResult.key);
+    try {
+      return await this.paymentsService.attachReceipt(
+        paymentId,
+        uploadResult.key,
+        user.id,
+      );
+    } catch (error) {
+      await this.storageService.deleteByKey(uploadResult.key);
+      throw error;
+    }
   }
 
   @Get("gateways")
@@ -97,7 +120,10 @@ export class PaymentsController {
 
   @Post("gateways/:name")
   @RequirePermissions("finance.admin")
-  async updateGateway(@Param("name") name: string, @Body() dto: UpdateGatewayDto) {
+  async updateGateway(
+    @Param("name") name: string,
+    @Body() dto: UpdateGatewayDto,
+  ) {
     return this.paymentsService.updateGatewayConfig(name, dto);
   }
 
@@ -118,7 +144,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("invoices.pay_public")
   async getPublicBankAccounts() {
-    return this.paymentsService.getBankAccounts(false);
+    return this.paymentsService.getPublicBankAccounts();
   }
 
   @Get("public-config")
@@ -143,7 +169,10 @@ export class PaymentsController {
 
   @Patch("bank-accounts/:id")
   @RequirePermissions("finance.admin")
-  async updateBankAccount(@Param("id") id: string, @Body() dto: UpdateBankAccountDto) {
+  async updateBankAccount(
+    @Param("id") id: string,
+    @Body() dto: UpdateBankAccountDto,
+  ) {
     return this.paymentsService.updateBankAccount(id, dto);
   }
 
