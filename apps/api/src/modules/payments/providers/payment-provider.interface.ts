@@ -1,10 +1,19 @@
-import { PaymentStatus, PaymentMethod } from "@hassad/shared";
+import { PaymentStatus } from "@hassad/shared";
 
 export interface PaymentIntentResponse {
   providerPaymentId: string;
-  clientSecret: string;
+  clientSecret?: string;
+  checkoutUrl?: string;
   status: PaymentStatus;
-  metadata?: any;
+  metadata?: unknown;
+}
+
+export interface ProviderPaymentStatus {
+  providerPaymentId: string;
+  status: PaymentStatus;
+  amount?: number;
+  currency?: string;
+  metadata?: unknown;
 }
 
 export interface CreatePaymentIntentParams {
@@ -14,7 +23,14 @@ export interface CreatePaymentIntentParams {
   clientId: string;
   successUrl?: string;
   cancelUrl?: string;
-  metadata?: any;
+  metadata?: unknown;
+  idempotencyKey?: string;
+  customer?: {
+    firstName: string;
+    lastName?: string;
+    email: string;
+    phone?: { countryCode: string; number: string };
+  };
 }
 
 export interface ElementPaymentIntentParams {
@@ -22,7 +38,7 @@ export interface ElementPaymentIntentParams {
   amount: number;
   currency: string;
   clientId: string;
-  metadata?: any;
+  metadata?: unknown;
 }
 
 export interface PaymentProvider {
@@ -34,13 +50,9 @@ export interface PaymentProvider {
     params: ElementPaymentIntentParams,
   ): Promise<PaymentIntentResponse>;
 
-  verifyWebhook(payload: any, signature: string): Promise<any>;
+  verifyWebhook(payload: unknown, signature: string): Promise<unknown>;
 
-  handleWebhookEvent(event: any): Promise<{
-    providerPaymentId: string;
-    status: PaymentStatus;
-    amount?: number;
-    currency?: string;
-    metadata?: any;
-  }>;
+  handleWebhookEvent(event: unknown): Promise<ProviderPaymentStatus>;
+
+  retrievePayment?(providerPaymentId: string): Promise<ProviderPaymentStatus>;
 }

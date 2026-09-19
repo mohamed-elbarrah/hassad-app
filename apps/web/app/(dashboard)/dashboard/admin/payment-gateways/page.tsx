@@ -26,6 +26,7 @@ import {
   useUpdateAdminGatewayMutation,
 } from "@/features/admin/adminFinanceApi";
 import { formatDateTime, formatNumber } from "@/lib/format";
+import { adminErrorMessage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -106,6 +107,15 @@ type StripeFormState = {
   isActive: boolean;
 };
 
+type TapFormState = {
+  secretKey: string;
+  publicKey: string;
+  merchantId: string;
+  sourceId: string;
+  webhookUrl: string;
+  isActive: boolean;
+};
+
 type BankFormState = {
   bankName: string;
   accountName: string;
@@ -128,11 +138,13 @@ const EMPTY_BANK_FORM: BankFormState = {
 
 const GATEWAY_LABELS: Record<string, string> = {
   stripe: "Stripe",
+  tap: "Tap Payments",
   bank_transfer: "التحويل البنكي",
 };
 
 const GATEWAY_HELP: Record<string, string> = {
   stripe: "للدفع الفوري بالبطاقات داخل الفواتير والعقود.",
+  tap: "للدفع الآمن عبر صفحة Tap ووسائل الدفع المتاحة.",
   bank_transfer: "للسداد اليدوي عبر الحسابات البنكية المعتمدة.",
 };
 
@@ -154,7 +166,7 @@ const HEALTH_BADGE_VARIANTS: Record<
 };
 
 function getGatewayIcon(name: string) {
-  if (name === "stripe") return CreditCard;
+  if (name === "stripe" || name === "tap") return CreditCard;
   return Landmark;
 }
 
@@ -170,11 +182,6 @@ function getHealthLabel(status?: string | null) {
 function getHealthVariant(status?: string | null) {
   if (!status) return "outline";
   return HEALTH_BADGE_VARIANTS[status] ?? "outline";
-}
-
-function safeErrorMessage(error: unknown, fallback: string) {
-  const apiMessage = (error as { data?: { message?: string } })?.data?.message;
-  return apiMessage || fallback;
 }
 
 function compactMask(value?: string | null) {
@@ -409,6 +416,135 @@ function StripeDialog({
   );
 }
 
+function TapDialog({
+  open,
+  form,
+  onOpenChange,
+  onChange,
+  onSubmit,
+  isSaving,
+  isConfigured,
+}: {
+  open: boolean;
+  form: TapFormState;
+  onOpenChange: (open: boolean) => void;
+  onChange: (patch: Partial<TapFormState>) => void;
+  onSubmit: () => void;
+  isSaving: boolean;
+  isConfigured: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent dir="rtl" className="max-w-2xl">
+        <DialogHeader className="text-right">
+          <DialogTitle>إعداد Tap Payments</DialogTitle>
+          <DialogDescription>
+            أدخل مفاتيح Tap من لوحة Tap ثم فعّل البوابة لإظهارها للعملاء.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4">
+          <div className="rounded-lg border px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid gap-1 text-right">
+                <p className="text-sm font-medium">حالة الإعداد</p>
+                <p className="text-xs text-muted-foreground">
+                  مفتاح Secret API مطلوب للدفع عبر صفحة Tap المستضافة.
+                </p>
+              </div>
+              <Badge variant={isConfigured ? "default" : "secondary"}>
+                {isConfigured ? "مكتمل" : "غير مكتمل"}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="tap-secret-key">Secret API Key</Label>
+            <Input
+              id="tap-secret-key"
+              type="password"
+              value={form.secretKey}
+              onChange={(event) => onChange({ secretKey: event.target.value })}
+              placeholder="sk_test_... أو sk_live_..."
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="tap-public-key">Public API Key (اختياري)</Label>
+            <Input
+              id="tap-public-key"
+              value={form.publicKey}
+              onChange={(event) => onChange({ publicKey: event.target.value })}
+              placeholder="pk_test_... أو pk_live_..."
+            />
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="tap-merchant-id">Merchant ID (اختياري)</Label>
+              <Input
+                id="tap-merchant-id"
+                value={form.merchantId}
+                onChange={(event) => onChange({ merchantId: event.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="tap-source-id">Source ID</Label>
+              <Input
+                id="tap-source-id"
+                value={form.sourceId}
+                onChange={(event) => onChange({ sourceId: event.target.value })}
+                placeholder="src_all"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="tap-webhook-url">Webhook URL</Label>
+            <Input
+              id="tap-webhook-url"
+              value={form.webhookUrl}
+              onChange={(event) => onChange({ webhookUrl: event.target.value })}
+              placeholder="https://api.example.com/v1/webhooks/tap"
+            />
+            <p className="text-xs text-muted-foreground">
+              يجب أن يكون رابطاً عاماً يصل إليه Tap ويشير إلى مسار webhook في API.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+            <div className="grid gap-1 text-right">
+              <p className="text-sm font-medium">تفعيل Tap</p>
+              <p className="text-xs text-muted-foreground">
+                لن تظهر Tap للعملاء إلا عند اكتمال الإعداد وتفعيلها.
+              </p>
+            </div>
+            <Switch
+              checked={form.isActive}
+              onCheckedChange={(checked) => onChange({ isActive: checked })}
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 sm:justify-start">
+          <Button onClick={onSubmit} disabled={isSaving}>
+            {isSaving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
+            حفظ إعدادات Tap
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
+            إلغاء
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminPaymentGatewaysPage() {
   const { data: gateways = [], isLoading: gatewaysLoading } =
     useGetAdminGatewaysQuery();
@@ -429,6 +565,15 @@ export default function AdminPaymentGatewaysPage() {
     useCheckAdminGatewaysHealthMutation();
 
   const [stripeDialogOpen, setStripeDialogOpen] = useState(false);
+  const [tapDialogOpen, setTapDialogOpen] = useState(false);
+  const [tapForm, setTapForm] = useState<TapFormState>({
+    secretKey: "",
+    publicKey: "",
+    merchantId: "",
+    sourceId: "",
+    webhookUrl: "",
+    isActive: false,
+  });
   const [stripeForm, setStripeForm] = useState<StripeFormState>({
     publishableKey: "",
     secretKey: "",
@@ -442,6 +587,10 @@ export default function AdminPaymentGatewaysPage() {
 
   const stripeGateway = useMemo(
     () => gateways.find((gateway) => gateway.name === "stripe"),
+    [gateways],
+  );
+  const tapGateway = useMemo(
+    () => gateways.find((gateway) => gateway.name === "tap"),
     [gateways],
   );
   const gatewaysByName = useMemo(
@@ -481,7 +630,7 @@ export default function AdminPaymentGatewaysPage() {
   }, [bankAccounts, gatewayHealth, gateways]);
 
   const paymentGateways = useMemo(() => {
-    const preferredOrder = ["stripe", "bank_transfer"];
+    const preferredOrder = ["stripe", "tap", "bank_transfer"];
     const ordered = preferredOrder
       .map((name) => gatewaysByName[name])
       .filter(Boolean) as Gateway[];
@@ -501,6 +650,18 @@ export default function AdminPaymentGatewaysPage() {
       isActive: stripeGateway?.isActive ?? false,
     });
     setStripeDialogOpen(true);
+  };
+
+  const openTapDialog = () => {
+    setTapForm({
+      secretKey: "",
+      publicKey: "",
+      merchantId: "",
+      sourceId: "",
+      webhookUrl: "",
+      isActive: tapGateway?.isActive ?? false,
+    });
+    setTapDialogOpen(true);
   };
 
   const openCreateBankDialog = () => {
@@ -535,7 +696,25 @@ export default function AdminPaymentGatewaysPage() {
       toast.success("تم حفظ إعدادات Stripe");
       setStripeDialogOpen(false);
     } catch (error) {
-      toast.error(safeErrorMessage(error, "تعذر حفظ إعدادات Stripe"));
+      toast.error(adminErrorMessage(error));
+    }
+  };
+
+  const handleTapSubmit = async () => {
+    try {
+      await updateGateway({
+        name: "tap",
+        isActive: tapForm.isActive,
+        secretKey: tapForm.secretKey || undefined,
+        publicKey: tapForm.publicKey || undefined,
+        merchantId: tapForm.merchantId || undefined,
+        sourceId: tapForm.sourceId || undefined,
+        webhookUrl: tapForm.webhookUrl || undefined,
+      }).unwrap();
+      toast.success("تم حفظ إعدادات Tap");
+      setTapDialogOpen(false);
+    } catch (error) {
+      toast.error(adminErrorMessage(error));
     }
   };
 
@@ -549,7 +728,7 @@ export default function AdminPaymentGatewaysPage() {
         checked ? "تم تفعيل التحويل البنكي" : "تم إيقاف التحويل البنكي",
       );
     } catch (error) {
-      toast.error(safeErrorMessage(error, "تعذر تحديث التحويل البنكي"));
+      toast.error(adminErrorMessage(error));
     }
   };
 
@@ -566,7 +745,7 @@ export default function AdminPaymentGatewaysPage() {
         }).unwrap();
         toast.success(checked ? "تم تفعيل البوابة" : "تم إيقاف البوابة");
       } catch (error) {
-        toast.error(safeErrorMessage(error, "تعذر تحديث حالة البوابة"));
+        toast.error(adminErrorMessage(error));
       }
       return;
     }
@@ -575,7 +754,7 @@ export default function AdminPaymentGatewaysPage() {
       await updateGateway({ name: gateway.name, isActive: checked }).unwrap();
       toast.success(checked ? "تم تفعيل البوابة" : "تم إيقاف البوابة");
     } catch (error) {
-      toast.error(safeErrorMessage(error, "تعذر تحديث حالة البوابة"));
+      toast.error(adminErrorMessage(error));
     }
   };
 
@@ -610,7 +789,7 @@ export default function AdminPaymentGatewaysPage() {
       setEditingBankId(null);
       setBankForm(EMPTY_BANK_FORM);
     } catch (error) {
-      toast.error(safeErrorMessage(error, "تعذر حفظ الحساب البنكي"));
+      toast.error(adminErrorMessage(error));
     }
   };
 
@@ -624,7 +803,7 @@ export default function AdminPaymentGatewaysPage() {
       await deleteBankAccount(account.id).unwrap();
       toast.success("تم حذف الحساب البنكي");
     } catch (error) {
-      toast.error(safeErrorMessage(error, "تعذر حذف الحساب البنكي"));
+      toast.error(adminErrorMessage(error));
     }
   };
 
@@ -633,7 +812,7 @@ export default function AdminPaymentGatewaysPage() {
       await checkHealth().unwrap();
       toast.success("تم بدء فحص البوابات");
     } catch (error) {
-      toast.error(safeErrorMessage(error, "تعذر تشغيل فحص البوابات"));
+      toast.error(adminErrorMessage(error));
     }
   };
 
@@ -759,6 +938,11 @@ export default function AdminPaymentGatewaysPage() {
                             <Button variant="outline" onClick={openStripeDialog}>
                               <Settings2 data-icon="inline-start" />
                               إعداد Stripe
+                            </Button>
+                          ) : gateway.name === "tap" ? (
+                            <Button variant="outline" onClick={openTapDialog}>
+                              <Settings2 data-icon="inline-start" />
+                              إعداد Tap
                             </Button>
                           ) : null}
                         </div>
@@ -984,6 +1168,18 @@ export default function AdminPaymentGatewaysPage() {
         onSubmit={handleStripeSubmit}
         isSaving={savingGateway}
         isConfigured={stripeGateway?.configJson?.isConfigured ?? false}
+      />
+
+      <TapDialog
+        open={tapDialogOpen}
+        form={tapForm}
+        onOpenChange={setTapDialogOpen}
+        onChange={(patch) =>
+          setTapForm((current) => ({ ...current, ...patch }))
+        }
+        onSubmit={handleTapSubmit}
+        isSaving={savingGateway}
+        isConfigured={tapGateway?.configJson?.isConfigured ?? false}
       />
 
       <BankAccountDialog

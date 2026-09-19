@@ -1,7 +1,6 @@
 import {
   Controller,
   Post,
-  Body,
   Headers,
   Param,
   BadRequestException,
@@ -18,21 +17,20 @@ export class WebhooksController {
   async handleWebhook(
     @Param("provider") provider: string,
     @Headers("stripe-signature") stripeSignature: string,
+    @Headers("hashstring") tapHashstring: string,
     @Req() req: RawBodyRequest<any>,
   ) {
-    if (provider === "stripe") {
-      if (!stripeSignature) {
-        throw new BadRequestException({
-          code: "WEBHOOK_SIGNATURE_REQUIRED",
-          details: {},
-        });
-      }
+    const signature = provider === "tap" ? tapHashstring : stripeSignature;
+    if (!signature) {
+      throw new BadRequestException({
+        code: "WEBHOOK_SIGNATURE_REQUIRED",
+        details: { provider },
+      });
+    }
+
+    if (provider === "stripe" || provider === "tap") {
       const payload = req.rawBody ?? Buffer.from(JSON.stringify(req.body));
-      await this.paymentsService.processWebhook(
-        "stripe",
-        payload,
-        stripeSignature,
-      );
+      await this.paymentsService.processWebhook(provider, payload, signature);
     } else {
       throw new BadRequestException({
         code: "WEBHOOK_PROVIDER_UNSUPPORTED",

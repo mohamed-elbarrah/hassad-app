@@ -377,6 +377,10 @@ export const adminFinanceApi = createApi({
         secretKey?: string;
         webhookSecret?: string;
         publishableKey?: string;
+        publicKey?: string;
+        merchantId?: string;
+        sourceId?: string;
+        webhookUrl?: string;
       }
     >({
       query: ({ name, ...body }) => ({

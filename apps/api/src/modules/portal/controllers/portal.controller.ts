@@ -39,6 +39,7 @@ import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { PaymentsService } from "../../payments/services/payments.service";
 import { CreatePaymentIntentDto } from "../../payments/dto/create-payment-intent.dto";
+import { TapCheckoutDto } from "../../payments/dto/tap-checkout.dto";
 import {
   ClientApproveStrategyDto,
   ClientRequestRevisionDto as StrategyRevisionDto,
@@ -975,6 +976,30 @@ export class PortalController {
       ...dto,
       clientUserId: user.id,
     });
+  }
+
+  @Post("portal/payments/tap/checkout")
+  @RequirePermissions("invoices.pay_public")
+  createPortalTapCheckout(
+    @Body() dto: TapCheckoutDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.paymentsService.createTapPayment(dto.invoiceId, user.id);
+  }
+
+  @Get("portal/payments/tap/status")
+  @RequirePermissions("invoices.pay_public")
+  getPortalTapPaymentStatus(
+    @Query("tapId") tapId: string,
+    @CurrentUser() user: any,
+  ) {
+    if (!tapId) {
+      throw new BadRequestException({
+        code: "PAYMENT_PROVIDER_ID_REQUIRED",
+        details: { gateway: "tap" },
+      });
+    }
+    return this.paymentsService.getTapPaymentStatus(tapId, user.id);
   }
 
   @Post("portal/invoices/:id/bank-transfer")

@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
-import { useGetPortalInvoiceDetailQuery } from "@/features/portal/portalApi";
+import {
+  useGetPortalInvoiceDetailQuery,
+  useGetPortalTapPaymentStatusQuery,
+} from "@/features/portal/portalApi";
 import {
   Card,
   CardContent,
@@ -108,19 +111,45 @@ function fmtDateTime(iso?: string | null) {
 
 export default function PortalInvoiceDetailPage() {
   const params = useParams();
-  void useRouter();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const id = (params?.id as string) ?? "";
+  const tapId = searchParams.get("tap_id");
   const { fmtAmount } = useCurrency();
 
   const {
     data: invoice,
     isLoading,
     isError,
+    refetch: refetchInvoice,
   } = useGetPortalInvoiceDetailQuery(id, {
     skip: !id,
   });
+  const tapPaymentQuery = useGetPortalTapPaymentStatusQuery(tapId ?? "", {
+    skip: !tapId,
+    pollingInterval: tapId ? 3000 : 0,
+  });
+  const tapPayment = tapPaymentQuery.data;
 
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
+
+  useEffect(() => {
+    if (!tapPayment) return;
+    if (tapPayment.status === "SUCCESS") {
+      toast.success("تم تأكيد الدفع بنجاح");
+      void refetchInvoice();
+      router.replace(`/portal/invoices/${id}`);
+    } else if (
+      ["FAILED", "REJECTED", "REFUNDED"].includes(tapPayment.status)
+    ) {
+      toast.error(
+        tapPayment.status === "REFUNDED"
+          ? "تم إرجاع عملية الدفع"
+          : "تعذر تأكيد عملية الدفع",
+      );
+      router.replace(`/portal/invoices/${id}`);
+    }
+  }, [id, refetchInvoice, router, tapPayment]);
 
   if (isLoading) {
     return <DetailSkeleton variant="invoice" />;

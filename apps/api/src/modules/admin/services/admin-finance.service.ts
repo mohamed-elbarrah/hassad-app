@@ -510,8 +510,13 @@ export class AdminFinanceService {
 
       return { success: true };
     } catch (error) {
-      // Log failure to SystemEventLog
-      const after = { processed: false, error: error.message };
+      // Persist a stable machine-readable code, not provider exception text.
+      const errorCode =
+        error instanceof BadRequestException
+          ? ((error.getResponse() as { error?: { code?: string } })?.error
+              ?.code ?? "WEBHOOK_RETRY_FAILED")
+          : "WEBHOOK_RETRY_FAILED";
+      const after = { processed: false, error: errorCode };
 
       await this.prisma.$transaction(async (tx) => {
         await tx.ledger.create({
@@ -561,7 +566,7 @@ export class AdminFinanceService {
   async getGatewaysHealth() {
     const [gateways, failures] = await Promise.all([
       this.prisma.paymentGateway.findMany({
-        where: { name: { in: ["stripe", "bank_transfer"] } },
+        where: { name: { in: ["stripe", "tap", "bank_transfer"] } },
         select: {
           id: true,
           name: true,
@@ -603,12 +608,12 @@ export class AdminFinanceService {
     return gateways.map((g) => ({
       ...g,
       totalPayments: g._count.payments,
-      healthStatus: !g.isActive
-        ? "down"
+      status: !g.isActive
+        ? "DOWN"
         : availableGateways.has(g.name)
-          ? "healthy"
-          : "degraded",
-      lastHealthCheck: g.updatedAt,
+          ? "HEALTHY"
+          : "DEGRADED",
+      lastCheckedAt: g.updatedAt,
       recentFailures: failuresByGateway.get(g.name) || [],
     }));
   }
@@ -617,7 +622,7 @@ export class AdminFinanceService {
     const gateways = await this.prisma.paymentGateway.findMany({
       where: {
         isActive: true,
-        name: { in: ["stripe", "bank_transfer"] },
+        name: { in: ["stripe", "tap", "bank_transfer"] },
       },
     });
 

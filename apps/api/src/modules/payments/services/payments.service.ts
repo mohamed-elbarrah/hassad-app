@@ -19,12 +19,17 @@ import {
 } from "@hassad/shared";
 import { StripeProvider } from "../providers/stripe.provider";
 import { BankTransferProvider } from "../providers/bank-transfer.provider";
+import { TapProvider } from "../providers/tap.provider";
 import { PaymentProvider } from "../providers/payment-provider.interface";
 import { UpdateGatewayDto } from "../dto/update-gateway.dto";
 import { StorageService } from "../../../common/storage/storage.service";
 import * as crypto from "crypto";
 
-const SUPPORTED_GATEWAY_NAMES = new Set(["stripe", "bank_transfer"]);
+const SUPPORTED_GATEWAY_NAMES = new Set([
+  "stripe",
+  "bank_transfer",
+  "tap",
+]);
 
 @Injectable()
 export class PaymentsService implements OnModuleInit {
@@ -97,9 +102,20 @@ export class PaymentsService implements OnModuleInit {
     status: PaymentStatus;
     providerPaymentId: string;
     metadata?: unknown;
+    idempotencyKey?: string;
   }) {
     return this.prisma.$transaction(
       async (tx) => {
+        if (params.idempotencyKey) {
+          await tx.$queryRaw(
+            Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${params.idempotencyKey}))`,
+          );
+          const existing = await tx.payment.findFirst({
+            where: { providerPaymentId: params.providerPaymentId },
+          });
+          if (existing) return existing;
+        }
+
         const invoice = await tx.invoice.findUnique({
           where: { id: params.invoiceId },
           include: { payments: { select: { amount: true, status: true } } },
@@ -167,7 +183,7 @@ export class PaymentsService implements OnModuleInit {
       let decrypted = decipher.update(encryptedText);
       decrypted = Buffer.concat([decrypted, decipher.final()]);
       return decrypted.toString();
-    } catch (e) {
+    } catch {
       return text; // Return as is if not encrypted or decryption fails
     }
   }
@@ -203,12 +219,40 @@ export class PaymentsService implements OnModuleInit {
     );
   }
 
-  async getProvider(gatewayName: string): Promise<PaymentProvider> {
+  private isCompleteTapConfig(config: Record<string, unknown>) {
+    const secretKey =
+      typeof config.secretKey === "string" ? config.secretKey.trim() : "";
+    const webhookUrl = this.getTapWebhookUrl(config);
+    return Boolean(secretKey && webhookUrl && this.isValidTapWebhookUrl(webhookUrl));
+  }
+
+  private getTapWebhookUrl(config: Record<string, unknown>) {
+    const configured =
+      typeof config.webhookUrl === "string" ? config.webhookUrl.trim() : "";
+    return configured || process.env.PAYMENTS_WEBHOOK_URL || "";
+  }
+
+  private isValidTapWebhookUrl(value: string) {
+    try {
+      const url = new URL(value);
+      return (
+        (process.env.NODE_ENV !== "production" || url.protocol === "https:") &&
+        Boolean(url.hostname)
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  async getProvider(
+    gatewayName: string,
+    requireActive = true,
+  ): Promise<PaymentProvider> {
     const gateway = await this.prisma.paymentGateway.findUnique({
       where: { name: gatewayName },
     });
 
-    if (!gateway || !gateway.isActive) {
+    if (!gateway || (requireActive && !gateway.isActive)) {
       throw new BadRequestException({
         code: "PAYMENT_GATEWAY_UNAVAILABLE",
         details: { gateway: gatewayName },
@@ -235,6 +279,42 @@ export class PaymentsService implements OnModuleInit {
       }
       case "bank_transfer":
         return new BankTransferProvider();
+      case "tap": {
+        const config = this.parseGatewayConfig(gateway.configJson);
+        const secretKey =
+          typeof config.secretKey === "string" ? config.secretKey : "";
+        if (!this.isCompleteTapConfig(config)) {
+          throw new BadRequestException({
+            code: "PAYMENT_GATEWAY_CONFIG_INVALID",
+            details: { gateway: gatewayName },
+          });
+        }
+        if (
+          process.env.NODE_ENV === "production" &&
+          !process.env.WEB_URL &&
+          !process.env.FRONTEND_URL
+        ) {
+          throw new BadRequestException({
+            code: "PAYMENT_GATEWAY_CONFIG_INVALID",
+            details: { gateway: gatewayName, missing: "WEB_URL" },
+          });
+        }
+        const webhookUrl = this.getTapWebhookUrl(config);
+        if (!webhookUrl || !this.isValidTapWebhookUrl(webhookUrl)) {
+          throw new BadRequestException({
+            code: "PAYMENT_GATEWAY_CONFIG_INVALID",
+            details: { gateway: gatewayName, invalid: "webhookUrl" },
+          });
+        }
+        return new TapProvider({
+          secretKey,
+          webhookUrl,
+          sourceId:
+            typeof config.sourceId === "string" && config.sourceId.trim()
+              ? config.sourceId.trim()
+              : "src_all",
+        });
+      }
       default:
         throw new BadRequestException({
           code: "PAYMENT_GATEWAY_UNSUPPORTED",
@@ -318,6 +398,164 @@ export class PaymentsService implements OnModuleInit {
     };
   }
 
+  private async createTapPaymentLocked(params: {
+    invoiceId: string;
+    clientId: string;
+    gatewayId: string;
+    amount: number;
+    currency: string;
+    idempotencyKey: string;
+    provider: PaymentProvider;
+    customer: {
+      firstName: string;
+      lastName?: string;
+      email: string;
+    };
+    successUrl: string;
+  }) {
+    const provisionalProviderPaymentId = `tap_attempt_${params.idempotencyKey}`;
+    const attempt = await this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw(
+          Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${params.idempotencyKey}))`,
+        );
+        const existing = await tx.payment.findFirst({
+          where: {
+            invoiceId: params.invoiceId,
+            gatewayId: params.gatewayId,
+            providerPaymentId: provisionalProviderPaymentId,
+          },
+        });
+        if (existing) return existing;
+
+        const invoice = await tx.invoice.findUnique({
+          where: { id: params.invoiceId },
+          include: { payments: { select: { amount: true, status: true } } },
+        });
+        if (!invoice || invoice.status === InvoiceStatus.CANCELLED) {
+          throw new BadRequestException({
+            code: "INVOICE_NOT_PAYABLE",
+            details: {},
+          });
+        }
+        this.validatePaymentAmount(
+          invoice.amount,
+          invoice.payments,
+          params.amount,
+        );
+
+        const payment = await tx.payment.create({
+          data: {
+            invoiceId: params.invoiceId,
+            clientId: params.clientId,
+            gatewayId: params.gatewayId,
+            amount: params.amount,
+            currency: params.currency,
+            status: PaymentStatus.PENDING,
+            method: PaymentMethod.CARD,
+            providerPaymentId: provisionalProviderPaymentId,
+            metadataJson: { idempotencyKey: params.idempotencyKey },
+          },
+        });
+        await tx.paymentEvent.create({
+          data: {
+            paymentId: payment.id,
+            type: PaymentEventType.CREATED,
+            payloadJson: { status: PaymentStatus.PENDING },
+          },
+        });
+        return payment;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    let intent: Awaited<ReturnType<PaymentProvider["createPaymentIntent"]>>;
+    try {
+      intent = await params.provider.createPaymentIntent({
+        invoiceId: params.invoiceId,
+        amount: params.amount,
+        currency: params.currency,
+        clientId: params.clientId,
+        successUrl: params.successUrl,
+        idempotencyKey: params.idempotencyKey,
+        customer: params.customer,
+      });
+    } catch (error) {
+      throw error;
+    }
+
+    const metadata = {
+      ...(intent.metadata && typeof intent.metadata === "object"
+        ? intent.metadata
+        : {}),
+      ...(intent.checkoutUrl ? { checkoutUrl: intent.checkoutUrl } : {}),
+      idempotencyKey: params.idempotencyKey,
+    };
+    const updated = await this.prisma.payment.updateMany({
+      where: {
+        id: attempt.id,
+        providerPaymentId: provisionalProviderPaymentId,
+      },
+      data: {
+        providerPaymentId: intent.providerPaymentId,
+        status: PaymentStatus.PENDING,
+        metadataJson: metadata,
+      },
+    });
+    if (updated.count !== 1) {
+      const recovered = await this.prisma.payment.findFirst({
+        where: {
+          providerPaymentId: intent.providerPaymentId,
+          gateway: { name: "tap" },
+        },
+      });
+      if (recovered) {
+        const settledRecovered =
+          intent.status === PaymentStatus.PENDING
+            ? null
+            : await this.updatePaymentStatus(
+                intent.providerPaymentId,
+                intent.status,
+                intent.metadata,
+                params.amount,
+                params.currency,
+                "tap",
+              );
+        return {
+          ...(settledRecovered ?? recovered),
+          clientSecret: intent.clientSecret,
+          checkoutUrl: intent.checkoutUrl,
+        };
+      }
+      throw new BadRequestException({
+        code: "PAYMENT_ATTEMPT_UPDATE_FAILED",
+        details: { gateway: "tap" },
+      });
+    }
+
+    const settledPayment =
+      intent.status === PaymentStatus.PENDING
+        ? null
+        : await this.updatePaymentStatus(
+            intent.providerPaymentId,
+            intent.status,
+            intent.metadata,
+            params.amount,
+            params.currency,
+            "tap",
+          );
+    const finalizedPayment =
+      settledPayment ??
+      (await this.prisma.payment.findUniqueOrThrow({ where: { id: attempt.id } }));
+
+    return {
+      ...finalizedPayment,
+      metadataJson: metadata,
+      clientSecret: intent.clientSecret,
+      checkoutUrl: intent.checkoutUrl,
+    };
+  }
+
   async createPayment(dto: {
     invoiceId: string;
     gatewayName: string;
@@ -330,8 +568,20 @@ export class PaymentsService implements OnModuleInit {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: dto.invoiceId },
       include: {
-        payments: { select: { amount: true, status: true } },
-        client: { select: { userId: true } },
+        payments: {
+          select: {
+            amount: true,
+            status: true,
+            metadataJson: true,
+            gateway: { select: { name: true } },
+          },
+        },
+        client: {
+          select: {
+            userId: true,
+            user: { select: { name: true, email: true, phoneWhatsapp: true } },
+          },
+        },
       },
     });
 
@@ -351,7 +601,25 @@ export class PaymentsService implements OnModuleInit {
         details: { expectedCurrency: invoice.currency },
       });
     }
-    this.validatePaymentAmount(invoice.amount, invoice.payments, dto.amount);
+    const tapIdempotencyKey =
+      dto.gatewayName === "tap"
+        ? `invoice-${invoice.id}-${dto.amount}-${currency}`
+        : undefined;
+    const hasRecoverableTapAttempt = invoice.payments.some((payment) => {
+      const metadata = payment.metadataJson;
+      return (
+        dto.gatewayName === "tap" &&
+        payment.status === PaymentStatus.PENDING &&
+        metadata &&
+        typeof metadata === "object" &&
+        !Array.isArray(metadata) &&
+        (metadata as { idempotencyKey?: unknown }).idempotencyKey ===
+          tapIdempotencyKey
+      );
+    });
+    if (!hasRecoverableTapAttempt) {
+      this.validatePaymentAmount(invoice.amount, invoice.payments, dto.amount);
+    }
 
     const provider = await this.getProvider(dto.gatewayName);
     const gateway = await this.prisma.paymentGateway.findUnique({
@@ -364,13 +632,51 @@ export class PaymentsService implements OnModuleInit {
       });
     }
 
+    const customerName = invoice.client.user?.name?.trim().split(/\s+/) ?? [];
+    const webUrl =
+      process.env.WEB_URL ?? process.env.FRONTEND_URL ?? "http://localhost:3000";
+    if (dto.gatewayName === "tap") {
+      if (!invoice.client.user || !tapIdempotencyKey) {
+        throw new BadRequestException({
+          code: "PAYMENT_CUSTOMER_DETAILS_REQUIRED",
+          details: { gateway: "tap" },
+        });
+      }
+      return this.createTapPaymentLocked({
+        invoiceId: invoice.id,
+        clientId: invoice.clientId,
+        gatewayId: gateway.id,
+        amount: dto.amount,
+        currency,
+        idempotencyKey: tapIdempotencyKey,
+        provider,
+        successUrl: `${webUrl}/portal/invoices/${invoice.id}`,
+        customer: {
+          firstName: customerName[0] || invoice.client.user.email,
+          lastName: customerName.slice(1).join(" ") || undefined,
+          email: invoice.client.user.email,
+        },
+      });
+    }
     const intent = await provider.createPaymentIntent({
       invoiceId: invoice.id,
       amount: dto.amount,
       currency,
       clientId: invoice.clientId,
-      successUrl: dto.successUrl,
+      successUrl:
+        dto.gatewayName === "tap"
+          ? `${webUrl}/portal/invoices/${invoice.id}`
+          : dto.successUrl,
       cancelUrl: dto.cancelUrl,
+      idempotencyKey: tapIdempotencyKey,
+      customer:
+        dto.gatewayName === "tap" && invoice.client.user
+          ? {
+              firstName: customerName[0] || invoice.client.user.email,
+              lastName: customerName.slice(1).join(" ") || undefined,
+              email: invoice.client.user.email,
+            }
+          : undefined,
     });
 
     const payment = await this.persistCreatedPayment({
@@ -381,17 +687,133 @@ export class PaymentsService implements OnModuleInit {
       currency,
       status: intent.status,
       method:
-        dto.gatewayName === "stripe"
-          ? PaymentMethod.CARD
-          : PaymentMethod.BANK_TRANSFER,
+        dto.gatewayName === "bank_transfer"
+          ? PaymentMethod.BANK_TRANSFER
+          : PaymentMethod.CARD,
       providerPaymentId: intent.providerPaymentId,
-      metadata: intent.metadata,
+      metadata: {
+        ...(intent.metadata && typeof intent.metadata === "object"
+          ? intent.metadata
+          : {}),
+        ...(intent.checkoutUrl ? { checkoutUrl: intent.checkoutUrl } : {}),
+        ...(tapIdempotencyKey
+          ? { idempotencyKey: tapIdempotencyKey }
+          : {}),
+      },
+      idempotencyKey: tapIdempotencyKey,
     });
 
     return {
       ...payment,
       clientSecret: intent.clientSecret,
+      checkoutUrl: intent.checkoutUrl,
     };
+  }
+
+  async createTapPayment(invoiceId: string, clientUserId: string) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id: invoiceId, client: { userId: clientUserId } },
+      include: {
+        payments: { include: { gateway: { select: { name: true } } } },
+      }
+    });
+    if (!invoice) {
+      throw new NotFoundException({ code: "INVOICE_NOT_FOUND", details: {} });
+    }
+    const existingTapPayment = invoice.payments.find((payment) => {
+      const metadata = payment.metadataJson;
+      return (
+        payment.gateway?.name === "tap" &&
+        payment.status === PaymentStatus.PENDING &&
+        payment.method === PaymentMethod.CARD &&
+        metadata &&
+        typeof metadata === "object" &&
+        !Array.isArray(metadata) &&
+        typeof (metadata as { idempotencyKey?: unknown }).idempotencyKey ===
+          "string" &&
+        (metadata as { idempotencyKey: string }).idempotencyKey.startsWith(
+          `invoice-${invoice.id}-`,
+        ) &&
+        typeof (metadata as { checkoutUrl?: unknown }).checkoutUrl === "string"
+      );
+    });
+    if (existingTapPayment) {
+      return {
+        ...existingTapPayment,
+        checkoutUrl: (existingTapPayment.metadataJson as { checkoutUrl: string })
+          .checkoutUrl,
+      };
+    }
+    const existingTapAttempt = invoice.payments.find((payment) => {
+      const metadata = payment.metadataJson;
+      return (
+        payment.gateway?.name === "tap" &&
+        payment.status === PaymentStatus.PENDING &&
+        payment.method === PaymentMethod.CARD &&
+        metadata &&
+        typeof metadata === "object" &&
+        !Array.isArray(metadata) &&
+        typeof (metadata as { idempotencyKey?: unknown }).idempotencyKey ===
+          "string" &&
+        (metadata as { idempotencyKey: string }).idempotencyKey.startsWith(
+          `invoice-${invoice.id}-`,
+        )
+      );
+    });
+    const paidAmount = invoice.payments
+      .filter((payment) => payment.status === PaymentStatus.SUCCESS)
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    const pendingAmount = invoice.payments
+      .filter((payment) => payment.status === PaymentStatus.PENDING)
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    const remainingAmount = Math.max(
+      0,
+      invoice.amount - paidAmount - pendingAmount,
+    );
+    if (remainingAmount <= 0 && !existingTapAttempt) {
+      throw new BadRequestException({
+        code:
+          pendingAmount > 0 ? "PAYMENT_PENDING_REVIEW" : "INVOICE_ALREADY_PAID",
+        details: { pendingAmount },
+      });
+    }
+    return this.createPayment({
+      invoiceId,
+      gatewayName: "tap",
+      amount: existingTapAttempt?.amount ?? remainingAmount,
+      currency: invoice.currency,
+      clientUserId,
+    });
+  }
+
+  async getTapPaymentStatus(tapId: string, clientUserId: string) {
+    const payment = await this.prisma.payment.findFirst({
+      where: {
+        providerPaymentId: tapId,
+        gateway: { name: "tap" },
+        invoice: { client: { userId: clientUserId } },
+      },
+    });
+    if (!payment) {
+      throw new NotFoundException({ code: "PAYMENT_NOT_FOUND", details: {} });
+    }
+    const provider = await this.getProvider("tap", false);
+    if (!provider.retrievePayment) {
+      throw new BadRequestException({
+        code: "PAYMENT_STATUS_NOT_SUPPORTED",
+        details: { gateway: "tap" },
+      });
+    }
+    const result = await provider.retrievePayment(tapId);
+    const updated = await this.updatePaymentStatus(
+      result.providerPaymentId,
+      result.status,
+      result.metadata,
+      result.amount,
+      result.currency,
+      "tap",
+    );
+    return updated ?? payment;
   }
 
   async createBankTransferSubmission(
@@ -885,7 +1307,7 @@ export class PaymentsService implements OnModuleInit {
       });
     }
 
-    const provider = await this.getProvider(log.provider);
+    const provider = await this.getProvider(log.provider, false);
     let event;
     try {
       event =
@@ -911,6 +1333,7 @@ export class PaymentsService implements OnModuleInit {
           result.metadata,
           result.amount,
           result.currency,
+          log.provider,
         );
       }
 
@@ -930,17 +1353,16 @@ export class PaymentsService implements OnModuleInit {
   }
 
   async processWebhook(provider: string, rawBody: any, signature: string) {
-    const providerInstance = await this.getProvider(provider);
+    const providerInstance = await this.getProvider(provider, false);
 
-    let parsedBody: any = rawBody;
-    if (Buffer.isBuffer(rawBody)) {
-      try {
-        parsedBody = JSON.parse(rawBody.toString("utf-8"));
-      } catch {
-        parsedBody = { type: "unknown" };
-      }
-    }
-
+    const verifiedEvent = await providerInstance.verifyWebhook(
+      rawBody,
+      signature,
+    );
+    const parsedBody =
+      verifiedEvent && typeof verifiedEvent === "object"
+        ? (verifiedEvent as Record<string, unknown>)
+        : {};
     const providerEventId =
       typeof parsedBody.id === "string" ? parsedBody.id : null;
     const existing = providerEventId
@@ -961,8 +1383,9 @@ export class PaymentsService implements OnModuleInit {
           data: {
             provider,
             providerEventId,
-            eventType: parsedBody.type || "unknown",
-            payload: parsedBody,
+            eventType:
+              typeof parsedBody.type === "string" ? parsedBody.type : "unknown",
+            payload: parsedBody as Prisma.InputJsonValue,
           },
         });
       } catch (error) {
@@ -978,8 +1401,7 @@ export class PaymentsService implements OnModuleInit {
     }
 
     try {
-      const event = await providerInstance.verifyWebhook(rawBody, signature);
-      const result = await providerInstance.handleWebhookEvent(event);
+      const result = await providerInstance.handleWebhookEvent(verifiedEvent);
 
       if (result) {
         await this.updatePaymentStatus(
@@ -988,6 +1410,7 @@ export class PaymentsService implements OnModuleInit {
           result.metadata,
           result.amount,
           result.currency,
+          provider,
         );
       }
 
@@ -1010,9 +1433,13 @@ export class PaymentsService implements OnModuleInit {
     metadata?: any,
     providerAmount?: number,
     providerCurrency?: string,
+    gatewayName?: string,
   ) {
     const payment = await this.prisma.payment.findFirst({
-      where: { providerPaymentId },
+      where: {
+        providerPaymentId,
+        ...(gatewayName ? { gateway: { name: gatewayName } } : {}),
+      },
       include: {
         invoice: {
           select: {
@@ -1028,7 +1455,12 @@ export class PaymentsService implements OnModuleInit {
       },
     });
 
-    if (!payment) return;
+    if (!payment) {
+      throw new NotFoundException({
+        code: "PAYMENT_NOT_FOUND",
+        details: { providerPaymentId, gateway: gatewayName },
+      });
+    }
     if (status === PaymentStatus.SUCCESS) {
       if (providerAmount === undefined || !providerCurrency) {
         throw new BadRequestException({
@@ -1049,6 +1481,18 @@ export class PaymentsService implements OnModuleInit {
         });
       }
     }
+
+    const existingMetadata =
+      payment.metadataJson &&
+      typeof payment.metadataJson === "object" &&
+      !Array.isArray(payment.metadataJson)
+        ? (payment.metadataJson as Record<string, unknown>)
+        : {};
+    const providerMetadata =
+      metadata && typeof metadata === "object" && !Array.isArray(metadata)
+        ? (metadata as Record<string, unknown>)
+        : {};
+    const mergedMetadata = { ...existingMetadata, ...providerMetadata };
 
     let invoicePaid = false;
     const updatedPayment = await this.prisma.$transaction(
@@ -1072,7 +1516,7 @@ export class PaymentsService implements OnModuleInit {
 
         const changed = await tx.payment.updateMany({
           where: { id: payment.id, status: current.status },
-          data: { status, metadataJson: metadata as any },
+          data: { status, metadataJson: mergedMetadata as any },
         });
         if (changed.count !== 1) return null;
 
@@ -1232,8 +1676,14 @@ export class PaymentsService implements OnModuleInit {
       if (!config || typeof config !== "object" || Array.isArray(config)) {
         config = {};
       }
+      const configKeys =
+        g.name === "stripe"
+          ? ["secretKey", "webhookSecret", "publishableKey"]
+          : g.name === "tap"
+            ? ["secretKey", "publicKey", "merchantId", "sourceId", "webhookUrl"]
+            : [];
       const fields: Record<string, boolean> = {};
-      for (const key of ["secretKey", "webhookSecret", "publishableKey"]) {
+      for (const key of configKeys) {
         if (config[key]) fields[key] = true;
       }
       return {
@@ -1242,7 +1692,8 @@ export class PaymentsService implements OnModuleInit {
           fields,
           isConfigured:
             g.name === "bank_transfer" ||
-            (g.name === "stripe" && this.isCompleteStripeConfig(config)),
+            (g.name === "stripe" && this.isCompleteStripeConfig(config)) ||
+            (g.name === "tap" && this.isCompleteTapConfig(config)),
         },
       };
     });
@@ -1256,8 +1707,25 @@ export class PaymentsService implements OnModuleInit {
       });
     }
 
-    const { isActive, secretKey, webhookSecret, publishableKey } = dto;
-    const providedConfig = { secretKey, webhookSecret, publishableKey };
+    const {
+      isActive,
+      secretKey,
+      webhookSecret,
+      publishableKey,
+      publicKey,
+      merchantId,
+      sourceId,
+      webhookUrl,
+    } = dto;
+    const providedConfig = {
+      secretKey,
+      webhookSecret,
+      publishableKey,
+      publicKey,
+      merchantId,
+      sourceId,
+      webhookUrl,
+    };
     const hasConfigFields = Object.values(providedConfig).some(Boolean);
 
     return this.prisma.$transaction(async (tx) => {
@@ -1300,19 +1768,38 @@ export class PaymentsService implements OnModuleInit {
         updateData.configJson = this.encrypt(JSON.stringify(config)) as any;
       }
 
+      if (name === "tap" && isActive === true) {
+        let effectiveConfig: Record<string, unknown> = config;
+        if (!hasConfigFields) {
+          const existingGateway = await tx.paymentGateway.findUnique({
+            where: { name },
+            select: { configJson: true },
+          });
+          effectiveConfig = this.parseGatewayConfig(
+            existingGateway?.configJson ?? null,
+          );
+        }
+        if (!this.isCompleteTapConfig(effectiveConfig)) {
+          throw new BadRequestException({
+            code: "PAYMENT_GATEWAY_CONFIG_INVALID",
+            details: { gateway: name },
+          });
+        }
+      }
+
       return tx.paymentGateway.upsert({
         where: { name },
         update: updateData,
         create: {
           name,
           type:
-            name === "stripe"
-              ? PaymentGatewayType.ONLINE
-              : PaymentGatewayType.MANUAL,
+            name === "bank_transfer"
+              ? PaymentGatewayType.MANUAL
+              : PaymentGatewayType.ONLINE,
           configJson: hasConfigFields
             ? (this.encrypt(JSON.stringify(config)) as any)
             : undefined,
-          isActive: isActive ?? true,
+          isActive: isActive ?? (name === "tap" ? false : true),
         },
       });
     });
@@ -1391,7 +1878,11 @@ export class PaymentsService implements OnModuleInit {
         if (gateway.name === "bank_transfer") return true;
         try {
           const config = this.parseGatewayConfig(gateway.configJson);
-          return this.isCompleteStripeConfig(config);
+          return gateway.name === "stripe"
+            ? this.isCompleteStripeConfig(config)
+            : gateway.name === "tap"
+              ? this.isCompleteTapConfig(config)
+              : false;
         } catch {
           return false;
         }

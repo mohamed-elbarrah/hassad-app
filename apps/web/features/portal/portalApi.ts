@@ -1040,6 +1040,27 @@ export const portalApi = createApi({
     >({
       query: () => "/portal/payments/stripe-config",
     }),
+    createPortalTapCheckout: builder.mutation<
+      { id: string; providerPaymentId: string; checkoutUrl: string },
+      { invoiceId: string }
+    >({
+      query: (body) => ({
+        url: "/portal/payments/tap/checkout",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PortalInvoices", "PortalFinanceSummary"],
+    }),
+    getPortalTapPaymentStatus: builder.query<
+      { id: string; status: string; invoiceId: string },
+      string
+    >({
+      query: (tapId) => ({
+        url: "/portal/payments/tap/status",
+        params: { tapId },
+      }),
+      providesTags: ["PortalInvoices", "PortalFinanceSummary"],
+    }),
     createPortalElementIntent: builder.mutation<
       { clientSecret: string; id: string },
       { invoiceId: string; amount: number; currency?: string }
@@ -1360,6 +1381,8 @@ export const {
   useGetPortalInvoiceDetailQuery,
   useGetPortalPaymentGatewaysQuery,
   useGetPortalPaymentBankAccountsQuery,
+  useCreatePortalTapCheckoutMutation,
+  useGetPortalTapPaymentStatusQuery,
   useGetPortalStripeConfigQuery,
   useCreatePortalElementIntentMutation,
   useCreatePortalBankTransferMutation,

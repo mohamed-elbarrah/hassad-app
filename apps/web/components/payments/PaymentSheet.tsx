@@ -33,12 +33,12 @@ import { formatCurrency } from "@/lib/format";
 import {
   useCreatePortalBankTransferMutation,
   useCreatePortalElementIntentMutation,
+  useCreatePortalTapCheckoutMutation,
   useGetPortalPaymentBankAccountsQuery,
   useGetPortalPaymentGatewaysQuery,
   useGetPortalStripeConfigQuery,
   useUploadPortalPaymentReceiptMutation,
 } from "@/features/portal/portalApi";
-import { PaymentMethod } from "@hassad/shared";
 
 export interface PayableInvoice {
   id: string;
@@ -56,18 +56,25 @@ export interface PayableInvoice {
 
 const PAYABLE_STATUSES = new Set(["PENDING", "SENT", "DUE", "PARTIAL", "LATE"]);
 
-function buildAvailableMethods(activeGateways: string[]) {
-  const methods: {
-    key: PaymentMethod;
-    label: string;
-    icon: typeof CreditCard;
-  }[] = [];
+type PaymentOptionKey = "stripe" | "tap" | "bank_transfer";
+
+type PaymentOption = {
+  key: PaymentOptionKey;
+  label: string;
+  icon: typeof CreditCard;
+};
+
+function buildAvailableMethods(activeGateways: string[]): PaymentOption[] {
+  const methods: PaymentOption[] = [];
   if (activeGateways.includes("stripe")) {
-    methods.push({ key: PaymentMethod.CARD, label: "بطاقة", icon: CreditCard });
+    methods.push({ key: "stripe", label: "بطاقة عبر Stripe", icon: CreditCard });
+  }
+  if (activeGateways.includes("tap")) {
+    methods.push({ key: "tap", label: "الدفع عبر Tap", icon: CreditCard });
   }
   if (activeGateways.includes("bank_transfer")) {
     methods.push({
-      key: PaymentMethod.BANK_TRANSFER,
+      key: "bank_transfer",
       label: "تحويل بنكي",
       icon: Landmark,
     });
@@ -117,22 +124,20 @@ export function InlinePaymentCard({
   const resolvedMethods = useMemo(
     () =>
       buildAvailableMethods(activeGateways).filter(
-        (method) =>
-          method.key !== PaymentMethod.CARD || Boolean(resolvedStripeKey),
+        (method) => method.key !== "stripe" || Boolean(resolvedStripeKey),
       ),
     [activeGateways, resolvedStripeKey],
   );
   const resolvedBankAccounts = bankAccountsProp ?? bankData ?? [];
 
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
-    null,
-  );
+  const [selectedMethod, setSelectedMethod] =
+    useState<PaymentOptionKey | null>(null);
 
   useEffect(() => {
     if (resolvedMethods.length > 0 && !selectedMethod) {
-      const preferredMethod =
+      const preferredMethod: PaymentOptionKey =
         invoice.hasPendingBankTransfer && !invoice.hasPendingReceipt
-          ? PaymentMethod.BANK_TRANSFER
+          ? "bank_transfer"
           : resolvedMethods[0].key;
       setSelectedMethod(
         resolvedMethods.some((method) => method.key === preferredMethod)
@@ -194,14 +199,17 @@ export function InlinePaymentCard({
         </div>
       ) : (
         <>
-          {selectedMethod === PaymentMethod.CARD && resolvedStripeKey && (
+          {selectedMethod === "stripe" && resolvedStripeKey && (
             <CardPaymentForm
               invoice={invoice}
               stripeKey={resolvedStripeKey}
               onPaymentComplete={onPaymentComplete}
             />
           )}
-          {selectedMethod === PaymentMethod.BANK_TRANSFER && (
+          {selectedMethod === "tap" && (
+            <TapPaymentForm invoice={invoice} />
+          )}
+          {selectedMethod === "bank_transfer" && (
             <BankTransferForm
               invoice={invoice}
               bankAccounts={resolvedBankAccounts}
@@ -228,13 +236,15 @@ export function CardPaymentForm({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [createElementIntent, { isLoading: creating }] =
     useCreatePortalElementIntentMutation();
+  const amount = getPayableAmount(invoice);
+  const currency = invoice.currency ?? "SAR";
 
   const load = useCallback(async () => {
     try {
       const result = await createElementIntent({
         invoiceId: invoice.id,
-        amount: getPayableAmount(invoice),
-        currency: invoice.currency ?? "SAR",
+        amount,
+        currency,
       }).unwrap();
       if (result?.clientSecret) setClientSecret(result.clientSecret);
     } catch (err: unknown) {
@@ -242,8 +252,8 @@ export function CardPaymentForm({
     }
   }, [
     invoice.id,
-    invoice.amount,
-    invoice.remainingAmount,
+    amount,
+    currency,
     createElementIntent,
   ]);
 
@@ -442,6 +452,57 @@ function StripePaymentForm({
   );
 }
 
+/* ═════════════ Tap Hosted Checkout Form ═════════════════════════ */
+
+function TapPaymentForm({
+  invoice,
+}: {
+  invoice: PayableInvoice;
+}) {
+  const [createCheckout, { isLoading }] = useCreatePortalTapCheckoutMutation();
+
+  const handleCheckout = async () => {
+    try {
+      const result = await createCheckout({ invoiceId: invoice.id }).unwrap();
+      if (!result.checkoutUrl) {
+        toast.error(portalErrorMessage({ code: "PAYMENT_CHECKOUT_URL_MISSING" }));
+        return;
+      }
+      window.location.assign(result.checkoutUrl);
+    } catch (error: unknown) {
+      toast.error(portalErrorMessage(error));
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start gap-3 rounded-lg border bg-muted/20 p-4">
+        <CreditCard className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <p className="text-sm leading-6 text-muted-foreground">
+          سيتم تحويلك إلى صفحة Tap الآمنة لإكمال الدفع بالبطاقة أو وسائل الدفع المتاحة.
+        </p>
+      </div>
+      <Button
+        type="button"
+        onClick={handleCheckout}
+        disabled={isLoading}
+        className="w-full"
+      >
+        {isLoading ? (
+          <Loader2 data-icon="inline-start" className="animate-spin" />
+        ) : (
+          <CreditCard data-icon="inline-start" />
+        )}
+        {isLoading ? "جاري تجهيز الدفع..." : "المتابعة إلى Tap"}
+      </Button>
+      <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
+        <ShieldCheck className="size-3" />
+        سيتم تأكيد حالة الدفع من الخادم بعد العودة من Tap
+      </div>
+    </div>
+  );
+}
+
 /* ═════════════ Bank Transfer Form ═══════════════════════════════ */
 
 export function BankTransferForm({
@@ -615,8 +676,7 @@ export function PaymentSheet({
     () =>
       buildAvailableMethods(activeGateways).filter(
         (method) =>
-          method.key !== PaymentMethod.CARD ||
-          Boolean(stripeConfig?.publishableKey),
+          method.key !== "stripe" || Boolean(stripeConfig?.publishableKey),
       ),
     [activeGateways, stripeConfig?.publishableKey],
   );
@@ -626,15 +686,14 @@ export function PaymentSheet({
     loadingBankAccounts ||
     (activeGateways.includes("stripe") && loadingStripeConfig);
 
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
-    null,
-  );
+  const [selectedMethod, setSelectedMethod] =
+    useState<PaymentOptionKey | null>(null);
 
   useEffect(() => {
     if (availableMethods.length > 0 && !selectedMethod) {
-      const preferredMethod =
+      const preferredMethod: PaymentOptionKey =
         invoice?.hasPendingBankTransfer && !invoice.hasPendingReceipt
-          ? PaymentMethod.BANK_TRANSFER
+          ? "bank_transfer"
           : availableMethods[0].key;
       setSelectedMethod(
         availableMethods.some((method) => method.key === preferredMethod)
@@ -741,7 +800,7 @@ export function PaymentSheet({
                 </div>
               ) : (
                 <>
-                  {selectedMethod === PaymentMethod.CARD &&
+                  {selectedMethod === "stripe" &&
                     stripeConfig?.publishableKey && (
                       <CardPaymentForm
                         invoice={invoice}
@@ -753,7 +812,11 @@ export function PaymentSheet({
                       />
                     )}
 
-                  {selectedMethod === PaymentMethod.BANK_TRANSFER && (
+                  {selectedMethod === "tap" && (
+                    <TapPaymentForm invoice={invoice} />
+                  )}
+
+                  {selectedMethod === "bank_transfer" && (
                     <BankTransferForm
                       invoice={invoice}
                       bankAccounts={bankAccounts ?? []}

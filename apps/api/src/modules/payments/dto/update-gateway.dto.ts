@@ -16,4 +16,20 @@ export class UpdateGatewayDto {
   @IsOptional()
   @IsString()
   publishableKey?: string;
+
+  @IsOptional()
+  @IsString()
+  publicKey?: string;
+
+  @IsOptional()
+  @IsString()
+  merchantId?: string;
+
+  @IsOptional()
+  @IsString()
+  sourceId?: string;
+
+  @IsOptional()
+  @IsString()
+  webhookUrl?: string;
 }
