@@ -321,6 +321,17 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   R2_CONFIGURATION_INVALID:
     "إعدادات Cloudflare R2 غير صالحة أو لا يمكن فك تشفيرها.",
   R2_CREDENTIALS_REQUIRED: "أدخل مفتاح الوصول والمفتاح السري معاً.",
+  BACKUP_ALREADY_RUNNING: "توجد عملية نسخ احتياطي قيد التنفيذ بالفعل.",
+  BACKUP_NOT_FOUND: "لم يتم العثور على النسخة الاحتياطية.",
+  BACKUP_NOT_READY: "النسخة الاحتياطية لم تكتمل بعد.",
+  BACKUP_OBJECT_MISSING: "ملف النسخة الاحتياطية غير متاح في التخزين.",
+  BACKUP_FILE_COPY_VERIFICATION_FAILED: "تعذر التحقق من ملفات النسخة الكاملة.",
+  BACKUP_OPERATION_STALE: "توقفت عملية النسخ الاحتياطي ويمكن إعادة المحاولة.",
+  BACKUP_EXPIRED: "انتهت صلاحية النسخة الاحتياطية.",
+  BACKUP_TOOL_UNAVAILABLE: "أداة إنشاء النسخ الاحتياطية غير متاحة على الخادم.",
+  R2_CONFIGURATION_MISSING: "إعدادات Cloudflare R2 غير مكتملة.",
+  BACKUP_OPERATION_FAILED: "تعذر إنشاء النسخة الاحتياطية.",
+  UNSUPPORTED_EXPORT_TYPE: "نوع التصدير غير مدعوم.",
   INVALID_WHATSAPP_PHONE: "أدخل رقم واتساب دولياً صحيحاً.",
   INVALID_R2_URL: "أدخل رابط تخزين صحيحاً وآمناً.",
   INVALID_R2_PUBLIC_DOMAIN: "أدخل نطاقاً عاماً صالحاً وآمناً.",
@@ -333,6 +344,7 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
 };
 
 const ADMIN_SUCCESS_MESSAGES: Record<string, string> = {
+  BACKUP_QUEUED: "تمت جدولة النسخة الاحتياطية وستظهر حالتها في السجل.",
   USER_CREATED: "تمت إضافة الموظف بنجاح.",
   USER_ACTIVATED: "تم تفعيل حساب الموظف.",
   USER_DEACTIVATED: "تم تعطيل حساب الموظف.",

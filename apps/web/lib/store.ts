@@ -40,6 +40,7 @@ import { adminClientsApi } from "@/features/admin/adminClientsApi";
 import { adminProposalsApi } from "@/features/admin/adminProposalsApi";
 import { adminFinanceApi } from "@/features/admin/adminFinanceApi";
 import { adminReportsApi } from "@/features/admin/adminReportsApi";
+import { adminBackupsApi } from "@/features/admin/adminBackupsApi";
 import { periodsApi } from "@/features/projects/periodsApi";
 import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
 import { aiAssistantApi } from "@/features/aiAssistantApi";
@@ -91,6 +92,7 @@ export const store = configureStore({
     [adminProposalsApi.reducerPath]: adminProposalsApi.reducer,
     [adminFinanceApi.reducerPath]: adminFinanceApi.reducer,
     [adminReportsApi.reducerPath]: adminReportsApi.reducer,
+    [adminBackupsApi.reducerPath]: adminBackupsApi.reducer,
     [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
     [aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
     [notificationTemplatesApi.reducerPath]: notificationTemplatesApi.reducer,
@@ -137,6 +139,7 @@ export const store = configureStore({
       adminProposalsApi.middleware,
       adminFinanceApi.middleware,
       adminReportsApi.middleware,
+      adminBackupsApi.middleware,
       periodsApi.middleware,
       pmDisputesApi.middleware,
       aiAssistantApi.middleware,
@@ -193,6 +196,7 @@ authLifecycleMiddleware.startListening({
       adminProposalsApi,
       adminFinanceApi,
       adminReportsApi,
+      adminBackupsApi,
       periodsApi,
       pmDisputesApi,
       aiAssistantApi,

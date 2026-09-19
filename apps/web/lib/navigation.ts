@@ -11,6 +11,7 @@ import {
   FileBarChart,
   Megaphone,
   Settings,
+  DatabaseBackup,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -155,6 +156,18 @@ export const adminNavSections: NavSection[] = [
       {
         title: "صحة النظام",
         url: "/dashboard/admin/health",
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "النسخ الاحتياطي",
+    icon: DatabaseBackup,
+    items: [
+      {
+        title: "النسخ الاحتياطي",
+        url: "/dashboard/admin/backups",
+        exact: true,
         roles: ["ADMIN"],
       },
     ],

@@ -2449,6 +2449,9 @@ async function main() {
     "admin.notifications",
     "admin.team",
     "admin.marketing",
+    "admin.backups.read",
+    "admin.backups.manage",
+    "admin.backups.restore",
 
     // Admin users & security
     "admin.users.read",

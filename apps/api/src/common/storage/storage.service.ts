@@ -12,12 +12,17 @@ import {
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  CopyObjectCommand,
+  ListObjectsV2Command,
   S3ServiceException,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomBytes } from "crypto";
 import { R2ConfigProvider } from "./r2-config.provider";
 import { extname } from "path";
+import { createWriteStream } from "fs";
+import { Readable } from "stream";
+import { pipeline } from "stream/promises";
 import {
   StorageCategory,
   STORAGE_CONFIG,
@@ -307,6 +312,106 @@ export class StorageService implements OnModuleInit {
     };
   }
 
+  async uploadStream(
+    key: string,
+    body: Readable,
+    contentType: string,
+    contentLength?: number,
+  ): Promise<void> {
+    if (!this.configured) {
+      throw new Error(this.configurationCode);
+    }
+
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        ...(contentLength === undefined
+          ? {}
+          : { ContentLength: contentLength }),
+      }),
+    );
+  }
+
+  async uploadBuffer(
+    key: string,
+    body: Buffer,
+    contentType: string,
+  ): Promise<void> {
+    if (!this.configured) {
+      throw new Error(this.configurationCode);
+    }
+
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        ContentLength: body.length,
+      }),
+    );
+  }
+
+  async listKeys(prefix = ""): Promise<string[]> {
+    if (!this.configured) {
+      throw new Error(this.configurationCode);
+    }
+
+    const keys: string[] = [];
+    let continuationToken: string | undefined;
+    do {
+      const response = await this.s3.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+      keys.push(
+        ...(response.Contents ?? [])
+          .map((object) => object.Key)
+          .filter((key): key is string => Boolean(key)),
+      );
+      continuationToken = response.IsTruncated
+        ? response.NextContinuationToken
+        : undefined;
+    } while (continuationToken);
+
+    return keys;
+  }
+
+  async copyObject(sourceKey: string, destinationKey: string): Promise<void> {
+    if (!this.configured) {
+      throw new Error(this.configurationCode);
+    }
+
+    await this.s3.send(
+      new CopyObjectCommand({
+        Bucket: this.bucket,
+        Key: destinationKey,
+        CopySource: `${this.bucket}/${encodeURIComponent(sourceKey)}`,
+      }),
+    );
+  }
+
+  async downloadToFile(key: string, filepath: string): Promise<void> {
+    if (!this.configured) {
+      throw new Error(this.configurationCode);
+    }
+
+    const response = await this.s3.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    if (!response.Body) {
+      throw new Error("BACKUP_OBJECT_EMPTY");
+    }
+
+    await pipeline(response.Body as Readable, createWriteStream(filepath));
+  }
+
   async deleteByKey(key: string): Promise<void> {
     try {
       await this.s3.send(
@@ -319,6 +424,23 @@ export class StorageService implements OnModuleInit {
       this.logger.error(
         `Failed to delete R2 object "${key}": ${error instanceof Error ? error.message : error}`,
       );
+    }
+  }
+
+  async deleteByPrefixStrict(prefix: string): Promise<void> {
+    const keys = await this.listKeys(prefix);
+    for (let index = 0; index < keys.length; index += 1000) {
+      const batch = keys.slice(index, index + 1000);
+      if (batch.length === 0) continue;
+      const response = await this.s3.send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: { Objects: batch.map((Key) => ({ Key })) },
+        }),
+      );
+      if (response.Errors && response.Errors.length > 0) {
+        throw new Error("R2_DELETE_FAILED");
+      }
     }
   }
 

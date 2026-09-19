@@ -30,8 +30,8 @@ RUN npm run build --workspace=apps/api
 FROM node:22-alpine
 WORKDIR /app
 
-# Install wget for healthcheck
-RUN apk add --no-cache wget
+# Install runtime tools for healthchecks and database backups
+RUN apk add --no-cache wget postgresql-client
 
 # Copy built artifacts from build stage
 COPY --from=build /app/node_modules /app/node_modules

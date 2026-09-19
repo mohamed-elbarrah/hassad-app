@@ -72,6 +72,8 @@ model User {
   deletedMessages       Message[]                 @relation("DeletedMessages")
   notifications         Notification[]
   resolvedSystemEvents  SystemEventLog[]
+  createdBackups        Backup[]          @relation("BackupCreatedBy")
+  backupOperations      BackupOperation[] @relation("BackupOperationRequestedBy")
   assignedTickets       PaymentTicket[]           @relation("TicketAssignee")
   uploadedProjectFiles  ProjectFile[]
   projectMembers        ProjectMember[]
@@ -1563,6 +1565,99 @@ model SystemEventLog {
   @@index([status])
   @@index([createdAt])
   @@map("system_event_logs")
+}
+
+model Backup {
+  id               String         @id @default(uuid())
+  scope            BackupScope
+  trigger          BackupTrigger
+  status           BackupStatus   @default(QUEUED)
+  databaseKey      String?        @map("database_key")
+  filesPrefix      String?        @map("files_prefix")
+  manifestKey      String?        @map("manifest_key")
+  checksum         String?
+  sizeBytes        BigInt?        @map("size_bytes")
+  fileCount        Int            @default(0) @map("file_count")
+  appVersion       String?        @map("app_version")
+  migrationVersion String?        @map("migration_version")
+  createdById      String?        @map("created_by_id")
+  errorCode        String?        @map("error_code")
+  errorDetails     Json?          @map("error_details")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  startedAt        DateTime?      @map("started_at")
+  completedAt      DateTime?      @map("completed_at")
+  expiresAt        DateTime?      @map("expires_at")
+
+  createdBy  User?             @relation("BackupCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  operations BackupOperation[]
+
+  @@index([status, createdAt])
+  @@index([expiresAt])
+  @@map("backups")
+}
+
+model BackupOperation {
+  id            String                @id @default(uuid())
+  backupId      String?               @map("backup_id")
+  type          BackupOperationType
+  status        BackupOperationStatus @default(QUEUED)
+  requestedById  String?               @map("requested_by_id")
+  leaseOwner     String?               @map("lease_owner")
+  leaseExpiresAt DateTime?             @map("lease_expires_at")
+  errorCode      String?               @map("error_code")
+  details       Json?
+  createdAt     DateTime              @default(now()) @map("created_at")
+  startedAt     DateTime?             @map("started_at")
+  completedAt   DateTime?             @map("completed_at")
+
+  backup      Backup? @relation(fields: [backupId], references: [id], onDelete: Cascade)
+  requestedBy User?   @relation("BackupOperationRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([leaseExpiresAt])
+  @@index([backupId])
+  @@map("backup_operations")
+}
+
+enum BackupScope {
+  DATABASE_ONLY
+  FULL_SYSTEM
+
+  @@map("backup_scopes")
+}
+
+enum BackupTrigger {
+  SCHEDULED
+  MANUAL
+
+  @@map("backup_triggers")
+}
+
+enum BackupStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  EXPIRED
+
+  @@map("backup_statuses")
+}
+
+enum BackupOperationType {
+  CREATE
+  RESTORE
+  DELETE
+
+  @@map("backup_operation_types")
+}
+
+enum BackupOperationStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+
+  @@map("backup_operation_statuses")
 }
 
 model ReportSnapshot {

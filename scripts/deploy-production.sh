@@ -44,7 +44,7 @@ on_error() {
   code=$?
   printf '\nERROR: deployment failed (exit %s). Recent service state:\n' "$code" >&2
   "${compose[@]}" ps >&2 || true
-  for service in postgres api web nginx; do
+  for service in postgres api backup-worker web nginx; do
     printf '\n--- %s logs ---\n' "$service" >&2
     "${compose[@]}" logs --tail=80 "$service" >&2 || true
   done
@@ -95,8 +95,8 @@ mv -- "$tmp_backup" "$backup"
 tmp_backup=""
 log "Verified backup: $backup"
 
-log "Building API and Web images"
-"${compose[@]}" build api web
+log "Building API, backup worker, and Web images"
+"${compose[@]}" build api backup-worker web
 
 log "Checking known migration preconditions"
 "${compose[@]}" exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
@@ -146,7 +146,7 @@ log "Applying pending Prisma migrations"
 "${compose[@]}" run --rm --no-deps --entrypoint npx api prisma migrate deploy --schema=apps/api/prisma/schema.prisma
 
 log "Replacing application containers"
-"${compose[@]}" up -d --no-build --force-recreate api web nginx
+"${compose[@]}" up -d --no-build --force-recreate api backup-worker web nginx
 
 wait_for_health() {
   service="$1"
@@ -161,8 +161,9 @@ wait_for_health() {
   fatal "Timed out waiting for $service."
 }
 
-log "Waiting for API and Web health checks"
+log "Waiting for API, backup worker, and Web health checks"
 wait_for_health api
+wait_for_health backup-worker
 wait_for_health web
 
 log "Validating Nginx configuration"

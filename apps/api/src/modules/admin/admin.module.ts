@@ -31,7 +31,10 @@ import { AdminIntegrationsController } from "./controllers/admin-integrations.co
 import { AdminAutomationController } from "./controllers/admin-automation.controller";
 import { AdminFeatureFlagsController } from "./controllers/admin-feature-flags.controller";
 import { AdminEnvironmentController } from "./controllers/admin-environment.controller";
-import { AdminBackupsController } from "./controllers/admin-backups.controller";
+import {
+  AdminBackupsCompatibilityController,
+  AdminBackupsController,
+} from "./controllers/admin-backups.controller";
 import { AdminReportsController } from "./controllers/admin-reports.controller";
 import { AdminDashboardController } from "./controllers/admin-dashboard.controller";
 import { AdminNotificationTemplatesController } from "./controllers/admin-notification-templates.controller";
@@ -137,6 +140,7 @@ import { SettingsModule } from "../settings/settings.module";
     AdminFeatureFlagsController,
     AdminEnvironmentController,
     AdminBackupsController,
+    AdminBackupsCompatibilityController,
     AdminTeamController,
     AdminSystemEventsController,
     AdminDeliverablesController,
