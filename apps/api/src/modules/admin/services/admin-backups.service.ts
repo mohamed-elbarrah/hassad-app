@@ -17,6 +17,7 @@ import { createHash } from "crypto";
 import { createReadStream } from "fs";
 import { mkdtemp, rm, stat } from "fs/promises";
 import { tmpdir } from "os";
+import { lookup } from "dns/promises";
 import { join } from "path";
 import { spawn } from "child_process";
 import { once } from "events";
@@ -29,6 +30,7 @@ const BACKUP_RETENTION_DAYS = 30;
 const BACKUP_PREFIX = "backups/";
 const BACKUP_TOOL_UNAVAILABLE = "BACKUP_TOOL_UNAVAILABLE";
 const BACKUP_LEASE_MS = 2 * 60 * 1000;
+const BACKUP_FILE_COPY_CONCURRENCY = 8;
 
 @Injectable()
 export class AdminBackupsService {
@@ -51,7 +53,9 @@ export class AdminBackupsService {
       );
       const activeOperation = await tx.backupOperation.findFirst({
         where: {
-          type: BackupOperationType.CREATE,
+          type: {
+            in: [BackupOperationType.CREATE, BackupOperationType.RESTORE],
+          },
           status: {
             in: [BackupOperationStatus.QUEUED, BackupOperationStatus.RUNNING],
           },
@@ -106,6 +110,88 @@ export class AdminBackupsService {
     }
 
     return { backup, operation };
+  }
+
+  async enqueueRestoreVerification(
+    backupId: string,
+    requestedById: string,
+  ) {
+    const { backup, operation } = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(
+        Prisma.sql`SELECT pg_advisory_xact_lock(hashtext('hassad_backup_enqueue'))`,
+      );
+      const backup = await tx.backup.findUnique({
+        where: { id: backupId },
+        select: {
+          id: true,
+          scope: true,
+          status: true,
+          databaseKey: true,
+          checksum: true,
+        },
+      });
+      if (!backup) {
+        throw new NotFoundException({
+          code: "BACKUP_NOT_FOUND",
+          details: { id: backupId },
+        });
+      }
+      if (
+        backup.scope !== BackupScope.DATABASE_ONLY ||
+        backup.status !== BackupStatus.COMPLETED ||
+        !backup.databaseKey
+      ) {
+        throw new ConflictException({
+          code: "BACKUP_RESTORE_NOT_AVAILABLE",
+          details: { status: backup.status, scope: backup.scope },
+        });
+      }
+      if (!backup.checksum) {
+        throw new ConflictException({
+          code: "BACKUP_RESTORE_CHECKSUM_UNAVAILABLE",
+          details: {},
+        });
+      }
+      const activeOperation = await tx.backupOperation.findFirst({
+        where: {
+          type: {
+            in: [BackupOperationType.CREATE, BackupOperationType.RESTORE],
+          },
+          status: {
+            in: [BackupOperationStatus.QUEUED, BackupOperationStatus.RUNNING],
+          },
+        },
+        select: { id: true, type: true },
+      });
+      if (activeOperation) {
+        throw new ConflictException({
+          code:
+            activeOperation.type === BackupOperationType.RESTORE
+              ? "BACKUP_RESTORE_ALREADY_RUNNING"
+              : "BACKUP_ALREADY_RUNNING",
+          details: { operationId: activeOperation.id },
+        });
+      }
+      const operation = await tx.backupOperation.create({
+        data: {
+          backupId,
+          type: BackupOperationType.RESTORE,
+          status: BackupOperationStatus.QUEUED,
+          requestedById,
+        },
+        select: { id: true, status: true },
+      });
+      return { backup, operation };
+    });
+
+    await this.actionLog.record({
+      actorId: requestedById,
+      targetType: "backup",
+      targetId: backup.id,
+      actionType: "backup.restore_verification_requested",
+      afterState: { operationId: operation.id },
+    });
+    return { backup: { id: backup.id, status: backup.status }, operation };
   }
 
   async exportData(type: string): Promise<string> {
@@ -429,6 +515,19 @@ export class AdminBackupsService {
           startedAt: true,
           completedAt: true,
           expiresAt: true,
+          operations: {
+            where: { type: BackupOperationType.RESTORE },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              status: true,
+              errorCode: true,
+              details: true,
+              createdAt: true,
+              completedAt: true,
+            },
+          },
         },
       }),
       this.prisma.backup.count(),
@@ -438,6 +537,7 @@ export class AdminBackupsService {
       items: items.map((item) => ({
         ...item,
         sizeBytes: item.sizeBytes === null ? null : Number(item.sizeBytes),
+        restoreOperation: item.operations[0] ?? null,
       })),
       total,
       page,
@@ -524,40 +624,141 @@ export class AdminBackupsService {
     const now = new Date();
     const staleOperations = await this.prisma.backupOperation.findMany({
       where: {
-        type: BackupOperationType.CREATE,
+        type: { in: [BackupOperationType.CREATE, BackupOperationType.RESTORE] },
         status: BackupOperationStatus.RUNNING,
         leaseExpiresAt: { lt: now },
       },
-      select: { id: true, backupId: true },
+      select: {
+        id: true,
+        backupId: true,
+        type: true,
+        attemptCount: true,
+        maxAttempts: true,
+      },
     });
 
     for (const operation of staleOperations) {
+      let recovered = false;
       await this.prisma.$transaction(async (tx) => {
+        const retryable = operation.attemptCount < operation.maxAttempts;
+        const nextAttemptAt = new Date(
+          Date.now() + Math.min(15 * 60_000, 30_000 * 2 ** operation.attemptCount),
+        );
         const claimed = await tx.backupOperation.updateMany({
           where: {
             id: operation.id,
             status: BackupOperationStatus.RUNNING,
             leaseExpiresAt: { lt: now },
           },
-          data: {
-            status: BackupOperationStatus.FAILED,
-            errorCode: "BACKUP_OPERATION_STALE",
-            completedAt: new Date(),
-          },
+          data: retryable
+            ? {
+                status: BackupOperationStatus.QUEUED,
+                errorCode: "BACKUP_OPERATION_STALE",
+                leaseOwner: null,
+                leaseExpiresAt: null,
+                nextAttemptAt,
+              }
+            : {
+                status: BackupOperationStatus.FAILED,
+                errorCode: "BACKUP_OPERATION_STALE",
+                leaseOwner: null,
+                leaseExpiresAt: null,
+                completedAt: new Date(),
+              },
         });
-        if (claimed.count !== 1 || !operation.backupId) return;
+        if (claimed.count !== 1) return;
+        recovered = true;
+        if (!operation.backupId || operation.type !== BackupOperationType.CREATE) return;
         await tx.backup.updateMany({
           where: {
             id: operation.backupId,
             status: { in: [BackupStatus.QUEUED, BackupStatus.RUNNING] },
           },
-          data: {
-            status: BackupStatus.FAILED,
-            errorCode: "BACKUP_OPERATION_STALE",
-            completedAt: new Date(),
-          },
+          data: retryable
+            ? { status: BackupStatus.QUEUED, errorCode: "BACKUP_OPERATION_STALE" }
+            : {
+                status: BackupStatus.FAILED,
+                errorCode: "BACKUP_OPERATION_STALE",
+                completedAt: new Date(),
+              },
         });
       });
+      if (
+        recovered &&
+        operation.backupId &&
+        operation.type === BackupOperationType.CREATE
+      ) {
+        try {
+          await this.storage.deleteByPrefixStrict(
+            `${BACKUP_PREFIX}${operation.backupId}/attempt-${operation.attemptCount}/`,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Stale backup artifact cleanup failed for ${operation.id}: ${error instanceof Error ? error.message : "BACKUP_STALE_ARTIFACT_CLEANUP_FAILED"}`,
+          );
+        }
+      }
+    }
+  }
+
+  async cleanupRestoreTargets(): Promise<void> {
+    if (
+      process.env.BACKUP_RESTORE_ENABLED !== "true" ||
+      !process.env.RESTORE_DATABASE_URL ||
+      process.env.BACKUP_RESTORE_KEEP_TARGET === "true"
+    ) {
+      return;
+    }
+    const operations = await this.prisma.backupOperation.findMany({
+      where: {
+        type: BackupOperationType.RESTORE,
+        status: {
+          in: [
+            BackupOperationStatus.QUEUED,
+            BackupOperationStatus.FAILED,
+            BackupOperationStatus.COMPLETED,
+          ],
+        },
+        attemptCount: { gt: 0 },
+      },
+      take: 100,
+      select: { id: true, attemptCount: true },
+    });
+    for (const operation of operations) {
+      for (let attempt = 1; attempt <= operation.attemptCount; attempt += 1) {
+        try {
+          await this.dropRestoreDatabase(
+            this.restoreTargetUrl(
+              process.env.RESTORE_DATABASE_URL,
+              operation.id,
+              attempt,
+            ),
+          );
+        } catch {
+          this.logger.error("BACKUP_RESTORE_TARGET_CLEANUP_FAILED");
+        }
+      }
+    }
+  }
+
+  async cleanupFailedBackupArtifacts(): Promise<void> {
+    const failed = await this.prisma.backup.findMany({
+      where: {
+        status: BackupStatus.FAILED,
+        completedAt: { lt: new Date(Date.now() - 60 * 60_000) },
+      },
+      take: 20,
+      select: { id: true },
+    });
+
+    for (const backup of failed) {
+      try {
+        await this.storage.deleteByPrefixStrict(`${BACKUP_PREFIX}${backup.id}/`);
+      } catch (error) {
+        this.logger.error(
+          `Failed backup artifact cleanup failed for ${backup.id}: ${error instanceof Error ? error.message : "BACKUP_FAILED_ARTIFACT_CLEANUP_FAILED"}`,
+        );
+      }
     }
   }
 
@@ -591,11 +792,12 @@ export class AdminBackupsService {
   async processNextOperation(workerId: string): Promise<boolean> {
     const operation = await this.prisma.backupOperation.findFirst({
       where: {
-        type: BackupOperationType.CREATE,
+        type: { in: [BackupOperationType.CREATE, BackupOperationType.RESTORE] },
         status: BackupOperationStatus.QUEUED,
+        OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: new Date() } }],
       },
       orderBy: { createdAt: "asc" },
-      select: { id: true },
+      select: { id: true, type: true, attemptCount: true },
     });
 
     if (!operation) return false;
@@ -608,31 +810,229 @@ export class AdminBackupsService {
         startedAt: new Date(),
         leaseOwner: workerId,
         leaseExpiresAt,
+        attemptCount: { increment: 1 },
+        nextAttemptAt: null,
       },
     });
 
     if (claimed.count !== 1) return false;
 
-    await this.processCreate(operation.id, workerId);
+    const attemptCount = operation.attemptCount + 1;
+    if (operation.type === BackupOperationType.RESTORE) {
+      await this.processRestore(operation.id, workerId, attemptCount);
+    } else {
+      await this.processCreate(operation.id, workerId, attemptCount);
+    }
     return true;
+  }
+
+  private async processRestore(
+    operationId: string,
+    workerId: string,
+    attemptCount: number,
+  ): Promise<void> {
+    const operation = await this.prisma.backupOperation.findFirst({
+      where: {
+        id: operationId,
+        type: BackupOperationType.RESTORE,
+        status: BackupOperationStatus.RUNNING,
+        leaseOwner: workerId,
+        attemptCount,
+      },
+      include: { backup: true },
+    });
+    if (!operation) return;
+    if (!operation.backup?.databaseKey) {
+      await this.prisma.backupOperation.updateMany({
+        where: {
+          id: operationId,
+          status: BackupOperationStatus.RUNNING,
+          leaseOwner: workerId,
+          attemptCount,
+        },
+        data: {
+          status: BackupOperationStatus.FAILED,
+          errorCode: "BACKUP_RESTORE_SOURCE_MISSING",
+          details: { code: "BACKUP_RESTORE_SOURCE_MISSING", retryable: false },
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          completedAt: new Date(),
+        },
+      });
+      return;
+    }
+    if (process.env.BACKUP_RESTORE_ENABLED !== "true") {
+      await this.markOperationFailed(
+        operationId,
+        operation.backup.id,
+        workerId,
+        "BACKUP_RESTORE_DISABLED",
+        BackupOperationType.RESTORE,
+        false,
+      );
+      return;
+    }
+
+    const restoreDatabaseUrl = process.env.RESTORE_DATABASE_URL;
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!restoreDatabaseUrl || !databaseUrl) {
+      await this.markOperationFailed(
+        operationId,
+        operation.backup.id,
+        workerId,
+        "BACKUP_RESTORE_TARGET_MISSING",
+        BackupOperationType.RESTORE,
+        false,
+      );
+      return;
+    }
+    let sameServer: boolean;
+    try {
+      sameServer = await this.isSameDatabaseServer(
+        restoreDatabaseUrl,
+        databaseUrl,
+      );
+    } catch {
+      await this.markOperationFailed(
+        operationId,
+        operation.backup.id,
+        workerId,
+        "BACKUP_RESTORE_TARGET_IDENTITY_UNVERIFIED",
+        BackupOperationType.RESTORE,
+        false,
+      );
+      return;
+    }
+    const restoreDatabase = decodeURIComponent(
+      new URL(restoreDatabaseUrl).pathname.replace(/^\//, ""),
+    );
+    const liveDatabase = decodeURIComponent(
+      new URL(databaseUrl).pathname.replace(/^\//, ""),
+    );
+    if (
+      (sameServer && restoreDatabase === liveDatabase) ||
+      (sameServer && process.env.BACKUP_RESTORE_ALLOW_SAME_SERVER !== "true")
+    ) {
+      await this.markOperationFailed(
+        operationId,
+        operation.backup.id,
+        workerId,
+        "BACKUP_RESTORE_TARGET_IS_LIVE_DATABASE",
+        BackupOperationType.RESTORE,
+        false,
+      );
+      return;
+    }
+
+    let workingDirectory: string | undefined;
+    let isolatedDatabaseUrl: string | undefined;
+    let leaseTimer: NodeJS.Timeout | undefined;
+    let leaseLost = false;
+    const assertLease = () => {
+      if (leaseLost) throw new Error("BACKUP_OPERATION_FENCED");
+    };
+    try {
+      await this.storage.reload();
+      workingDirectory = await mkdtemp(join(tmpdir(), "hassad-restore-"));
+      leaseTimer = this.startLeaseRenewal(operationId, workerId, () => {
+        leaseLost = true;
+      });
+      const databaseFile = join(workingDirectory, "database.dump");
+      await this.storage.downloadToFile(operation.backup.databaseKey, databaseFile);
+      const checksum = await this.sha256(databaseFile);
+      if (operation.backup.checksum && checksum !== operation.backup.checksum) {
+        throw new Error("BACKUP_RESTORE_CHECKSUM_FAILED");
+      }
+      assertLease();
+      isolatedDatabaseUrl = await this.createRestoreDatabase(
+        restoreDatabaseUrl,
+        operationId,
+        attemptCount,
+      );
+      assertLease();
+      await this.restoreDatabaseDump(databaseFile, isolatedDatabaseUrl);
+      assertLease();
+      const validation = await this.validateRestoreDatabase(isolatedDatabaseUrl);
+      const finalized = await this.prisma.backupOperation.updateMany({
+        where: {
+          id: operationId,
+          type: BackupOperationType.RESTORE,
+          status: BackupOperationStatus.RUNNING,
+          leaseOwner: workerId,
+          attemptCount,
+        },
+        data: {
+          status: BackupOperationStatus.COMPLETED,
+          errorCode: null,
+          details: {
+            code: "BACKUP_RESTORE_VERIFIED",
+            checksum,
+            validation,
+            target: this.databaseIdentity(isolatedDatabaseUrl),
+          },
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          nextAttemptAt: null,
+          completedAt: new Date(),
+        },
+      });
+      if (finalized.count !== 1) throw new Error("BACKUP_OPERATION_FENCED");
+      this.logger.log(`Restore verification completed for ${operationId}`);
+    } catch (error) {
+      const code = this.toRestoreErrorCode(error);
+      await this.markOperationFailed(
+        operationId,
+        operation.backup.id,
+        workerId,
+        code,
+        BackupOperationType.RESTORE,
+        code === "BACKUP_RESTORE_SOURCE_MISSING" ? false : undefined,
+      );
+      this.logger.error(`Restore verification ${operationId} failed with ${code}`);
+    } finally {
+      if (leaseTimer) clearInterval(leaseTimer);
+      if (
+        isolatedDatabaseUrl &&
+        process.env.BACKUP_RESTORE_KEEP_TARGET !== "true"
+      ) {
+        try {
+          await this.dropRestoreDatabase(isolatedDatabaseUrl);
+        } catch {
+          this.logger.error("BACKUP_RESTORE_TARGET_CLEANUP_FAILED");
+        }
+      }
+      if (workingDirectory) await rm(workingDirectory, { recursive: true, force: true });
+    }
   }
 
   private async processCreate(
     operationId: string,
     workerId: string,
+    attemptCount: number,
   ): Promise<void> {
-    const operation = await this.prisma.backupOperation.findUnique({
-      where: { id: operationId },
+    const operation = await this.prisma.backupOperation.findFirst({
+      where: {
+        id: operationId,
+        status: BackupOperationStatus.RUNNING,
+        leaseOwner: workerId,
+        attemptCount,
+      },
       include: { backup: true },
     });
 
     if (!operation?.backup) return;
 
     const backup = operation.backup;
+    const attemptPrefix = `${BACKUP_PREFIX}${backup.id}/attempt-${operation.attemptCount}/`;
     let workingDirectory: string | undefined;
     let leaseTimer: NodeJS.Timeout | undefined;
+    let leaseLost = false;
+    const assertLease = () => {
+      if (leaseLost) throw new Error("BACKUP_OPERATION_FENCED");
+    };
 
     try {
+      await this.storage.reload();
       workingDirectory = await mkdtemp(join(tmpdir(), "hassad-backup-"));
       const databaseFile = join(workingDirectory, "database.dump");
       const started = await this.prisma.backup.updateMany({
@@ -644,21 +1044,34 @@ export class AdminBackupsService {
       }
 
       leaseTimer = setInterval(() => {
-        void this.prisma.backupOperation.updateMany({
-          where: {
-            id: operationId,
-            status: BackupOperationStatus.RUNNING,
-            leaseOwner: workerId,
-          },
-          data: { leaseExpiresAt: new Date(Date.now() + BACKUP_LEASE_MS) },
-        });
+        void this.prisma.backupOperation
+          .updateMany({
+            where: {
+              id: operationId,
+              status: BackupOperationStatus.RUNNING,
+              leaseOwner: workerId,
+            },
+            data: { leaseExpiresAt: new Date(Date.now() + BACKUP_LEASE_MS) },
+          })
+          .then((result) => {
+            if (result.count !== 1) {
+              leaseLost = true;
+              this.logger.error(`Backup lease lost for ${operationId}`);
+            }
+          })
+          .catch((error) => {
+            leaseLost = true;
+            this.logger.error(
+              `Backup lease renewal failed for ${operationId}: ${error instanceof Error ? error.message : "BACKUP_LEASE_RENEWAL_FAILED"}`,
+            );
+          });
       }, 30_000);
-      leaseTimer.unref();
 
+      assertLease();
       await this.createDatabaseDump(databaseFile);
       const fileStats = await stat(databaseFile);
       const checksum = await this.sha256(databaseFile);
-      const databaseKey = `${BACKUP_PREFIX}${backup.id}/database.dump`;
+      const databaseKey = `${attemptPrefix}database.dump`;
 
       await this.storage.uploadStream(
         databaseKey,
@@ -666,34 +1079,102 @@ export class AdminBackupsService {
         "application/octet-stream",
         fileStats.size,
       );
+      const remoteDatabaseChecksum =
+        await this.storage.sha256Object(databaseKey);
+      if (remoteDatabaseChecksum !== checksum) {
+        throw new Error("BACKUP_DATABASE_UPLOAD_VERIFICATION_FAILED");
+      }
+      assertLease();
 
       let filesPrefix: string | undefined;
       let fileCount = 0;
       let manifestKey: string | undefined;
 
       if (backup.scope === BackupScope.FULL_SYSTEM) {
-        filesPrefix = `${BACKUP_PREFIX}${backup.id}/files/`;
+        filesPrefix = `${attemptPrefix}files/`;
         const sourceKeys = (await this.storage.listKeys()).filter(
           (key) => !key.startsWith(BACKUP_PREFIX),
         );
-        for (const sourceKey of sourceKeys) {
-          const destinationKey = `${filesPrefix}${sourceKey}`;
-          await this.storage.copyObject(sourceKey, destinationKey);
-          if (!(await this.storage.exists(destinationKey))) {
-            throw new Error("BACKUP_FILE_COPY_VERIFICATION_FAILED");
-          }
+        const files: Array<{
+          sourceKey: string;
+          backupKey: string;
+          size: number;
+          contentType: string | null;
+          etag: string | null;
+          checksumSha256: string | null;
+        }> = [];
+
+        for (
+          let index = 0;
+          index < sourceKeys.length;
+          index += BACKUP_FILE_COPY_CONCURRENCY
+        ) {
+          const batch = sourceKeys.slice(
+            index,
+            index + BACKUP_FILE_COPY_CONCURRENCY,
+          );
+          const batchFiles = await Promise.all(
+            batch.map(async (sourceKey) => {
+              const sourceMetadata =
+                await this.storage.getObjectMetadata(sourceKey);
+              const destinationKey = `${filesPrefix}${sourceKey}`;
+              await this.storage.copyObject(sourceKey, destinationKey);
+              const destinationMetadata =
+                await this.storage.getObjectMetadata(destinationKey);
+              if (destinationMetadata.size !== sourceMetadata.size) {
+                throw new Error("BACKUP_FILE_COPY_VERIFICATION_FAILED");
+              }
+              const metadataMatches =
+                sourceMetadata.checksumSha256 &&
+                destinationMetadata.checksumSha256
+                  ? sourceMetadata.checksumSha256 ===
+                    destinationMetadata.checksumSha256
+                  : sourceMetadata.etag && destinationMetadata.etag
+                    ? sourceMetadata.etag === destinationMetadata.etag
+                    : false;
+              const contentMatches = metadataMatches
+                ? true
+                : (await this.storage.sha256Object(sourceKey)) ===
+                  (await this.storage.sha256Object(destinationKey));
+              if (!contentMatches) {
+                throw new Error("BACKUP_FILE_COPY_VERIFICATION_FAILED");
+              }
+              return {
+                sourceKey,
+                backupKey: destinationKey,
+                size: destinationMetadata.size,
+                contentType: destinationMetadata.contentType,
+                etag: destinationMetadata.etag,
+                checksumSha256: destinationMetadata.checksumSha256,
+              };
+            }),
+          );
+          files.push(...batchFiles);
         }
-        fileCount = sourceKeys.length;
-        manifestKey = `${BACKUP_PREFIX}${backup.id}/manifest.json`;
+
+        assertLease();
+        fileCount = files.length;
+        manifestKey = `${attemptPrefix}manifest.json`;
         await this.storage.uploadBuffer(
           manifestKey,
           Buffer.from(
-            JSON.stringify({ backupId: backup.id, keys: sourceKeys }),
+            JSON.stringify({
+              formatVersion: 2,
+              backupId: backup.id,
+              createdAt: new Date().toISOString(),
+              database: {
+                key: databaseKey,
+                size: fileStats.size,
+                checksumSha256: checksum,
+              },
+              files,
+            }),
           ),
           "application/json",
         );
       }
 
+      assertLease();
       const finalized = await this.prisma.$transaction(async (tx) => {
         const claimed = await tx.backupOperation.updateMany({
           where: {
@@ -703,6 +1184,11 @@ export class AdminBackupsService {
           },
           data: {
             status: BackupOperationStatus.COMPLETED,
+            errorCode: null,
+            details: Prisma.JsonNull,
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            nextAttemptAt: null,
             completedAt: new Date(),
           },
         });
@@ -711,6 +1197,8 @@ export class AdminBackupsService {
           where: { id: backup.id },
           data: {
             status: BackupStatus.COMPLETED,
+            errorCode: null,
+            errorDetails: Prisma.JsonNull,
             databaseKey,
             filesPrefix,
             manifestKey,
@@ -729,9 +1217,7 @@ export class AdminBackupsService {
       }
     } catch (error) {
       try {
-        await this.storage.deleteByPrefixStrict(
-          `${BACKUP_PREFIX}${backup.id}/`,
-        );
+        await this.storage.deleteByPrefixStrict(attemptPrefix);
       } catch (cleanupError) {
         this.logger.error(
           `Backup cleanup failed for ${backup.id}: ${cleanupError instanceof Error ? cleanupError.message : "BACKUP_CLEANUP_FAILED"}`,
@@ -759,34 +1245,316 @@ export class AdminBackupsService {
     backupId: string,
     workerId: string,
     code: string,
+    operationType: BackupOperationType = BackupOperationType.CREATE,
+    retryableOverride?: boolean,
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
+      const operation = await tx.backupOperation.findUnique({
+        where: { id: operationId },
+        select: { attemptCount: true, maxAttempts: true },
+      });
+      if (!operation) return;
+
+      const retryable =
+        retryableOverride ?? operation.attemptCount < operation.maxAttempts;
+      const nextAttemptAt = new Date(
+        Date.now() + Math.min(15 * 60_000, 30_000 * 2 ** operation.attemptCount),
+      );
       const claimed = await tx.backupOperation.updateMany({
         where: {
           id: operationId,
           status: BackupOperationStatus.RUNNING,
           leaseOwner: workerId,
         },
-        data: {
-          status: BackupOperationStatus.FAILED,
-          errorCode: code,
-          details: { code },
-          completedAt: new Date(),
-        },
+        data: retryable
+          ? {
+              status: BackupOperationStatus.QUEUED,
+              errorCode: code,
+              details: { code, retryable: true },
+              leaseOwner: null,
+              leaseExpiresAt: null,
+              nextAttemptAt,
+            }
+          : {
+              status: BackupOperationStatus.FAILED,
+              errorCode: code,
+              details: { code, retryable: false },
+              leaseOwner: null,
+              leaseExpiresAt: null,
+              completedAt: new Date(),
+            },
       });
       if (claimed.count !== 1) return;
-      await tx.backup.updateMany({
-        where: {
-          id: backupId,
-          status: { in: [BackupStatus.QUEUED, BackupStatus.RUNNING] },
-        },
-        data: {
-          status: BackupStatus.FAILED,
-          errorCode: code,
-          completedAt: new Date(),
-        },
-      });
+      if (operationType === BackupOperationType.CREATE) {
+        await tx.backup.updateMany({
+          where: {
+            id: backupId,
+            status: { in: [BackupStatus.QUEUED, BackupStatus.RUNNING] },
+          },
+          data: retryable
+            ? { status: BackupStatus.QUEUED, errorCode: code }
+            : {
+                status: BackupStatus.FAILED,
+                errorCode: code,
+                completedAt: new Date(),
+              },
+        });
+      }
     });
+  }
+
+  private async isSameDatabaseServer(
+    restoreDatabaseUrl: string,
+    databaseUrl: string,
+  ): Promise<boolean> {
+    const restore = new URL(restoreDatabaseUrl);
+    const live = new URL(databaseUrl);
+    if ((restore.port || "5432") !== (live.port || "5432")) return false;
+    if (restore.hostname === live.hostname) return true;
+    const [restoreAddresses, liveAddresses] = await Promise.all([
+      lookup(restore.hostname, { all: true }),
+      lookup(live.hostname, { all: true }),
+    ]);
+    return restoreAddresses.some((restoreAddress) =>
+      liveAddresses.some(
+        (liveAddress) => restoreAddress.address === liveAddress.address,
+      ),
+    );
+  }
+
+  private databaseIdentity(databaseUrl: string): string {
+    const database = new URL(databaseUrl);
+    const databaseName = decodeURIComponent(database.pathname.replace(/^\//, ""));
+    return `${database.protocol}//${database.hostname}:${database.port || "5432"}/${databaseName}`;
+  }
+
+  private restoreTargetUrl(
+    databaseUrl: string | undefined,
+    operationId: string,
+    attemptCount: number,
+  ): string {
+    if (!databaseUrl) throw new Error("BACKUP_RESTORE_TARGET_MISSING");
+    const base = this.postgresTarget(databaseUrl);
+    const isolatedName = `${base.databaseName}_${operationId.replace(/-/g, "").slice(0, 12)}_${attemptCount}`;
+    const target = new URL(databaseUrl);
+    target.pathname = `/${isolatedName}`;
+    return target.toString();
+  }
+
+  private postgresTarget(databaseUrl: string) {
+    const database = new URL(databaseUrl);
+    const databaseName = decodeURIComponent(database.pathname.replace(/^\//, ""));
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(databaseName)) {
+      throw new Error("BACKUP_RESTORE_DATABASE_NAME_INVALID");
+    }
+    return {
+      databaseName,
+      env: {
+        ...process.env,
+        PGHOST: database.hostname,
+        PGPORT: database.port || "5432",
+        PGUSER: decodeURIComponent(database.username),
+        PGPASSWORD: decodeURIComponent(database.password),
+        PGDATABASE: databaseName,
+        ...(database.searchParams.has("sslmode")
+          ? { PGSSLMODE: database.searchParams.get("sslmode") ?? undefined }
+          : {}),
+      },
+    };
+  }
+
+  private async runPostgresTool(
+    command: string,
+    args: string[],
+    env: NodeJS.ProcessEnv,
+  ): Promise<string> {
+    const child = spawn(command, args, {
+      stdio: ["ignore", "pipe", "ignore"],
+      env,
+    });
+    let output = "";
+    child.stdout?.on("data", (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    const [exitCode] = (await once(child, "close")) as [number | null];
+    if (exitCode !== 0) {
+      throw new Error(
+        exitCode === null
+          ? BACKUP_TOOL_UNAVAILABLE
+          : `POSTGRES_TOOL_EXIT_${exitCode}`,
+      );
+    }
+    return output.trim();
+  }
+
+  private async createRestoreDatabase(
+    databaseUrl: string,
+    operationId: string,
+    attemptCount: number,
+  ): Promise<string> {
+    const base = this.postgresTarget(databaseUrl);
+    if (!/^hassad_restore(?:_|$)/.test(base.databaseName)) {
+      throw new Error("BACKUP_RESTORE_TARGET_NAME_INVALID");
+    }
+    const isolatedName = this.postgresTarget(
+      this.restoreTargetUrl(databaseUrl, operationId, attemptCount),
+    ).databaseName;
+    if (isolatedName.length > 63) {
+      throw new Error("BACKUP_RESTORE_TARGET_NAME_TOO_LONG");
+    }
+    const isolatedUrl = new URL(databaseUrl);
+    isolatedUrl.pathname = `/${isolatedName}`;
+    const maintenance = this.postgresTarget(databaseUrl);
+    maintenance.env.PGDATABASE = "postgres";
+    const quotedName = `"${isolatedName.replace(/"/g, '""')}"`;
+    const existing = await this.runPostgresTool(
+      "psql",
+      [
+        "--dbname=postgres",
+        "--tuples-only",
+        "--no-align",
+        "--command",
+        `SELECT COALESCE(shobj_description(oid, 'pg_database'), '') FROM pg_database WHERE datname = '${isolatedName.replace(/'/g, "''")}'`,
+      ],
+      maintenance.env,
+    );
+    if (existing && existing !== "hassad-backup-restore-target-v1") {
+      throw new Error("BACKUP_RESTORE_TARGET_MARKER_INVALID");
+    }
+    if (!existing) {
+      await this.runPostgresTool(
+        "psql",
+        [
+          "--dbname=postgres",
+          "--set=ON_ERROR_STOP=1",
+          "--command",
+          `CREATE DATABASE ${quotedName}`,
+        ],
+        maintenance.env,
+      );
+      await this.runPostgresTool(
+        "psql",
+        [
+          "--dbname=postgres",
+          "--set=ON_ERROR_STOP=1",
+          "--command",
+          `COMMENT ON DATABASE ${quotedName} IS 'hassad-backup-restore-target-v1'`,
+        ],
+        maintenance.env,
+      );
+    }
+    return isolatedUrl.toString();
+  }
+
+  private async dropRestoreDatabase(databaseUrl: string): Promise<void> {
+    const target = this.postgresTarget(databaseUrl);
+    const maintenance = this.postgresTarget(databaseUrl);
+    maintenance.env.PGDATABASE = "postgres";
+    const marker = await this.runPostgresTool(
+      "psql",
+      [
+        "--dbname=postgres",
+        "--tuples-only",
+        "--no-align",
+        "--command",
+        `SELECT COALESCE(shobj_description(oid, 'pg_database'), '') FROM pg_database WHERE datname = '${target.databaseName.replace(/'/g, "''")}'`,
+      ],
+      maintenance.env,
+    );
+    if (!marker) return;
+    if (marker !== "hassad-backup-restore-target-v1") {
+      throw new Error("BACKUP_RESTORE_TARGET_MARKER_INVALID");
+    }
+    await this.runPostgresTool(
+      "psql",
+      [
+        "--dbname=postgres",
+        "--set=ON_ERROR_STOP=1",
+        "--command",
+        `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${target.databaseName.replace(/'/g, "''")}'`,
+      ],
+      maintenance.env,
+    );
+    await this.runPostgresTool(
+      "psql",
+      [
+        "--dbname=postgres",
+        "--set=ON_ERROR_STOP=1",
+        "--command",
+        `DROP DATABASE IF EXISTS \"${target.databaseName.replace(/\"/g, '""')}\"`,
+      ],
+      maintenance.env,
+    );
+  }
+
+  private async restoreDatabaseDump(
+    filepath: string,
+    databaseUrl: string,
+  ): Promise<void> {
+    const target = this.postgresTarget(databaseUrl);
+    await this.runPostgresTool(
+      "pg_restore",
+      [
+        "--exit-on-error",
+        "--no-owner",
+        "--no-acl",
+        `--dbname=${target.databaseName}`,
+        filepath,
+      ],
+      target.env,
+    );
+  }
+
+  private async validateRestoreDatabase(databaseUrl: string) {
+    const target = this.postgresTarget(databaseUrl);
+    const result = await this.runPostgresTool(
+      "psql",
+      [
+        `--dbname=${target.databaseName}`,
+        "--tuples-only",
+        "--no-align",
+        "--command",
+        "SELECT json_build_object('database', current_database(), 'publicTables', (SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname = 'public'), 'users', (SELECT count(*) FROM users), 'prismaMigrations', EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = '_prisma_migrations'), 'appliedMigrations', (SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL))::text",
+      ],
+      target.env,
+    );
+    const validation = JSON.parse(result) as {
+      database: string;
+      publicTables: number;
+      users: number;
+      prismaMigrations: boolean;
+      appliedMigrations: number;
+    };
+    if (
+      !validation.prismaMigrations ||
+      validation.publicTables === 0 ||
+      validation.appliedMigrations === 0
+    ) {
+      throw new Error("BACKUP_RESTORE_VALIDATION_FAILED");
+    }
+    return validation;
+  }
+
+  private startLeaseRenewal(
+    operationId: string,
+    workerId: string,
+    onLost: () => void,
+  ): NodeJS.Timeout {
+    return setInterval(() => {
+      void this.prisma.backupOperation
+        .updateMany({
+          where: {
+            id: operationId,
+            status: BackupOperationStatus.RUNNING,
+            leaseOwner: workerId,
+          },
+          data: { leaseExpiresAt: new Date(Date.now() + BACKUP_LEASE_MS) },
+        })
+        .then((result) => {
+          if (result.count !== 1) onLost();
+        })
+        .catch(() => onLost());
+    }, 30_000);
   }
 
   private async createDatabaseDump(filepath: string): Promise<void> {
@@ -852,6 +1620,24 @@ export class AdminBackupsService {
     const date = new Date();
     date.setDate(date.getDate() + BACKUP_RETENTION_DAYS);
     return date;
+  }
+
+  private toRestoreErrorCode(error: unknown): string {
+    if (error instanceof Error && error.message.startsWith("BACKUP_RESTORE_")) {
+      return error.message;
+    }
+    const candidate = error as {
+      name?: string;
+      $metadata?: { httpStatusCode?: number };
+    } | null;
+    if (
+      candidate?.name === "NoSuchKey" ||
+      candidate?.name === "NotFound" ||
+      candidate?.$metadata?.httpStatusCode === 404
+    ) {
+      return "BACKUP_RESTORE_SOURCE_MISSING";
+    }
+    return "BACKUP_RESTORE_FAILED";
   }
 
   private toBackupErrorCode(error: unknown): string {

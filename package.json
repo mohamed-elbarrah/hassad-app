@@ -7,6 +7,9 @@
     "watch:shared": "npm --prefix packages/shared run watch",
     "verify": "turbo run lint typecheck --filter=@hassad/shared --filter=api --filter=web --filter=web",
     "verify:request-canonical": "npm --prefix apps/api run verify:request-canonical",
+    "backup:verify-restore": "node --env-file-if-exists=apps/api/.env scripts/verify-database-backup-restore.mjs",
+    "backup:verify-restore:local": "NODE_ENV=development RESTORE_VERIFY_ISOLATED=local RESTORE_VERIFY_CONFIRM=I_UNDERSTAND_ISOLATED_RESTORE_ONLY node --env-file-if-exists=apps/api/.env scripts/verify-database-backup-restore.mjs",
+    "backup:verify-restore:folder": "NODE_ENV=development RESTORE_VERIFY_ISOLATED=local RESTORE_VERIFY_CONFIRM=I_UNDERSTAND_ISOLATED_RESTORE_ONLY node --env-file-if-exists=${BACKUP_ENV_FILE:-apps/api/.env} scripts/verify-database-backup-restore.mjs",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },

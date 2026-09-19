@@ -41,6 +41,15 @@ export class AdminBackupsController {
     return this.service.getDownloadUrl(id, userId);
   }
 
+  @Post(":id/restore-verification")
+  @RequirePermissions("admin.backups.restore")
+  requestRestoreVerification(
+    @Param("id") id: string,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.enqueueRestoreVerification(id, userId);
+  }
+
   @Post()
   @RequirePermissions("admin.backups.manage")
   create(@Body() dto: CreateAdminBackupDto, @CurrentUser("id") userId: string) {

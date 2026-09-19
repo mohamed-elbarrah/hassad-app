@@ -1604,6 +1604,9 @@ model BackupOperation {
   requestedById  String?               @map("requested_by_id")
   leaseOwner     String?               @map("lease_owner")
   leaseExpiresAt DateTime?             @map("lease_expires_at")
+  attemptCount   Int                   @default(0) @map("attempt_count")
+  maxAttempts    Int                   @default(3) @map("max_attempts")
+  nextAttemptAt  DateTime?             @map("next_attempt_at")
   errorCode      String?               @map("error_code")
   details       Json?
   createdAt     DateTime              @default(now()) @map("created_at")

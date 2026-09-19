@@ -71,7 +71,7 @@ export function isSafePublicDomainHost(hostname: string): boolean {
   );
 }
 
-/** Database-backed R2 configuration with environment compatibility fallback. */
+/** Database-backed R2 configuration. Environment variables remain only as a bootstrap/legacy fallback; saved Admin settings always take precedence. */
 @Injectable()
 export class R2ConfigProvider {
   constructor(private readonly prisma: PrismaService) {}

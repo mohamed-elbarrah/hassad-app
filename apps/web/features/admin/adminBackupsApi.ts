@@ -28,6 +28,14 @@ export interface AdminBackup {
   startedAt: string | null;
   completedAt: string | null;
   expiresAt: string | null;
+  restoreOperation: {
+    id: string;
+    status: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
+    errorCode: string | null;
+    details: unknown;
+    createdAt: string;
+    completedAt: string | null;
+  } | null;
 }
 
 export interface AdminBackupsResponse {
@@ -72,6 +80,16 @@ export const adminBackupsApi = createApi({
       }),
       invalidatesTags: ["AdminBackups"],
     }),
+    requestAdminBackupRestoreVerification: builder.mutation<
+      { backup: { id: string; status: AdminBackupStatus }; operation: { id: string; status: string } },
+      string
+    >({
+      query: (id) => ({
+        url: `/admin/backups/${id}/restore-verification`,
+        method: "POST",
+      }),
+      invalidatesTags: ["AdminBackups"],
+    }),
     getAdminBackupDownloadUrl: builder.query<
       { url: string; expiresInSeconds: number },
       string
@@ -84,5 +102,6 @@ export const adminBackupsApi = createApi({
 export const {
   useGetAdminBackupsQuery,
   useCreateAdminBackupMutation,
+  useRequestAdminBackupRestoreVerificationMutation,
   useLazyGetAdminBackupDownloadUrlQuery,
 } = adminBackupsApi;

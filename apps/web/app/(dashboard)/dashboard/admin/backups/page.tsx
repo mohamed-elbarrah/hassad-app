@@ -8,6 +8,7 @@ import {
   HardDrive,
   Loader2,
   RefreshCw,
+  RotateCcw,
   ShieldCheck,
   XCircle,
 } from "lucide-react";
@@ -49,6 +50,7 @@ import {
   useCreateAdminBackupMutation,
   useGetAdminBackupsQuery,
   useLazyGetAdminBackupDownloadUrlQuery,
+  useRequestAdminBackupRestoreVerificationMutation,
   type AdminBackup,
   type AdminBackupScope,
 } from "@/features/admin/adminBackupsApi";
@@ -67,6 +69,13 @@ const SCOPE_LABELS: Record<AdminBackupScope, string> = {
   DATABASE_ONLY: "قاعدة البيانات",
   FULL_SYSTEM: "النظام الكامل",
 };
+
+const RESTORE_STATUS_LABELS = {
+  QUEUED: "تحقق مجدول",
+  RUNNING: "جارٍ التحقق",
+  COMPLETED: "تم التحقق",
+  FAILED: "فشل التحقق",
+} as const;
 
 function statusVariant(status: AdminBackup["status"]) {
   if (status === "COMPLETED") return "secondary" as const;
@@ -88,12 +97,24 @@ export default function AdminBackupsPage() {
     useGetAdminBackupsQuery({ page, limit: 25 }, { pollingInterval: 10_000 });
   const [createBackup, createState] = useCreateAdminBackupMutation();
   const [getDownloadUrl] = useLazyGetAdminBackupDownloadUrlQuery();
+  const [requestRestoreVerification, restoreState] =
+    useRequestAdminBackupRestoreVerificationMutation();
 
   async function handleCreate() {
     try {
       const result = await createBackup({ scope }).unwrap();
       toast.success(adminSuccessMessage("BACKUP_QUEUED"));
       if (result.backup.status === "QUEUED") void refetch();
+    } catch (error) {
+      toast.error(adminErrorMessage(error));
+    }
+  }
+
+  async function handleRestoreVerification(backup: AdminBackup) {
+    try {
+      await requestRestoreVerification(backup.id).unwrap();
+      toast.success("تمت جدولة التحقق من الاستعادة في بيئة معزولة");
+      void refetch();
     } catch (error) {
       toast.error(adminErrorMessage(error));
     }
@@ -236,6 +257,7 @@ export default function AdminBackupsPage() {
                       <TableHead>النطاق</TableHead>
                       <TableHead>المصدر</TableHead>
                       <TableHead>الحالة</TableHead>
+                      <TableHead>الاستعادة</TableHead>
                       <TableHead>الحجم</TableHead>
                       <TableHead>تاريخ الإنشاء</TableHead>
                       <TableHead className="text-left">الإجراء</TableHead>
@@ -259,6 +281,26 @@ export default function AdminBackupsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          {backup.restoreOperation ? (
+                            <Badge
+                              variant={
+                                backup.restoreOperation.status === "FAILED"
+                                  ? "destructive"
+                                  : backup.restoreOperation.status ===
+                                      "COMPLETED"
+                                    ? "secondary"
+                                    : "warning"
+                              }
+                            >
+                              {RESTORE_STATUS_LABELS[
+                                backup.restoreOperation.status
+                              ]}
+                            </Badge>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell>
                           {backup.sizeBytes === null
                             ? "—"
                             : formatFileSize(backup.sizeBytes)}
@@ -267,15 +309,40 @@ export default function AdminBackupsPage() {
                           {formatDateTime(backup.createdAt)}
                         </TableCell>
                         <TableCell className="text-left">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={backup.status !== "COMPLETED"}
-                            onClick={() => void handleDownload(backup)}
-                          >
-                            <Download data-icon="inline-start" /> تنزيل قاعدة
-                            البيانات
-                          </Button>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={backup.status !== "COMPLETED"}
+                              onClick={() => void handleDownload(backup)}
+                            >
+                              <Download data-icon="inline-start" /> تنزيل قاعدة
+                              البيانات
+                            </Button>
+                            {backup.scope === "DATABASE_ONLY" ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  backup.status !== "COMPLETED" ||
+                                  restoreState.isLoading
+                                }
+                                onClick={() =>
+                                  void handleRestoreVerification(backup)
+                                }
+                              >
+                                {restoreState.isLoading ? (
+                                  <Loader2
+                                    className="animate-spin"
+                                    data-icon="inline-start"
+                                  />
+                                ) : (
+                                  <RotateCcw data-icon="inline-start" />
+                                )}
+                                تحقق من الاستعادة
+                              </Button>
+                            ) : null}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

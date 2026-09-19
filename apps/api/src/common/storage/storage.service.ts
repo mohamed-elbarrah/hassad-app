@@ -17,11 +17,11 @@ import {
   S3ServiceException,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { R2ConfigProvider } from "./r2-config.provider";
 import { extname } from "path";
 import { createWriteStream } from "fs";
-import { Readable } from "stream";
+import { Readable, Writable } from "stream";
 import { pipeline } from "stream/promises";
 import {
   StorageCategory,
@@ -48,6 +48,14 @@ export interface UploadOptions {
     size: number;
   };
   subPath?: string;
+}
+
+export interface ObjectMetadata {
+  key: string;
+  size: number;
+  contentType: string | null;
+  etag: string | null;
+  checksumSha256: string | null;
 }
 
 @Injectable()
@@ -412,6 +420,31 @@ export class StorageService implements OnModuleInit {
     await pipeline(response.Body as Readable, createWriteStream(filepath));
   }
 
+  async sha256Object(key: string): Promise<string> {
+    if (!this.configured) {
+      throw new Error(this.configurationCode);
+    }
+
+    const response = await this.s3.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    if (!response.Body) {
+      throw new Error("BACKUP_OBJECT_EMPTY");
+    }
+
+    const hash = createHash("sha256");
+    await pipeline(
+      response.Body as Readable,
+      new Writable({
+        write(chunk: Buffer, _encoding, callback) {
+          hash.update(chunk);
+          callback();
+        },
+      }),
+    );
+    return hash.digest("hex");
+  }
+
   async deleteByKey(key: string): Promise<void> {
     try {
       await this.s3.send(
@@ -512,6 +545,22 @@ export class StorageService implements OnModuleInit {
       }),
     );
     return urlMap;
+  }
+
+  async getObjectMetadata(key: string): Promise<ObjectMetadata> {
+    if (!this.configured) {
+      throw new Error(this.configurationCode);
+    }
+    const response = await this.s3.send(
+      new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    return {
+      key,
+      size: response.ContentLength ?? 0,
+      contentType: response.ContentType ?? null,
+      etag: response.ETag ?? null,
+      checksumSha256: response.ChecksumSHA256 ?? null,
+    };
   }
 
   /**

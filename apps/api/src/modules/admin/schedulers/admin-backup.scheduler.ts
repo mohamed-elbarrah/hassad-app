@@ -32,9 +32,19 @@ export class AdminBackupScheduler {
     await this.backups.expireBackups();
   }
 
+  @Cron("*/5 * * * *", { name: "admin-backup-restore-target-cleanup", timeZone: "UTC" })
+  async cleanupRestoreTargets(): Promise<void> {
+    await this.backups.cleanupRestoreTargets();
+  }
+
   @Cron("*/5 * * * *", { name: "admin-backup-stale-recovery", timeZone: "UTC" })
   async recoverStaleOperations(): Promise<void> {
     await this.backups.recoverStaleOperations();
+  }
+
+  @Cron("30 * * * *", { name: "admin-backup-failed-artifact-cleanup", timeZone: "UTC" })
+  async cleanupFailedBackupArtifacts(): Promise<void> {
+    await this.backups.cleanupFailedBackupArtifacts();
   }
 
   @Interval(5000)

@@ -30,6 +30,9 @@ services:
     environment:
       APP_PROCESS: backup-worker
       DATABASE_URL: postgresql://hassad:hassad_dev_password@postgres:5432/hassad
+      BACKUP_RESTORE_ENABLED: "true"
+      BACKUP_RESTORE_ALLOW_SAME_SERVER: "true"
+      RESTORE_DATABASE_URL: postgresql://hassad:hassad_dev_password@postgres:5432/hassad_restore
     depends_on:
       postgres:
         condition: service_healthy

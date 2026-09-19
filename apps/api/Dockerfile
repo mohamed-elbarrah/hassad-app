@@ -31,7 +31,8 @@ FROM node:22-alpine
 WORKDIR /app
 
 # Install runtime tools for healthchecks and database backups
-RUN apk add --no-cache wget postgresql-client
+# Keep the client major version aligned with the PostgreSQL 17 production image.
+RUN apk add --no-cache wget postgresql17-client
 
 # Copy built artifacts from build stage
 COPY --from=build /app/node_modules /app/node_modules
