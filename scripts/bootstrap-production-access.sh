@@ -21,9 +21,9 @@ compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
 
 # Use the API image/container for bcrypt so password hashing matches the app.
 if docker ps --format '{{.Names}}' | grep -qx 'hassad-api'; then
-  PASSWORD_HASH="$(docker exec hassad-api node -e "require('bcrypt').hash(process.argv[1],10).then(console.log)" "$DEFAULT_PASSWORD")"
+  PASSWORD_HASH="$(printf '%s' "$DEFAULT_PASSWORD" | docker exec -i hassad-api node -e "require('bcrypt').hash(require('fs').readFileSync(0, 'utf8'),10).then(console.log)")"
 else
-  PASSWORD_HASH="$("${compose[@]}" run --rm --no-deps --entrypoint node api -e "require('bcrypt').hash(process.argv[1],10).then(console.log)" "$DEFAULT_PASSWORD")"
+  PASSWORD_HASH="$(printf '%s' "$DEFAULT_PASSWORD" | "${compose[@]}" run -T --rm --no-deps --entrypoint node api -e "require('bcrypt').hash(require('fs').readFileSync(0, 'utf8'),10).then(console.log)")"
 fi
 
 "${compose[@]}" exec -T \
@@ -260,7 +260,7 @@ WITH defaults(email, full_name, role_name) AS (VALUES
   ('finance@' || :'email_domain', 'Finance', 'ACCOUNTANT')
 )
 INSERT INTO users (id, name, email, password_hash, role_id, is_active, provider, created_at, updated_at)
-SELECT 'user-' || split_part(email, '@', 1) || '-default', full_name, email, :'password_hash', r.id, true, 'local', now(), now()
+SELECT gen_random_uuid()::text, full_name, email, :'password_hash', r.id, true, 'local', now(), now()
 FROM defaults d
 JOIN roles r ON r.name = d.role_name
 ON CONFLICT (email) DO NOTHING;
@@ -274,7 +274,7 @@ WITH memberships(email, dept_name) AS (VALUES
   ('marketing@' || :'email_domain', 'MARKETING')
 )
 INSERT INTO user_departments (id, user_id, department_id)
-SELECT 'ud-' || u.id || '-' || d.id, u.id, d.id
+SELECT gen_random_uuid()::text, u.id, d.id
 FROM memberships m
 JOIN users u ON u.email = m.email
 JOIN departments d ON d.name = m.dept_name
@@ -303,7 +303,7 @@ SQL
 echo
 cat <<EOF
 Production access bootstrap completed.
-Default password for newly-created users: $DEFAULT_PASSWORD
+New users were created with the supplied password (not printed).
 Email domain: @$DEFAULT_EMAIL_DOMAIN
 Please require the owner to change these passwords immediately.
 EOF
