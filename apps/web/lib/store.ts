@@ -30,6 +30,7 @@ import notificationsReducer from "@/features/notifications/notificationsSlice";
 import { healthApi } from "@/features/health/healthApi";
 import { adminApi } from "@/features/admin/adminApi";
 import { adminUsersApi } from "@/features/admin/adminUsersApi";
+import { adminServicesApi } from "@/features/admin/adminServicesApi";
 import { adminProjectsApi } from "@/features/admin/adminProjectsApi";
 import { adminTasksApi } from "@/features/admin/adminTasksApi";
 import { adminContractsApi } from "@/features/admin/adminContractsApi";
@@ -82,6 +83,7 @@ export const store = configureStore({
     [periodsApi.reducerPath]: periodsApi.reducer,
     [adminApi.reducerPath]: adminApi.reducer,
     [adminUsersApi.reducerPath]: adminUsersApi.reducer,
+    [adminServicesApi.reducerPath]: adminServicesApi.reducer,
     [adminProjectsApi.reducerPath]: adminProjectsApi.reducer,
     [adminTasksApi.reducerPath]: adminTasksApi.reducer,
     [adminContractsApi.reducerPath]: adminContractsApi.reducer,
@@ -129,6 +131,7 @@ export const store = configureStore({
       healthApi.middleware,
       adminApi.middleware,
       adminUsersApi.middleware,
+      adminServicesApi.middleware,
       adminProjectsApi.middleware,
       adminTasksApi.middleware,
       adminContractsApi.middleware,
@@ -186,6 +189,7 @@ authLifecycleMiddleware.startListening({
       healthApi,
       adminApi,
       adminUsersApi,
+      adminServicesApi,
       adminProjectsApi,
       adminTasksApi,
       adminContractsApi,

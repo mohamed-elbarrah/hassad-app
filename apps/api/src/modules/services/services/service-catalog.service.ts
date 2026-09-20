@@ -38,8 +38,12 @@ export class ServiceCatalogService {
       where: { id },
       include: { deliverableTemplates: { orderBy: { sortOrder: "asc" } } },
     });
-    if (!service)
-      throw new NotFoundException(`Service with ID ${id} not found`);
+    if (!service) {
+      throw new NotFoundException({
+        code: "SERVICE_NOT_FOUND",
+        details: { id },
+      });
+    }
     return service;
   }
 
@@ -68,10 +72,12 @@ export class ServiceCatalogService {
     const tmpl = await this.prisma.deliverableTemplate.findUnique({
       where: { id },
     });
-    if (!tmpl)
-      throw new NotFoundException(
-        `DeliverableTemplate with ID ${id} not found`,
-      );
+    if (!tmpl) {
+      throw new NotFoundException({
+        code: "DELIVERABLE_TEMPLATE_NOT_FOUND",
+        details: { id },
+      });
+    }
     return this.prisma.deliverableTemplate.delete({ where: { id } });
   }
 }

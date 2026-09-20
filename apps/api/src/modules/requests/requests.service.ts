@@ -72,6 +72,57 @@ export class RequestsService {
     return tx ?? this.prisma;
   }
 
+  private async validateRequestedServices(
+    services: Array<{ serviceId: string; quantity?: number }>,
+    db: DbClient = this.prisma,
+  ) {
+    const serviceIds = services.map((service) => service.serviceId);
+    const uniqueServiceIds = new Set(serviceIds);
+
+    if (uniqueServiceIds.size !== serviceIds.length) {
+      throw new BadRequestException({
+        code: "DUPLICATE_REQUEST_SERVICE",
+        details: { serviceIds },
+      });
+    }
+
+    for (const service of services) {
+      if (
+        service.quantity !== undefined &&
+        (!Number.isInteger(service.quantity) || service.quantity < 1)
+      ) {
+        throw new BadRequestException({
+          code: "INVALID_SERVICE_QUANTITY",
+          details: { serviceId: service.serviceId },
+        });
+      }
+    }
+
+    const catalogServices = await db.serviceCatalog.findMany({
+      where: { id: { in: serviceIds } },
+      select: { id: true, isActive: true },
+    });
+    const catalogById = new Map(
+      catalogServices.map((service) => [service.id, service]),
+    );
+
+    for (const serviceId of serviceIds) {
+      const catalogService = catalogById.get(serviceId);
+      if (!catalogService) {
+        throw new NotFoundException({
+          code: "SERVICE_NOT_FOUND",
+          details: { serviceId },
+        });
+      }
+      if (!catalogService.isActive) {
+        throw new BadRequestException({
+          code: "SERVICE_INACTIVE",
+          details: { serviceId },
+        });
+      }
+    }
+  }
+
   private assertValidTransition(
     fromStatus: RequestStatus,
     toStatus: RequestStatus,
@@ -674,6 +725,10 @@ export class RequestsService {
       requester.role === UserRole.CLIENT ? requester.id : null;
 
     const createdRequest = await this.prisma.$transaction(async (tx) => {
+      if (dto.services?.length) {
+        await this.validateRequestedServices(dto.services, tx);
+      }
+
       const { client } =
         await this.canonicalClientService.upsertCanonicalClient(tx, {
           userId: clientUserId,
@@ -809,6 +864,8 @@ export class RequestsService {
     const preferredManagerId = accessScope?.assignedSalesId ?? userId;
 
     const createdRequest = await this.prisma.$transaction(async (tx) => {
+      await this.validateRequestedServices(dto.services, tx);
+
       const existingUser = await tx.user.findUnique({
         where: { email: normalizedEmail },
         select: { id: true },
@@ -1031,6 +1088,8 @@ export class RequestsService {
     }
 
     const request = await this.prisma.$transaction(async (tx) => {
+      await this.validateRequestedServices(dto.services, tx);
+
       const req = await tx.request.create({
         data: {
           clientId: dto.clientId,
@@ -1171,6 +1230,8 @@ export class RequestsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.validateRequestedServices(dto.services, tx);
+
       let clientId = "";
       let clientCreated = false;
       let requestClientLabel = "";

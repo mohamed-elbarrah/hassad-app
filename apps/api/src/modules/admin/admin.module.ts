@@ -49,6 +49,7 @@ import { AdminCrmOrdersController } from "./controllers/admin-crm-orders.control
 import { AdminContractMigrationReviewController } from "./controllers/admin-contract-migration-review.controller";
 import { AdminCurrencySettingsController } from "./controllers/admin-currency-settings.controller";
 import { AdminIntegrationSettingsController } from "./controllers/admin-integration-settings.controller";
+import { AdminServicesController } from "./controllers/admin-services.controller";
 
 import { AdminActionLogService } from "./services/admin-action-log.service";
 import { AdminKpiService } from "./services/admin-kpi.service";
@@ -88,6 +89,7 @@ import { AdminMarketingService } from "./services/admin-marketing.service";
 import { AdminBusinessGoalService } from "./services/admin-business-goal.service";
 import { AdminWorkspacesService } from "./services/admin-workspaces.service";
 import { AdminCrmOrdersService } from "./services/admin-crm-orders.service";
+import { ServicesModule } from "../services/services.module";
 
 import { PrismaHealthIndicator } from "../health/indicators";
 import { HealthPersistenceService } from "../health/services/health-persistence.service";
@@ -110,6 +112,7 @@ import { SettingsModule } from "../settings/settings.module";
     TerminusModule,
     AuthModule,
     StorageModule,
+    ServicesModule,
   ],
   controllers: [
     AdminController,
@@ -118,6 +121,7 @@ import { SettingsModule } from "../settings/settings.module";
     AdminContractMigrationReviewController,
     AdminCurrencySettingsController,
     AdminIntegrationSettingsController,
+    AdminServicesController,
     AdminKpiController,
     AdminAuditController,
     AdminSettingsController,

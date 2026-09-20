@@ -197,6 +197,11 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
+        title: "الخدمات",
+        url: "/dashboard/admin/settings/services",
+        roles: ["ADMIN"],
+      },
+      {
         title: "العملات",
         url: "/dashboard/admin/settings/currencies",
         roles: ["ADMIN"],
