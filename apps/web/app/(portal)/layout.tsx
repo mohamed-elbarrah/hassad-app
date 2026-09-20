@@ -2,7 +2,7 @@
 
 import { useAppSelector } from "@/lib/hooks";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, type CSSProperties } from "react";
+import { useEffect } from "react";
 import { LoaderCircle } from "lucide-react";
 import { UserRole } from "@hassad/shared";
 import {
@@ -11,10 +11,6 @@ import {
 } from "@/components/portal/shared/PortalNavigation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
-import {
-  APP_SIDEBAR_ICON_WIDTH,
-  APP_SIDEBAR_WIDTH,
-} from "@/lib/sidebar-config";
 
 export default function PortalLayout({
   children,
@@ -69,17 +65,7 @@ export default function PortalLayout({
   }
 
   return (
-    <SidebarProvider
-      defaultOpen
-      dir="rtl"
-      className="overflow-hidden"
-      style={
-        {
-          "--sidebar-width": APP_SIDEBAR_WIDTH,
-          "--sidebar-width-icon": APP_SIDEBAR_ICON_WIDTH,
-        } as CSSProperties
-      }
-    >
+    <SidebarProvider defaultOpen dir="rtl" className="overflow-hidden">
       <PortalSidebar />
       <SidebarInset>
         <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">

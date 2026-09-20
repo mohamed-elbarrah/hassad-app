@@ -27,9 +27,10 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = "16rem";
+const SIDEBAR_WIDTH = "22rem";
 const SIDEBAR_WIDTH_MOBILE = "min(22rem, 90vw)";
-const SIDEBAR_WIDTH_ICON = "3rem";
+const SIDEBAR_WIDTH_ICON = "4rem";
+const SIDEBAR_INSET_WIDTH = "1rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 type SidebarContextProps = {
@@ -59,6 +60,9 @@ const SidebarProvider = React.forwardRef<
     defaultOpen?: boolean;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
+    sidebarWidth?: string;
+    sidebarWidthMobile?: string;
+    sidebarWidthIcon?: string;
   }
 >(
   (
@@ -66,6 +70,9 @@ const SidebarProvider = React.forwardRef<
       defaultOpen = true,
       open: openProp,
       onOpenChange: setOpenProp,
+      sidebarWidth = SIDEBAR_WIDTH,
+      sidebarWidthMobile = SIDEBAR_WIDTH_MOBILE,
+      sidebarWidthIcon = SIDEBAR_WIDTH_ICON,
       className,
       style,
       children,
@@ -149,8 +156,10 @@ const SidebarProvider = React.forwardRef<
           <div
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH,
-                "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+                "--sidebar-width": sidebarWidth,
+                "--sidebar-width-mobile": sidebarWidthMobile,
+                "--sidebar-width-icon": sidebarWidthIcon,
+                "--sidebar-inset-width": SIDEBAR_INSET_WIDTH,
                 ...style,
               } as React.CSSProperties
             }
@@ -216,7 +225,7 @@ const Sidebar = React.forwardRef<
             className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground"
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+                "--sidebar-width": "var(--sidebar-width-mobile)",
               } as React.CSSProperties
             }
             side={side}
@@ -247,7 +256,7 @@ const Sidebar = React.forwardRef<
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
             variant === "floating" || variant === "inset"
-              ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
+              ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_var(--sidebar-inset-width)_+_2px)]"
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
             className,
           )}

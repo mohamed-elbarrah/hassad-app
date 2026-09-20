@@ -6,7 +6,6 @@ import {
   useMemo,
   useState,
   useSyncExternalStore,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -43,10 +42,6 @@ import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotification
 import { formatRelativeTime } from "@/lib/format";
 import { notificationPresentation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import {
-  APP_SIDEBAR_ICON_WIDTH,
-  APP_SIDEBAR_WIDTH,
-} from "@/lib/sidebar-config";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -640,17 +635,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarProvider
-      defaultOpen
-      dir="rtl"
-      className="overflow-hidden"
-      style={
-        {
-          "--sidebar-width": APP_SIDEBAR_WIDTH,
-          "--sidebar-width-icon": APP_SIDEBAR_ICON_WIDTH,
-        } as CSSProperties
-      }
-    >
+    <SidebarProvider defaultOpen dir="rtl" className="overflow-hidden">
       <DashboardSidebarContent />
       <SidebarInset>
         <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">
