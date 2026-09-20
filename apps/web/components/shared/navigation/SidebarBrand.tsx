@@ -15,13 +15,13 @@ export function SidebarBrand({
   subtitle: string;
 }) {
   return (
-    <SidebarHeader className="border-b border-sidebar-border p-3 group-data-[collapsible=icon]:p-2">
+    <SidebarHeader className="border-b border-sidebar-border p-2">
       <Link
         href={href}
         className="flex min-h-11 min-w-0 w-full items-center gap-3 rounded-lg p-0 group-data-[collapsible=icon]:justify-center"
         aria-label="الرئيسية"
       >
-        <span className="flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar-accent">
+        <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar-logo p-1.5">
           <Image
             src="/masar.svg"
             alt={alt}

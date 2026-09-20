@@ -325,9 +325,9 @@ export function PortalSidebar() {
                                 key={item.href}
                                 asChild
                                 className={cn(
-                                  "min-h-11",
+                                  "min-h-11 data-[highlighted]:bg-sidebar-hover data-[highlighted]:text-sidebar-foreground",
                                   active &&
-                                    "bg-accent font-medium text-accent-foreground",
+                                    "bg-sidebar-active font-medium text-sidebar-active-foreground",
                                 )}
                               >
                                 <Link
@@ -365,7 +365,7 @@ export function PortalSidebar() {
                             size="lg"
                             isActive={isActive}
                             tooltip={{ children: group.label, side: "left" }}
-                            className="text-start data-[active=true]:bg-sidebar-accent/60 data-[active=true]:text-sidebar-foreground"
+                            className="text-start data-[active=true]:bg-sidebar-active/80 data-[active=true]:text-sidebar-foreground"
                           >
                             <Icon aria-hidden="true" />
                             <span className="min-w-0 flex-1 truncate">{group.label}</span>
@@ -402,7 +402,7 @@ export function PortalHeader() {
   const firstName = user?.name.split(" ")[0] ?? "";
 
   return (
-    <header className="z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:h-20 lg:px-6">
+    <header className="z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 ">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <SidebarTrigger className="!size-11 shrink-0" />
         <div className="min-w-0">

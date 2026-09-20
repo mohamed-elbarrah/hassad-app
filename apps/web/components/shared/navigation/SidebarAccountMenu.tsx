@@ -54,7 +54,7 @@ export function SidebarAccountMenu({ settingsHref }: { settingsHref: string }) {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="h-auto min-h-11 w-full justify-start gap-3 rounded-lg px-2 py-2 text-start hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center"
+            className="group h-auto min-h-11 w-full justify-start gap-3 rounded-lg px-2 py-2 text-start hover:bg-sidebar-hover hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center"
             aria-label={user.name}
             title={state === "collapsed" ? user.name : undefined}
           >
@@ -67,7 +67,7 @@ export function SidebarAccountMenu({ settingsHref }: { settingsHref: string }) {
             </span>
             <ChevronDown
               aria-hidden="true"
-              className="shrink-0 text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden"
+              className="shrink-0 text-sidebar-foreground/60 group-hover:text-sidebar-foreground group-data-[collapsible=icon]:hidden"
             />
           </Button>
         </DropdownMenuTrigger>

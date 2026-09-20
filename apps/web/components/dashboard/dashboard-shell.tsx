@@ -445,9 +445,9 @@ function DashboardNavigation({
                             key={item.url}
                             asChild
                             className={cn(
-                              "min-h-11",
+                              "min-h-11 data-[highlighted]:bg-sidebar-hover data-[highlighted]:text-sidebar-foreground",
                               active &&
-                                "bg-accent font-medium text-accent-foreground",
+                                "bg-sidebar-active font-medium text-sidebar-active-foreground",
                             )}
                           >
                             <Link
@@ -483,7 +483,7 @@ function DashboardNavigation({
                       size="lg"
                       isActive={sectionIsActive}
                       tooltip={{ children: section.label, side: "left" }}
-                      className="text-start data-[active=true]:bg-sidebar-accent/60 data-[active=true]:text-sidebar-foreground group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
+                      className="text-start data-[active=true]:bg-sidebar-active/80 data-[active=true]:text-sidebar-foreground group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
                     >
                       <SectionIcon aria-hidden="true" />
                       <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
@@ -639,7 +639,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       <DashboardSidebarContent />
       <SidebarInset>
         <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">
-          <header className="z-20 shrink-0 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:h-20 lg:px-6">
+          <header className="z-20 shrink-0 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <SidebarTrigger className="!size-11 shrink-0" />
               <div className="min-w-0">
