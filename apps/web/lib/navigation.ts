@@ -12,6 +12,9 @@ import {
   Megaphone,
   Settings,
   DatabaseBackup,
+  Plus,
+  ClipboardList,
+  AlertTriangle,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -33,6 +36,7 @@ export type NavSection = {
   label: string;
   icon: LucideIcon;
   items: NavItem[];
+  layout?: "group" | "flat";
 };
 
 /* ── Admin-only navigation (Phase 6 — built in waves) ──────────────────────── */
@@ -212,31 +216,37 @@ export const roleNavSections: NavSection[] = [
   {
     label: "المشاريع",
     icon: Briefcase,
+    layout: "flat",
     items: [
       {
         title: "المشاريع",
         url: "/dashboard/pm",
+        icon: Briefcase,
         exact: true,
         roles: ["PM"],
       },
       {
         title: "المهام",
         url: "/dashboard/pm/tasks",
+        icon: Activity,
         roles: ["PM"],
       },
       {
         title: "طلبات التعديل",
         url: "/dashboard/pm/requests",
+        icon: ClipboardList,
         roles: ["PM"],
       },
       {
         title: "النزاعات",
         url: "/dashboard/pm/disputes",
+        icon: AlertTriangle,
         roles: ["PM"],
       },
       {
         title: "المحادثات",
         url: "/dashboard/pm/chat",
+        icon: MessageSquare,
         roles: ["PM"],
       },
     ],
@@ -244,36 +254,43 @@ export const roleNavSections: NavSection[] = [
   {
     label: "المبيعات",
     icon: Kanban,
+    layout: "flat",
     items: [
       {
         title: "إنشاء طلب جديد",
         url: "/dashboard/sales/requests/new",
+        icon: Plus,
         roles: ["SALES"],
       },
       {
         title: "لوحة المبيعات",
         url: "/dashboard/sales/pipeline",
+        icon: Kanban,
         exact: true,
         roles: ["SALES"],
       },
       {
         title: "العملاء",
         url: "/dashboard/sales/clients",
+        icon: Users,
         roles: ["SALES"],
       },
       {
         title: "المحادثات",
         url: "/dashboard/sales/chat",
+        icon: MessageSquare,
         roles: ["SALES"],
       },
       {
         title: "العروض الفنية",
         url: "/dashboard/sales/proposals",
+        icon: FileBarChart,
         roles: ["SALES"],
       },
       {
         title: "العقود",
         url: "/dashboard/sales/contracts",
+        icon: Handshake,
         roles: ["SALES"],
       },
     ],
@@ -281,10 +298,12 @@ export const roleNavSections: NavSection[] = [
   {
     label: "فريق",
     icon: Users,
+    layout: "flat",
     items: [
       {
         title: "قائمة المهام",
         url: "/dashboard/team",
+        icon: ClipboardList,
         roles: ["TEAM"],
       },
     ],
@@ -292,16 +311,19 @@ export const roleNavSections: NavSection[] = [
   {
     label: "التسويق",
     icon: Megaphone,
+    layout: "flat",
     items: [
       {
         title: "لوحة التحكم",
         url: "/dashboard/marketing",
+        icon: LayoutDashboard,
         exact: true,
         roles: ["MARKETING"],
       },
       {
         title: "الحملات",
         url: "/dashboard/marketing/campaigns",
+        icon: Megaphone,
         roles: ["MARKETING"],
       },
     ],
@@ -309,31 +331,37 @@ export const roleNavSections: NavSection[] = [
   {
     label: "المالية",
     icon: PiggyBank,
+    layout: "flat",
     items: [
       {
         title: "لوحة التحكم المالية",
         url: "/dashboard/finance",
+        icon: LayoutDashboard,
         exact: true,
         roles: ["ACCOUNTANT"],
       },
       {
         title: "إدارة الفواتير",
         url: "/dashboard/finance/invoices",
+        icon: FileBarChart,
         roles: ["ACCOUNTANT"],
       },
       {
         title: "المدفوعات",
         url: "/dashboard/finance/payments",
+        icon: PiggyBank,
         roles: ["ACCOUNTANT"],
       },
       {
         title: "الرواتب والأجور",
         url: "/dashboard/finance/payroll",
+        icon: Users,
         roles: ["ACCOUNTANT"],
       },
       {
         title: "سجل التدقيق",
         url: "/dashboard/finance/ledger",
+        icon: Activity,
         roles: ["ACCOUNTANT"],
       },
     ],
@@ -359,10 +387,12 @@ export const sharedNavSections: NavSection[] = [
   {
     label: "التواصل",
     icon: MessageSquare,
+    layout: "flat",
     items: [
       {
         title: "المحادثات",
         url: "/dashboard/messages",
+        icon: MessageSquare,
         exact: true,
         roles: ["TEAM", "MARKETING", "ACCOUNTANT"],
       },

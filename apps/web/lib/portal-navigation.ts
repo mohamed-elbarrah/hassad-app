@@ -10,7 +10,6 @@ import {
   ClipboardList,
   MessageSquare,
   TrendingUp,
-  Settings,
   Scale,
   type LucideIcon,
 } from "lucide-react";
@@ -30,7 +29,6 @@ export interface PortalNavGroup {
 
 export const PORTAL_STANDALONE_ITEMS: PortalNavItem[] = [
   { label: "الرئيسية", href: "/portal", icon: Home },
-  { label: "الإعدادات", href: "/portal/account", icon: Settings },
 ];
 
 export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [

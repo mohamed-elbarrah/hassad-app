@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import {
   useEffect,
@@ -14,10 +13,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   ChevronDown,
-  LogOut,
   Monitor,
   MoonStar,
-  Settings,
   SunMedium,
 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -37,9 +34,6 @@ import {
   roleLabels,
 } from "@/lib/dashboard-access";
 import { useAppSelector } from "@/lib/hooks";
-import { useAppDispatch } from "@/lib/hooks";
-import { logout } from "@/features/auth/authSlice";
-import { useLogoutMutation } from "@/features/auth/authApi";
 import {
   useGetMyNotificationsQuery,
   useGetUnreadCountQuery,
@@ -49,8 +43,11 @@ import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotification
 import { formatRelativeTime } from "@/lib/format";
 import { notificationPresentation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import {
+  APP_SIDEBAR_ICON_WIDTH,
+  APP_SIDEBAR_WIDTH,
+} from "@/lib/sidebar-config";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,19 +73,21 @@ import {
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { SidebarAccountMenu } from "@/components/shared/navigation/SidebarAccountMenu";
+import { SidebarBrand } from "@/components/shared/navigation/SidebarBrand";
 
 function isActiveLink(item: Pick<NavItem, "url" | "exact">, pathname: string) {
   if (item.exact) {
@@ -104,10 +103,6 @@ function getActiveNavItem(items: NavItem[], pathname: string) {
     .sort((left, right) => right.url.length - left.url.length)[0];
 }
 
-function isExactPathActive(href: string, pathname: string) {
-  return pathname === href;
-}
-
 const subscribeToHydration = () => () => {};
 const getClientHydrationSnapshot = () => true;
 const getServerHydrationSnapshot = () => false;
@@ -118,16 +113,6 @@ function useHydrated() {
     getClientHydrationSnapshot,
     getServerHydrationSnapshot,
   );
-}
-
-function getInitials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 }
 
 function DashboardNotificationsButton() {
@@ -157,7 +142,7 @@ function DashboardNotificationsButton() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative size-10 rounded-full border border-border bg-background hover:bg-accent"
+          className="relative size-10 min-h-11 min-w-11 rounded-full border border-border bg-background hover:bg-accent"
           aria-label={
             displayCount
               ? `فتح الإشعارات، ${displayCount} غير مقروء`
@@ -287,10 +272,10 @@ function DashboardThemeToggle() {
       <Button
         variant="ghost"
         size="icon"
-        className="size-10 rounded-full border border-border bg-background"
+        className="size-10 min-h-11 min-w-11 rounded-full border border-border bg-background"
         aria-label="تبديل المظهر"
       >
-        <Monitor />
+        <Monitor data-icon="inline-start" />
       </Button>
     );
   }
@@ -309,10 +294,10 @@ function DashboardThemeToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-10 rounded-full border border-border bg-background hover:bg-accent"
+          className="size-10 min-h-11 min-w-11 rounded-full border border-border bg-background hover:bg-accent"
           aria-label="تبديل المظهر"
         >
-          <ThemeIcon />
+          <ThemeIcon data-icon="inline-start" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
@@ -328,6 +313,44 @@ function DashboardThemeToggle() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function DashboardNavLink({
+  item,
+  fallbackIcon,
+  pathname,
+  onNavigate,
+}: {
+  item: NavItem;
+  fallbackIcon: NavSection["icon"];
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const Icon = item.icon ?? fallbackIcon;
+  const active = isActiveLink(item, pathname);
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        size="lg"
+        isActive={active}
+        tooltip={{ children: item.title, side: "left" }}
+        className="text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
+      >
+        <Link
+          href={item.url}
+          aria-current={active ? "page" : undefined}
+          onClick={onNavigate}
+        >
+          <Icon aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
+            {item.title}
+          </span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }
 
@@ -353,61 +376,45 @@ function DashboardNavigation({
         const activeItem = getActiveNavItem(section.items, pathname);
         const SectionIcon = section.icon;
 
-        if (section.items.length === 1) {
-          const item = section.items[0];
-          const active = activeItem?.url === item.url;
-
+        if (section.layout === "flat" || section.items.length === 1) {
           return (
-            <SidebarMenu key={section.label}>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  size="lg"
-                  isActive={active}
-                  tooltip={{ children: item.title, side: "left" }}
-                  className="text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
-                >
-                  <Link
-                    href={item.url}
-                    aria-current={active ? "page" : undefined}
-                    onClick={onNavigate}
-                  >
-                    <SectionIcon aria-hidden="true" />
-                    <span className="group-data-[collapsible=icon]:hidden">
-                      {item.title}
-                    </span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+            <SidebarMenu key={section.label} className="gap-1">
+              {section.items.map((item) => (
+                <DashboardNavLink
+                  key={item.url}
+                  item={item}
+                  fallbackIcon={SectionIcon}
+                  pathname={pathname}
+                  onNavigate={onNavigate}
+                />
+              ))}
             </SidebarMenu>
           );
         }
 
         const isOpen = openSection === section.label;
         const sectionIsActive = Boolean(activeItem);
-        const children = section.items.map((item) => {
-          const active = activeItem?.url === item.url;
+        const children = (
+          <SidebarMenuSub>
+            {section.items.map((item) => {
+              const active = activeItem?.url === item.url;
 
-          return (
-            <SidebarMenuItem key={item.url}>
-              <SidebarMenuButton
-                asChild
-                size="lg"
-                isActive={active}
-                tooltip={{ children: item.title, side: "left" }}
-                className="ps-10 text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
-              >
-                <Link
-                  href={item.url}
-                  aria-current={active ? "page" : undefined}
-                  onClick={onNavigate}
-                >
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          );
-        });
+              return (
+                <SidebarMenuSubItem key={item.url}>
+                  <SidebarMenuSubButton asChild isActive={active} size="md">
+                    <Link
+                      href={item.url}
+                      aria-current={active ? "page" : undefined}
+                      onClick={onNavigate}
+                    >
+                      <span className="min-w-0 truncate">{item.title}</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
+          </SidebarMenuSub>
+        );
 
         if (isCollapsed) {
           return (
@@ -423,7 +430,7 @@ function DashboardNavigation({
                       className="group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
                     >
                       <SectionIcon aria-hidden="true" />
-                      <span className="group-data-[collapsible=icon]:hidden">
+                      <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
                         {section.label}
                       </span>
                     </SidebarMenuButton>
@@ -443,6 +450,7 @@ function DashboardNavigation({
                             key={item.url}
                             asChild
                             className={cn(
+                              "min-h-11",
                               active &&
                                 "bg-accent font-medium text-accent-foreground",
                             )}
@@ -480,15 +488,15 @@ function DashboardNavigation({
                       size="lg"
                       isActive={sectionIsActive}
                       tooltip={{ children: section.label, side: "left" }}
-                      className="text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
+                      className="text-start data-[active=true]:bg-sidebar-accent/60 data-[active=true]:text-sidebar-foreground group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
                     >
                       <SectionIcon aria-hidden="true" />
-                      <span className="group-data-[collapsible=icon]:hidden">
+                      <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
                         {section.label}
                       </span>
                       <ChevronDown
                         aria-hidden="true"
-                        className="mr-auto transition-transform group-data-[state=open]/collapsible:rotate-180 group-data-[collapsible=icon]:hidden"
+                        className="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180 group-data-[collapsible=icon]:hidden"
                       />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
@@ -496,7 +504,9 @@ function DashboardNavigation({
               </SidebarMenu>
               <CollapsibleContent>
                 <SidebarGroupContent className="pt-1">
-                  <SidebarMenu className="gap-1">{children}</SidebarMenu>
+                  <SidebarMenu>
+                    <SidebarMenuItem>{children}</SidebarMenuItem>
+                  </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
             </SidebarGroup>
@@ -509,9 +519,6 @@ function DashboardNavigation({
 
 function DashboardSidebarContent() {
   const pathname = usePathname();
-  const router = useRouter();
-  const dispatch = useAppDispatch();
-  const [logoutMutation] = useLogoutMutation();
   const { user } = useAppSelector((state) => state.auth);
   const { isMobile, setOpenMobile } = useSidebar();
   const isAdmin = user?.role === UserRole.ADMIN;
@@ -563,33 +570,14 @@ function DashboardSidebarContent() {
       collapsible="icon"
       className="border-l border-sidebar-border"
     >
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-5 group-data-[collapsible=icon]:px-2">
-        <Link
-          href={user ? getRoleHome(user.role) : "/dashboard"}
-          className="flex w-full items-center gap-3 rounded-xl px-1.5 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-        >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sidebar-accent p-1">
-            <Image
-              src="/masar.svg"
-              alt="Hassad"
-              width={44}
-              height={44}
-              className="size-full object-contain"
-            />
-          </span>
-          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-semibold text-sidebar-foreground">
-              Hassad Platform
-            </p>
-            <p className="truncate text-xs text-sidebar-foreground/70">
-              {user ? roleLabels[user.role] : "Dashboard"}
-            </p>
-          </div>
-        </Link>
-      </SidebarHeader>
+      <SidebarBrand
+        href={user ? getRoleHome(user.role) : "/dashboard"}
+        alt="حسّاد"
+        subtitle={user ? roleLabels[user.role] : "Dashboard"}
+      />
 
       <nav aria-label="التنقل الرئيسي" className="flex min-h-0 flex-1 flex-col">
-        <SidebarContent className="px-3 py-4">
+        <SidebarContent className="min-w-0 px-3 py-4">
           <DashboardNavigation
             sections={sections}
             pathname={pathname}
@@ -603,69 +591,7 @@ function DashboardSidebarContent() {
         </SidebarContent>
       </nav>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3">
-        {user && (
-          <div className="mb-3 flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/40 p-3 group-data-[collapsible=icon]:hidden">
-            <Avatar className="size-9">
-              <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
-              <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">
-                {user.name}
-              </p>
-              <p className="truncate text-xs text-sidebar-foreground/70">
-                {user.email}
-              </p>
-            </div>
-          </div>
-        )}
-
-        <SidebarSeparator />
-
-        <SidebarMenu className="gap-2 pt-2">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              size="lg"
-              isActive={isExactPathActive(settingsUrl, pathname)}
-              className="group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
-              tooltip="الإعدادات"
-            >
-              <Link
-                href={settingsUrl}
-                aria-current={
-                  isExactPathActive(settingsUrl, pathname) ? "page" : undefined
-                }
-                onClick={handleNavigation}
-              >
-                <Settings />
-                <span>الإعدادات</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              tooltip="تسجيل الخروج"
-              className="text-destructive hover:text-destructive group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
-              onClick={async () => {
-                if (!user) return;
-                try {
-                  await logoutMutation().unwrap();
-                } catch {
-                  // ignore
-                }
-                dispatch(logout());
-                router.replace("/login");
-              }}
-            >
-              <LogOut />
-              <span>تسجيل الخروج</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      <SidebarAccountMenu settingsHref={settingsUrl} />
     </Sidebar>
   );
 }
@@ -701,7 +627,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   if (!mounted || !isInitialized) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
-        <div className="space-y-4 text-center">
+        <div className="flex flex-col gap-4 text-center">
           <div className="mx-auto size-10 animate-spin rounded-full border-2 border-border border-t-primary" />
           <p className="text-sm text-muted-foreground">جارٍ التهيئة...</p>
         </div>
@@ -720,17 +646,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       className="overflow-hidden"
       style={
         {
-          "--sidebar-width": "20rem",
-          "--sidebar-width-icon": "4.5rem",
+          "--sidebar-width": APP_SIDEBAR_WIDTH,
+          "--sidebar-width-icon": APP_SIDEBAR_ICON_WIDTH,
         } as CSSProperties
       }
     >
       <DashboardSidebarContent />
       <SidebarInset>
-        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">
           <header className="z-20 shrink-0 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:h-20 lg:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <SidebarTrigger className="shrink-0" />
+              <SidebarTrigger className="!size-11 shrink-0" />
               <div className="min-w-0">
                 <p className="text-xs font-medium text-muted-foreground">
                   لوحة التحكم
@@ -766,7 +692,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 lg:p-6">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6">
             {children}
           </div>
         </div>

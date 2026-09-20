@@ -11,6 +11,10 @@ import {
 } from "@/components/portal/shared/PortalNavigation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
+import {
+  APP_SIDEBAR_ICON_WIDTH,
+  APP_SIDEBAR_WIDTH,
+} from "@/lib/sidebar-config";
 
 export default function PortalLayout({
   children,
@@ -71,16 +75,16 @@ export default function PortalLayout({
       className="overflow-hidden"
       style={
         {
-          "--sidebar-width": "20rem",
-          "--sidebar-width-icon": "4.5rem",
+          "--sidebar-width": APP_SIDEBAR_WIDTH,
+          "--sidebar-width-icon": APP_SIDEBAR_ICON_WIDTH,
         } as CSSProperties
       }
     >
       <PortalSidebar />
       <SidebarInset>
-        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">
           <PortalHeader />
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 lg:p-6">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6">
             {children}
           </div>
         </div>

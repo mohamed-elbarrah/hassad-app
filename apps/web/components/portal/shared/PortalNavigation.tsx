@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Bell, ChevronDown, LogOut, Moon, Settings } from "lucide-react";
+import { Bell, ChevronDown, Moon } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,18 +27,17 @@ import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useLogoutMutation } from "@/features/auth/authApi";
-import { logout } from "@/features/auth/authSlice";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { useAppSelector } from "@/lib/hooks";
 import {
   useGetMyNotificationsQuery,
   useGetUnreadCountQuery,
@@ -52,16 +49,8 @@ import {
   isPortalActiveLink,
   type PortalNavItem,
 } from "@/lib/portal-navigation";
-
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
+import { SidebarAccountMenu } from "@/components/shared/navigation/SidebarAccountMenu";
+import { SidebarBrand } from "@/components/shared/navigation/SidebarBrand";
 
 function resolveNotificationUrl(
   entityType?: string | null,
@@ -84,66 +73,6 @@ function resolveNotificationUrl(
   )
     return "/portal/finance";
   return null;
-}
-
-function PortalUserMenu() {
-  const { user } = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
-  const router = useRouter();
-  const { state, isMobile, setOpenMobile } = useSidebar();
-  const [logoutMutation] = useLogoutMutation();
-
-  if (!user) return null;
-
-  const handleLogout = async () => {
-    try {
-      await logoutMutation().unwrap();
-    } catch {
-      // Local sign-out must still complete when the remote session is unavailable.
-    }
-    dispatch(logout());
-    router.replace("/login");
-  };
-
-  return (
-    <DropdownMenu dir="rtl">
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-auto w-full justify-start px-2 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-          aria-label={user.name}
-          title={state === "collapsed" ? user.name : undefined}
-        >
-          <Avatar className="size-9">
-            <AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
-            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-          </Avatar>
-          <span className="min-w-0 flex-1 truncate text-start group-data-[collapsible=icon]:hidden">
-            {user.name}
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem
-            onSelect={() => {
-              if (isMobile) setOpenMobile(false);
-              router.push("/portal/account");
-            }}
-          >
-            <Settings />
-            الإعدادات
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={handleLogout}>
-            <LogOut />
-            تسجيل الخروج
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
 }
 
 function PortalNotificationMenu() {
@@ -196,10 +125,10 @@ function PortalNotificationMenu() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative size-10 rounded-full border border-border bg-background hover:bg-accent"
+          className="relative size-10 min-h-11 min-w-11 rounded-full border border-border bg-background hover:bg-accent"
           aria-label={count > 0 ? `الإشعارات، ${count} غير مقروء` : "الإشعارات"}
         >
-          <Bell aria-hidden="true" />
+          <Bell aria-hidden="true" data-icon="inline-start" />
           {count > 0 && (
             <Badge
               variant="destructive"
@@ -268,15 +197,34 @@ function PortalNotificationMenu() {
 
 function PortalNavLink({
   item,
-  showIcon = true,
+  nested = false,
 }: {
   item: PortalNavItem;
-  showIcon?: boolean;
+  nested?: boolean;
 }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const Icon = item.icon;
   const active = isPortalActiveLink(item.href, pathname);
+  const handleClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
+  if (nested) {
+    return (
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton asChild isActive={active} size="md">
+          <Link
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            onClick={handleClick}
+          >
+            <span className="min-w-0 truncate">{item.label}</span>
+          </Link>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+    );
+  }
 
   return (
     <SidebarMenuItem>
@@ -285,21 +233,15 @@ function PortalNavLink({
         size="lg"
         isActive={active}
         tooltip={{ children: item.label, side: "left" }}
-        className={cn(
-          "text-start",
-          !showIcon && "ps-10",
-          "group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center",
-        )}
+        className="text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:justify-center"
       >
         <Link
           href={item.href}
           aria-current={active ? "page" : undefined}
-          onClick={() => {
-            if (isMobile) setOpenMobile(false);
-          }}
+          onClick={handleClick}
         >
-          {showIcon ? <Icon aria-hidden="true" /> : null}
-          <span className="group-data-[collapsible=icon]:hidden">
+          <Icon aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
             {item.label}
           </span>
         </Link>
@@ -310,7 +252,7 @@ function PortalNavLink({
 
 export function PortalSidebar() {
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
   const activeGroup = useMemo(
     () =>
@@ -333,34 +275,9 @@ export function PortalSidebar() {
       collapsible="icon"
       className="border-l border-sidebar-border"
     >
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-5 group-data-[collapsible=icon]:px-2">
-        <Link
-          href="/portal"
-          className="flex w-full items-center gap-3 rounded-xl px-1.5 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-          aria-label="الرئيسية"
-        >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sidebar-accent p-1">
-            <Image
-              src="/masar.svg"
-              alt="مسار"
-              width={44}
-              height={44}
-              priority
-              className="size-full object-contain"
-            />
-          </span>
-          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-semibold text-sidebar-foreground">
-              Hassad Platform
-            </p>
-            <p className="truncate text-xs text-sidebar-foreground/70">
-              بوابة العميل
-            </p>
-          </div>
-        </Link>
-      </SidebarHeader>
+      <SidebarBrand href="/portal" alt="مسار" subtitle="بوابة العميل" />
       <nav aria-label="التنقل الرئيسي" className="flex min-h-0 flex-1 flex-col">
-        <SidebarContent className="px-3 py-4">
+        <SidebarContent className="min-w-0 px-3 py-4">
           <SidebarMenu className="gap-2">
             {PORTAL_STANDALONE_ITEMS.map((item) => (
               <PortalNavLink key={item.href} item={item} />
@@ -385,7 +302,7 @@ export function PortalSidebar() {
                           className="justify-center text-start group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0"
                         >
                           <Icon aria-hidden="true" />
-                          <span className="group-data-[collapsible=icon]:hidden">
+                          <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
                             {group.label}
                           </span>
                         </SidebarMenuButton>
@@ -408,6 +325,7 @@ export function PortalSidebar() {
                                 key={item.href}
                                 asChild
                                 className={cn(
+                                  "min-h-11",
                                   active &&
                                     "bg-accent font-medium text-accent-foreground",
                                 )}
@@ -415,6 +333,9 @@ export function PortalSidebar() {
                                 <Link
                                   href={item.href}
                                   aria-current={active ? "page" : undefined}
+                                  onClick={() => {
+                                    if (isMobile) setOpenMobile(false);
+                                  }}
                                 >
                                   {item.label}
                                 </Link>
@@ -444,10 +365,10 @@ export function PortalSidebar() {
                             size="lg"
                             isActive={isActive}
                             tooltip={{ children: group.label, side: "left" }}
-                            className="text-start"
+                            className="text-start data-[active=true]:bg-sidebar-accent/60 data-[active=true]:text-sidebar-foreground"
                           >
                             <Icon aria-hidden="true" />
-                            <span>{group.label}</span>
+                            <span className="min-w-0 flex-1 truncate">{group.label}</span>
                             <ChevronDown
                               aria-hidden="true"
                               className="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
@@ -457,15 +378,11 @@ export function PortalSidebar() {
                       </SidebarMenuItem>
                     </SidebarMenu>
                     <CollapsibleContent>
-                      <SidebarMenu className="ms-4 gap-1 border-s ps-2">
+                      <SidebarMenuSub>
                         {group.items.map((item) => (
-                          <PortalNavLink
-                            key={item.href}
-                            item={item}
-                            showIcon={false}
-                          />
+                          <PortalNavLink key={item.href} item={item} nested />
                         ))}
-                      </SidebarMenu>
+                      </SidebarMenuSub>
                     </CollapsibleContent>
                   </Collapsible>
                 </SidebarMenuItem>
@@ -474,9 +391,7 @@ export function PortalSidebar() {
           </SidebarMenu>
         </SidebarContent>
       </nav>
-      <SidebarFooter className="border-t border-sidebar-border p-3">
-        <PortalUserMenu />
-      </SidebarFooter>
+      <SidebarAccountMenu settingsHref="/portal/account" />
     </Sidebar>
   );
 }
@@ -503,11 +418,11 @@ export function PortalHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-10 rounded-full border border-border bg-background hover:bg-accent"
+          className="size-10 min-h-11 min-w-11 rounded-full border border-border bg-background hover:bg-accent"
           aria-label="تبديل المظهر"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
         >
-          <Moon aria-hidden="true" />
+          <Moon aria-hidden="true" data-icon="inline-start" />
         </Button>
         <PortalNotificationMenu />
       </div>
