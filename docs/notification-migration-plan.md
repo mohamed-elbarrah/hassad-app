@@ -40,16 +40,21 @@ remain unchanged in this bounded phase.
 
 - Dashboard list: `apps/web/app/(dashboard)/dashboard/notifications/page.tsx`
 - Portal list: `apps/web/app/(portal)/portal/notifications/page.tsx`
-- Shared dropdowns/bells: `apps/web/components/common/NotificationsDropdown.tsx`,
-  `apps/web/components/common/NotificationBell.tsx`,
-  `apps/web/components/design-system/{DashboardNotificationsDropdown.tsx,DashboardNotificationBell.tsx,NotificationDropdown.tsx}`
+- Shared destination resolver: `resolveEntityUrl` in
+  `apps/web/components/common/NotificationsDropdown.tsx` is still imported by the
+  dashboard notification list. Preserve this module until that helper is moved.
 - Navigation/socket consumers: `apps/web/components/dashboard/dashboard-shell.tsx`,
   `apps/web/components/portal/shared/PortalNavigation.tsx`,
-  `apps/web/hooks/{useNotifications.ts,useDashboardNotificationSocket.ts,useNotificationSocket.ts}`
+  `apps/web/hooks/{useDashboardNotificationSocket.ts,useNotificationSocket.ts}`
 - API/type boundaries: `apps/web/features/notifications/notificationsApi.ts`,
   `apps/web/features/portal-notifications/portalNotificationsApi.ts`,
   `packages/shared/src/index.ts`
 - Presentation boundary: `apps/web/lib/i18n.ts`
+
+The 2026-09-27 frontend cleanup removed the unconsumed common notification bell,
+legacy design-system notification wrappers, `useNotifications`, and the unused
+notification barrel. Active notification API slices, socket hooks, navigation,
+and list routes remain unchanged.
 
 ## Direct title/body/message rendering audit
 
