@@ -66,6 +66,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const PORTAL_ACTIVITY_FEED_LIMIT = 5;
+
 const ACTION_TYPE_CONFIG: Record<
   string,
   { primaryAction: string; variant: "default" | "secondary"; icon: LucideIcon }
@@ -346,30 +348,32 @@ export default function PortalPage() {
               />
             ) : activityItems.length ? (
               <div className="flex flex-col gap-3">
-                {activityItems.slice(0, 3).map((item) => {
-                  const Icon = ACTIVITY_ICON_MAP[item.icon] ?? FileText;
-                  const date = formatPortalDate(item.date) ?? "—";
-                  return (
-                    <Card key={item.id}>
-                      <CardContent className="flex items-center gap-3 pt-6">
-                        <Avatar>
-                          <AvatarFallback>
-                            <Icon className="size-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">
-                            {portalActivityText(item)}
-                          </p>
-                          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                            <CalendarDays className="size-3" />
-                            {date}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                {activityItems
+                  .slice(0, PORTAL_ACTIVITY_FEED_LIMIT)
+                  .map((item) => {
+                    const Icon = ACTIVITY_ICON_MAP[item.icon] ?? FileText;
+                    const date = formatPortalDate(item.date) ?? "—";
+                    return (
+                      <Card key={item.id}>
+                        <CardContent className="flex items-center gap-3 pt-6">
+                          <Avatar>
+                            <AvatarFallback>
+                              <Icon className="size-4" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">
+                              {portalActivityText(item)}
+                            </p>
+                            <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                              <CalendarDays className="size-3" />
+                              {date}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
               </div>
             ) : (
               <SectionEmpty icon={Clock} title="لا توجد تحديثات حالياً" />

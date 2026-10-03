@@ -148,6 +148,14 @@ import { randomBytes } from "crypto";
 import { StorageService } from "../../../common/storage/storage.service";
 import { MarketingStrategyService } from "../../marketing/services/marketing-strategy.service";
 
+const PORTAL_ACTIVITY_FEED_LIMIT = 5;
+const PORTAL_VISIBLE_HISTORY_EVENT_TYPES = [
+  "ACTION_ITEM_SNOOZED",
+  "CLIENT_REQUEST_CREATED",
+  "CONTRACT_ACTIVATED",
+  "PROJECT_COMPLETED",
+] as const;
+
 @Injectable()
 export class PortalService {
   constructor(
@@ -1638,29 +1646,110 @@ export class PortalService {
       });
     }
 
-    const recentPayments = await this.prisma.payment.findMany({
-      where: { clientId, status: "SUCCESS", date: { gte: thirtyDaysAgo } },
-      select: { id: true, amount: true, date: true },
-      orderBy: { date: "desc" },
-      take: 5,
+    const recentPaymentEvents = await this.prisma.paymentEvent.findMany({
+      where: {
+        payment: { clientId },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      select: {
+        id: true,
+        type: true,
+        createdAt: true,
+        payment: {
+          select: {
+            amount: true,
+            currency: true,
+            invoice: { select: { invoiceNumber: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
     });
 
-    for (const p of recentPayments) {
+    for (const event of recentPaymentEvents) {
+      const typeByEvent = {
+        CREATED: "PAYMENT_SUBMITTED",
+        SUCCESS: "PAYMENT_COMPLETED",
+        FAILED: "PAYMENT_FAILED",
+        REJECTED: "PAYMENT_REJECTED",
+        REFUNDED: "PAYMENT_REFUNDED",
+      } as const;
       items.push({
-        id: `pay-${p.id}`,
-        date: p.date,
+        id: `payment-event-${event.id}`,
+        date: event.createdAt,
+        type: typeByEvent[event.type],
+        data: {
+          amount: event.payment.amount,
+          currency: event.payment.currency,
+          invoiceNumber: event.payment.invoice.invoiceNumber,
+        },
+        icon: "dollar",
+      });
+    }
+
+    const recentPayments = await this.prisma.payment.findMany({
+      where: {
+        clientId,
+        status: "SUCCESS",
+        date: { gte: thirtyDaysAgo },
+        events: { none: { createdAt: { gte: thirtyDaysAgo } } },
+      },
+      select: { id: true, amount: true, currency: true, date: true },
+      orderBy: { date: "desc" },
+      take: 20,
+    });
+
+    for (const payment of recentPayments) {
+      items.push({
+        id: `pay-${payment.id}`,
+        date: payment.date,
         type: "PAYMENT_COMPLETED",
-        data: { amount: p.amount },
+        data: { amount: payment.amount, currency: payment.currency },
+        icon: "dollar",
+      });
+    }
+
+    const cancelledInvoices = await this.prisma.invoice.findMany({
+      where: {
+        clientId,
+        status: InvoiceStatus.CANCELLED,
+        updatedAt: { gte: thirtyDaysAgo },
+      },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        amount: true,
+        currency: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 20,
+    });
+
+    for (const invoice of cancelledInvoices) {
+      items.push({
+        id: `invoice-cancelled-${invoice.id}`,
+        date: invoice.updatedAt,
+        type: "INVOICE_CANCELLED",
+        data: {
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.amount,
+          currency: invoice.currency,
+        },
         icon: "dollar",
       });
     }
 
     const historyLogs = await this.prisma.clientHistoryLog.findMany({
-      where: { clientId, occurredAt: { gte: thirtyDaysAgo } },
+      where: {
+        clientId,
+        eventType: { in: [...PORTAL_VISIBLE_HISTORY_EVENT_TYPES] },
+        occurredAt: { gte: thirtyDaysAgo },
+      },
       select: {
         id: true,
         eventType: true,
-        description: true,
         occurredAt: true,
       },
       orderBy: { occurredAt: "desc" },
@@ -1676,15 +1765,17 @@ export class PortalService {
       });
     }
 
-    items.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
+    items.sort((a, b) => {
+      const dateDifference =
+        new Date(b.date).getTime() - new Date(a.date).getTime();
+      return dateDifference || String(a.id).localeCompare(String(b.id));
+    });
 
     const unique = items.filter(
       (item, index, self) => index === self.findIndex((t) => t.id === item.id),
     );
 
-    return { items: unique.slice(0, 15) };
+    return { items: unique.slice(0, PORTAL_ACTIVITY_FEED_LIMIT) };
   }
 
   async getCampaignSummary(clientId: string) {

@@ -698,6 +698,8 @@ export function portalActivityText(item: {
   const title = String(item.data?.title ?? "");
   const name = String(item.data?.name ?? "");
   const amount = Number(item.data?.amount ?? 0);
+  const currency = String(item.data?.currency ?? "SAR");
+  const currencyLabel = currency === "SAR" ? "ر.س" : currency;
   switch (item.type) {
     case "DELIVERABLE_APPROVED":
       return `تم اعتماد "${title}"`;
@@ -707,10 +709,26 @@ export function portalActivityText(item: {
       return `تم رفع "${title}"`;
     case "CAMPAIGN_LAUNCHED":
       return `تم إطلاق حملة "${name}"`;
+    case "PAYMENT_SUBMITTED":
+      return `تم إرسال طلب سداد بقيمة ${formatNumber(amount)} ${currencyLabel}`;
     case "PAYMENT_COMPLETED":
-      return `تم دفع ${formatNumber(amount)} ر.س`;
+      return `تم دفع ${formatNumber(amount)} ${currencyLabel}`;
+    case "PAYMENT_FAILED":
+      return `فشل سداد ${formatNumber(amount)} ${currencyLabel}`;
+    case "PAYMENT_REJECTED":
+      return `تم رفض سداد ${formatNumber(amount)} ${currencyLabel}`;
+    case "PAYMENT_REFUNDED":
+      return `تم رد مبلغ ${formatNumber(amount)} ${currencyLabel}`;
+    case "INVOICE_CANCELLED":
+      return `تم إلغاء الفاتورة بقيمة ${formatNumber(amount)} ${currencyLabel}`;
+    case "CLIENT_REQUEST_CREATED":
+      return "تم إنشاء طلب جديد";
     case "ACTION_ITEM_SNOOZED":
       return "تم تأجيل إجراء";
+    case "CONTRACT_ACTIVATED":
+      return "تم تفعيل العقد";
+    case "PROJECT_COMPLETED":
+      return "تم اكتمال المشروع";
     default:
       return "تم تسجيل تحديث جديد";
   }
