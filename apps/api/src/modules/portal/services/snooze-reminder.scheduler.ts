@@ -92,6 +92,7 @@ export class SnoozeReminderScheduler {
 
         for (const row of batch) {
           processed++;
+          const itemType = row.itemType.toUpperCase();
           const recipientId = row.client?.userId;
           if (!recipientId) {
             // No user linked — mark as sent so we don't keep re-evaluating.
@@ -100,42 +101,46 @@ export class SnoozeReminderScheduler {
             continue;
           }
 
-          const { title, body, actionUrl } = this.describeItem(
-            row.itemType,
+          const { title, body, actionUrl } = await this.describeItem(
+            itemType,
             row.itemId,
             row.client?.companyName ?? null,
           );
 
-          // Notification failure MUST NOT roll back `reminderSentAt` —
-          // AGENTS.md says notification glitches never block business data.
-          // We write `reminderSentAt` first, then fire-and-forget the
-          // notification. Worst case the user misses one nudge and the
-          // next snooze they make will re-surface the item.
-          await this.markReminderSent(row.id, now);
+          const entityType = this.resolveEntityType(itemType);
+          const claimedAt = new Date();
+          const claim = await this.prisma.clientSnoozedItem.updateMany({
+            where: { id: row.id, reminderSentAt: null },
+            data: { reminderSentAt: claimedAt },
+          });
+          if (claim.count === 0) continue;
 
-          this.notificationsService
-            .createNotification({
+          try {
+            await this.notificationsService.createNotification({
               entityId: row.itemId,
-              entityType: `ACTION_ITEM_${row.itemType}`,
-              eventType: "ACTION_ITEM_SNOOZE_EXPIRED",
+              entityType,
+              eventType: "ACTION_REQUIRED",
               userId: recipientId,
               title,
               body,
               metadata: {
-                itemType: row.itemType,
+                itemType,
                 itemId: row.itemId,
                 actionUrl,
                 snoozedUntil: row.snoozedUntil.toISOString(),
               },
-            })
-            .then(() => notified++)
-            .catch((err) => {
-              // Log and continue. Already marked as sent above, so the
-              // cron won't re-attempt until the row is reset manually.
-              this.logger.warn(
-                `Failed to push snooze-expired notification for ${row.itemType}:${row.itemId}: ${(err as Error).message}`,
-              );
             });
+            notified++;
+          } catch (err) {
+            // Release the claim so a later scheduler run can retry.
+            await this.prisma.clientSnoozedItem.updateMany({
+              where: { id: row.id, reminderSentAt: claimedAt },
+              data: { reminderSentAt: null },
+            });
+            this.logger.warn(
+              `Failed to push snooze-expired notification for ${itemType}:${row.itemId}: ${(err as Error).message}`,
+            );
+          }
         }
 
         if (batch.length < SnoozeReminderScheduler.BATCH_SIZE) break;
@@ -170,11 +175,28 @@ export class SnoozeReminderScheduler {
    * list and instantly know what category the nudge belongs to. The body
    * varies slightly so two reminders back-to-back don't look identical.
    */
-  private describeItem(
+  private resolveEntityType(itemType: string): string {
+    switch (itemType) {
+      case "DELIVERABLE_APPROVAL":
+        return "deliverable";
+      case "INVOICE_PAYMENT":
+        return "invoice";
+      case "PROPOSAL_REVIEW":
+        return "proposal";
+      case "CONTRACT_SIGN":
+        return "contract";
+      case "STRATEGY_REVIEW":
+        return "marketing_strategy";
+      default:
+        return "action";
+    }
+  }
+
+  private async describeItem(
     itemType: string,
     itemId: string,
     companyName: string | null,
-  ): { title: string; body: string; actionUrl: string } {
+  ): Promise<{ title: string; body: string; actionUrl: string }> {
     const greeting = companyName ? ` ${companyName}` : "";
     switch (itemType) {
       case "DELIVERABLE_APPROVAL":
@@ -189,18 +211,32 @@ export class SnoozeReminderScheduler {
           body: `فاتورة${greeting} أصبحت مستحقة مجدداً بعد تأجيلك السابق. اضغط لعرض التفاصيل والسداد.`,
           actionUrl: `/portal/invoices/${itemId}`,
         };
-      case "PROPOSAL_REVIEW":
+      case "PROPOSAL_REVIEW": {
+        const proposal = await this.prisma.proposal.findUnique({
+          where: { id: itemId },
+          select: { shareLinkToken: true },
+        });
         return {
           title: "تذكير: عرض بانتظار مراجعتك",
           body: `العرض${greeting} الذي أجّلت مراجعته جاهز للاطلاع. اضغط للقراءة واتخاذ القرار.`,
-          actionUrl: `/portal/proposals/${itemId}`,
+          actionUrl: proposal?.shareLinkToken
+            ? `/portal/proposals/${proposal.shareLinkToken}`
+            : "/portal/proposals",
         };
-      case "CONTRACT_SIGN":
+      }
+      case "CONTRACT_SIGN": {
+        const contract = await this.prisma.contract.findUnique({
+          where: { id: itemId },
+          select: { shareLinkToken: true },
+        });
         return {
           title: "تذكير: عقد بانتظار توقيعك",
           body: `العقد${greeting} بانتظار توقيعك منذ التأجيل. اضغط لاستكمال عملية التوقيع.`,
-          actionUrl: `/portal/contracts/${itemId}`,
+          actionUrl: contract?.shareLinkToken
+            ? `/portal/contracts/${contract.shareLinkToken}`
+            : "/portal/contracts",
         };
+      }
       case "STRATEGY_REVIEW":
         return {
           title: "تذكير: دراسة تسويقية بانتظار مراجعتك",

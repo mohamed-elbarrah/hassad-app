@@ -18,8 +18,8 @@ import {
   Min,
   Max,
 } from "class-validator";
-import { Type } from "class-transformer";
-import { BusinessType, ProjectStatus } from "@hassad/shared";
+import { Transform, Type } from "class-transformer";
+import { BusinessType, ClientActionType, ProjectStatus } from "@hassad/shared";
 
 export enum ReportGranularity {
   DAY = "day",
@@ -27,15 +27,13 @@ export enum ReportGranularity {
   MONTH = "month",
 }
 
-export enum SnoozeActionItemType {
-  DELIVERABLE_APPROVAL = "DELIVERABLE_APPROVAL",
-  INVOICE_PAYMENT = "INVOICE_PAYMENT",
-  PROPOSAL_REVIEW = "PROPOSAL_REVIEW",
-  CONTRACT_SIGN = "CONTRACT_SIGN",
-  STRATEGY_REVIEW = "STRATEGY_REVIEW",
-}
+export const SnoozeActionItemType = ClientActionType;
+export type SnoozeActionItemType = ClientActionType;
 
 export class SnoozeActionItemDto {
+  @Transform(({ value }) =>
+    typeof value === "string" ? value.trim().toUpperCase() : value,
+  )
   @IsEnum(SnoozeActionItemType)
   itemType: SnoozeActionItemType;
 

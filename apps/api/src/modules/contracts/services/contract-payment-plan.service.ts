@@ -45,7 +45,8 @@ export class ContractPaymentPlanService {
   async definePlan(contractId: string, dto: DefinePaymentPlanDto) {
     const contract = await this.assertContractExists(contractId);
     await this.assertNoFinancialHistory(contractId);
-    await this.validateRows(dto.rows, contract.totalValue);
+    await this.validateRows(dto.rows, contract.totalValue, contract);
+    this.assertCompleteMonthlyPlan(dto.rows, contract);
 
     const rows = this.normalizeSequences(dto.rows);
 
@@ -73,7 +74,13 @@ export class ContractPaymentPlanService {
   async addRow(contractId: string, row: PaymentPlanRowDto) {
     const contract = await this.assertContractExists(contractId);
     await this.assertNoFinancialHistory(contractId);
-    await this.validateRows([row], contract.totalValue);
+    await this.validateRows([row], contract.totalValue, contract);
+    if (contract.type === "MONTHLY_RETAINER") {
+      const existingRows = await this.prisma.contractPaymentPlan.findMany({
+        where: { contractId, isActive: true },
+      });
+      this.assertCompleteMonthlyPlan([...existingRows, row], contract);
+    }
     if (row.sequence !== undefined) {
       const sequenceOwner = await this.prisma.contractPaymentPlan.findFirst({
         where: { contractId, sequence: row.sequence },
@@ -125,7 +132,13 @@ export class ContractPaymentPlanService {
       where: { id: rowId },
       include: {
         contract: {
-          select: { totalValue: true, invoices: { select: { id: true } } },
+          select: {
+            totalValue: true,
+            type: true,
+            monthlyValue: true,
+            initialPaymentRequired: true,
+            invoices: { select: { id: true } },
+          },
         },
       },
     });
@@ -142,7 +155,20 @@ export class ContractPaymentPlanService {
         details: { rowId },
       });
     }
-    await this.validateRows([row], existing.contract.totalValue);
+    await this.validateRows(
+      [row],
+      existing.contract.totalValue,
+      existing.contract,
+    );
+    if (existing.contract.type === "MONTHLY_RETAINER") {
+      const existingRows = await this.prisma.contractPaymentPlan.findMany({
+        where: { contractId, isActive: true },
+      });
+      this.assertCompleteMonthlyPlan(
+        existingRows.map((current) => (current.id === rowId ? row : current)),
+        existing.contract,
+      );
+    }
     if (row.sequence !== undefined) {
       const sequenceOwner = await this.prisma.contractPaymentPlan.findFirst({
         where: {
@@ -203,6 +229,13 @@ export class ContractPaymentPlanService {
       });
     }
     await this.assertNoFinancialHistory(contractId);
+    const contract = await this.assertContractExists(contractId);
+    if (contract.type === "MONTHLY_RETAINER") {
+      const remainingRows = await this.prisma.contractPaymentPlan.findMany({
+        where: { contractId, isActive: true, NOT: { id: rowId } },
+      });
+      this.assertCompleteMonthlyPlan(remainingRows, contract);
+    }
     // Hard delete is safe only before financial history exists.
     return this.prisma.contractPaymentPlan.delete({ where: { id: rowId } });
   }
@@ -235,7 +268,14 @@ export class ContractPaymentPlanService {
   private async assertContractExists(contractId: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
-      select: { id: true, totalValue: true, status: true },
+      select: {
+        id: true,
+        totalValue: true,
+        status: true,
+        type: true,
+        monthlyValue: true,
+        initialPaymentRequired: true,
+      },
     });
     if (!contract) {
       throw new NotFoundException({
@@ -259,7 +299,15 @@ export class ContractPaymentPlanService {
     }
   }
 
-  async validateRows(rows: PaymentPlanRowDto[], totalValue: number) {
+  async validateRows(
+    rows: PaymentPlanRowDto[],
+    totalValue: number,
+    contract?: {
+      type: string;
+      monthlyValue: number;
+      initialPaymentRequired: boolean;
+    },
+  ) {
     const onSignRows = rows.filter(
       (r) => r.triggerType === PaymentPlanTriggerType.ON_SIGN,
     );
@@ -307,6 +355,70 @@ export class ContractPaymentPlanService {
           details: { label: r.label, totalValue },
         });
       }
+
+      if (contract?.type === "MONTHLY_RETAINER") {
+        const isOnSign = r.triggerType === PaymentPlanTriggerType.ON_SIGN;
+        const isPeriodEnd = r.triggerType === PaymentPlanTriggerType.PERIOD_END;
+        const matchesMonthlyAmount =
+          r.amountType === PaymentAmountType.FIXED &&
+          r.amountValue === contract.monthlyValue;
+
+        if (!isOnSign && !isPeriodEnd) {
+          throw new BadRequestException({
+            code: "MONTHLY_PAYMENT_PLAN_TRIGGER_INVALID",
+            details: { triggerType: r.triggerType },
+          });
+        }
+        if (isOnSign && !contract.initialPaymentRequired) {
+          throw new BadRequestException({
+            code: "MONTHLY_INITIAL_PAYMENT_NOT_REQUIRED",
+            details: {},
+          });
+        }
+        if (!matchesMonthlyAmount) {
+          throw new BadRequestException({
+            code: "MONTHLY_PAYMENT_AMOUNT_MISMATCH",
+            details: { monthlyValue: contract.monthlyValue },
+          });
+        }
+        if (isPeriodEnd && r.isRecurring === false) {
+          throw new BadRequestException({
+            code: "MONTHLY_PAYMENT_MUST_RECUR",
+            details: {},
+          });
+        }
+      }
+    }
+  }
+
+  assertCompleteMonthlyPlan(
+    rows: Array<{
+      triggerType: string;
+      isRecurring?: boolean;
+    }>,
+    contract: {
+      type: string;
+      monthlyValue: number;
+      initialPaymentRequired: boolean;
+    },
+  ) {
+    if (contract.type !== "MONTHLY_RETAINER") return;
+
+    const onSignCount = rows.filter(
+      (row) => row.triggerType === PaymentPlanTriggerType.ON_SIGN,
+    ).length;
+    const periodEndCount = rows.filter(
+      (row) =>
+        row.triggerType === PaymentPlanTriggerType.PERIOD_END &&
+        row.isRecurring !== false,
+    ).length;
+    const expectedOnSign = contract.initialPaymentRequired ? 1 : 0;
+
+    if (onSignCount !== expectedOnSign || periodEndCount !== 1) {
+      throw new BadRequestException({
+        code: "MONTHLY_PAYMENT_PLAN_INCOMPLETE",
+        details: { expectedOnSign, periodEndCount },
+      });
     }
   }
 

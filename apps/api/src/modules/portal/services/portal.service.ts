@@ -142,6 +142,7 @@ import {
   CampaignStatus,
   RequestStatus,
   BusinessType,
+  ClientActionType,
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
 import { StorageService } from "../../../common/storage/storage.service";
@@ -1059,7 +1060,7 @@ export class PortalService {
       select: { itemType: true, itemId: true },
     });
     const snoozedKeys = new Set(
-      snoozedItems.map((s) => `${s.itemType}-${s.itemId}`),
+      snoozedItems.map((s) => `${s.itemType.toUpperCase()}-${s.itemId}`),
     );
 
     const fetchDeliverables =
@@ -1225,8 +1226,18 @@ export class PortalService {
     }
 
     items.sort((a, b) => {
-      const prio = { high: 0, normal: 1, low: 2 };
-      return (prio[a.priority] ?? 2) - (prio[b.priority] ?? 2);
+      const priority = { high: 0, normal: 1, low: 2 };
+      const priorityDifference =
+        (priority[a.priority as keyof typeof priority] ?? 2) -
+        (priority[b.priority as keyof typeof priority] ?? 2);
+      if (priorityDifference !== 0) return priorityDifference;
+
+      const dueDateDifference =
+        (a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER) -
+        (b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER);
+      if (dueDateDifference !== 0) return dueDateDifference;
+
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     const total = items.length;
@@ -1279,11 +1290,7 @@ export class PortalService {
   async getSnoozedItems(clientId: string, activeOnly: boolean = true) {
     const now = new Date();
     const where: any = { clientId };
-    if (activeOnly) {
-      where.snoozedUntil = { gt: now };
-    } else {
-      where.snoozedUntil = { lte: now };
-    }
+    if (activeOnly) where.snoozedUntil = { gt: now };
 
     const snoozed = await this.prisma.clientSnoozedItem.findMany({
       where,
@@ -1292,20 +1299,13 @@ export class PortalService {
 
     if (snoozed.length === 0) return [];
 
-    // Resolve each snoozed item back into the action-item shape so the UI
-    // can reuse the same row rendering pipeline (ActionItemCard + Pill +
-    // ActionButton). We do this in O(n) by batching the lookups per type.
-    const byType = new Map<string, Set<string>>();
-    for (const s of snoozed) {
-      if (!byType.has(s.itemType)) byType.set(s.itemType, new Set());
-      byType.get(s.itemType)!.add(s.itemId);
-    }
-
+    // Resolve each snoozed item against the current entity state so completed
+    // actions do not reappear in the snoozed history.
     const enriched: any[] = [];
     for (const s of snoozed) {
       const item = await this.resolveActionItemShape(
         clientId,
-        s.itemType,
+        s.itemType.toUpperCase(),
         s.itemId,
       );
       if (!item) continue;
@@ -1348,7 +1348,11 @@ export class PortalService {
     switch (itemType) {
       case "DELIVERABLE_APPROVAL": {
         const d = await this.prisma.deliverable.findFirst({
-          where: { id: itemId, isVisibleToClient: true },
+          where: {
+            id: itemId,
+            status: TaskStatus.IN_REVIEW,
+            isVisibleToClient: true,
+          },
           include: { project: { select: { clientId: true, name: true } } },
         });
         if (!d || d.project.clientId !== clientId) return null;
@@ -1365,7 +1369,18 @@ export class PortalService {
       }
       case "INVOICE_PAYMENT": {
         const inv = await this.prisma.invoice.findFirst({
-          where: { id: itemId, clientId },
+          where: {
+            id: itemId,
+            clientId,
+            status: {
+              in: [
+                InvoiceStatus.DUE,
+                InvoiceStatus.SENT,
+                InvoiceStatus.PARTIAL,
+                InvoiceStatus.LATE,
+              ],
+            },
+          },
         });
         if (!inv) return null;
         const daysUntilDue = inv.dueDate
@@ -1391,7 +1406,7 @@ export class PortalService {
       }
       case "CONTRACT_SIGN": {
         const c = await this.prisma.contract.findFirst({
-          where: { id: itemId, clientId },
+          where: { id: itemId, clientId, status: ContractStatus.SENT },
         });
         if (!c) return null;
         return {
@@ -1410,6 +1425,7 @@ export class PortalService {
         const p = await this.prisma.proposal.findFirst({
           where: {
             id: itemId,
+            status: ProposalStatus.SENT,
             OR: [{ clientId }, { request: { clientId } }],
           },
         });
@@ -1428,7 +1444,7 @@ export class PortalService {
       }
       case "STRATEGY_REVIEW": {
         const s = await this.prisma.marketingStrategy.findFirst({
-          where: { id: itemId, clientId },
+          where: { id: itemId, clientId, status: "SENT" },
           include: {
             task: {
               select: {
@@ -1462,15 +1478,26 @@ export class PortalService {
     itemId: string,
     hours: number = 24,
   ) {
+    const canonicalItemType = itemType.toUpperCase();
+    this.assertActionType(canonicalItemType);
     const snoozedUntil = new Date();
     snoozedUntil.setHours(snoozedUntil.getHours() + hours);
 
     const result = await this.prisma.clientSnoozedItem.upsert({
       where: {
-        clientId_itemType_itemId: { clientId, itemType, itemId },
+        clientId_itemType_itemId: {
+          clientId,
+          itemType: canonicalItemType,
+          itemId,
+        },
       },
       update: { snoozedUntil, reminderSentAt: null },
-      create: { clientId, itemType, itemId, snoozedUntil },
+      create: {
+        clientId,
+        itemType: canonicalItemType,
+        itemId,
+        snoozedUntil,
+      },
     });
 
     // Write a history log so the PM / admin side can see the snooze.
@@ -1506,16 +1533,35 @@ export class PortalService {
   }
 
   async unsnoozeActionItem(clientId: string, itemType: string, itemId: string) {
+    const canonicalItemType = itemType.toUpperCase();
+    this.assertActionType(canonicalItemType);
     try {
       await this.prisma.clientSnoozedItem.delete({
         where: {
-          clientId_itemType_itemId: { clientId, itemType, itemId },
+          clientId_itemType_itemId: {
+            clientId,
+            itemType: canonicalItemType,
+            itemId,
+          },
         },
       });
     } catch {
       // Already removed — no-op
     }
     return {};
+  }
+
+  private assertActionType(
+    itemType: string,
+  ): asserts itemType is ClientActionType {
+    if (
+      !Object.values(ClientActionType).includes(itemType as ClientActionType)
+    ) {
+      throw new BadRequestException({
+        code: "INVALID_ACTION_ITEM_TYPE",
+        details: { itemType },
+      });
+    }
   }
 
   async getActivityFeed(clientId: string) {

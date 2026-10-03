@@ -325,6 +325,9 @@ export class ContractsService {
         id: true,
         title: true,
         totalValue: true,
+        monthlyValue: true,
+        type: true,
+        initialPaymentRequired: true,
         createdBy: true,
         downPaymentType: true,
         downPaymentValue: true,
@@ -402,10 +405,17 @@ export class ContractsService {
 
   /** Resolve down payment from the contract-level fallback fields when no plan row exists. */
   private resolveDownPaymentFallback(contract: {
+    type: string;
     totalValue: number;
+    monthlyValue: number;
+    initialPaymentRequired: boolean;
     downPaymentType?: "PERCENT" | "FIXED" | null;
     downPaymentValue?: number | null;
   }): number {
+    if (!contract.initialPaymentRequired) return 0;
+    if (contract.type === "MONTHLY_RETAINER") {
+      return contract.monthlyValue;
+    }
     if (!contract.downPaymentType || !contract.downPaymentValue) return 0;
     return this.paymentPlanService.resolveAmount(
       {
@@ -841,6 +851,139 @@ export class ContractsService {
     return this.paymentPlanService.removeRow(contractId, rowId);
   }
 
+  private resolveMonthlyValue(
+    totalValue: number,
+    numberOfMonths: number,
+    requestedValue?: number,
+  ) {
+    if (!Number.isInteger(numberOfMonths) || numberOfMonths < 1) {
+      throw new BadRequestException({
+        code: "RETAINER_MONTHS_REQUIRED",
+        details: { numberOfMonths },
+      });
+    }
+    const monthlyValue = requestedValue ?? totalValue / numberOfMonths;
+    if (!Number.isFinite(monthlyValue) || monthlyValue <= 0) {
+      throw new BadRequestException({
+        code: "MONTHLY_VALUE_INVALID",
+        details: { monthlyValue },
+      });
+    }
+    return Math.round(monthlyValue * 100) / 100;
+  }
+
+  private resolvePaymentTerms(params: {
+    type: string;
+    totalValue: number;
+    monthlyValue: number;
+    initialPaymentRequired: boolean;
+    paymentType?: PaymentAmountType;
+    paymentValue?: number;
+  }) {
+    if (params.type === "MONTHLY_RETAINER") {
+      if (
+        params.paymentType !== undefined ||
+        params.paymentValue !== undefined
+      ) {
+        throw new BadRequestException({
+          code: "MONTHLY_INITIAL_PAYMENT_OPTIONS_NOT_ALLOWED",
+          details: {},
+        });
+      }
+      return {
+        initialAmount: params.initialPaymentRequired
+          ? params.monthlyValue
+          : null,
+        initialType: params.initialPaymentRequired
+          ? PaymentAmountType.FIXED
+          : null,
+        initialValue: params.initialPaymentRequired
+          ? params.monthlyValue
+          : null,
+      };
+    }
+
+    if (!params.initialPaymentRequired) {
+      if (
+        params.paymentType !== undefined ||
+        params.paymentValue !== undefined
+      ) {
+        throw new BadRequestException({
+          code: "INITIAL_PAYMENT_NOT_ALLOWED",
+          details: {},
+        });
+      }
+      return { initialAmount: null, initialType: null, initialValue: null };
+    }
+
+    if (params.paymentType === undefined || params.paymentValue === undefined) {
+      throw new BadRequestException({
+        code: "INITIAL_PAYMENT_DETAILS_REQUIRED",
+        details: {},
+      });
+    }
+    const initialAmount =
+      params.paymentType === PaymentAmountType.PERCENT
+        ? Math.round(((params.totalValue * params.paymentValue) / 100) * 100) /
+          100
+        : params.paymentValue;
+    if (initialAmount <= 0 || initialAmount > params.totalValue) {
+      throw new BadRequestException({
+        code: "INITIAL_PAYMENT_AMOUNT_INVALID",
+        details: { amount: initialAmount },
+      });
+    }
+    return {
+      initialAmount,
+      initialType: params.paymentType,
+      initialValue: params.paymentValue,
+    };
+  }
+
+  private buildPaymentPlanRows(params: {
+    type: string;
+    monthlyValue: number;
+    initialPaymentRequired: boolean;
+    initialType: PaymentAmountType | null;
+    initialValue: number | null;
+  }) {
+    const rows: Array<{
+      label: string;
+      sequence: number;
+      triggerType: PaymentPlanTriggerType;
+      amountType: PaymentAmountType;
+      amountValue: number;
+      isRecurring: boolean;
+      dueOffsetDays: number;
+    }> = [];
+
+    if (params.initialPaymentRequired && params.initialValue !== null) {
+      rows.push({
+        label: "CONTRACT_PRE_SIGN_PAYMENT",
+        sequence: 0,
+        triggerType: PaymentPlanTriggerType.ON_SIGN,
+        amountType: params.initialType!,
+        amountValue: params.initialValue,
+        isRecurring: false,
+        dueOffsetDays: 0,
+      });
+    }
+
+    if (params.type === "MONTHLY_RETAINER") {
+      rows.push({
+        label: "CONTRACT_MONTHLY_PAYMENT",
+        sequence: rows.length,
+        triggerType: PaymentPlanTriggerType.PERIOD_END,
+        amountType: PaymentAmountType.FIXED,
+        amountValue: params.monthlyValue,
+        isRecurring: true,
+        dueOffsetDays: 0,
+      });
+    }
+
+    return rows;
+  }
+
   async assertCreationAccess(
     dto: CreateContractDto,
     accessScope?: RequestAccessScope,
@@ -891,13 +1034,15 @@ export class ContractsService {
     let servicesList: any = undefined;
     const startDate = dto.startDate ? new Date(dto.startDate) : new Date();
     let endDate = dto.endDate ? new Date(dto.endDate) : new Date();
-    const monthlyValue = dto.monthlyValue ?? 0;
+    let monthlyValue = dto.monthlyValue ?? 0;
     let totalValue = dto.totalValue ?? 0;
     const paymentType = dto.downPaymentType ?? dto.initialPaymentType;
     const paymentValue = dto.downPaymentValue ?? dto.initialPaymentValue;
     const initialPaymentRequired =
       dto.initialPaymentRequired ??
-      (paymentType !== undefined && paymentValue !== undefined);
+      (dto.type === ContractType.FIXED_PROJECT &&
+        paymentType !== undefined &&
+        paymentValue !== undefined);
 
     if (dto.proposalId) {
       const proposal = await this.prisma.proposal.findFirst({
@@ -968,26 +1113,32 @@ export class ContractsService {
         details: {},
       });
     }
-    if (initialPaymentRequired) {
-      if (paymentType === undefined || paymentValue === undefined) {
-        throw new BadRequestException({
-          code: "INITIAL_PAYMENT_DETAILS_REQUIRED",
-          details: {},
-        });
-      }
-      const initialAmount =
-        paymentType === PaymentAmountType.PERCENT
-          ? (totalValue * paymentValue) / 100
-          : paymentValue;
-      if (initialAmount <= 0 || initialAmount > totalValue) {
-        throw new BadRequestException({
-          code: "INITIAL_PAYMENT_AMOUNT_INVALID",
-          details: { amount: initialAmount },
-        });
-      }
+    if (dto.type === ContractType.MONTHLY_RETAINER) {
+      monthlyValue = this.resolveMonthlyValue(
+        totalValue,
+        dto.numberOfMonths!,
+        dto.monthlyValue,
+      );
     }
+    const paymentTerms = this.resolvePaymentTerms({
+      type: dto.type,
+      totalValue,
+      monthlyValue,
+      initialPaymentRequired,
+      paymentType,
+      paymentValue,
+    });
     if (dto.paymentPlan?.length) {
-      await this.paymentPlanService.validateRows(dto.paymentPlan, totalValue);
+      await this.paymentPlanService.validateRows(dto.paymentPlan, totalValue, {
+        type: dto.type,
+        monthlyValue,
+        initialPaymentRequired,
+      });
+      this.paymentPlanService.assertCompleteMonthlyPlan(dto.paymentPlan, {
+        type: dto.type,
+        monthlyValue,
+        initialPaymentRequired,
+      });
       const hasRecurringPeriod = dto.paymentPlan.some(
         (row) =>
           row.triggerType === PaymentPlanTriggerType.PERIOD_END &&
@@ -1005,8 +1156,8 @@ export class ContractsService {
       if (
         onSignRow &&
         (!initialPaymentRequired ||
-          onSignRow.amountType !== paymentType ||
-          onSignRow.amountValue !== paymentValue)
+          onSignRow.amountType !== paymentTerms.initialType ||
+          onSignRow.amountValue !== paymentTerms.initialValue)
       ) {
         throw new BadRequestException({
           code: "PAYMENT_PLAN_INITIAL_MISMATCH",
@@ -1059,24 +1210,19 @@ export class ContractsService {
           filePath,
           shareLinkToken,
           servicesList,
-          downPaymentType: initialPaymentRequired ? paymentType : null,
-          downPaymentValue: initialPaymentRequired ? paymentValue : null,
+          downPaymentType: paymentTerms.initialType,
+          downPaymentValue: paymentTerms.initialValue,
           initialPaymentRequired,
           initialPaymentStatus: initialPaymentRequired
             ? "PENDING"
             : "NOT_REQUIRED",
-          initialPaymentAmount:
-            initialPaymentRequired && paymentType && paymentValue !== undefined
-              ? paymentType === PaymentAmountType.PERCENT
-                ? Math.round(totalValue * (paymentValue / 100) * 100) / 100
-                : paymentValue
-              : null,
+          initialPaymentAmount: paymentTerms.initialAmount,
           numberOfMonths:
             dto.type === ContractType.FIXED_PROJECT ? null : dto.numberOfMonths,
         },
       });
 
-      // Auto-generate payment plan rows from scalar fields if no explicit plan provided.
+      // Auto-generate payment plan rows from the normalized contract terms.
       if (dto.paymentPlan && dto.paymentPlan.length > 0) {
         for (const [i, row] of dto.paymentPlan.entries()) {
           await tx.contractPaymentPlan.create({
@@ -1093,58 +1239,13 @@ export class ContractsService {
           });
         }
       } else {
-        const planRows: Array<{
-          label: string;
-          sequence: number;
-          triggerType: PaymentPlanTriggerType;
-          amountType: PaymentAmountType;
-          amountValue: number;
-          isRecurring: boolean;
-          dueOffsetDays: number;
-        }> = [];
-        if (
-          initialPaymentRequired &&
-          paymentType &&
-          paymentValue !== undefined
-        ) {
-          planRows.push({
-            label: "الدفعة الأولى",
-            sequence: 0,
-            triggerType: PaymentPlanTriggerType.ON_SIGN,
-            amountType: paymentType,
-            amountValue: paymentValue,
-            isRecurring: false,
-            dueOffsetDays: 0,
-          });
-        }
-        if (dto.type === ContractType.MONTHLY_RETAINER) {
-          const months = dto.numberOfMonths ?? 1;
-          const initialAmount =
-            initialPaymentRequired && paymentType && paymentValue !== undefined
-              ? paymentType === PaymentAmountType.PERCENT
-                ? Math.round(totalValue * (paymentValue / 100) * 100) / 100
-                : paymentValue
-              : 0;
-          const recurringAmount =
-            dto.monthlyValue && dto.monthlyValue > 0
-              ? dto.monthlyValue
-              : Math.round(((totalValue - initialAmount) / months) * 100) / 100;
-          if (recurringAmount <= 0) {
-            throw new BadRequestException({
-              code: "RECURRING_PAYMENT_AMOUNT_INVALID",
-              details: {},
-            });
-          }
-          planRows.push({
-            label: "الدفعة الشهرية",
-            sequence: planRows.length,
-            triggerType: PaymentPlanTriggerType.PERIOD_END,
-            amountType: PaymentAmountType.FIXED,
-            amountValue: recurringAmount,
-            isRecurring: true,
-            dueOffsetDays: 0,
-          });
-        }
+        const planRows = this.buildPaymentPlanRows({
+          type: dto.type,
+          monthlyValue,
+          initialPaymentRequired,
+          initialType: paymentTerms.initialType,
+          initialValue: paymentTerms.initialValue,
+        });
         if (planRows.length > 0) {
           await tx.contractPaymentPlan.createMany({
             data: planRows.map((row) => ({
@@ -1279,41 +1380,6 @@ export class ContractsService {
           .catch((error) =>
             this.logger.warn(
               `Contract notification dispatch failed after commit: ${error instanceof Error ? error.message : String(error)}`,
-            ),
-          );
-      }
-      const invoice = await this.prisma.invoice.findFirst({
-        where: {
-          contractId: created.contract.id,
-          paymentPlan: { triggerType: PaymentPlanTriggerType.ON_SIGN },
-          status: { not: InvoiceStatus.CANCELLED },
-        },
-        orderBy: { createdAt: "asc" },
-        select: { id: true, invoiceNumber: true, amount: true },
-      });
-      const invoiceRecipientId =
-        created.request.client?.userId ?? created.request.submittedBy;
-      if (
-        intent !== ContractCreationIntent.LEGACY_SENT &&
-        invoice &&
-        invoiceRecipientId
-      ) {
-        await this.notificationsService
-          .createNotification({
-            entityId: invoice.id,
-            entityType: "invoice",
-            eventType: "INVOICE_CREATED",
-            userId: invoiceRecipientId,
-            metadata: {
-              invoiceId: invoice.id,
-              invoiceNumber: invoice.invoiceNumber,
-              amount: invoice.amount,
-              contractId: created.contract.id,
-            },
-          })
-          .catch((error) =>
-            this.logger.warn(
-              `Invoice notification dispatch failed after commit: ${error instanceof Error ? error.message : String(error)}`,
             ),
           );
       }
@@ -1781,7 +1847,10 @@ export class ContractsService {
           where: {
             contractId: contract.id,
             paymentPlanId: onSignRow.id,
-            status: { equals: InvoiceStatus.PAID, not: InvoiceStatus.CANCELLED },
+            status: {
+              equals: InvoiceStatus.PAID,
+              not: InvoiceStatus.CANCELLED,
+            },
           },
           select: { id: true },
         });
@@ -1973,27 +2042,43 @@ export class ContractsService {
       existing.invoices.length > 0 || existing.initialPaymentStatus === "PAID";
     const requestedType = dto.type ?? existing.type;
     const requestedTotal = dto.totalValue ?? existing.totalValue;
-    const requestedMonthly = dto.monthlyValue ?? existing.monthlyValue;
     const requestedMonths =
-      requestedType === "FIXED_PROJECT"
+      requestedType === ContractType.FIXED_PROJECT
         ? null
         : (dto.numberOfMonths ?? existing.numberOfMonths);
     const paymentType = dto.initialPaymentType ?? dto.downPaymentType;
     const paymentValue = dto.initialPaymentValue ?? dto.downPaymentValue;
     const initialRequired =
       dto.initialPaymentRequired ?? existing.initialPaymentRequired;
-    if (requestedType === "FIXED_PROJECT" && dto.numberOfMonths !== undefined) {
+    if (
+      requestedType === ContractType.FIXED_PROJECT &&
+      dto.numberOfMonths !== undefined
+    ) {
       throw new BadRequestException({
         code: "FIXED_PROJECT_MONTHS_NOT_ALLOWED",
         details: { numberOfMonths: dto.numberOfMonths },
       });
     }
-    const effectivePaymentType = paymentType ?? existing.downPaymentType;
-    const effectivePaymentValue = paymentValue ?? existing.downPaymentValue;
-    const requestedPaymentType = initialRequired ? effectivePaymentType : null;
-    const requestedPaymentValue = initialRequired
-      ? effectivePaymentValue
-      : null;
+    const requestedMonthly =
+      requestedType === ContractType.MONTHLY_RETAINER
+        ? this.resolveMonthlyValue(
+            requestedTotal,
+            requestedMonths ?? 0,
+            dto.monthlyValue ?? existing.monthlyValue,
+          )
+        : 0;
+    const paymentTerms = this.resolvePaymentTerms({
+      type: requestedType,
+      totalValue: requestedTotal,
+      monthlyValue: requestedMonthly,
+      initialPaymentRequired: initialRequired,
+      paymentType:
+        requestedType === ContractType.FIXED_PROJECT ? paymentType : undefined,
+      paymentValue:
+        requestedType === ContractType.FIXED_PROJECT ? paymentValue : undefined,
+    });
+    const requestedPaymentType = paymentTerms.initialType;
+    const requestedPaymentValue = paymentTerms.initialValue;
     const termsChanged =
       requestedType !== existing.type ||
       requestedTotal !== existing.totalValue ||
@@ -2046,37 +2131,7 @@ export class ContractsService {
       });
     }
 
-    if (
-      !initialRequired &&
-      (paymentType !== undefined || paymentValue !== undefined)
-    ) {
-      throw new BadRequestException({
-        code: "INITIAL_PAYMENT_NOT_ALLOWED",
-        details: {},
-      });
-    }
-    let initialAmount: number | null = existing.initialPaymentAmount;
-    if (!initialRequired) {
-      initialAmount = null;
-    } else {
-      if (!effectivePaymentType || effectivePaymentValue === undefined) {
-        throw new BadRequestException({
-          code: "INITIAL_PAYMENT_DETAILS_REQUIRED",
-          details: {},
-        });
-      }
-      initialAmount =
-        effectivePaymentType === PaymentAmountType.PERCENT
-          ? Math.round(((requestedTotal * effectivePaymentValue) / 100) * 100) /
-            100
-          : effectivePaymentValue;
-      if (initialAmount <= 0 || initialAmount > requestedTotal) {
-        throw new BadRequestException({
-          code: "INITIAL_PAYMENT_AMOUNT_INVALID",
-          details: { amount: initialAmount },
-        });
-      }
-    }
+    const initialAmount = paymentTerms.initialAmount;
 
     let replacementKey: string | undefined;
     let committed = false;
@@ -2185,51 +2240,13 @@ export class ContractsService {
           }
 
           if (termsChanged) {
-            const planRows = [] as Array<{
-              label: string;
-              sequence: number;
-              triggerType: PaymentPlanTriggerType;
-              amountType: PaymentAmountType;
-              amountValue: number;
-              isRecurring: boolean;
-              dueOffsetDays: number;
-            }>;
-            if (initialRequired && initialAmount !== null) {
-              planRows.push({
-                label: "الدفعة الأولى",
-                sequence: 0,
-                triggerType: PaymentPlanTriggerType.ON_SIGN,
-                amountType: effectivePaymentType! as PaymentAmountType,
-                amountValue: effectivePaymentValue!,
-                isRecurring: false,
-                dueOffsetDays: 0,
-              });
-            }
-            if (requestedType === "MONTHLY_RETAINER") {
-              const recurringAmount =
-                requestedMonthly > 0
-                  ? requestedMonthly
-                  : Math.round(
-                      ((requestedTotal - (initialAmount ?? 0)) /
-                        requestedMonths!) *
-                        100,
-                    ) / 100;
-              if (recurringAmount <= 0) {
-                throw new BadRequestException({
-                  code: "RECURRING_PAYMENT_AMOUNT_INVALID",
-                  details: {},
-                });
-              }
-              planRows.push({
-                label: "الدفعة الشهرية",
-                sequence: initialRequired ? 1 : 0,
-                triggerType: PaymentPlanTriggerType.PERIOD_END,
-                amountType: PaymentAmountType.FIXED,
-                amountValue: recurringAmount,
-                isRecurring: true,
-                dueOffsetDays: 0,
-              });
-            }
+            const planRows = this.buildPaymentPlanRows({
+              type: requestedType,
+              monthlyValue: requestedMonthly,
+              initialPaymentRequired: initialRequired,
+              initialType: paymentTerms.initialType,
+              initialValue: paymentTerms.initialValue,
+            });
             await tx.contractPaymentPlan.deleteMany({
               where: { contractId: id },
             });
@@ -2280,12 +2297,8 @@ export class ContractsService {
                       ? "PENDING"
                       : "NOT_REQUIRED",
                     initialPaymentAmount: initialAmount,
-                    downPaymentType: initialRequired
-                      ? effectivePaymentType
-                      : null,
-                    downPaymentValue: initialRequired
-                      ? effectivePaymentValue
-                      : null,
+                    downPaymentType: paymentTerms.initialType,
+                    downPaymentValue: paymentTerms.initialValue,
                   }
                 : {}),
               ...(replacementKey
@@ -2598,38 +2611,6 @@ export class ContractsService {
           );
       }
     }
-    if (result.invoiceCreated && result.contract.client.userId) {
-      const invoice = await this.prisma.invoice.findFirst({
-        where: {
-          contractId: id,
-          paymentPlan: { triggerType: PaymentPlanTriggerType.ON_SIGN },
-          status: { not: InvoiceStatus.CANCELLED },
-        },
-        orderBy: { createdAt: "asc" },
-        select: { id: true, invoiceNumber: true, amount: true },
-      });
-      if (invoice) {
-        await this.notificationsService
-          .createNotification({
-            entityId: invoice.id,
-            entityType: "invoice",
-            eventType: "INVOICE_CREATED",
-            userId: result.contract.client.userId,
-            metadata: {
-              invoiceId: invoice.id,
-              invoiceNumber: invoice.invoiceNumber,
-              amount: invoice.amount,
-              contractId: id,
-            },
-          })
-          .catch((error) =>
-            this.logger.warn(
-              `Invoice notification dispatch failed after commit: ${error instanceof Error ? error.message : String(error)}`,
-            ),
-          );
-      }
-    }
-
     const {
       shareLinkToken: _shareLinkToken,
       client: _client,
@@ -2673,7 +2654,10 @@ export class ContractsService {
               where: {
                 contractId: id,
                 paymentPlanId: onSignRow.id,
-                status: { equals: InvoiceStatus.PAID, not: InvoiceStatus.CANCELLED },
+                status: {
+                  equals: InvoiceStatus.PAID,
+                  not: InvoiceStatus.CANCELLED,
+                },
               },
               select: { id: true },
             })

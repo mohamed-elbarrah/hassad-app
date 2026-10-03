@@ -17,7 +17,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
-import { NotificationEventType } from "@hassad/shared";
+import { isClientActionNotificationEvent } from "@hassad/shared";
 import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -39,10 +39,7 @@ import {
   type PortalNotificationItem,
 } from "@/features/portal-notifications/portalNotificationsApi";
 import { cn } from "@/lib/utils";
-import {
-  notificationPresentation,
-  portalErrorMessage,
-} from "@/lib/i18n";
+import { notificationPresentation, portalErrorMessage } from "@/lib/i18n";
 import { formatRelativeTime } from "@/lib/format";
 
 type FilterTab = "all" | "action" | "info";
@@ -55,45 +52,51 @@ const ENTITY_ICON_MAP: Record<string, React.ReactNode> = {
   deliverable: <Package />,
   project: <Layout />,
   campaign: <TrendingUp />,
+  marketing_strategy: <TrendingUp />,
   conversation: <MessageSquare />,
   payment: <CreditCard />,
   PAYMENT: <CreditCard />,
   default: <AlertCircle />,
 };
 
+function normalizeEntityType(entityType: string | null | undefined): string {
+  return entityType?.trim().toLowerCase() ?? "";
+}
+
 function getEntityIcon(entityType: string | null | undefined) {
-  if (!entityType) return ENTITY_ICON_MAP.default;
-  return ENTITY_ICON_MAP[entityType] ?? ENTITY_ICON_MAP.default;
+  const type = normalizeEntityType(entityType);
+  return ENTITY_ICON_MAP[type] ?? ENTITY_ICON_MAP.default;
 }
 
 function resolvePortalUrl(
   entityType: string | null | undefined,
   entityId: string | null | undefined,
 ): string | null {
-  if (!entityType || !entityId) return null;
-  if (entityType === "proposal") return `/portal/proposals/${entityId}`;
-  if (entityType === "contract") return `/portal/contracts/${entityId}`;
-  if (entityType === "deliverable") return `/portal/deliverables/${entityId}`;
-  if (entityType === "project") return `/portal/projects`;
-  if (entityType === "campaign") return `/portal/campaigns/${entityId}`;
-  if (entityType === "invoice" || entityType === "INVOICE")
-    return `/portal/finance`;
-  if (entityType === "conversation") return `/portal/projects`;
-  if (entityType === "payment" || entityType === "PAYMENT")
-    return `/portal/finance`;
+  const type = normalizeEntityType(entityType);
+  if (!type || !entityId) return null;
+  if (type === "proposal") return `/portal/proposals/${entityId}`;
+  if (type === "contract") return `/portal/contracts/${entityId}`;
+  if (type === "deliverable") return `/portal/deliverables/${entityId}`;
+  if (type === "project") return `/portal/projects`;
+  if (type === "campaign") return `/portal/campaigns/${entityId}`;
+  if (type === "marketing_strategy")
+    return `/portal/marketing-strategies/${entityId}`;
+  if (type === "invoice") return `/portal/invoices/${entityId}`;
+  if (type === "conversation") return `/portal/projects`;
+  if (type === "payment") return `/portal/finance`;
   return null;
 }
 
 function getPrimaryActionLabel(entityType: string | null | undefined): string {
-  if (entityType === "proposal") return "مراجعة العرض";
-  if (entityType === "contract") return "مراجعة العقد";
-  if (entityType === "deliverable") return "مراجعة التسليمة";
-  if (entityType === "invoice" || entityType === "INVOICE")
-    return "دفع الفاتورة";
-  if (entityType === "payment" || entityType === "PAYMENT")
-    return "عرض الفاتورة";
-  if (entityType === "project") return "متابعة المشروع";
-  if (entityType === "campaign") return "عرض الحملة";
+  const type = normalizeEntityType(entityType);
+  if (type === "proposal") return "مراجعة العرض";
+  if (type === "contract") return "مراجعة العقد";
+  if (type === "marketing_strategy") return "مراجعة الاستراتيجية";
+  if (type === "deliverable") return "مراجعة التسليمة";
+  if (type === "invoice") return "دفع الفاتورة";
+  if (type === "payment") return "عرض الفاتورة";
+  if (type === "project") return "متابعة المشروع";
+  if (type === "campaign") return "عرض الحملة";
   return "عرض التفاصيل";
 }
 
@@ -101,28 +104,16 @@ function isActionRequired(
   entityType: string | null | undefined,
   eventType: string | null | undefined,
 ): boolean {
-  const actionTypes = [
-    NotificationEventType.CONTRACT_SENT,
-    NotificationEventType.INVOICE_SENT,
-    NotificationEventType.INVOICE_CREATED,
-    NotificationEventType.PROPOSAL_SENT,
-    NotificationEventType.DELIVERABLE_APPROVAL,
-    NotificationEventType.DELIVERABLE_READY,
-    NotificationEventType.ACTION_REQUIRED,
-  ];
-  if (eventType && actionTypes.includes(eventType as NotificationEventType))
-    return true;
-  if (entityType === "proposal") {
-    const actionEvents = [NotificationEventType.PROPOSAL_SENT];
-    return eventType
-      ? actionEvents.includes(eventType as NotificationEventType)
-      : true;
+  if (isClientActionNotificationEvent(eventType)) return true;
+  const type = normalizeEntityType(entityType);
+  if (type === "proposal") {
+    return eventType ? eventType === "PROPOSAL_SENT" : true;
   }
-  if (entityType === "contract") {
-    const actionEvents = ["CONTRACT_SENT"];
-    return eventType
-      ? actionEvents.includes(eventType as NotificationEventType)
-      : true;
+  if (type === "contract") {
+    return eventType ? eventType === "CONTRACT_SENT" : true;
+  }
+  if (type === "marketing_strategy") {
+    return eventType ? eventType === "MARKETING_STRATEGY_SENT" : true;
   }
   return false;
 }
@@ -253,7 +244,12 @@ export default function PortalNotificationsPage() {
 
   async function handleNavigate(n: PortalNotificationItem) {
     if (!n.isRead) await handleMarkRead(n.id);
-    const url = resolvePortalUrl(n.entityType, n.entityId);
+    const metadata = n.metadata as Record<string, unknown> | null | undefined;
+    const metadataUrl = metadata?.actionUrl;
+    const url =
+      typeof metadataUrl === "string"
+        ? metadataUrl
+        : resolvePortalUrl(n.entityType, n.entityId);
     if (url) router.push(url);
   }
 

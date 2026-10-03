@@ -70,6 +70,7 @@ const contractFormSchema = z
     proposalId: z.string().optional(),
     title: z.string().trim().min(2, "اكتب عنوان العقد"),
     type: z.nativeEnum(ContractType),
+    monthlyAmountMode: z.enum(["AUTO", "MANUAL"]).default("AUTO"),
     monthlyValue: z.coerce.number().nonnegative().optional(),
     totalValue: z.coerce.number().nonnegative().optional(),
     numberOfMonths: z.coerce.number().int().positive().optional(),
@@ -91,7 +92,10 @@ const contractFormSchema = z
         message: "يجب أن يكون تاريخ النهاية بعد تاريخ البداية",
       });
     }
-    if (values.initialPaymentRequired) {
+    if (
+      values.type === ContractType.FIXED_PROJECT &&
+      values.initialPaymentRequired
+    ) {
       if (values.initialPaymentValue === undefined) {
         context.addIssue({
           code: "custom",
@@ -124,15 +128,21 @@ const contractFormSchema = z
         });
       }
     }
-    if (
-      values.type === ContractType.MONTHLY_RETAINER &&
-      values.numberOfMonths === undefined
-    ) {
-      context.addIssue({
-        code: "custom",
-        path: ["numberOfMonths"],
-        message: "عدد أشهر الاشتراك مطلوب",
-      });
+    if (values.type === ContractType.MONTHLY_RETAINER) {
+      if (values.numberOfMonths === undefined) {
+        context.addIssue({
+          code: "custom",
+          path: ["numberOfMonths"],
+          message: "عدد أشهر الاشتراك مطلوب",
+        });
+      }
+      if ((values.monthlyValue ?? 0) <= 0) {
+        context.addIssue({
+          code: "custom",
+          path: ["monthlyValue"],
+          message: "القيمة الشهرية يجب أن تكون أكبر من صفر",
+        });
+      }
     }
   });
 
@@ -170,6 +180,7 @@ function getDefaultValues(
     proposalId: contract?.proposalId ?? proposalId,
     title: contract?.title ?? "",
     type: contract?.type ?? ContractType.FIXED_PROJECT,
+    monthlyAmountMode: contract ? "MANUAL" : "AUTO",
     monthlyValue: contract?.monthlyValue ?? 0,
     totalValue: contract?.totalValue ?? 0,
     numberOfMonths:
@@ -227,6 +238,10 @@ export function CreateContractDialog({
     control: form.control,
     name: "numberOfMonths",
   });
+  const monthlyAmountMode = useWatch({
+    control: form.control,
+    name: "monthlyAmountMode",
+  });
   const initialPaymentRequired = useWatch({
     control: form.control,
     name: "initialPaymentRequired",
@@ -235,9 +250,13 @@ export function CreateContractDialog({
     control: form.control,
     name: "initialPaymentType",
   });
-  const initialPaymentValue = useWatch({
+  const totalValue = useWatch({
     control: form.control,
-    name: "initialPaymentValue",
+    name: "totalValue",
+  });
+  const monthlyValue = useWatch({
+    control: form.control,
+    name: "monthlyValue",
   });
   const { data: proposalsData, isFetching: proposalsLoading } =
     useGetSalesProposalsQuery(
@@ -309,35 +328,19 @@ export function CreateContractDialog({
 
   useEffect(() => {
     if (selectedType !== ContractType.MONTHLY_RETAINER) {
-      form.setValue("monthlyValue", 0);
+      form.setValue("monthlyValue", 0, { shouldValidate: true });
       return;
     }
+    if (monthlyAmountMode !== "AUTO") return;
 
-    const total = Number(form.getValues("totalValue") ?? 0);
+    const total = Number(totalValue ?? 0);
     const months = Number(numberOfMonths ?? 0);
-    const paymentValue = Number(initialPaymentValue ?? 0);
-    const initialAmount =
-      initialPaymentRequired && initialPaymentType === "PERCENT"
-        ? total * (paymentValue / 100)
-        : initialPaymentRequired
-          ? paymentValue
-          : 0;
     form.setValue(
       "monthlyValue",
-      months > 0 ? Math.max(0, (total - initialAmount) / months) : 0,
-      {
-        shouldValidate: true,
-      },
+      months > 0 ? Math.max(0, total / months) : 0,
+      { shouldValidate: true },
     );
-  }, [
-    form,
-    initialPaymentRequired,
-    initialPaymentType,
-    initialPaymentValue,
-    numberOfMonths,
-    selectedProposalId,
-    selectedType,
-  ]);
+  }, [form, monthlyAmountMode, numberOfMonths, selectedType, totalValue]);
 
   async function onSubmit(values: ContractFormValues, intent: "save" | "send") {
     if (file) {
@@ -373,11 +376,15 @@ export function CreateContractDialog({
       isEdit &&
       contract &&
       (values.type !== contract.type ||
+        values.totalValue !== contract.totalValue ||
+        values.monthlyValue !== (contract.monthlyValue ?? 0) ||
         values.numberOfMonths !== (contract.numberOfMonths ?? undefined) ||
         values.initialPaymentRequired !== contract.initialPaymentRequired ||
-        values.initialPaymentType !== (contract.downPaymentType ?? "PERCENT") ||
-        values.initialPaymentValue !==
-          (contract.downPaymentValue ?? undefined)),
+        (values.type === ContractType.FIXED_PROJECT &&
+          (values.initialPaymentType !==
+            (contract.downPaymentType ?? "PERCENT") ||
+            values.initialPaymentValue !==
+              (contract.downPaymentValue ?? undefined)))),
     );
   }
 
@@ -401,12 +408,16 @@ export function CreateContractDialog({
                       ? values.numberOfMonths
                       : undefined,
                   initialPaymentRequired: values.initialPaymentRequired,
-                  initialPaymentType: values.initialPaymentRequired
-                    ? (values.initialPaymentType as PaymentAmountType)
-                    : undefined,
-                  initialPaymentValue: values.initialPaymentRequired
-                    ? values.initialPaymentValue
-                    : undefined,
+                  ...(values.type === ContractType.FIXED_PROJECT
+                    ? {
+                        initialPaymentType: values.initialPaymentRequired
+                          ? (values.initialPaymentType as PaymentAmountType)
+                          : undefined,
+                        initialPaymentValue: values.initialPaymentRequired
+                          ? values.initialPaymentValue
+                          : undefined,
+                      }
+                    : {}),
                 }
               : {}),
             startDate: values.startDate,
@@ -426,14 +437,21 @@ export function CreateContractDialog({
           totalValue: values.totalValue,
           numberOfMonths: values.numberOfMonths,
           initialPaymentRequired: values.initialPaymentRequired,
-          initialPaymentType: values.initialPaymentType as PaymentAmountType,
-          initialPaymentValue: values.initialPaymentValue,
+          ...(values.type === ContractType.FIXED_PROJECT
+            ? {
+                initialPaymentType:
+                  values.initialPaymentType as PaymentAmountType,
+                initialPaymentValue: values.initialPaymentValue,
+              }
+            : {}),
           startDate: values.startDate,
           endDate: values.endDate,
           proposalId: values.proposalId || undefined,
           file,
         }).unwrap();
-        toast.success(intent === "send" ? "تم إنشاء العقد وإرساله" : "تم حفظ مسودة العقد");
+        toast.success(
+          intent === "send" ? "تم إنشاء العقد وإرساله" : "تم حفظ مسودة العقد",
+        );
         onSaved?.();
       }
 
@@ -475,7 +493,9 @@ export function CreateContractDialog({
             <Form {...form}>
               <form
                 id="contract-form"
-                onSubmit={form.handleSubmit((values) => onSubmit(values, "save"))}
+                onSubmit={form.handleSubmit((values) =>
+                  onSubmit(values, "save"),
+                )}
                 className="flex flex-col gap-5"
               >
                 <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-4">
@@ -563,6 +583,9 @@ export function CreateContractDialog({
                             const nextType = value as ContractType;
                             field.onChange(nextType);
                             if (nextType === ContractType.FIXED_PROJECT) {
+                              form.setValue("monthlyAmountMode", "AUTO", {
+                                shouldDirty: true,
+                              });
                               form.setValue("monthlyValue", 0, {
                                 shouldDirty: true,
                               });
@@ -628,19 +651,69 @@ export function CreateContractDialog({
                       />
                       <FormField
                         control={form.control}
+                        name="monthlyAmountMode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>طريقة تحديد القيمة الشهرية</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              disabled={!canEditTerms}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectGroup>
+                                  <SelectItem value="AUTO">
+                                    حساب تلقائي
+                                  </SelectItem>
+                                  <SelectItem value="MANUAL">
+                                    إدخال يدوي
+                                  </SelectItem>
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>
+                              الحساب التلقائي يقسم القيمة المعتمدة على عدد
+                              الأشهر.
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
                         name="monthlyValue"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>القيمة الشهرية المحسوبة</FormLabel>
+                            <FormLabel>القيمة الشهرية</FormLabel>
                             <FormControl>
-                              <CalculatedAmount
-                                ariaLabel="القيمة الشهرية المحسوبة"
-                                value={Number(field.value ?? 0)}
-                              />
+                              {monthlyAmountMode === "AUTO" ? (
+                                <CalculatedAmount
+                                  ariaLabel="القيمة الشهرية المحسوبة"
+                                  value={Number(field.value ?? 0)}
+                                />
+                              ) : (
+                                <Input
+                                  type="number"
+                                  min="0.01"
+                                  step="0.01"
+                                  value={String(field.value ?? "")}
+                                  onChange={(event) =>
+                                    field.onChange(event.target.value)
+                                  }
+                                  disabled={!canEditTerms}
+                                />
+                              )}
                             </FormControl>
                             <FormDescription>
-                              تُحسب من القيمة المعتمدة وعدد أشهر الاشتراك.
+                              {monthlyAmountMode === "AUTO"
+                                ? "تُحسب من القيمة المعتمدة وعدد أشهر الاشتراك."
+                                : "أدخل القيمة الشهرية المتفق عليها مع العميل."}
                             </FormDescription>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -649,10 +722,11 @@ export function CreateContractDialog({
                   <div className="flex flex-col gap-3 rounded-lg border border-border/60 p-4 md:col-span-2">
                     <div>
                       <h2 className="text-base font-semibold">
-                        الدفعة الأولية
+                        الدفع قبل التوقيع
                       </h2>
                       <p className="text-sm text-muted-foreground">
-                        يجب سداد الدفعة الأولية قبل تمكين العميل من توقيع العقد.
+                        للمشروع الثابت يمكن تحديد دفعة أولية، أما الاشتراك
+                        الشهري فيستخدم قيمة شهر كامل.
                       </p>
                     </div>
                     <FormField
@@ -660,7 +734,11 @@ export function CreateContractDialog({
                       name="initialPaymentRequired"
                       render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-md border p-3">
-                          <FormLabel>يتطلب دفعة أولية</FormLabel>
+                          <FormLabel>
+                            {selectedType === ContractType.MONTHLY_RETAINER
+                              ? "يتطلب الدفع قبل التوقيع"
+                              : "يتطلب دفعة أولية قبل التوقيع"}
+                          </FormLabel>
                           <FormControl>
                             <Checkbox
                               checked={field.value}
@@ -670,10 +748,20 @@ export function CreateContractDialog({
                               disabled={!canEditTerms}
                             />
                           </FormControl>
+                          <FormDescription>
+                            {selectedType === ContractType.MONTHLY_RETAINER
+                              ? field.value
+                                ? `سيتم إصدار فاتورة بقيمة ${formatCurrency(Number(monthlyValue ?? 0))} قبل التوقيع.`
+                                : "لن تصدر فاتورة قبل التوقيع."
+                              : field.value
+                                ? "سيتم إصدار الدفعة الأولية قبل التوقيع."
+                                : "لن تصدر دفعة أولية قبل التوقيع."}
+                          </FormDescription>
                         </FormItem>
                       )}
                     />
-                    {initialPaymentRequired ? (
+                    {selectedType === ContractType.FIXED_PROJECT &&
+                    initialPaymentRequired ? (
                       <div className="grid gap-3 sm:grid-cols-2">
                         <FormField
                           control={form.control}
@@ -848,9 +936,13 @@ export function CreateContractDialog({
                 type="button"
                 variant="outline"
                 disabled={isSubmitting || !canEditContract}
-                onClick={() => void form.handleSubmit((values) => onSubmit(values, "save"))()}
+                onClick={() =>
+                  void form.handleSubmit((values) => onSubmit(values, "save"))()
+                }
               >
-                {isCreating ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
+                {isCreating ? (
+                  <Loader2 data-icon="inline-start" className="animate-spin" />
+                ) : null}
                 حفظ المسودة
               </Button>
             ) : null}
@@ -858,7 +950,14 @@ export function CreateContractDialog({
               type={isEdit ? "submit" : "button"}
               form={isEdit ? "contract-form" : undefined}
               disabled={isSubmitting || !canEditContract}
-              onClick={!isEdit ? () => void form.handleSubmit((values) => onSubmit(values, "send"))() : undefined}
+              onClick={
+                !isEdit
+                  ? () =>
+                      void form.handleSubmit((values) =>
+                        onSubmit(values, "send"),
+                      )()
+                  : undefined
+              }
             >
               {isSubmitting ? (
                 <Loader2 data-icon="inline-start" className="animate-spin" />

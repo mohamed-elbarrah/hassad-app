@@ -106,25 +106,6 @@ export class FinanceService {
       after: invoice,
     });
 
-    const clientUser = await this.prisma.client.findUnique({
-      where: { id: dto.clientId },
-      select: { userId: true },
-    });
-
-    if (clientUser?.userId) {
-      await this.notificationsService.createNotification({
-        entityId: invoice.id,
-        entityType: "INVOICE",
-        eventType: "INVOICE_CREATED",
-        userId: clientUser.userId,
-        metadata: {
-          invoiceId: invoice.id,
-          invoiceNumber: invoice.invoiceNumber,
-          amount: invoice.amount,
-        },
-      });
-    }
-
     return invoice;
   }
 
@@ -221,28 +202,6 @@ export class FinanceService {
       after: invoice,
     });
 
-    const clientUser = await this.prisma.client.findUnique({
-      where: { id: contract.clientId },
-      select: { userId: true },
-    });
-
-    if (clientUser?.userId) {
-      this.notificationsService
-        .createNotification({
-          entityId: invoice.id,
-          entityType: "invoice",
-          eventType: "INVOICE_CREATED",
-          userId: clientUser.userId,
-          metadata: {
-            invoiceId: invoice.id,
-            invoiceNumber,
-            contractId: contract.id,
-            contractTitle: contract.title,
-          },
-        })
-        .catch(() => undefined);
-    }
-
     return invoice;
   }
 
@@ -329,30 +288,6 @@ export class FinanceService {
         userId: params.userId,
         after: invoice,
       });
-    }
-
-    const clientUser = await db.client.findUnique({
-      where: { id: contract.clientId },
-      select: { userId: true },
-    });
-    // A transaction-scoped invoice is not visible outside the transaction yet.
-    // Dispatch only after commit (the caller owns that post-commit dispatch).
-    if (clientUser?.userId && !params.tx) {
-      await this.notificationsService
-        .createNotification({
-          entityId: invoice.id,
-          entityType: "invoice",
-          eventType: "INVOICE_CREATED",
-          userId: clientUser.userId,
-          metadata: {
-            invoiceId: invoice.id,
-            invoiceLabel: params.label,
-            amount: params.amount,
-            contractId: contract.id,
-            contractTitle: contract.title,
-          },
-        })
-        .catch(() => undefined);
     }
 
     return invoice;

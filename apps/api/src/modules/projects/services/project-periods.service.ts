@@ -13,6 +13,7 @@ import {
   ProjectPeriodStatus,
   ContractType,
   PaymentPlanTriggerType,
+  InvoiceStatus,
 } from "@hassad/shared";
 import type { Prisma } from "@prisma/client";
 
@@ -168,7 +169,11 @@ export class ProjectPeriodsService {
       this.notificationsService
         .notifyUsers({
           userIds: [project.projectManagerId].filter(Boolean) as string[],
-          metadata: { projectId, projectName: project.name, periodCount: periods.length },
+          metadata: {
+            projectId,
+            projectName: project.name,
+            periodCount: periods.length,
+          },
           entityId: projectId,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIODS_GENERATED",
@@ -486,9 +491,32 @@ export class ProjectPeriodsService {
   private async issuePeriodInvoice(period: any, now: Date, actorId: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: period.project.contractId },
-      select: { id: true, totalValue: true, title: true },
+      select: {
+        id: true,
+        type: true,
+        totalValue: true,
+        title: true,
+      },
     });
     if (!contract) return;
+
+    if (
+      period.periodNumber === 1 &&
+      contract.type === ContractType.MONTHLY_RETAINER
+    ) {
+      const initialInvoice = await this.prisma.invoice.findFirst({
+        where: {
+          contractId: contract.id,
+          paymentPlan: { triggerType: PaymentPlanTriggerType.ON_SIGN },
+          status: { not: InvoiceStatus.CANCELLED },
+        },
+        select: { id: true },
+      });
+      if (initialInvoice) {
+        // The ON_SIGN invoice covers period 1; do not bill it again.
+        return;
+      }
+    }
 
     const planRow = await this.prisma.contractPaymentPlan.findFirst({
       where: {
@@ -533,31 +561,9 @@ export class ProjectPeriodsService {
       data: { invoiceId: invoice.id },
     });
 
-    // Notify client that the period invoice has been issued.
-    const projectWithClient = await this.prisma.project.findUnique({
-      where: { id: period.project.id },
-      select: { client: { select: { userId: true } }, projectManagerId: true },
-    });
-    const notifyForInvoice = [
-      projectWithClient?.projectManagerId,
-      projectWithClient?.client?.userId,
-    ].filter(Boolean) as string[];
-    if (notifyForInvoice.length > 0) {
-      this.notificationsService
-        .notifyUsers({
-          userIds: notifyForInvoice,
-          metadata: {
-            invoiceId: invoice.id,
-            periodId: period.id,
-            periodNumber: period.periodNumber,
-            amount,
-          },
-          entityId: invoice.id,
-          entityType: "INVOICE",
-          eventType: "INVOICE_ISSUED",
-        })
-        .catch(() => undefined);
-    }
+    // The invoice remains internal until Finance explicitly sends it. Client
+    // notification and the corresponding payment action are emitted by
+    // FinanceService.sendInvoice().
   }
 
   /** Push a period's end date later (PM extend). Must be after the current end. */

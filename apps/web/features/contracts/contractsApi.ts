@@ -1,9 +1,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import { salesApi } from "@/features/sales/salesApi";
+import { ContractType } from "@hassad/shared";
 import type {
   ContractStatus,
-  ContractType,
   UpdateContractInput,
   InvoiceStatus,
   PaymentMethod,
@@ -200,13 +200,15 @@ export interface CreateContractFormInput {
   endDate?: string;
   file: File;
   proposalId?: string;
-  /** Billing fields for MONTHLY_RETAINER contracts */
-  downPaymentType?: PaymentAmountType;
-  downPaymentValue?: number;
+  /** Monthly billing fields for MONTHLY_RETAINER contracts. */
   numberOfMonths?: number;
   initialPaymentRequired?: boolean;
+  /** Initial-payment terms are used only for FIXED_PROJECT contracts. */
   initialPaymentType?: PaymentAmountType;
   initialPaymentValue?: number;
+  /** Legacy aliases accepted by the generic contract owner. */
+  downPaymentType?: PaymentAmountType;
+  downPaymentValue?: number;
 }
 
 export interface SignContractInput {
@@ -243,12 +245,13 @@ function buildContractFormData(input: CreateContractFormInput) {
   if (input.startDate) formData.append("startDate", input.startDate);
   if (input.endDate) formData.append("endDate", input.endDate);
 
+  const supportsFixedProjectPayment = input.type === ContractType.FIXED_PROJECT;
   const downPaymentType =
-    input.initialPaymentRequired === false
+    input.initialPaymentRequired === false || !supportsFixedProjectPayment
       ? undefined
       : (input.downPaymentType ?? input.initialPaymentType);
   const downPaymentValue =
-    input.initialPaymentRequired === false
+    input.initialPaymentRequired === false || !supportsFixedProjectPayment
       ? undefined
       : (input.downPaymentValue ?? input.initialPaymentValue);
 
@@ -371,7 +374,11 @@ export const contractsApi = createApi({
       async onQueryStarted(_input, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
-          dispatch(salesApi.util.invalidateTags([{ type: "SalesPipeline", id: "LIST" }]));
+          dispatch(
+            salesApi.util.invalidateTags([
+              { type: "SalesPipeline", id: "LIST" },
+            ]),
+          );
         } catch {
           // The form presents the mutation error.
         }
@@ -407,7 +414,11 @@ export const contractsApi = createApi({
       async onQueryStarted(_input, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
-          dispatch(salesApi.util.invalidateTags([{ type: "SalesPipeline", id: "LIST" }]));
+          dispatch(
+            salesApi.util.invalidateTags([
+              { type: "SalesPipeline", id: "LIST" },
+            ]),
+          );
         } catch {
           // The form presents the mutation error.
         }
@@ -425,7 +436,11 @@ export const contractsApi = createApi({
       async onQueryStarted(_id, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
-          dispatch(salesApi.util.invalidateTags([{ type: "SalesPipeline", id: "LIST" }]));
+          dispatch(
+            salesApi.util.invalidateTags([
+              { type: "SalesPipeline", id: "LIST" },
+            ]),
+          );
         } catch {
           // The action component presents the mutation error.
         }
