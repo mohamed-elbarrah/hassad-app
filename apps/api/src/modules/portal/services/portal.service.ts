@@ -780,9 +780,9 @@ export class PortalService {
       return { scope: "PERIODS" as const, project, periods };
     }
 
-    const [files, meetings, deliverables, invoiceItems] = await Promise.all([
+    const [files, meetings, invoiceItems, tasks] = await Promise.all([
       this.prisma.projectFile.findMany({
-        where: { projectId, periodId: null },
+        where: { projectId, periodId: null, project: { clientId } },
         select: {
           id: true,
           fileName: true,
@@ -794,7 +794,7 @@ export class PortalService {
         orderBy: { uploadedAt: "desc" },
       }),
       this.prisma.projectMeeting.findMany({
-        where: { projectId, periodId: null },
+        where: { projectId, periodId: null, project: { clientId } },
         select: {
           id: true,
           title: true,
@@ -807,20 +807,12 @@ export class PortalService {
         },
         orderBy: { scheduledAt: "asc" },
       }),
-      this.prisma.deliverable.findMany({
-        where: { projectId, periodId: null, isVisibleToClient: true },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          filePath: true,
-          status: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: "desc" },
-      }),
       this.prisma.invoiceItem.findMany({
-        where: { projectId, invoice: { period: null } },
+        where: {
+          projectId,
+          invoice: { clientId, period: null },
+        },
+
         select: {
           invoice: {
             select: {
@@ -835,16 +827,27 @@ export class PortalService {
           },
         },
       }),
+      this.prisma.task.findMany({
+        where: {
+          projectId,
+          periodId: null,
+          isVisibleToClient: true,
+          archivedAt: null,
+          project: { clientId },
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          dueDate: true,
+        },
+        orderBy: { dueDate: "asc" },
+      }),
     ]);
 
     const fileKeys = files.map((file) => file.filePath);
-    const deliverableKeys = deliverables.map(
-      (deliverable) => deliverable.filePath,
-    );
-    const urlMap = await this.storageService.getMultiplePresignedUrls([
-      ...fileKeys,
-      ...deliverableKeys,
-    ]);
+    const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
     const projectInvoices = Array.from(
       new Map(
         invoiceItems.map((item) => [item.invoice.id, item.invoice]),
@@ -875,11 +878,20 @@ export class PortalService {
           url: urlMap.get(file.filePath) ?? null,
         })),
         meetings,
-        deliverables: deliverables.map((deliverable) => ({
-          ...deliverable,
-          url: urlMap.get(deliverable.filePath) ?? null,
-        })),
         invoices: projectInvoices,
+        tasks: tasks.map((task) => ({
+          ...task,
+          progress:
+            task.status === "DONE"
+              ? 100
+              : task.status === "IN_REVIEW"
+                ? 75
+                : task.status === "IN_PROGRESS"
+                  ? 50
+                  : task.status === "REVISION"
+                    ? 25
+                    : 0,
+        })),
       },
     };
   }

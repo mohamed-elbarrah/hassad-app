@@ -13,6 +13,7 @@ import type {
   Client,
   ProjectStatus,
   TaskPriority,
+  TaskStatus,
 } from "@hassad/shared";
 import type { ClientProfileV2 } from "@/features/clients/clientsApi";
 
@@ -574,21 +575,20 @@ export interface PortalProjectWorkspaceResourceFile extends PortalPeriodFile {
   filePath: string;
 }
 
-export interface PortalProjectWorkspaceDeliverable {
+export interface PortalProjectWorkspaceTask {
   id: string;
   title: string;
   description: string | null;
-  filePath: string;
-  url: string | null;
-  status: string;
-  createdAt: string;
+  status: TaskStatus;
+  dueDate: string;
+  progress: number;
 }
 
 interface PortalProjectWorkspaceResources {
   files: PortalProjectWorkspaceResourceFile[];
   meetings: PortalPeriodMeeting[];
-  deliverables: PortalProjectWorkspaceDeliverable[];
   invoices: PortalPeriodInvoice[];
+  tasks: PortalProjectWorkspaceTask[];
 }
 
 export type PortalProjectWorkspace =

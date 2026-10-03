@@ -9,6 +9,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { PortalPeriodMeeting } from "@/features/portal/portalApi";
+import { MEETING_STATUS_AR } from "@hassad/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,7 +61,7 @@ export function MeetingsTab({ meetings }: { meetings: PortalPeriodMeeting[] }) {
                             : "secondary"
                       }
                     >
-                      {meeting.status}
+                      {MEETING_STATUS_AR[meeting.status] ?? "غير محدد"}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
