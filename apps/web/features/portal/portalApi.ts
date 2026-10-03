@@ -99,11 +99,20 @@ export interface DisputeListResponse {
   };
 }
 
+export interface ProjectProgressPeriod {
+  id: string;
+  periodNumber: number;
+  status: "UPCOMING" | "ACTIVE" | "CLOSED" | "SUSPENDED";
+  completionPercentage: number;
+}
+
 export interface ProjectSummary {
   id: string;
   name: string;
   status: ProjectStatus;
   progress: number;
+  progressMode: "PERIODS" | "PROJECT";
+  periods: ProjectProgressPeriod[];
   startDate: string;
   endDate: string;
   projectManager: {
@@ -560,6 +569,41 @@ export interface PortalProjectDetail {
     phoneWhatsapp: string | null;
   };
 }
+
+export interface PortalProjectWorkspaceResourceFile extends PortalPeriodFile {
+  filePath: string;
+}
+
+export interface PortalProjectWorkspaceDeliverable {
+  id: string;
+  title: string;
+  description: string | null;
+  filePath: string;
+  url: string | null;
+  status: string;
+  createdAt: string;
+}
+
+interface PortalProjectWorkspaceResources {
+  files: PortalProjectWorkspaceResourceFile[];
+  meetings: PortalPeriodMeeting[];
+  deliverables: PortalProjectWorkspaceDeliverable[];
+  invoices: PortalPeriodInvoice[];
+}
+
+export type PortalProjectWorkspace =
+  | {
+      scope: "PERIODS";
+      project: PortalProjectDetail;
+      periods: PortalPeriodSummary[];
+      resources?: never;
+    }
+  | {
+      scope: "PROJECT";
+      project: PortalProjectDetail;
+      periods: [];
+      resources: PortalProjectWorkspaceResources;
+    };
 
 export interface PortalInvoiceItem {
   id: string;
@@ -1035,6 +1079,11 @@ export const portalApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "PortalProjects", id }],
     }),
 
+    getPortalProjectWorkspace: builder.query<PortalProjectWorkspace, string>({
+      query: (projectId) => `/portal/projects/${projectId}/workspace`,
+      providesTags: (_result, _error, id) => [{ type: "PortalProjects", id }],
+    }),
+
     getPortalInvoiceDetail: builder.query<PortalInvoiceDetail, string>({
       query: (invoiceId) => `/portal/invoices/${invoiceId}`,
       providesTags: (_result, _error, id) => [{ type: "PortalInvoices", id }],
@@ -1389,6 +1438,7 @@ export const {
   useLazyDownloadPeriodReportQuery,
   useLazyDownloadPeriodFileQuery,
   useGetPortalProjectDetailQuery,
+  useGetPortalProjectWorkspaceQuery,
   useGetPortalInvoiceDetailQuery,
   useGetPortalPaymentGatewaysQuery,
   useGetPortalPaymentBankAccountsQuery,

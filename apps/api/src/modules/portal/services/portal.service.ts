@@ -408,6 +408,15 @@ export class PortalService {
           select: { id: true, name: true, isActive: true },
         },
         completionPercentage: true,
+        periods: {
+          select: {
+            id: true,
+            periodNumber: true,
+            status: true,
+            completionPercentage: true,
+          },
+          orderBy: { periodNumber: "asc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -420,6 +429,8 @@ export class PortalService {
         name: p.name,
         status: p.status,
         progress: p.completionPercentage,
+        progressMode: p.periods.length > 0 ? "PERIODS" : "PROJECT",
+        periods: p.periods,
         startDate: p.startDate,
         endDate: p.endDate,
         projectManager: p.manager
@@ -483,6 +494,15 @@ export class PortalService {
           manager: {
             select: { id: true, name: true, isActive: true },
           },
+          periods: {
+            select: {
+              id: true,
+              periodNumber: true,
+              status: true,
+              completionPercentage: true,
+            },
+            orderBy: { periodNumber: "asc" },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip: (query.page - 1) * query.limit,
@@ -506,6 +526,8 @@ export class PortalService {
               isOnline: p.manager.isActive,
             }
           : null,
+        progressMode: p.periods.length > 0 ? "PERIODS" : "PROJECT",
+        periods: p.periods,
       };
     });
 
@@ -739,6 +761,125 @@ export class PortalService {
         contactName: project.client.user?.name ?? null,
         email: project.client.user?.email ?? null,
         phoneWhatsapp: project.client.user?.phoneWhatsapp ?? null,
+      },
+    };
+  }
+
+  /**
+   * Return the project workspace with an explicit scope. Period projects keep
+   * their existing period-scoped data; fixed projects receive project-scoped
+   * resources instead of an empty period workspace.
+   */
+  async getProjectWorkspace(clientId: string, projectId: string) {
+    const [project, periods] = await Promise.all([
+      this.getProjectDetail(clientId, projectId),
+      this.getProjectPeriods(clientId, projectId),
+    ]);
+
+    if (periods.length > 0) {
+      return { scope: "PERIODS" as const, project, periods };
+    }
+
+    const [files, meetings, deliverables, invoiceItems] = await Promise.all([
+      this.prisma.projectFile.findMany({
+        where: { projectId, periodId: null },
+        select: {
+          id: true,
+          fileName: true,
+          fileType: true,
+          fileSize: true,
+          filePath: true,
+          uploadedAt: true,
+        },
+        orderBy: { uploadedAt: "desc" },
+      }),
+      this.prisma.projectMeeting.findMany({
+        where: { projectId, periodId: null },
+        select: {
+          id: true,
+          title: true,
+          scheduledAt: true,
+          durationMin: true,
+          location: true,
+          meetingLink: true,
+          status: true,
+          notes: true,
+        },
+        orderBy: { scheduledAt: "asc" },
+      }),
+      this.prisma.deliverable.findMany({
+        where: { projectId, periodId: null, isVisibleToClient: true },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          filePath: true,
+          status: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.invoiceItem.findMany({
+        where: { projectId, invoice: { period: null } },
+        select: {
+          invoice: {
+            select: {
+              id: true,
+              invoiceNumber: true,
+              amount: true,
+              status: true,
+              issueDate: true,
+              dueDate: true,
+              payments: { select: { amount: true, status: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const fileKeys = files.map((file) => file.filePath);
+    const deliverableKeys = deliverables.map(
+      (deliverable) => deliverable.filePath,
+    );
+    const urlMap = await this.storageService.getMultiplePresignedUrls([
+      ...fileKeys,
+      ...deliverableKeys,
+    ]);
+    const projectInvoices = Array.from(
+      new Map(
+        invoiceItems.map((item) => [item.invoice.id, item.invoice]),
+      ).values(),
+    ).map((invoice) => {
+      const paidAmount = invoice.payments
+        .filter((payment) => payment.status === "SUCCESS")
+        .reduce((sum, payment) => sum + payment.amount, 0);
+      return {
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        amount: invoice.amount,
+        status: invoice.status,
+        issueDate: invoice.issueDate,
+        dueDate: invoice.dueDate,
+        paidAmount,
+        remainingAmount: Math.max(0, invoice.amount - paidAmount),
+      };
+    });
+
+    return {
+      scope: "PROJECT" as const,
+      project,
+      periods: [],
+      resources: {
+        files: files.map((file) => ({
+          ...file,
+          url: urlMap.get(file.filePath) ?? null,
+        })),
+        meetings,
+        deliverables: deliverables.map((deliverable) => ({
+          ...deliverable,
+          url: urlMap.get(deliverable.filePath) ?? null,
+        })),
+        invoices: projectInvoices,
       },
     };
   }

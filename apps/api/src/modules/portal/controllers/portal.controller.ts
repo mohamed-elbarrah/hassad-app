@@ -877,8 +877,23 @@ export class PortalController {
     return this.portalService.getProjectRevisions(id, clientId);
   }
 
-  // NOTE: declared after the static `portal/projects/review` route so the `:id`
-  // param does not shadow it.
+  @Get("portal/projects/:id/workspace")
+  @RequirePermissions("portal.read")
+  async getPortalProjectWorkspace(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId)
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
+    return this.portalService.getProjectWorkspace(clientId, id);
+  }
+
+  // NOTE: declared after the static project routes so the `:id` param does not
+  // shadow them.
   @Get("portal/projects/:id")
   @RequirePermissions("portal.read")
   async getPortalProjectDetail(
