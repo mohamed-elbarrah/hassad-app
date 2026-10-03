@@ -1780,78 +1780,151 @@ export class PortalService {
 
   async getCampaignSummary(clientId: string) {
     const campaigns = await this.prisma.campaign.findMany({
-      where: { clientId, isArchived: false },
-      select: { id: true, status: true },
-    });
-
-    if (campaigns.length === 0) {
-      return {
-        totalVisits: 0,
-        totalConversions: 0,
-        avgRoas: 0,
-        improvementPercent: 0,
-      };
-    }
-
-    const campaignIds = campaigns.map((c) => c.id);
-
-    const latestSnapshots = await this.prisma.campaignKpiSnapshot.findMany({
-      where: { campaignId: { in: campaignIds } },
-      orderBy: { recordedAt: "desc" },
-      distinct: ["campaignId"],
-    });
-
-    let totalVisits = 0;
-    let totalConversions = 0;
-    let totalRoas = 0;
-    let roasCount = 0;
-
-    for (const s of latestSnapshots) {
-      totalVisits += s.impressions;
-      totalConversions += s.conversions;
-      if (s.roas > 0) {
-        totalRoas += s.roas;
-        roasCount++;
-      }
-    }
-
-    const avgRoas =
-      roasCount > 0 ? Math.round((totalRoas / roasCount) * 10) / 10 : 0;
-
-    let improvementPercent = 0;
-    if (latestSnapshots.length > 0) {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      const olderSnapshots = await this.prisma.campaignKpiSnapshot.findMany({
-        where: {
-          campaignId: { in: campaignIds },
-          recordedAt: { lt: sevenDaysAgo },
+      where: {
+        clientId,
+        isArchived: false,
+        status: {
+          in: [
+            CampaignStatus.ACTIVE,
+            CampaignStatus.COMPLETED,
+            CampaignStatus.PAUSED,
+            CampaignStatus.STOPPED,
+          ],
         },
-        orderBy: { recordedAt: "desc" },
-        distinct: ["campaignId"],
-      });
+      },
+      select: {
+        id: true,
+        kpiSnapshots: {
+          select: {
+            impressions: true,
+            conversions: true,
+            roas: true,
+            recordedAt: true,
+          },
+          orderBy: { recordedAt: "asc" },
+        },
+      },
+    });
 
-      if (olderSnapshots.length > 0) {
-        const olderTotalConversions = olderSnapshots.reduce(
-          (s, snap) => s + snap.conversions,
-          0,
-        );
-        if (olderTotalConversions > 0) {
-          improvementPercent = Math.round(
-            ((totalConversions - olderTotalConversions) /
-              olderTotalConversions) *
-              100,
-          );
-        }
-      }
-    }
+    const average = (values: number[]) =>
+      values.length > 0
+        ? values.reduce((sum, value) => sum + value, 0) / values.length
+        : null;
+    const round = (value: number | null, decimals = 1) =>
+      value === null
+        ? null
+        : Math.round(value * 10 ** decimals) / 10 ** decimals;
+    const averageMetric = (
+      sourceCampaigns: typeof campaigns,
+      selector: (
+        snapshot: (typeof campaigns)[number]["kpiSnapshots"][number],
+      ) => number,
+      isValid: (value: number) => boolean = () => true,
+    ) => {
+      const campaignAverages = sourceCampaigns
+        .map((campaign) =>
+          average(
+            campaign.kpiSnapshots
+              .map((snapshot) => selector(snapshot))
+              .filter(isValid),
+          ),
+        )
+        .filter((value): value is number => value !== null);
+      return average(campaignAverages);
+    };
+
+    const now = new Date();
+    const lastThirtyDays = new Date(now);
+    lastThirtyDays.setDate(lastThirtyDays.getDate() - 30);
+    const campaignsWithSnapshots = campaigns.filter(
+      (campaign) => campaign.kpiSnapshots.length > 0,
+    );
+    const recentCampaigns = campaigns
+      .map((campaign) => ({
+        ...campaign,
+        kpiSnapshots: campaign.kpiSnapshots.filter(
+          (snapshot) => snapshot.recordedAt >= lastThirtyDays,
+        ),
+      }))
+      .filter((campaign) => campaign.kpiSnapshots.length > 0);
+
+    const globalSnapshotCount = campaignsWithSnapshots.reduce(
+      (count, campaign) => count + campaign.kpiSnapshots.length,
+      0,
+    );
+    const last30DaysSnapshotCount = recentCampaigns.reduce(
+      (count, campaign) => count + campaign.kpiSnapshots.length,
+      0,
+    );
+    const allSnapshots = campaignsWithSnapshots.flatMap(
+      (campaign) => campaign.kpiSnapshots,
+    );
+    const lastUpdatedAt = allSnapshots.reduce<Date | null>(
+      (latest, snapshot) =>
+        !latest || snapshot.recordedAt > latest ? snapshot.recordedAt : latest,
+      null,
+    );
 
     return {
-      totalVisits,
-      totalConversions,
-      avgRoas,
-      improvementPercent,
+      scope: "CLIENT_CAMPAIGNS" as const,
+      eligibleCampaignCount: campaigns.length,
+      globalCampaignsWithData: campaignsWithSnapshots.length,
+      last30DaysCampaignsWithData: recentCampaigns.length,
+      globalSnapshotCount,
+      last30DaysSnapshotCount,
+      indicators: [
+        {
+          key: "IMPRESSIONS" as const,
+          unit: "COUNT" as const,
+          globalValue: round(
+            averageMetric(
+              campaignsWithSnapshots,
+              (snapshot) => snapshot.impressions,
+            ),
+            0,
+          ),
+          last30DaysValue: round(
+            averageMetric(recentCampaigns, (snapshot) => snapshot.impressions),
+            0,
+          ),
+        },
+        {
+          key: "CONVERSIONS" as const,
+          unit: "COUNT" as const,
+          globalValue: round(
+            averageMetric(
+              campaignsWithSnapshots,
+              (snapshot) => snapshot.conversions,
+            ),
+            1,
+          ),
+          last30DaysValue: round(
+            averageMetric(recentCampaigns, (snapshot) => snapshot.conversions),
+            1,
+          ),
+        },
+        {
+          key: "ROAS" as const,
+          unit: "MULTIPLIER" as const,
+          globalValue: round(
+            averageMetric(
+              campaignsWithSnapshots,
+              (snapshot) => snapshot.roas,
+              (value) => value > 0,
+            ),
+            1,
+          ),
+          last30DaysValue: round(
+            averageMetric(
+              recentCampaigns,
+              (snapshot) => snapshot.roas,
+              (value) => value > 0,
+            ),
+            1,
+          ),
+        },
+      ],
+      lastUpdatedAt,
     };
   }
 

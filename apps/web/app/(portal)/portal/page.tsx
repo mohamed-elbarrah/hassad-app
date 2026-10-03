@@ -13,7 +13,6 @@ import {
   Clock,
   DollarSign,
   FileText,
-  Filter,
   MessageCircle,
   Palette,
   PenTool,
@@ -65,8 +64,30 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const PORTAL_ACTIVITY_FEED_LIMIT = 5;
+
+const CAMPAIGN_INDICATOR_LABELS = {
+  IMPRESSIONS: "مرات الظهور",
+  CONVERSIONS: "التحويلات",
+  ROAS: "العائد على الإنفاق الإعلاني",
+} as const;
+
+function formatCampaignIndicatorValue(
+  value: number | null,
+  unit: "COUNT" | "MULTIPLIER",
+): string {
+  if (value === null) return "غير متاح";
+  return unit === "MULTIPLIER" ? `${value}x` : formatNumber(value);
+}
 
 const ACTION_TYPE_CONFIG: Record<
   string,
@@ -447,7 +468,7 @@ export default function PortalPage() {
           </DashboardSection>
 
           <DashboardSection
-            title="أداء الحملة"
+            title="ملخص أداء الحملات"
             icon={TrendingUp}
             actionHref="/portal/campaigns"
           >
@@ -463,56 +484,55 @@ export default function PortalPage() {
                 title={portalErrorMessage(campaignError)}
               />
             ) : campaignSummary &&
-              (campaignSummary.totalVisits > 0 ||
-                campaignSummary.totalConversions > 0) ? (
+              campaignSummary.globalCampaignsWithData > 0 ? (
               <div className="flex flex-col gap-3">
-                {[
-                  {
-                    label: "الزيارات",
-                    value: `${formatNumber(campaignSummary.totalVisits)} زيارة`,
-                    icon: Users,
-                  },
-                  {
-                    label: "التحويلات",
-                    value: `${formatNumber(campaignSummary.totalConversions)} تحويل`,
-                    icon: Filter,
-                  },
-                  {
-                    label: "العائد على الإنفاق الإعلاني",
-                    value: `${campaignSummary.avgRoas}x`,
-                    icon: DollarSign,
-                  },
-                ].map(({ label, value, icon: Icon }) => (
-                  <Card key={label}>
-                    <CardContent className="flex items-start justify-between gap-3 pt-6">
-                      <div>
-                        <CardDescription>{label}</CardDescription>
-                        <p className="mt-2 text-2xl font-semibold">{value}</p>
-                      </div>
-                      <Icon className="size-5 text-muted-foreground" />
-                    </CardContent>
-                  </Card>
-                ))}
-                {campaignSummary.improvementPercent !== 0 ? (
-                  <Card className="bg-muted/50">
-                    <CardContent className="pt-6">
-                      <p className="font-medium">ملاحظة</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        الأداء{" "}
-                        {campaignSummary.improvementPercent > 0
-                          ? "تحسن"
-                          : "انخفض"}{" "}
-                        بنسبة {Math.abs(campaignSummary.improvementPercent)}%
-                        مقارنة بالأسبوع الماضي
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : null}
+                <CardDescription>
+                  تحليل عام مبني على {campaignSummary.globalCampaignsWithData}{" "}
+                  من {campaignSummary.eligibleCampaignCount} حملات مؤهلة، مع
+                  مقارنة بمتوسط آخر 30 يوماً.
+                </CardDescription>
+                <div className="overflow-x-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>المؤشر</TableHead>
+                        <TableHead>المتوسط العام</TableHead>
+                        <TableHead>متوسط آخر 30 يوماً</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {campaignSummary.indicators.map((indicator) => (
+                        <TableRow key={indicator.key}>
+                          <TableCell className="font-medium">
+                            {CAMPAIGN_INDICATOR_LABELS[indicator.key]}
+                          </TableCell>
+                          <TableCell>
+                            {formatCampaignIndicatorValue(
+                              indicator.globalValue,
+                              indicator.unit,
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {formatCampaignIndicatorValue(
+                              indicator.last30DaysValue,
+                              indicator.unit,
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  يغطي التحليل {campaignSummary.globalSnapshotCount} نقطة قياس
+                  إجمالية و {campaignSummary.last30DaysSnapshotCount} نقطة خلال
+                  آخر 30 يوماً.
+                </p>
               </div>
             ) : (
               <SectionEmpty
                 icon={TrendingUp}
-                title="لا توجد حملات نشطة حالياً"
+                title="لا توجد بيانات أداء للحملات المؤهلة حالياً"
               />
             )}
           </DashboardSection>

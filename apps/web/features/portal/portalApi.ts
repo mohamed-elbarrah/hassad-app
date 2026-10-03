@@ -176,11 +176,22 @@ export interface ActivityFeedItem {
   icon: "palette" | "file" | "trending" | "check" | "dollar";
 }
 
+export interface CampaignSummaryIndicator {
+  key: "IMPRESSIONS" | "CONVERSIONS" | "ROAS";
+  unit: "COUNT" | "MULTIPLIER";
+  globalValue: number | null;
+  last30DaysValue: number | null;
+}
+
 export interface CampaignSummary {
-  totalVisits: number;
-  totalConversions: number;
-  avgRoas: number;
-  improvementPercent: number;
+  scope: "CLIENT_CAMPAIGNS";
+  eligibleCampaignCount: number;
+  globalCampaignsWithData: number;
+  last30DaysCampaignsWithData: number;
+  globalSnapshotCount: number;
+  last30DaysSnapshotCount: number;
+  indicators: CampaignSummaryIndicator[];
+  lastUpdatedAt: string | null;
 }
 
 export interface CampaignAnalytics {
