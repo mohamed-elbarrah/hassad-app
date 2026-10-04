@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors, BadRequestException } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+  BadRequestException,
+} from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { FileValidationPipe } from "../../../common/storage/file-validator.pipe";
 import { CampaignStatus } from "@hassad/shared";
@@ -11,8 +24,19 @@ import { StorageCategory } from "../../../common/storage/storage.constants";
 import { MarketingStrategyService } from "../services/marketing-strategy.service";
 import { MarketingWorkspaceService } from "../services/marketing-workspace.service";
 import { CreateCampaignDto, UpdateCampaignDto } from "../dto/campaign.dto";
-import { MarketingCampaignKpiDto, MarketingCampaignKpiQueryDto, MarketingCampaignOptimizationDto, MarketingCampaignQueryDto, MarketingStrategyQueryDto, MarketingTaskQueryDto, MarketingTaskStatusDto } from "../dto/marketing-workspace.dto";
-import { CreateTaskCommentDto, UploadTaskFileDto } from "../../tasks/dto/task.dto";
+import {
+  MarketingCampaignKpiDto,
+  MarketingCampaignKpiQueryDto,
+  MarketingCampaignOptimizationDto,
+  MarketingCampaignQueryDto,
+  MarketingStrategyQueryDto,
+  MarketingTaskQueryDto,
+  MarketingTaskStatusDto,
+} from "../dto/marketing-workspace.dto";
+import {
+  CreateTaskCommentDto,
+  UploadTaskFileDto,
+} from "../../tasks/dto/task.dto";
 
 @Controller("marketing")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -25,140 +49,337 @@ export class MarketingWorkspaceController {
 
   @Get("overview")
   @RequirePermissions("marketing.read")
-  overview(@CurrentUser("id") userId: string, @Query() query: MarketingTaskQueryDto) { return this.workspace.overview(userId, query); }
+  overview(
+    @CurrentUser("id") userId: string,
+    @Query() query: MarketingTaskQueryDto,
+  ) {
+    return this.workspace.overview(userId, query);
+  }
 
   @Get("clients/:clientId")
   @RequirePermissions("marketing.read")
-  clientView(@CurrentUser("id") userId: string, @Param("clientId") clientId: string) { return this.workspace.clientView(userId, clientId); }
+  clientView(
+    @CurrentUser("id") userId: string,
+    @Param("clientId") clientId: string,
+  ) {
+    return this.workspace.clientView(userId, clientId);
+  }
 
   @Get("tasks")
   @RequirePermissions("marketing.read")
-  tasks(@CurrentUser("id") userId: string, @Query() query: MarketingTaskQueryDto) { return this.workspace.listTasks(userId, query); }
+  tasks(
+    @CurrentUser("id") userId: string,
+    @Query() query: MarketingTaskQueryDto,
+  ) {
+    return this.workspace.listTasks(userId, query);
+  }
+
+  @Get("tasks/:taskId/strategy")
+  @RequirePermissions("marketing.read")
+  strategyByTask(
+    @CurrentUser("id") userId: string,
+    @Param("taskId") taskId: string,
+  ) {
+    return this.workspace.strategyByTask(userId, taskId);
+  }
 
   @Get("tasks/:id")
   @RequirePermissions("marketing.read")
-  taskDetail(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.taskDetail(userId, id); }
+  taskDetail(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.taskDetail(userId, id);
+  }
 
   @Patch("tasks/:id/status")
   @RequirePermissions("tasks.update")
-  taskStatus(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: MarketingTaskStatusDto) { return this.workspace.changeTaskStatus(userId, id, dto.status); }
+  taskStatus(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Body() dto: MarketingTaskStatusDto,
+  ) {
+    return this.workspace.changeTaskStatus(userId, id, dto.status);
+  }
 
   @Get("tasks/:id/comments")
   @RequirePermissions("marketing.read")
-  taskComments(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.taskComments(userId, id); }
+  taskComments(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.taskComments(userId, id);
+  }
 
   @Post("tasks/:id/comments")
   @RequirePermissions("tasks.comment")
-  addTaskComment(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: CreateTaskCommentDto) { return this.workspace.addTaskComment(userId, id, dto.content); }
+  addTaskComment(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Body() dto: CreateTaskCommentDto,
+  ) {
+    return this.workspace.addTaskComment(userId, id, dto.content);
+  }
 
   @Get("tasks/:id/files")
   @RequirePermissions("marketing.read")
-  taskFiles(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.taskFiles(userId, id); }
+  taskFiles(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.taskFiles(userId, id);
+  }
 
   @Delete("tasks/:id/files/:fileId")
   @RequirePermissions("tasks.update")
-  deleteTaskFile(@CurrentUser("id") userId: string, @Param("id") id: string, @Param("fileId") fileId: string) { return this.workspace.deleteTaskFile(userId, id, fileId); }
+  deleteTaskFile(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Param("fileId") fileId: string,
+  ) {
+    return this.workspace.deleteTaskFile(userId, id, fileId);
+  }
 
   @Post("tasks/:id/files")
   @RequirePermissions("tasks.update")
   @UseInterceptors(FileInterceptor("file"))
-  uploadTaskFile(@CurrentUser("id") userId: string, @Param("id") id: string, @UploadedFile(new FileValidationPipe({ category: StorageCategory.TASK_FILE })) file: Express.Multer.File, @Body() dto: UploadTaskFileDto) { return this.workspace.uploadTaskFile(userId, id, file, dto.purpose); }
+  uploadTaskFile(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @UploadedFile(
+      new FileValidationPipe({ category: StorageCategory.TASK_FILE }),
+    )
+    file: Express.Multer.File,
+    @Body() dto: UploadTaskFileDto,
+  ) {
+    return this.workspace.uploadTaskFile(userId, id, file, dto.purpose);
+  }
 
   @Get("tasks/:id/files/:fileId/download")
   @RequirePermissions("marketing.read")
-  downloadTaskFile(@CurrentUser("id") userId: string, @Param("id") id: string, @Param("fileId") fileId: string) { return this.workspace.downloadTaskFile(userId, id, fileId); }
+  downloadTaskFile(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Param("fileId") fileId: string,
+  ) {
+    return this.workspace.downloadTaskFile(userId, id, fileId);
+  }
 
   @Get("strategies")
   @RequirePermissions("marketing.read")
-  strategyList(@CurrentUser("id") userId: string, @Query() query: MarketingStrategyQueryDto) { return this.workspace.strategiesList(userId, query); }
+  strategyList(
+    @CurrentUser("id") userId: string,
+    @Query() query: MarketingStrategyQueryDto,
+  ) {
+    return this.workspace.strategiesList(userId, query);
+  }
 
   @Get("strategies/:id")
   @RequirePermissions("marketing.read")
-  strategyDetail(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.strategyDetail(userId, id); }
+  strategyDetail(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.strategyDetail(userId, id);
+  }
 
   @Post("tasks/:taskId/strategy")
   @RequirePermissions("marketing.create")
   @UseInterceptors(FileInterceptor("file"))
-  async createStrategy(@CurrentUser("id") userId: string, @Param("taskId") taskId: string, @UploadedFile(new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY })) file?: Express.Multer.File) {
-    if (!file || file.mimetype !== "application/pdf") throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
-    const upload = await this.storage.upload({ category: StorageCategory.MARKETING_STRATEGY, entityId: taskId, file: { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype, size: file.size } });
-    return this.strategies.create(taskId, { key: upload.key, originalName: file.originalname, size: file.size, mimeType: file.mimetype }, userId);
+  async createStrategy(
+    @CurrentUser("id") userId: string,
+    @Param("taskId") taskId: string,
+    @UploadedFile(
+      new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY }),
+    )
+    file?: Express.Multer.File,
+  ) {
+    if (!file || file.mimetype !== "application/pdf")
+      throw new BadRequestException({
+        code: "FILE_TYPE_NOT_ALLOWED",
+        details: {},
+      });
+    const upload = await this.storage.upload({
+      category: StorageCategory.MARKETING_STRATEGY,
+      entityId: taskId,
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+    try {
+      return await this.strategies.create(
+        taskId,
+        {
+          key: upload.key,
+          originalName: file.originalname,
+          size: file.size,
+          mimeType: file.mimetype,
+        },
+        userId,
+      );
+    } catch (error) {
+      await this.storage.deleteByKey(upload.key).catch(() => {});
+      throw error;
+    }
   }
 
-  @Post("strategies/:id/send")
+  @Post("strategies/:id/submit-pm")
   @RequirePermissions("marketing.update")
-  sendStrategy(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.sendStrategy(userId, id); }
+  submitStrategyForPm(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+  ) {
+    return this.workspace.submitStrategyForPm(userId, id);
+  }
 
   @Post("strategies/:id/resubmit")
   @RequirePermissions("marketing.update")
   @UseInterceptors(FileInterceptor("file"))
-  async resubmitStrategy(@CurrentUser("id") userId: string, @Param("id") id: string, @UploadedFile(new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY })) file?: Express.Multer.File) {
-    if (!file || file.mimetype !== "application/pdf") throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
-    const upload = await this.storage.upload({ category: StorageCategory.MARKETING_STRATEGY, entityId: id, file: { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype, size: file.size } });
-    return this.workspace.resubmitStrategy(userId, id, { key: upload.key, originalName: file.originalname, size: file.size, mimeType: file.mimetype });
+  async resubmitStrategy(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @UploadedFile(
+      new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY }),
+    )
+    file?: Express.Multer.File,
+  ) {
+    if (!file || file.mimetype !== "application/pdf")
+      throw new BadRequestException({
+        code: "FILE_TYPE_NOT_ALLOWED",
+        details: {},
+      });
+    const upload = await this.storage.upload({
+      category: StorageCategory.MARKETING_STRATEGY,
+      entityId: id,
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+    try {
+      return await this.workspace.resubmitStrategy(userId, id, {
+        key: upload.key,
+        originalName: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype,
+      });
+    } catch (error) {
+      await this.storage.deleteByKey(upload.key).catch(() => {});
+      throw error;
+    }
   }
 
   @Get("strategies/:id/download")
   @RequirePermissions("marketing.read")
-  strategyDownload(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.strategyDownload(userId, id); }
+  strategyDownload(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.strategyDownload(userId, id);
+  }
 
   @Get("campaigns/stats")
   @RequirePermissions("marketing.read")
-  campaignStats(@CurrentUser("id") userId: string, @CurrentUser("role") role: string) { return this.workspace.campaignStats(userId, role); }
+  campaignStats(
+    @CurrentUser("id") userId: string,
+    @CurrentUser("role") role: string,
+  ) {
+    return this.workspace.campaignStats(userId, role);
+  }
 
   @Get("campaigns")
   @RequirePermissions("marketing.read")
-  campaignList(@CurrentUser("id") userId: string, @Query() query: MarketingCampaignQueryDto) { return this.workspace.campaignsList(userId, query); }
+  campaignList(
+    @CurrentUser("id") userId: string,
+    @Query() query: MarketingCampaignQueryDto,
+  ) {
+    return this.workspace.campaignsList(userId, query);
+  }
 
   @Get("campaigns/:id")
   @RequirePermissions("marketing.read")
-  campaignDetail(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.campaignDetail(userId, id); }
+  campaignDetail(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.campaignDetail(userId, id);
+  }
 
   @Post("campaigns")
   @RequirePermissions("marketing.create")
-  createCampaign(@CurrentUser("id") userId: string, @Body() dto: CreateCampaignDto) { return this.workspace.createCampaign(userId, dto); }
+  createCampaign(
+    @CurrentUser("id") userId: string,
+    @Body() dto: CreateCampaignDto,
+  ) {
+    return this.workspace.createCampaign(userId, dto);
+  }
 
   @Patch("campaigns/:id")
   @RequirePermissions("marketing.update")
-  updateCampaign(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: UpdateCampaignDto) { return this.workspace.updateCampaign(userId, id, dto); }
+  updateCampaign(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Body() dto: UpdateCampaignDto,
+  ) {
+    return this.workspace.updateCampaign(userId, id, dto);
+  }
 
   @Post("campaigns/:id/start")
   @RequirePermissions("marketing.update")
-  startCampaign(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.campaignStatus(userId, id, CampaignStatus.ACTIVE); }
+  startCampaign(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.campaignStatus(userId, id, CampaignStatus.ACTIVE);
+  }
 
   @Post("campaigns/:id/pause")
   @RequirePermissions("marketing.update")
-  pauseCampaign(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.campaignStatus(userId, id, CampaignStatus.PAUSED); }
+  pauseCampaign(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.campaignStatus(userId, id, CampaignStatus.PAUSED);
+  }
 
   @Post("campaigns/:id/stop")
   @RequirePermissions("marketing.update")
-  stopCampaign(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.campaignStatus(userId, id, CampaignStatus.STOPPED); }
+  stopCampaign(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.campaignStatus(userId, id, CampaignStatus.STOPPED);
+  }
 
   @Post("campaigns/:id/end")
   @RequirePermissions("marketing.update")
-  endCampaign(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.campaignStatus(userId, id, CampaignStatus.COMPLETED); }
+  endCampaign(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.campaignStatus(userId, id, CampaignStatus.COMPLETED);
+  }
 
   @Get("campaigns/:id/kpis")
   @RequirePermissions("marketing.read")
-  campaignKpis(@CurrentUser("id") userId: string, @Param("id") id: string, @Query() query: MarketingCampaignKpiQueryDto) { return this.workspace.campaignKpis(userId, id, query); }
+  campaignKpis(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Query() query: MarketingCampaignKpiQueryDto,
+  ) {
+    return this.workspace.campaignKpis(userId, id, query);
+  }
 
   @Post("campaigns/:id/kpis")
   @RequirePermissions("marketing.manage_kpis")
-  campaignKpi(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: MarketingCampaignKpiDto) { return this.workspace.campaignKpi(userId, id, dto); }
+  campaignKpi(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Body() dto: MarketingCampaignKpiDto,
+  ) {
+    return this.workspace.campaignKpi(userId, id, dto);
+  }
 
   @Patch("campaigns/:id/optimization")
   @RequirePermissions("marketing.flag_optimization")
-  optimization(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: MarketingCampaignOptimizationDto) { return this.workspace.optimization(userId, id, dto.needsOptimization); }
+  optimization(
+    @CurrentUser("id") userId: string,
+    @Param("id") id: string,
+    @Body() dto: MarketingCampaignOptimizationDto,
+  ) {
+    return this.workspace.optimization(userId, id, dto.needsOptimization);
+  }
 
   @Post("campaigns/:id/duplicate")
   @RequirePermissions("marketing.create")
-  duplicate(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.duplicateCampaign(userId, id); }
+  duplicate(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.duplicateCampaign(userId, id);
+  }
 
   @Patch("campaigns/:id/archive")
   @RequirePermissions("marketing.update")
-  archive(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.archiveCampaign(userId, id); }
+  archive(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.archiveCampaign(userId, id);
+  }
 
   @Patch("campaigns/:id/unarchive")
   @RequirePermissions("marketing.update")
-  unarchive(@CurrentUser("id") userId: string, @Param("id") id: string) { return this.workspace.unarchiveCampaign(userId, id); }
+  unarchive(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.workspace.unarchiveCampaign(userId, id);
+  }
 }

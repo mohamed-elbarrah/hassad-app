@@ -452,6 +452,10 @@ export interface PortalStrategySummary {
   fileSize: number;
   fileType: string;
   revisionNote: string | null;
+  isVisibleToClient: boolean;
+  submittedAt: string | null;
+  pmReviewedBy: string | null;
+  pmReviewedAt: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
   sentAt: string | null;
@@ -1261,7 +1265,7 @@ export const portalApi = createApi({
       providesTags: (result, error, id) => [{ type: "PortalStrategies", id }],
     }),
 
-    approveStrategy: builder.mutation<any, string>({
+    approveStrategy: builder.mutation<PortalStrategySummary, string>({
       query: (id) => ({
         url: `/portal/marketing-strategies/${id}/approve`,
         method: "POST",
@@ -1274,7 +1278,7 @@ export const portalApi = createApi({
     }),
 
     requestStrategyRevision: builder.mutation<
-      any,
+      PortalStrategySummary,
       { id: string; comment: string }
     >({
       query: ({ id, comment }) => ({
@@ -1287,6 +1291,11 @@ export const portalApi = createApi({
         "ActionItems",
         "ActivityFeed", // NEW
       ],
+    }),
+
+    getClientStrategyDownloadUrl: builder.query<string, string>({
+      query: (id) => `/portal/marketing-strategies/${id}/download`,
+      transformResponse: (response: { url: string }) => response.url,
     }),
 
     // ─── Dispute Endpoints ──────────────────────────────────────────────────
@@ -1516,6 +1525,7 @@ export const {
   useGetClientStrategyQuery,
   useApproveStrategyMutation,
   useRequestStrategyRevisionMutation,
+  useLazyGetClientStrategyDownloadUrlQuery,
   // Dispute hooks
   useGetClientDisputesQuery,
   useGetClientDisputeDetailQuery,

@@ -17,7 +17,7 @@ import {
   Logger,
   ParseUUIDPipe,
 } from "@nestjs/common";
-import { ClientKind } from "@hassad/shared";
+import { ClientKind, MarketingStrategyStatus } from "@hassad/shared";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { PortalService } from "../services/portal.service";
 import {
@@ -1261,12 +1261,25 @@ export class PortalController {
       });
 
     // Verify client owns this strategy
-    const strategy = await this.prisma.marketingStrategy.findUnique({
-      where: { id },
+    const strategy = await this.prisma.marketingStrategy.findFirst({
+      where: {
+        id,
+        clientId,
+        status: {
+          in: [
+            MarketingStrategyStatus.CLIENT_REVIEW,
+            MarketingStrategyStatus.SENT,
+            MarketingStrategyStatus.APPROVED,
+            MarketingStrategyStatus.CLIENT_REVISION_REQUESTED,
+            MarketingStrategyStatus.REVISION_REQUESTED,
+          ],
+        },
+        isVisibleToClient: true,
+      },
       select: { clientId: true, filePath: true },
     });
 
-    if (!strategy || strategy.clientId !== clientId) {
+    if (!strategy) {
       throw new NotFoundException({
         code: "MARKETING_STRATEGY_NOT_FOUND",
         details: {},

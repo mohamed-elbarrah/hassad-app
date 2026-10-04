@@ -340,6 +340,7 @@ export function TaskWorkspaceDetail({
     taskId,
     canManage: canManageMarketingExtras,
     enabled: includeMarketingExtras,
+    pmOwned,
   });
 
   const genericTaskQuery = useGetTaskByIdQuery(taskId, {

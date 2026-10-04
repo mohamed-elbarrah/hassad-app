@@ -65,8 +65,14 @@ export function resolveEntityUrl(
   if (entityType === "marketing_strategy") {
     if (role === UserRole.CLIENT)
       return `/portal/marketing-strategies/${entityId}`;
-    if (role === UserRole.MARKETING)
-      return `/dashboard/marketing/tasks/${entityId}`;
+    const taskId = metadata?.taskId;
+    if (typeof taskId === "string") {
+      if (role === UserRole.MARKETING)
+        return `/dashboard/marketing/tasks/${taskId}`;
+      if (role === UserRole.PM || role === UserRole.ADMIN)
+        return `/dashboard/pm/tasks/${taskId}`;
+    }
+    if (role === UserRole.MARKETING) return `/dashboard/marketing`;
     return `/dashboard/marketing`;
   }
   if (entityType === "invoice" || entityType === "INVOICE") {

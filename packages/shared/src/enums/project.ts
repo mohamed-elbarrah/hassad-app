@@ -147,9 +147,13 @@ export enum DelayAlertLevel {
 
 export enum MarketingStrategyStatus {
   DRAFT = "DRAFT",
-  SENT = "SENT",
+  PM_REVIEW = "PM_REVIEW",
+  PM_REVISION_REQUESTED = "PM_REVISION_REQUESTED",
+  CLIENT_REVIEW = "CLIENT_REVIEW",
+  CLIENT_REVISION_REQUESTED = "CLIENT_REVISION_REQUESTED",
+  SENT = "SENT", // Legacy alias for CLIENT_REVIEW
   APPROVED = "APPROVED",
-  REVISION_REQUESTED = "REVISION_REQUESTED",
+  REVISION_REQUESTED = "REVISION_REQUESTED", // Legacy alias for client revision
   REJECTED = "REJECTED",
 }
 
@@ -158,6 +162,10 @@ export const MARKETING_STRATEGY_STATUS_AR: Record<
   string
 > = {
   DRAFT: "مسودة",
+  PM_REVIEW: "بانتظار مراجعة مدير المشروع",
+  PM_REVISION_REQUESTED: "مطلوب تعديل من مدير المشروع",
+  CLIENT_REVIEW: "بانتظار مراجعة العميل",
+  CLIENT_REVISION_REQUESTED: "مطلوب تعديل من العميل",
   SENT: "تم الإرسال",
   APPROVED: "تمت الموافقة",
   REVISION_REQUESTED: "مطلوب تعديل",

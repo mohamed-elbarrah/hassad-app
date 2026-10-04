@@ -12,6 +12,7 @@ import type {
   TaskPriority,
   TaskDepartment,
   FilePurpose,
+  MarketingStrategyStatus,
 } from "@hassad/shared";
 
 // ── Local interfaces ─────────────────────────────────────────────────────────
@@ -68,6 +69,27 @@ export interface PmTasksResponse {
   meta: { total: number; page: number; limit: number; totalPages: number };
 }
 
+export interface PmMarketingStrategy {
+  id: string;
+  taskId: string;
+  status: MarketingStrategyStatus;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  revisionNote: string | null;
+  isVisibleToClient: boolean;
+  submittedAt: string | null;
+  pmReviewedBy: string | null;
+  pmReviewedAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  task?: {
+    id: string;
+    title: string;
+    project?: { id: string; name: string } | null;
+  };
+}
+
 export interface PmTasksFilters {
   status?: TaskStatus;
   priority?: TaskPriority;
@@ -87,7 +109,7 @@ export interface PmTasksFilters {
 export const tasksApi = createApi({
   reducerPath: "tasksApi",
   baseQuery,
-  tagTypes: ["Task"],
+  tagTypes: ["Task", "PmStrategy"],
   endpoints: (builder) => ({
     /** GET /v1/projects/:projectId/tasks — list tasks for a project */
     getTasksByProject: builder.query<Task[], string>({
@@ -198,6 +220,55 @@ export const tasksApi = createApi({
       providesTags: (_result, _error, taskId) => [{ type: "Task", id: taskId }],
     }),
 
+    getPmStrategyByTask: builder.query<PmMarketingStrategy | null, string>({
+      query: (taskId) => `/pm/marketing-strategies/by-task/${taskId}`,
+      providesTags: (_result, _error, taskId) => [
+        { type: "PmStrategy", id: `TASK_${taskId}` },
+      ],
+    }),
+    getPmStrategyDownloadUrl: builder.query<{ url: string }, string>({
+      query: (strategyId) => `/pm/marketing-strategies/${strategyId}/download`,
+    }),
+    getPmStrategy: builder.query<PmMarketingStrategy, string>({
+      query: (strategyId) => `/pm/marketing-strategies/${strategyId}`,
+      providesTags: (_result, _error, strategyId) => [
+        { type: "PmStrategy", id: strategyId },
+      ],
+    }),
+    approvePmStrategyForClient: builder.mutation<
+      PmMarketingStrategy,
+      { strategyId: string; taskId: string }
+    >({
+      query: ({ strategyId }) => ({
+        url: `/pm/marketing-strategies/${strategyId}/approve-client`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, { strategyId, taskId }) => [
+        { type: "PmStrategy", id: strategyId },
+        { type: "PmStrategy", id: `TASK_${taskId}` },
+        { type: "Task", id: taskId },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
+      ],
+    }),
+    requestPmStrategyRevision: builder.mutation<
+      PmMarketingStrategy,
+      { strategyId: string; taskId: string; comment: string }
+    >({
+      query: ({ strategyId, comment }) => ({
+        url: `/pm/marketing-strategies/${strategyId}/request-revision`,
+        method: "POST",
+        body: { comment },
+      }),
+      invalidatesTags: (_result, _error, { strategyId, taskId }) => [
+        { type: "PmStrategy", id: strategyId },
+        { type: "PmStrategy", id: `TASK_${taskId}` },
+        { type: "Task", id: taskId },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
+      ],
+    }),
+
     /** GET /v1/pm/tasks/:taskId/files */
     getPmTaskFiles: builder.query<TaskFile[], string>({
       query: (taskId) => `/pm/tasks/${taskId}/files`,
@@ -211,13 +282,24 @@ export const tasksApi = createApi({
     getPmTaskNotes: builder.query<TaskNote[], string>({
       query: (taskId) => `/pm/tasks/${taskId}/notes`,
       transformResponse: (response: { items: TaskNote[] }) => response.items,
-      providesTags: (_result, _error, taskId) => [{ type: "Task", id: `NOTES_${taskId}` }],
+      providesTags: (_result, _error, taskId) => [
+        { type: "Task", id: `NOTES_${taskId}` },
+      ],
     }),
 
     /** POST /v1/pm/tasks/:taskId/notes */
-    addPmTaskNote: builder.mutation<TaskNote, { taskId: string; content: string }>({
-      query: ({ taskId, content }) => ({ url: `/pm/tasks/${taskId}/notes`, method: "POST", body: { content } }),
-      invalidatesTags: (_result, _error, { taskId }) => [{ type: "Task", id: `NOTES_${taskId}` }],
+    addPmTaskNote: builder.mutation<
+      TaskNote,
+      { taskId: string; content: string }
+    >({
+      query: ({ taskId, content }) => ({
+        url: `/pm/tasks/${taskId}/notes`,
+        method: "POST",
+        body: { content },
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [
+        { type: "Task", id: `NOTES_${taskId}` },
+      ],
     }),
 
     /** GET /v1/pm/tasks/:taskId/comments */
@@ -477,6 +559,11 @@ export const {
   useToggleArchiveTaskMutation,
   useGetTaskFilesQuery,
   useGetPmTaskByIdQuery,
+  useGetPmStrategyQuery,
+  useGetPmStrategyByTaskQuery,
+  useLazyGetPmStrategyDownloadUrlQuery,
+  useApprovePmStrategyForClientMutation,
+  useRequestPmStrategyRevisionMutation,
   useGetPmTaskFilesQuery,
   useGetPmTaskCommentsQuery,
   useGetPmTaskNotesQuery,

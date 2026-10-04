@@ -1187,6 +1187,14 @@ const NOTIFICATION_PRESENTATIONS: Record<string, NotificationPresentation> = {
     title: "تم إرسال الاستراتيجية",
     body: "تم إرسال الاستراتيجية التسويقية للمراجعة.",
   },
+  MARKETING_STRATEGY_SUBMITTED_FOR_PM_REVIEW: {
+    title: "دراسة تسويقية بانتظار مراجعتك",
+    body: "تم إرسال دراسة تسويقية لمراجعة مدير المشروع.",
+  },
+  MARKETING_STRATEGY_PM_REVISION_REQUESTED: {
+    title: "مطلوب تعديل الدراسة التسويقية",
+    body: "أعاد مدير المشروع الدراسة التسويقية للتعديل.",
+  },
   ACTION_ITEM_SNOOZED: {
     title: "تم تأجيل بند الإجراء",
     body: "تم تأجيل بند إجراء.",

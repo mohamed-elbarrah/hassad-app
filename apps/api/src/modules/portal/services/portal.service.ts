@@ -145,6 +145,7 @@ import {
   RequestStatus,
   BusinessType,
   ClientActionType,
+  MarketingStrategyStatus,
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
 import { StorageService } from "../../../common/storage/storage.service";
@@ -1770,7 +1771,8 @@ export class PortalService {
       const pendingStrategies = await this.prisma.marketingStrategy.findMany({
         where: {
           clientId,
-          status: "SENT",
+          status: { in: ["CLIENT_REVIEW", "SENT"] },
+          isVisibleToClient: true,
         },
         include: {
           task: {
@@ -2020,7 +2022,12 @@ export class PortalService {
       }
       case "STRATEGY_REVIEW": {
         const s = await this.prisma.marketingStrategy.findFirst({
-          where: { id: itemId, clientId, status: "SENT" },
+          where: {
+            id: itemId,
+            clientId,
+            status: { in: ["CLIENT_REVIEW", "SENT"] },
+            isVisibleToClient: true,
+          },
           include: {
             task: {
               select: {
@@ -4301,7 +4308,19 @@ export class PortalService {
 
   async getClientStrategies(clientId: string) {
     return this.prisma.marketingStrategy.findMany({
-      where: { clientId },
+      where: {
+        clientId,
+        status: {
+          in: [
+            MarketingStrategyStatus.CLIENT_REVIEW,
+            MarketingStrategyStatus.SENT,
+            MarketingStrategyStatus.APPROVED,
+            MarketingStrategyStatus.CLIENT_REVISION_REQUESTED,
+            MarketingStrategyStatus.REVISION_REQUESTED,
+          ],
+        },
+        isVisibleToClient: true,
+      },
       include: {
         task: {
           select: {
@@ -4316,8 +4335,21 @@ export class PortalService {
   }
 
   async getClientStrategyOne(id: string, clientId: string) {
-    const strategy = await this.prisma.marketingStrategy.findUnique({
-      where: { id },
+    const strategy = await this.prisma.marketingStrategy.findFirst({
+      where: {
+        id,
+        clientId,
+        status: {
+          in: [
+            MarketingStrategyStatus.CLIENT_REVIEW,
+            MarketingStrategyStatus.SENT,
+            MarketingStrategyStatus.APPROVED,
+            MarketingStrategyStatus.CLIENT_REVISION_REQUESTED,
+            MarketingStrategyStatus.REVISION_REQUESTED,
+          ],
+        },
+        isVisibleToClient: true,
+      },
       include: {
         task: {
           select: {
