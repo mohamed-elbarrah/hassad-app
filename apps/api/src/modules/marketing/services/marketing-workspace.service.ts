@@ -71,6 +71,7 @@ export class MarketingWorkspaceService {
     const where: Prisma.TaskWhereInput = {
       ...this.taskScope(userId),
       ...(query.status ? { status: query.status } : {}),
+      ...(query.reviewStage ? { reviewStage: query.reviewStage } : {}),
       ...(query.priority ? { priority: query.priority } : {}),
       ...(query.projectId ? { projectId: query.projectId } : {}),
       ...(query.dueBefore || query.dueAfter

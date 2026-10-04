@@ -3,7 +3,12 @@
  *
  * Single source of truth for Arabic labels, tone classes, and kanban layout.
  */
-import { TaskStatus, TASK_PRIORITY_AR, type Task } from "@hassad/shared";
+import {
+  TaskReviewStage,
+  TaskStatus,
+  TASK_PRIORITY_AR,
+  type Task,
+} from "@hassad/shared";
 import {
   KANBAN_TONES,
   type KanbanToneClasses,
@@ -40,13 +45,91 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
 
 // ── Kanban order (left to right flow) ───────────────────────────────────────
 
-export const TASK_KANBAN_ORDER: TaskStatus[] = [
-  TaskStatus.TODO,
-  TaskStatus.IN_PROGRESS,
-  TaskStatus.IN_REVIEW,
-  TaskStatus.CLIENT_REVIEW,
-  TaskStatus.REVISION,
-  TaskStatus.DONE,
+export const TASK_KANBAN_STAGE = {
+  TODO: "TODO",
+  IN_PROGRESS: "IN_PROGRESS",
+  PM_REVIEW: "PM_REVIEW",
+  CLIENT_REVIEW: "CLIENT_REVIEW",
+  PM_REVISION_REQUESTED: "PM_REVISION_REQUESTED",
+  CLIENT_REVISION_REQUESTED: "CLIENT_REVISION_REQUESTED",
+  DONE: "DONE",
+} as const;
+
+export type TaskKanbanStage =
+  (typeof TASK_KANBAN_STAGE)[keyof typeof TASK_KANBAN_STAGE];
+
+export const TASK_KANBAN_STAGE_LABELS: Record<TaskKanbanStage, string> = {
+  TODO: "للتنفيذ",
+  IN_PROGRESS: "قيد التنفيذ",
+  PM_REVIEW: "قيد مراجعة مدير المشروع",
+  CLIENT_REVIEW: "قيد مراجعة العميل",
+  PM_REVISION_REQUESTED: "تعديل مطلوب من مدير المشروع",
+  CLIENT_REVISION_REQUESTED: "تعديل مطلوب من العميل",
+  DONE: "منجز",
+};
+
+export function getTaskKanbanStage(
+  task: Pick<Task, "status" | "reviewStage">,
+): TaskKanbanStage {
+  if (task.status === TaskStatus.TODO) return TASK_KANBAN_STAGE.TODO;
+  if (task.status === TaskStatus.IN_PROGRESS)
+    return TASK_KANBAN_STAGE.IN_PROGRESS;
+  if (task.status === TaskStatus.CLIENT_REVIEW)
+    return TASK_KANBAN_STAGE.CLIENT_REVIEW;
+  if (task.status === TaskStatus.REVISION)
+    return TASK_KANBAN_STAGE.PM_REVISION_REQUESTED;
+  if (task.status === TaskStatus.DONE) return TASK_KANBAN_STAGE.DONE;
+  switch (task.reviewStage) {
+    case TaskReviewStage.CLIENT_REVIEW:
+      return TASK_KANBAN_STAGE.CLIENT_REVIEW;
+    case TaskReviewStage.PM_REVISION_REQUESTED:
+      return TASK_KANBAN_STAGE.PM_REVISION_REQUESTED;
+    case TaskReviewStage.CLIENT_REVISION_REQUESTED:
+      return TASK_KANBAN_STAGE.CLIENT_REVISION_REQUESTED;
+    case TaskReviewStage.PM_REVIEW:
+    case TaskReviewStage.NOT_SUBMITTED:
+    default:
+      return TASK_KANBAN_STAGE.PM_REVIEW;
+  }
+}
+
+export function getTaskStatusForKanbanStage(stage: string): TaskStatus {
+  switch (stage) {
+    case TASK_KANBAN_STAGE.PM_REVIEW:
+      return TaskStatus.IN_REVIEW;
+    case TASK_KANBAN_STAGE.CLIENT_REVIEW:
+      return TaskStatus.CLIENT_REVIEW;
+    case TASK_KANBAN_STAGE.PM_REVISION_REQUESTED:
+    case TASK_KANBAN_STAGE.CLIENT_REVISION_REQUESTED:
+      return TaskStatus.REVISION;
+    case TASK_KANBAN_STAGE.TODO:
+      return TaskStatus.TODO;
+    case TASK_KANBAN_STAGE.IN_PROGRESS:
+      return TaskStatus.IN_PROGRESS;
+    case TASK_KANBAN_STAGE.DONE:
+      return TaskStatus.DONE;
+    default:
+      return TaskStatus.IN_REVIEW;
+  }
+}
+
+export function isTaskReviewKanbanStage(stage: string): boolean {
+  return (
+    stage === TASK_KANBAN_STAGE.PM_REVIEW ||
+    stage === TASK_KANBAN_STAGE.CLIENT_REVIEW ||
+    stage === TASK_KANBAN_STAGE.PM_REVISION_REQUESTED ||
+    stage === TASK_KANBAN_STAGE.CLIENT_REVISION_REQUESTED
+  );
+}
+
+export const TASK_KANBAN_ORDER: TaskKanbanStage[] = [
+  TASK_KANBAN_STAGE.TODO,
+  TASK_KANBAN_STAGE.IN_PROGRESS,
+  TASK_KANBAN_STAGE.PM_REVIEW,
+  TASK_KANBAN_STAGE.CLIENT_REVIEW,
+  TASK_KANBAN_STAGE.PM_REVISION_REQUESTED,
+  TASK_KANBAN_STAGE.CLIENT_REVISION_REQUESTED,
+  TASK_KANBAN_STAGE.DONE,
 ];
 
 // ── Re-export priority labels for convenience ───────────────────────────────

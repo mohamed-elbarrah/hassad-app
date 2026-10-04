@@ -8,6 +8,7 @@ import {
   UpdateCampaignMetricsInput,
   Task,
   TaskPriority,
+  TaskReviewStage,
   TaskStatus,
   TaskFile,
   TaskComment,
@@ -70,6 +71,7 @@ export interface MarketingTask extends Task {
 export interface MarketingTaskQuery {
   search?: string;
   status?: TaskStatus;
+  reviewStage?: TaskReviewStage;
   priority?: TaskPriority;
   projectId?: string;
   dueBefore?: string;

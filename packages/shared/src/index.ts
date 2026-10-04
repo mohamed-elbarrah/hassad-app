@@ -381,6 +381,7 @@ export interface Task {
   assignedTo?: string | null;
   createdBy: string;
   status: TaskStatus;
+  reviewStage?: TaskReviewStage;
   priority: TaskPriority;
   dueDate: Date | string;
   revisionCount?: number;

@@ -6,7 +6,12 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { FilePurpose, Prisma } from "@prisma/client";
-import { TaskDepartment, TaskPriority, TaskStatus } from "@hassad/shared";
+import {
+  TaskDepartment,
+  TaskPriority,
+  TaskReviewStage,
+  TaskStatus,
+} from "@hassad/shared";
 
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { StorageService } from "../../../common/storage/storage.service";
@@ -61,6 +66,7 @@ export class PmTasksService {
     filters: {
       search?: string;
       status?: TaskStatus;
+      reviewStage?: TaskReviewStage;
       priority?: TaskPriority;
       projectId?: string;
       periodId?: string;
@@ -78,6 +84,7 @@ export class PmTasksService {
     const where: Prisma.TaskWhereInput = {
       project: { projectManagerId: userId },
       ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.reviewStage ? { reviewStage: filters.reviewStage } : {}),
       ...(filters.priority ? { priority: filters.priority } : {}),
       ...(filters.projectId ? { projectId: filters.projectId } : {}),
       ...(filters.periodId ? { periodId: filters.periodId } : {}),
@@ -156,13 +163,13 @@ export class PmTasksService {
 
   async detail(userId: string, taskId: string) {
     await this.ownedTask(taskId, userId);
-    return this.execute(
-      async () => {
-        const task = await this.tasksService.findOne(taskId);
-        return { ...task, comments: task.comments.filter((comment) => !comment.isInternal) };
-      },
-      "TASK_NOT_FOUND",
-    );
+    return this.execute(async () => {
+      const task = await this.tasksService.findOne(taskId);
+      return {
+        ...task,
+        comments: task.comments.filter((comment) => !comment.isInternal),
+      };
+    }, "TASK_NOT_FOUND");
   }
 
   async changeStatus(userId: string, taskId: string, status: TaskStatus) {
@@ -181,15 +188,14 @@ export class PmTasksService {
     );
   }
 
-  async addComment(
-    userId: string,
-    taskId: string,
-    content: string,
-  ) {
+  async addComment(userId: string, taskId: string, content: string) {
     await this.ownedTask(taskId, userId);
     return this.execute(
       () =>
-        this.tasksService.addComment(taskId, userId, { content, isInternal: false }),
+        this.tasksService.addComment(taskId, userId, {
+          content,
+          isInternal: false,
+        }),
       "TASK_COMMENT_FAILED",
     );
   }
@@ -198,11 +204,12 @@ export class PmTasksService {
     await this.ownedTask(taskId, userId);
     return {
       items: await this.execute(
-        () => this.prisma.taskComment.findMany({
-          where: { taskId, isInternal: false },
-          include: { user: { select: { id: true, name: true } } },
-          orderBy: { createdAt: "desc" },
-        }),
+        () =>
+          this.prisma.taskComment.findMany({
+            where: { taskId, isInternal: false },
+            include: { user: { select: { id: true, name: true } } },
+            orderBy: { createdAt: "desc" },
+          }),
         "TASK_COMMENTS_LOAD_FAILED",
       ),
     };
@@ -212,11 +219,12 @@ export class PmTasksService {
     await this.ownedTask(taskId, userId);
     return {
       items: await this.execute(
-        () => this.prisma.taskNote.findMany({
-          where: { taskId },
-          include: { user: { select: { id: true, name: true } } },
-          orderBy: { createdAt: "desc" },
-        }),
+        () =>
+          this.prisma.taskNote.findMany({
+            where: { taskId },
+            include: { user: { select: { id: true, name: true } } },
+            orderBy: { createdAt: "desc" },
+          }),
         "TASK_NOTES_LOAD_FAILED",
       ),
     };
@@ -225,10 +233,11 @@ export class PmTasksService {
   async addNote(userId: string, taskId: string, content: string) {
     await this.ownedTask(taskId, userId);
     return this.execute(
-      () => this.prisma.taskNote.create({
-        data: { taskId, userId, content },
-        include: { user: { select: { id: true, name: true } } },
-      }),
+      () =>
+        this.prisma.taskNote.create({
+          data: { taskId, userId, content },
+          include: { user: { select: { id: true, name: true } } },
+        }),
       "TASK_NOTE_FAILED",
     );
   }

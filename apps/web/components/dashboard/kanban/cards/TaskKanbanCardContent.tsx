@@ -8,6 +8,8 @@ import {
   TASK_STATUS_TONES,
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
+  getTaskKanbanStage,
+  TASK_KANBAN_STAGE_LABELS,
 } from "@/lib/utils/task-status";
 import type { TaskWithMeta } from "@/lib/utils/task-status";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,7 @@ export function TaskKanbanCardContent({
   task,
   detailPath,
 }: TaskKanbanCardContentProps) {
+  const kanbanStage = getTaskKanbanStage(task);
   const statusTone = TASK_STATUS_TONES[task.status as TaskStatus];
 
   return (
@@ -80,7 +83,8 @@ export function TaskKanbanCardContent({
           variant="outline"
           className={cn("text-[11px]", statusTone.badgeClass)}
         >
-          {TASK_STATUS_LABELS[task.status as TaskStatus]}
+          {TASK_KANBAN_STAGE_LABELS[kanbanStage] ??
+            TASK_STATUS_LABELS[task.status as TaskStatus]}
         </Badge>
       </div>
 

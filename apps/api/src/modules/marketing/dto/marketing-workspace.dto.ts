@@ -1,10 +1,30 @@
-import { IsBoolean, IsDateString, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
-import { CampaignPlatform, CampaignStatus, MarketingStrategyStatus, TaskPriority, TaskStatus } from "@hassad/shared";
+import {
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from "class-validator";
+import {
+  CampaignPlatform,
+  CampaignStatus,
+  MarketingStrategyStatus,
+  TaskPriority,
+  TaskReviewStage,
+  TaskStatus,
+} from "@hassad/shared";
 import { Type } from "class-transformer";
 
 export class MarketingTaskQueryDto {
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsEnum(TaskStatus) status?: TaskStatus;
+  @IsOptional() @IsEnum(TaskReviewStage) reviewStage?: TaskReviewStage;
   @IsOptional() @IsEnum(TaskPriority) priority?: TaskPriority;
   @IsOptional() @IsUUID() projectId?: string;
   @IsOptional() @IsDateString() dueBefore?: string;
@@ -19,7 +39,9 @@ export class MarketingTaskStatusDto {
 }
 
 export class MarketingStrategyQueryDto {
-  @IsOptional() @IsEnum(MarketingStrategyStatus) status?: MarketingStrategyStatus;
+  @IsOptional()
+  @IsEnum(MarketingStrategyStatus)
+  status?: MarketingStrategyStatus;
   @IsOptional() @IsUUID() taskId?: string;
   @IsOptional() @IsUUID() projectId?: string;
   @IsOptional() @IsInt() @Min(1) page?: number = 1;
@@ -33,8 +55,11 @@ export class MarketingCampaignQueryDto {
   @IsOptional() @IsUUID() taskId?: string;
   @IsOptional() @IsUUID() projectId?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number = 1;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number = 20;
-  @IsOptional() @IsIn(["name", "createdAt", "startDate", "budgetTotal", "budgetSpent"]) sortBy?: "name" | "createdAt" | "startDate" | "budgetTotal" | "budgetSpent";
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number =
+    20;
+  @IsOptional()
+  @IsIn(["name", "createdAt", "startDate", "budgetTotal", "budgetSpent"])
+  sortBy?: "name" | "createdAt" | "startDate" | "budgetTotal" | "budgetSpent";
   @IsOptional() @IsIn(["asc", "desc"]) sortOrder?: "asc" | "desc";
 }
 
@@ -53,7 +78,8 @@ export class MarketingCampaignOptimizationDto {
 
 export class MarketingCampaignKpiQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number = 1;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number = 20;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number =
+    20;
   @IsOptional() @IsDateString() from?: string;
   @IsOptional() @IsDateString() to?: string;
 }

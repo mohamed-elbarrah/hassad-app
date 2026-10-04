@@ -11,6 +11,7 @@ import type {
   TaskStatus,
   TaskPriority,
   TaskDepartment,
+  TaskReviewStage,
   FilePurpose,
   MarketingStrategyStatus,
 } from "@hassad/shared";
@@ -92,6 +93,7 @@ export interface PmMarketingStrategy {
 
 export interface PmTasksFilters {
   status?: TaskStatus;
+  reviewStage?: TaskReviewStage;
   priority?: TaskPriority;
   projectId?: string;
   periodId?: string;

@@ -16,6 +16,7 @@ import {
   FilePurpose,
   TaskDepartment,
   TaskPriority,
+  TaskReviewStage,
   TaskStatus,
 } from "@hassad/shared";
 
@@ -31,6 +32,10 @@ export class PmTasksQueryDto {
   @IsOptional()
   @IsEnum(TaskPriority)
   priority?: TaskPriority;
+
+  @IsOptional()
+  @IsEnum(TaskReviewStage)
+  reviewStage?: TaskReviewStage;
 
   @IsOptional()
   @IsUUID()

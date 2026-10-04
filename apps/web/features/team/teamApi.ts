@@ -5,6 +5,7 @@ import type {
   TaskComment,
   TaskFile,
   TaskStatus,
+  TaskReviewStage,
   FilePurpose,
 } from "@hassad/shared";
 
@@ -14,6 +15,7 @@ export interface TeamTaskCard extends Pick<
   | "title"
   | "description"
   | "status"
+  | "reviewStage"
   | "priority"
   | "dueDate"
   | "revisionCount"
@@ -56,6 +58,7 @@ export interface TeamOverview {
 export interface TeamTasksParams {
   search?: string;
   status?: TaskStatus;
+  reviewStage?: TaskReviewStage;
   priority?: string;
   department?: string;
   projectId?: string;
