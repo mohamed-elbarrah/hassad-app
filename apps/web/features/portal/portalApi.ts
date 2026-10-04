@@ -14,6 +14,7 @@ import type {
   ProjectStatus,
   TaskPriority,
   TaskStatus,
+  TaskReviewStage,
 } from "@hassad/shared";
 import type { ClientProfileV2 } from "@/features/clients/clientsApi";
 
@@ -543,6 +544,7 @@ export interface PortalPeriodSummary {
   reportFilePath: string | null;
   completionPercentage: number;
   goals: PeriodGoal[];
+  tasks: PortalProjectWorkspaceTask[];
   files: PortalPeriodFile[];
   invoice: PortalPeriodInvoice | null;
   meetings: PortalPeriodMeeting[];
@@ -575,13 +577,39 @@ export interface PortalProjectWorkspaceResourceFile extends PortalPeriodFile {
   filePath: string;
 }
 
+export interface PortalProjectWorkspaceTaskFile {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  purpose: string;
+  uploadedAt: string;
+  url: string | null;
+}
+
 export interface PortalProjectWorkspaceTask {
   id: string;
   title: string;
   description: string | null;
   status: TaskStatus;
+  reviewStage: TaskReviewStage;
   dueDate: string;
   progress: number;
+  assignee: {
+    id: string;
+    name: string;
+    jobTitle: string | null;
+  } | null;
+  department: string | null;
+  files: PortalProjectWorkspaceTaskFile[];
+  revisionCount: number;
+  revisionRequests: Array<{
+    id: string;
+    requestDescription: string;
+    status: string;
+    createdAt: string;
+    resolvedAt: string | null;
+  }>;
 }
 
 interface PortalProjectWorkspaceResources {
@@ -1084,6 +1112,38 @@ export const portalApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "PortalProjects", id }],
     }),
 
+    approvePortalTask: builder.mutation<unknown, string>({
+      query: (taskId) => ({
+        url: `/portal/tasks/${taskId}/approve`,
+        method: "POST",
+      }),
+      invalidatesTags: [
+        "PortalProjects",
+        "ProjectProgress",
+        "ReviewProjects",
+        "ActionItems",
+        "ActivityFeed",
+      ],
+    }),
+
+    requestPortalTaskRevision: builder.mutation<
+      unknown,
+      { taskId: string; requestDescription: string }
+    >({
+      query: ({ taskId, requestDescription }) => ({
+        url: `/portal/tasks/${taskId}/request-revision`,
+        method: "POST",
+        body: { requestDescription },
+      }),
+      invalidatesTags: [
+        "PortalProjects",
+        "ProjectProgress",
+        "ReviewProjects",
+        "ActionItems",
+        "ActivityFeed",
+      ],
+    }),
+
     getPortalInvoiceDetail: builder.query<PortalInvoiceDetail, string>({
       query: (invoiceId) => `/portal/invoices/${invoiceId}`,
       providesTags: (_result, _error, id) => [{ type: "PortalInvoices", id }],
@@ -1439,6 +1499,8 @@ export const {
   useLazyDownloadPeriodFileQuery,
   useGetPortalProjectDetailQuery,
   useGetPortalProjectWorkspaceQuery,
+  useApprovePortalTaskMutation,
+  useRequestPortalTaskRevisionMutation,
   useGetPortalInvoiceDetailQuery,
   useGetPortalPaymentGatewaysQuery,
   useGetPortalPaymentBankAccountsQuery,

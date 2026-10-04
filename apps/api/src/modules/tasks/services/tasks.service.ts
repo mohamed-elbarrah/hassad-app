@@ -14,6 +14,7 @@ import {
 import {
   TaskDepartment,
   TaskStatus,
+  TaskReviewStage,
   UserRole,
   ProjectStatus,
 } from "@hassad/shared";
@@ -43,11 +44,20 @@ export class TasksService {
     );
   }
 
-  private progressWeightByStatus(status: TaskStatus): number {
-    if (status === TaskStatus.DONE) return 100;
-    if (status === TaskStatus.IN_REVIEW) return 80;
+  private progressWeightByStatus(
+    status: TaskStatus,
+    reviewStage: TaskReviewStage,
+  ): number {
+    if (
+      reviewStage === TaskReviewStage.CLIENT_APPROVED ||
+      reviewStage === TaskReviewStage.LEGACY_COMPLETED
+    )
+      return 100;
+    if (reviewStage === TaskReviewStage.CLIENT_REVIEW) return 80;
+    if (reviewStage === TaskReviewStage.PM_REVIEW) return 70;
+    if (reviewStage === TaskReviewStage.CLIENT_REVISION_REQUESTED) return 50;
+    if (reviewStage === TaskReviewStage.PM_REVISION_REQUESTED) return 25;
     if (status === TaskStatus.IN_PROGRESS) return 50;
-    if (status === TaskStatus.REVISION) return 25;
     return 0;
   }
 
@@ -57,7 +67,7 @@ export class TasksService {
   ) {
     const tasks = await db.task.findMany({
       where: { projectId },
-      select: { status: true },
+      select: { status: true, reviewStage: true },
     });
 
     const completionPercentage =
@@ -66,7 +76,11 @@ export class TasksService {
         : Math.round(
             tasks.reduce(
               (sum, task) =>
-                sum + this.progressWeightByStatus(task.status as TaskStatus),
+                sum +
+                this.progressWeightByStatus(
+                  task.status as TaskStatus,
+                  task.reviewStage as TaskReviewStage,
+                ),
               0,
             ) / tasks.length,
           );
@@ -258,11 +272,17 @@ export class TasksService {
     });
 
     if (!user) {
-      throw new NotFoundException({ code: "TASK_ASSIGNEE_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "TASK_ASSIGNEE_NOT_FOUND",
+        details: {},
+      });
     }
 
     if (!user.isActive) {
-      throw new BadRequestException({ code: "TASK_ASSIGNEE_INACTIVE", details: {} });
+      throw new BadRequestException({
+        code: "TASK_ASSIGNEE_INACTIVE",
+        details: {},
+      });
     }
 
     const assigneeRole = user.role.name as UserRole;
@@ -272,7 +292,10 @@ export class TasksService {
         (d) => d.departmentId === departmentId,
       );
       if (!inDepartment) {
-        throw new BadRequestException({ code: "TASK_ASSIGNEE_DEPARTMENT_MISMATCH", details: {} });
+        throw new BadRequestException({
+          code: "TASK_ASSIGNEE_DEPARTMENT_MISMATCH",
+          details: {},
+        });
       }
     } else if (assigneeRole === UserRole.MARKETING) {
       const deptName =
@@ -284,10 +307,16 @@ export class TasksService {
           })
         )?.name;
       if (deptName !== TaskDepartment.MARKETING) {
-        throw new BadRequestException({ code: "TASK_MARKETING_DEPARTMENT_REQUIRED", details: {} });
+        throw new BadRequestException({
+          code: "TASK_MARKETING_DEPARTMENT_REQUIRED",
+          details: {},
+        });
       }
     } else {
-      throw new BadRequestException({ code: "TASK_ASSIGNEE_ROLE_INVALID", details: {} });
+      throw new BadRequestException({
+        code: "TASK_ASSIGNEE_ROLE_INVALID",
+        details: {},
+      });
     }
 
     return user;
@@ -298,19 +327,31 @@ export class TasksService {
       where: { name: dto.dept },
     });
     if (!department) {
-      throw new BadRequestException({ code: "TASK_DEPARTMENT_NOT_FOUND", details: {} });
+      throw new BadRequestException({
+        code: "TASK_DEPARTMENT_NOT_FOUND",
+        details: {},
+      });
     }
 
     if (dto.assignedTo) {
-      await this.resolveAssignableUser(
-        dto.assignedTo,
-        department.id,
-        dto.dept,
-      );
+      await this.resolveAssignableUser(dto.assignedTo, department.id, dto.dept);
     }
 
     const { dept: _dept, periodId: dtoPeriodId, ...rest } = dto;
     void _dept;
+
+    if (dtoPeriodId) {
+      const period = await this.prisma.projectPeriod.findFirst({
+        where: { id: dtoPeriodId, projectId: dto.projectId },
+        select: { id: true },
+      });
+      if (!period) {
+        throw new BadRequestException({
+          code: "TASK_PERIOD_PROJECT_MISMATCH",
+          details: {},
+        });
+      }
+    }
 
     // Auto-link the task to the project's ACTIVE period when not explicitly provided.
     const periodId =
@@ -335,7 +376,6 @@ export class TasksService {
     });
 
     if (createdTask.assignedTo) {
-
       this.notificationsService
         .createNotification({
           entityId: createdTask.id,
@@ -435,31 +475,56 @@ export class TasksService {
       task.status !== TaskStatus.TODO &&
       task.status !== TaskStatus.REVISION
     ) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_START", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID_FOR_START",
+        details: {},
+      });
     }
     if (
       toStatus === TaskStatus.IN_REVIEW &&
       task.status !== TaskStatus.IN_PROGRESS
     ) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_SUBMIT", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID_FOR_SUBMIT",
+        details: {},
+      });
     }
     if (toStatus === TaskStatus.DONE && task.status !== TaskStatus.IN_REVIEW) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_APPROVE", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID_FOR_APPROVE",
+        details: {},
+      });
     }
     if (
       toStatus === TaskStatus.REVISION &&
       task.status !== TaskStatus.IN_REVIEW
     ) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_REVISION", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID_FOR_REVISION",
+        details: {},
+      });
     }
+
+    const nextReviewStage =
+      toStatus === TaskStatus.IN_REVIEW
+        ? TaskReviewStage.PM_REVIEW
+        : toStatus === TaskStatus.DONE
+          ? TaskReviewStage.CLIENT_REVIEW
+          : toStatus === TaskStatus.REVISION
+            ? TaskReviewStage.PM_REVISION_REQUESTED
+            : toStatus === TaskStatus.IN_PROGRESS
+              ? TaskReviewStage.NOT_SUBMITTED
+              : task.reviewStage;
 
     const updatedTask = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.task.update({
         where: { id },
         data: {
           status: toStatus,
+          reviewStage: nextReviewStage,
           approvedBy: approvedBy || undefined,
           approvedAt: toStatus === TaskStatus.DONE ? new Date() : undefined,
+          pmAcceptedAt: toStatus === TaskStatus.DONE ? new Date() : undefined,
           submittedAt:
             toStatus === TaskStatus.IN_REVIEW ? new Date() : undefined,
           startedAt:
@@ -481,6 +546,25 @@ export class TasksService {
         },
       });
 
+      if (task.reviewStage !== nextReviewStage) {
+        await tx.taskReviewHistory.create({
+          data: {
+            taskId: id,
+            fromStage: task.reviewStage,
+            toStage: nextReviewStage,
+            actorId: userId,
+            actorType: "STAFF",
+          },
+        });
+      }
+
+      if (toStatus === TaskStatus.IN_REVIEW) {
+        await tx.taskRevisionRequest.updateMany({
+          where: { taskId: id, status: "OPEN" },
+          data: { status: "RESOLVED", resolvedAt: new Date() },
+        });
+      }
+
       if (toStatus === TaskStatus.DONE) {
         const portalDepts = [
           TaskDepartment.DESIGN,
@@ -492,14 +576,29 @@ export class TasksService {
           const existing = await tx.deliverable.findFirst({
             where: { taskId: id },
           });
-          if (!existing) {
+          const submittedFile = task.files.find(
+            (file) => file.purpose === FilePurpose.DELIVERABLE,
+          );
+          if (existing && !existing.filePath && submittedFile) {
+            await tx.deliverable.update({
+              where: { id: existing.id },
+              data: {
+                filePath: submittedFile.filePath,
+                periodId: task.periodId,
+                status: TaskStatus.IN_REVIEW,
+              },
+            });
+          } else if (!existing && submittedFile) {
             await tx.deliverable.create({
               data: {
                 projectId: task.projectId,
                 taskId: id,
+                periodId: task.periodId,
                 title: task.title,
                 description: task.description || undefined,
-                filePath: "",
+                // Reuse the existing task file; do not upload or duplicate it.
+                filePath: submittedFile.filePath,
+                status: TaskStatus.IN_REVIEW,
                 isVisibleToClient: task.isVisibleToClient,
               },
             });
@@ -644,12 +743,18 @@ export class TasksService {
   async changeStatus(id: string, userId: string, toStatus: TaskStatus) {
     const validStatuses = Object.values(TaskStatus);
     if (!validStatuses.includes(toStatus)) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID",
+        details: {},
+      });
     }
 
     switch (toStatus) {
       case TaskStatus.TODO:
-        throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_TODO", details: {} });
+        throw new BadRequestException({
+          code: "TASK_STATUS_INVALID_FOR_TODO",
+          details: {},
+        });
       case TaskStatus.IN_PROGRESS:
         return this.start(id, userId);
       case TaskStatus.IN_REVIEW:
@@ -659,7 +764,10 @@ export class TasksService {
       case TaskStatus.REVISION:
         return this.reject(id, userId);
       default:
-        throw new BadRequestException({ code: "TASK_STATUS_UNHANDLED", details: {} });
+        throw new BadRequestException({
+          code: "TASK_STATUS_UNHANDLED",
+          details: {},
+        });
     }
   }
 
@@ -933,7 +1041,10 @@ export class TasksService {
     },
     includeCampaigns: boolean = false,
   ) {
-    const where: Record<string, unknown> = { assignedTo: userId, archivedAt: null };
+    const where: Record<string, unknown> = {
+      assignedTo: userId,
+      archivedAt: null,
+    };
     if (filters.status) where["status"] = filters.status;
     if (filters.priority) where["priority"] = filters.priority;
     if (filters.dept) where["departmentId"] = filters.dept;

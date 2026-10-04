@@ -27,6 +27,7 @@ import {
   SaveDraftDto,
   ReportTimelineQueryDto,
   RequestProjectRevisionDto,
+  RequestTaskRevisionDto,
   SnoozeActionItemDto,
   PortalProjectsQueryDto,
 } from "../dto/portal.dto";
@@ -162,18 +163,21 @@ export class PortalController {
   private async verifyFileBelongsToProject(
     clientId: string,
     projectId: string,
+    periodId: string,
     fileId: string,
   ): Promise<void> {
     const file = await this.prisma.projectFile.findUnique({
       where: { id: fileId },
       select: {
         projectId: true,
+        periodId: true,
         project: { select: { clientId: true } },
       },
     });
     if (
       !file ||
       file.projectId !== projectId ||
+      file.periodId !== periodId ||
       file.project.clientId !== clientId
     ) {
       throw new NotFoundException({ code: "FILE_NOT_FOUND", details: {} });
@@ -317,12 +321,20 @@ export class PortalController {
         details: {},
       });
     }
-    return this.portalService.approveDeliverable(id, user.id);
+    return this.portalService.approveDeliverable(
+      id,
+      user.id,
+      clientId ?? undefined,
+    );
   }
 
   @Post("deliverables/:id/reject")
   @RequirePermissions("portal.approve_deliverables")
-  async rejectDeliverable(@Param("id") id: string, @CurrentUser() user: any) {
+  async rejectDeliverable(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto?: RequestTaskRevisionDto,
+  ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && !(await this.verifyClientOwnsDeliverable(clientId, id))) {
       throw new ForbiddenException({
@@ -330,7 +342,12 @@ export class PortalController {
         details: {},
       });
     }
-    return this.portalService.rejectDeliverable(id);
+    return this.portalService.rejectDeliverable(
+      id,
+      clientId ?? undefined,
+      dto?.requestDescription,
+      user.id,
+    );
   }
 
   @Post("deliverables/:id/revisions")
@@ -347,7 +364,7 @@ export class PortalController {
         details: {},
       });
     }
-    return this.portalService.createRevision(id, user.id, dto);
+    return this.portalService.createRevision(id, clientId, dto);
   }
 
   @Get("deliverables/:id/revisions")
@@ -894,6 +911,66 @@ export class PortalController {
 
   // NOTE: declared after the static project routes so the `:id` param does not
   // shadow them.
+  @Get("portal/projects/:id/tasks")
+  @RequirePermissions("portal.read")
+  async getPortalProjectTasks(
+    @Param("id", ParseUUIDPipe) projectId: string,
+    @Query("periodId", new ParseUUIDPipe({ optional: true }))
+    periodId: string | undefined,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) {
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
+    }
+    return this.portalService.getPortalProjectTasks(
+      clientId,
+      projectId,
+      periodId,
+    );
+  }
+
+  @Post("portal/tasks/:id/approve")
+  @RequirePermissions("portal.approve_deliverables")
+  async approvePortalTask(
+    @Param("id", ParseUUIDPipe) taskId: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) {
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
+    }
+    return this.portalService.approvePortalTask(clientId, taskId, user.id);
+  }
+
+  @Post("portal/tasks/:id/request-revision")
+  @RequirePermissions("portal.request_revisions")
+  async requestPortalTaskRevision(
+    @Param("id", ParseUUIDPipe) taskId: string,
+    @Body() dto: RequestTaskRevisionDto,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) {
+      throw new ForbiddenException({
+        code: "PORTAL_ACCESS_FORBIDDEN",
+        details: {},
+      });
+    }
+    return this.portalService.requestPortalTaskRevision(
+      clientId,
+      taskId,
+      dto,
+      user.id,
+    );
+  }
+
   @Get("portal/projects/:id")
   @RequirePermissions("portal.read")
   async getPortalProjectDetail(
@@ -933,6 +1010,7 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async downloadPeriodFile(
     @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Param("periodId", ParseUUIDPipe) periodId: string,
     @Param("fileId", ParseUUIDPipe) fileId: string,
     @CurrentUser() user: any,
   ) {
@@ -944,7 +1022,12 @@ export class PortalController {
       });
     // Defense in depth: validate the URL projectId matches the file's
     // owning project. (Audit issue #3)
-    await this.verifyFileBelongsToProject(clientId, projectId, fileId);
+    await this.verifyFileBelongsToProject(
+      clientId,
+      projectId,
+      periodId,
+      fileId,
+    );
     return this.portalService.getPeriodFileDownloadUrl(clientId, fileId);
   }
 

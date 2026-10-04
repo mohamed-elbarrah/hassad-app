@@ -2,6 +2,7 @@
 
 import {
   Calendar,
+  CheckCircle2,
   DollarSign,
   FileText,
   Megaphone,
@@ -18,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "./EmptyState";
 import { CampaignsTab } from "./CampaignsTab";
+import { TasksTab } from "./TasksTab";
 import { formatDateTz, formatFileSize, formatShortDate } from "@/lib/format";
 import { useCurrency } from "@/hooks/useCurrency";
 import { invoiceStatusLabel, portalProjectStatusLabel } from "@/lib/i18n";
@@ -27,12 +29,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface FixedProjectWorkspaceProps {
   project: PortalProjectDetail;
   resources: NonNullable<PortalProjectWorkspace["resources"]>;
+  focusTaskId?: string | null;
+  initialTab?: string | null;
 }
 
 export function FixedProjectWorkspace({
   project,
   resources,
+  focusTaskId,
+  initialTab,
 }: FixedProjectWorkspaceProps) {
+  const defaultTab =
+    initialTab &&
+    ["goals", "tasks", "files", "reports", "campaigns", "meetings", "invoices"].includes(initialTab)
+      ? initialTab
+      : "tasks";
   const { fmtAmount } = useCurrency();
 
   return (
@@ -72,11 +83,15 @@ export function FixedProjectWorkspace({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="goals" dir="rtl">
+      <Tabs defaultValue={defaultTab} dir="rtl">
         <TabsList className="h-auto w-full flex-wrap justify-start overflow-x-auto sm:flex-nowrap">
           <TabsTrigger value="goals" className="gap-2 py-2.5">
             <Target className="size-4" />
             الأهداف
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-2 py-2.5">
+            <CheckCircle2 className="size-4" />
+            المهام
           </TabsTrigger>
           <TabsTrigger value="files" className="gap-2 py-2.5">
             <Paperclip className="size-4" />
@@ -161,6 +176,10 @@ export function FixedProjectWorkspace({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="tasks" className="mt-4">
+          <TasksTab tasks={resources.tasks} focusTaskId={focusTaskId} />
         </TabsContent>
 
         <TabsContent value="files" className="mt-4">

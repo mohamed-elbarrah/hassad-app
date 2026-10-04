@@ -303,6 +303,7 @@ model Client {
   payments             Payment[]
   intakeForms          PortalIntakeForm[]
   projectRevisionReqs  ProjectRevisionRequest[]
+  taskRevisionRequests TaskRevisionRequest[]
   projects             Project[]
   proposals            Proposal[]
   requests             Request[]
@@ -836,11 +837,14 @@ model Task {
   title               String
   description         String?
   status              TaskStatus
+  reviewStage         TaskReviewStage @default(NOT_SUBMITTED) @map("review_stage")
   priority            TaskPriority
   dueDate             DateTime            @map("due_date")
   startedAt           DateTime?           @map("started_at")
   submittedAt         DateTime?           @map("submitted_at")
   approvedAt          DateTime?           @map("approved_at")
+  pmAcceptedAt        DateTime?           @map("pm_accepted_at")
+  clientApprovedAt    DateTime?           @map("client_approved_at")
   revisionCount       Int                 @default(0) @map("revision_count")
   isVisibleToClient   Boolean             @default(false) @map("is_visible_to_client")
   periodId            String?             @map("period_id")
@@ -857,6 +861,8 @@ model Task {
   delayAlerts         TaskDelayAlert[]
   files               TaskFile[]
   statusHistory       TaskStatusHistory[]
+  revisionRequests    TaskRevisionRequest[]
+  reviewHistory       TaskReviewHistory[]
   approver            User?               @relation("TaskApprover", fields: [approvedBy], references: [id])
   assignee            User?               @relation("TaskAssignee", fields: [assignedTo], references: [id])
   creator             User                @relation("TaskCreator", fields: [createdBy], references: [id])
@@ -870,6 +876,39 @@ model Task {
   @@index([createdAt])
   @@index([periodId])
   @@map("tasks")
+}
+
+model TaskRevisionRequest {
+  id                 String             @id @default(uuid())
+  taskId             String             @map("task_id")
+  clientId           String             @map("client_id")
+  requestDescription String             @map("request_description")
+  status             TaskRevisionStatus @default(OPEN)
+  createdAt          DateTime           @default(now()) @map("created_at")
+  resolvedAt         DateTime?          @map("resolved_at")
+  task               Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  client             Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([clientId])
+  @@index([status])
+  @@map("task_revision_requests")
+}
+
+model TaskReviewHistory {
+  id         String          @id @default(uuid())
+  taskId     String          @map("task_id")
+  fromStage  TaskReviewStage  @map("from_stage")
+  toStage    TaskReviewStage  @map("to_stage")
+  actorId    String          @map("actor_id")
+  actorType  String          @map("actor_type")
+  comment    String?
+  createdAt  DateTime        @default(now()) @map("created_at")
+  task       Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([createdAt])
+  @@map("task_review_history")
 }
 
 model TaskStatusHistory {
@@ -2249,6 +2288,21 @@ enum TaskStatus {
   IN_REVIEW
   DONE
   REVISION
+}
+
+enum TaskReviewStage {
+  NOT_SUBMITTED
+  PM_REVIEW
+  PM_REVISION_REQUESTED
+  CLIENT_REVIEW
+  CLIENT_REVISION_REQUESTED
+  CLIENT_APPROVED
+  LEGACY_COMPLETED
+}
+
+enum TaskRevisionStatus {
+  OPEN
+  RESOLVED
 }
 
 enum TaskPriority {

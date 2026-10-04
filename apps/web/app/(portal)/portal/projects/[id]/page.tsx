@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  CheckCircle2,
   DollarSign,
   FileText,
   Megaphone,
@@ -36,6 +37,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   ProjectHeader,
   GoalsTab,
+  TasksTab,
   FilesTab,
   ReportsTab,
   CampaignsTab,
@@ -43,7 +45,11 @@ import {
   InvoiceTab,
   FixedProjectWorkspace,
 } from "@/components/portal/project-detail";
-import { ProjectPeriodStatus, PROJECT_STATUS_AR } from "@hassad/shared";
+import {
+  ProjectPeriodStatus,
+  PROJECT_STATUS_AR,
+  TaskReviewStage,
+} from "@hassad/shared";
 import { ProjectPeriodWorkspace } from "@/components/project-detail/ProjectPeriodWorkspace";
 import { daysUntil, formatShortDate } from "@/lib/format";
 
@@ -55,6 +61,7 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { id: "goals", label: "الأهداف", icon: Target },
+  { id: "tasks", label: "المهام", icon: CheckCircle2 },
   { id: "files", label: "الملفات", icon: Paperclip },
   { id: "reports", label: "التقارير", icon: FileText },
   { id: "campaigns", label: "الحملات", icon: Megaphone },
@@ -63,8 +70,14 @@ const TABS: TabDef[] = [
 ];
 
 /** Resolve the initially selected period (ACTIVE → first → null). */
-function pickInitialPeriod(periods: PortalPeriodSummary[]): string | null {
+function pickInitialPeriod(
+  periods: PortalPeriodSummary[],
+  requestedPeriodId?: string | null,
+): string | null {
   if (periods.length === 0) return null;
+  if (requestedPeriodId && periods.some((p) => p.id === requestedPeriodId)) {
+    return requestedPeriodId;
+  }
   const active = periods.find((p) => p.status === ProjectPeriodStatus.ACTIVE);
   return (active ?? periods[0]).id;
 }
@@ -86,6 +99,13 @@ function pickInitialPeriod(periods: PortalPeriodSummary[]): string | null {
  * period switches.
  */
 function pickInitialTab(period: PortalPeriodSummary): string {
+  if (
+    period.tasks.some(
+      (task) => task.reviewStage === TaskReviewStage.CLIENT_REVIEW,
+    )
+  ) {
+    return "tasks";
+  }
   if (period.stats.hasReport) return "reports";
   if (period.invoice) return "invoices";
   if (period.meetings.length > 0) return "meetings";
@@ -95,7 +115,9 @@ function pickInitialTab(period: PortalPeriodSummary): string {
 
 export default function PortalProjectPeriodsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
+  const focusTaskId = searchParams.get("taskId");
 
   const {
     data: workspace,
@@ -122,22 +144,27 @@ export default function PortalProjectPeriodsPage() {
     setActiveTab("goals");
   }, [projectId]);
 
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (requestedTab && TABS.some((tab) => tab.id === requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
+
   // Auto-select the active (or first) period once periods load, AND pick
   // the most informative initial tab for that period.
   //
-  // Depends ONLY on `periods` — when the user explicitly picks a different
-  // period we don't want to re-run this effect and override their tab.
-  // (Audit issue #12, polish issue #1.)
+  // The selected period guard prevents explicit tab/period choices from being
+  // overridden after the initial workspace load.
   useEffect(() => {
     if (periods && periods.length > 0 && !selectedPeriodId) {
-      const periodId = pickInitialPeriod(periods);
+      const periodId = pickInitialPeriod(periods, searchParams.get("periodId"));
       const period = periods.find((p) => p.id === periodId);
       setSelectedPeriodId(periodId);
-      if (period) setActiveTab(pickInitialTab(period));
+      const requestedTab = searchParams.get("tab");
+      if (!requestedTab && period) setActiveTab(pickInitialTab(period));
     }
-    // selectedPeriodId intentionally omitted — see comment above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periods]);
+  }, [periods, searchParams, selectedPeriodId]);
 
   const selectedPeriod =
     periods?.find((p) => p.id === selectedPeriodId) ?? null;
@@ -247,6 +274,8 @@ export default function PortalProjectPeriodsPage() {
         <FixedProjectWorkspace
           project={project}
           resources={workspace.resources}
+          focusTaskId={focusTaskId}
+          initialTab={searchParams.get("tab")}
         />
       </main>
     );
@@ -355,6 +384,13 @@ export default function PortalProjectPeriodsPage() {
 
             <TabsContent value="goals" className="mt-4">
               <GoalsTab goals={selectedPeriod.goals} />
+            </TabsContent>
+
+            <TabsContent value="tasks" className="mt-4">
+              <TasksTab
+                tasks={selectedPeriod.tasks}
+                focusTaskId={focusTaskId}
+              />
             </TabsContent>
 
             <TabsContent value="files" className="mt-4">

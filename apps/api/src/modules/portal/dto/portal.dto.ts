@@ -145,6 +145,13 @@ export class CreateRevisionDto {
   requestDescription: string;
 }
 
+export class RequestTaskRevisionDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  requestDescription: string;
+}
+
 export class IntakeCommunicationInfoDto {
   @IsOptional()
   @IsString()

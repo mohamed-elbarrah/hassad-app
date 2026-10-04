@@ -132,9 +132,11 @@ import {
   CreateIntakeFormDto,
   SaveDraftDto,
   RequestProjectRevisionDto,
+  RequestTaskRevisionDto,
 } from "../dto/portal.dto";
 import {
   TaskStatus,
+  TaskReviewStage,
   ContractStatus,
   InvoiceStatus,
   ProposalStatus,
@@ -559,6 +561,51 @@ export class PortalService {
         reportFilePath: true,
         completionPercentage: true,
         goals: true,
+        tasks: {
+          where: { isVisibleToClient: true, archivedAt: null },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            reviewStage: true,
+            dueDate: true,
+            revisionCount: true,
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+                employee: { select: { role: true } },
+              },
+            },
+            department: { select: { name: true } },
+            files: {
+              where: { purpose: "DELIVERABLE" },
+              select: {
+                id: true,
+                fileName: true,
+                fileType: true,
+                fileSize: true,
+                purpose: true,
+                uploadedAt: true,
+                filePath: true,
+              },
+              orderBy: { uploadedAt: "desc" },
+            },
+            revisionRequests: {
+              where: { clientId },
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                requestDescription: true,
+                status: true,
+                createdAt: true,
+                resolvedAt: true,
+              },
+            },
+          },
+          orderBy: { dueDate: "asc" },
+        },
         invoice: {
           select: {
             id: true,
@@ -601,7 +648,10 @@ export class PortalService {
 
     // Presign all file URLs in one batch (covers period files).
     const allFileKeys = periods
-      .flatMap((p) => p.files.map((f) => f.filePath))
+      .flatMap((p) => [
+        ...p.files.map((f) => f.filePath),
+        ...p.tasks.flatMap((task) => task.files.map((f) => f.filePath)),
+      ])
       .filter(Boolean);
     const fileUrlMap =
       allFileKeys.length > 0
@@ -635,6 +685,35 @@ export class PortalService {
         url: fileUrlMap.get(f.filePath) ?? null,
       }));
 
+      const tasks = period.tasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        reviewStage: task.reviewStage,
+        dueDate: task.dueDate,
+        revisionCount: task.revisionCount,
+        progress: this.taskProgress(task.status, task.reviewStage),
+        assignee: task.assignee
+          ? {
+              id: task.assignee.id,
+              name: task.assignee.name,
+              jobTitle: task.assignee.employee?.role ?? null,
+            }
+          : null,
+        department: task.department?.name ?? null,
+        files: task.files.map((file) => ({
+          id: file.id,
+          fileName: file.fileName,
+          fileType: file.fileType,
+          fileSize: file.fileSize,
+          purpose: file.purpose,
+          uploadedAt: file.uploadedAt,
+          url: fileUrlMap.get(file.filePath) ?? null,
+        })),
+        revisionRequests: task.revisionRequests,
+      }));
+
       const upcomingMeeting = period.meetings
         .filter((m) => m.status === "SCHEDULED" || m.status === "RESCHEDULED")
         .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
@@ -650,6 +729,7 @@ export class PortalService {
         reportFilePath: period.reportFilePath,
         completionPercentage: period.completionPercentage,
         goals,
+        tasks,
         files,
         invoice,
         meetings: period.meetings,
@@ -670,6 +750,20 @@ export class PortalService {
         },
       };
     });
+  }
+
+  private taskProgress(status: string, reviewStage: string): number {
+    if (
+      reviewStage === TaskReviewStage.CLIENT_APPROVED ||
+      reviewStage === TaskReviewStage.LEGACY_COMPLETED
+    )
+      return 100;
+    if (reviewStage === TaskReviewStage.CLIENT_REVIEW) return 80;
+    if (reviewStage === TaskReviewStage.PM_REVIEW) return 70;
+    if (reviewStage === TaskReviewStage.CLIENT_REVISION_REQUESTED) return 50;
+    if (reviewStage === TaskReviewStage.PM_REVISION_REQUESTED) return 25;
+    if (status === TaskStatus.IN_PROGRESS) return 50;
+    return 0;
   }
 
   /** Normalize free-form Json goals into the canonical PeriodGoal shape. */
@@ -840,13 +934,50 @@ export class PortalService {
           title: true,
           description: true,
           status: true,
+          reviewStage: true,
           dueDate: true,
+          revisionCount: true,
+          assignee: {
+            select: {
+              id: true,
+              name: true,
+              employee: { select: { role: true } },
+            },
+          },
+          department: { select: { name: true } },
+          files: {
+            where: { purpose: "DELIVERABLE" },
+            select: {
+              id: true,
+              fileName: true,
+              fileType: true,
+              fileSize: true,
+              purpose: true,
+              uploadedAt: true,
+              filePath: true,
+            },
+            orderBy: { uploadedAt: "desc" },
+          },
+          revisionRequests: {
+            where: { clientId },
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              requestDescription: true,
+              status: true,
+              createdAt: true,
+              resolvedAt: true,
+            },
+          },
         },
         orderBy: { dueDate: "asc" },
       }),
     ]);
 
-    const fileKeys = files.map((file) => file.filePath);
+    const fileKeys = [
+      ...files.map((file) => file.filePath),
+      ...tasks.flatMap((task) => task.files.map((file) => file.filePath)),
+    ];
     const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
     const projectInvoices = Array.from(
       new Map(
@@ -880,20 +1011,300 @@ export class PortalService {
         meetings,
         invoices: projectInvoices,
         tasks: tasks.map((task) => ({
-          ...task,
-          progress:
-            task.status === "DONE"
-              ? 100
-              : task.status === "IN_REVIEW"
-                ? 75
-                : task.status === "IN_PROGRESS"
-                  ? 50
-                  : task.status === "REVISION"
-                    ? 25
-                    : 0,
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          reviewStage: task.reviewStage,
+          dueDate: task.dueDate,
+          revisionCount: task.revisionCount,
+          progress: this.taskProgress(task.status, task.reviewStage),
+          assignee: task.assignee
+            ? {
+                id: task.assignee.id,
+                name: task.assignee.name,
+                jobTitle: task.assignee.employee?.role ?? null,
+              }
+            : null,
+          department: task.department?.name ?? null,
+          files: task.files.map((file) => ({
+            id: file.id,
+            fileName: file.fileName,
+            fileType: file.fileType,
+            fileSize: file.fileSize,
+            purpose: file.purpose,
+            uploadedAt: file.uploadedAt,
+            url: urlMap.get(file.filePath) ?? null,
+          })),
+          revisionRequests: task.revisionRequests,
         })),
       },
     };
+  }
+
+  async getPortalProjectTasks(
+    clientId: string,
+    projectId: string,
+    periodId?: string,
+  ) {
+    await this.getProjectDetail(clientId, projectId);
+    if (periodId) {
+      const period = await this.prisma.projectPeriod.findFirst({
+        where: { id: periodId, projectId },
+        select: { id: true },
+      });
+      if (!period) {
+        throw new NotFoundException({
+          code: "PROJECT_PERIOD_NOT_FOUND",
+          details: {},
+        });
+      }
+    }
+
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        projectId,
+        periodId: periodId ?? null,
+        isVisibleToClient: true,
+        archivedAt: null,
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        reviewStage: true,
+        dueDate: true,
+        revisionCount: true,
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            employee: { select: { role: true } },
+          },
+        },
+        department: { select: { name: true } },
+        files: {
+          where: { purpose: "DELIVERABLE" },
+          select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            purpose: true,
+            uploadedAt: true,
+            filePath: true,
+          },
+          orderBy: { uploadedAt: "desc" },
+        },
+        revisionRequests: {
+          where: { clientId },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            requestDescription: true,
+            status: true,
+            createdAt: true,
+            resolvedAt: true,
+          },
+        },
+      },
+      orderBy: { dueDate: "asc" },
+    });
+
+    const keys = tasks.flatMap((task) =>
+      task.files.map((file) => file.filePath),
+    );
+    const urlMap = await this.storageService.getMultiplePresignedUrls(keys);
+    return tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      reviewStage: task.reviewStage,
+      dueDate: task.dueDate,
+      revisionCount: task.revisionCount,
+      progress: this.taskProgress(task.status, task.reviewStage),
+      assignee: task.assignee
+        ? {
+            id: task.assignee.id,
+            name: task.assignee.name,
+            jobTitle: task.assignee.employee?.role ?? null,
+          }
+        : null,
+      department: task.department?.name ?? null,
+      files: task.files.map((file) => ({
+        id: file.id,
+        fileName: file.fileName,
+        fileType: file.fileType,
+        fileSize: file.fileSize,
+        purpose: file.purpose,
+        uploadedAt: file.uploadedAt,
+        url: urlMap.get(file.filePath) ?? null,
+      })),
+      revisionRequests: task.revisionRequests,
+    }));
+  }
+
+  async approvePortalTask(
+    clientId: string,
+    taskId: string,
+    actorId: string = clientId,
+  ) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        isVisibleToClient: true,
+        project: { clientId },
+      },
+      select: {
+        id: true,
+        projectId: true,
+        reviewStage: true,
+        project: { select: { projectManagerId: true } },
+      },
+    });
+    if (!task) {
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
+    }
+    if (task.reviewStage !== TaskReviewStage.CLIENT_REVIEW) {
+      throw new BadRequestException({
+        code: "TASK_NOT_READY_FOR_CLIENT_APPROVAL",
+        details: {},
+      });
+    }
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.task.update({
+        where: { id: taskId },
+        data: {
+          status: TaskStatus.DONE,
+          reviewStage: TaskReviewStage.CLIENT_APPROVED,
+          clientApprovedAt: new Date(),
+        },
+      }),
+      this.prisma.deliverable.updateMany({
+        where: { taskId, projectId: task.projectId },
+        data: {
+          status: TaskStatus.DONE,
+          approvedAt: new Date(),
+        },
+      }),
+      this.prisma.taskReviewHistory.create({
+        data: {
+          taskId,
+          fromStage: task.reviewStage,
+          toStage: TaskReviewStage.CLIENT_APPROVED,
+          actorId,
+          actorType: "CLIENT",
+        },
+      }),
+    ]);
+    await this.refreshClientTaskProgress(task.projectId, clientId);
+    if (task.project.projectManagerId) {
+      this.notificationsService
+        .createNotification({
+          entityId: taskId,
+          entityType: "task",
+          eventType: "TASK_CLIENT_APPROVED",
+          userId: task.project.projectManagerId,
+        })
+        .catch(() => undefined);
+    }
+    return updated;
+  }
+
+  async requestPortalTaskRevision(
+    clientId: string,
+    taskId: string,
+    dto: RequestTaskRevisionDto,
+    actorId: string = clientId,
+  ) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        isVisibleToClient: true,
+        project: { clientId },
+      },
+      select: {
+        id: true,
+        reviewStage: true,
+        project: { select: { projectManagerId: true } },
+      },
+    });
+    if (!task) {
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
+    }
+    if (task.reviewStage !== TaskReviewStage.CLIENT_REVIEW) {
+      throw new BadRequestException({
+        code: "TASK_NOT_READY_FOR_CLIENT_REVISION",
+        details: {},
+      });
+    }
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.task.update({
+        where: { id: taskId },
+        data: {
+          status: TaskStatus.REVISION,
+          reviewStage: TaskReviewStage.CLIENT_REVISION_REQUESTED,
+          revisionCount: { increment: 1 },
+        },
+      }),
+      this.prisma.deliverable.updateMany({
+        where: { taskId },
+        data: { status: TaskStatus.REVISION },
+      }),
+      this.prisma.taskReviewHistory.create({
+        data: {
+          taskId,
+          fromStage: task.reviewStage,
+          toStage: TaskReviewStage.CLIENT_REVISION_REQUESTED,
+          actorId,
+          actorType: "CLIENT",
+          comment: dto.requestDescription,
+        },
+      }),
+      this.prisma.taskRevisionRequest.create({
+        data: {
+          taskId,
+          clientId,
+          requestDescription: dto.requestDescription,
+        },
+      }),
+    ]);
+    if (task.project.projectManagerId) {
+      this.notificationsService
+        .createNotification({
+          entityId: taskId,
+          entityType: "task",
+          eventType: "TASK_CLIENT_REVISION_REQUESTED",
+          userId: task.project.projectManagerId,
+          metadata: { requestDescription: dto.requestDescription },
+        })
+        .catch(() => undefined);
+    }
+    return updated;
+  }
+
+  private async refreshClientTaskProgress(projectId: string, clientId: string) {
+    const tasks = await this.prisma.task.findMany({
+      where: { projectId, isVisibleToClient: true, archivedAt: null },
+      select: { reviewStage: true },
+    });
+    if (tasks.length === 0) return;
+    const completed = tasks.filter(
+      (task) => task.reviewStage === TaskReviewStage.CLIENT_APPROVED,
+    ).length;
+    const completionPercentage = Math.round((completed / tasks.length) * 100);
+    const allCompleted = completed === tasks.length;
+    await this.prisma.project.update({
+      where: { id: projectId, clientId },
+      data: {
+        completionPercentage,
+        ...(allCompleted ? { status: ProjectStatus.AWAITING_REVIEW } : {}),
+      },
+    });
   }
 
   /** Client-scoped invoice detail (no PDF — PDF deferred to a later phase). */
@@ -1257,7 +1668,9 @@ export class PortalService {
           title: d.title,
           subtitleCode: "PROJECT",
           subtitleParams: { projectName: d.project.name },
-          actionUrl: `/portal/deliverables/${d.id}`,
+          actionUrl: d.taskId
+            ? `/portal/projects/${d.projectId}?tab=tasks&taskId=${d.taskId}${d.periodId ? `&periodId=${d.periodId}` : ""}`
+            : `/portal/deliverables/${d.id}`,
           priority: "high",
           createdAt: d.createdAt,
         });
@@ -1523,7 +1936,9 @@ export class PortalService {
           title: d.title,
           subtitleCode: "PROJECT",
           subtitleParams: { projectName: d.project.name },
-          actionUrl: `/portal/deliverables/${d.id}`,
+          actionUrl: d.taskId
+            ? `/portal/projects/${d.projectId}?tab=tasks&taskId=${d.taskId}${d.periodId ? `&periodId=${d.periodId}` : ""}`
+            : `/portal/deliverables/${d.id}`,
           priority: d.status === "IN_REVIEW" ? "high" : "normal",
           createdAt: d.createdAt,
         };
@@ -2458,6 +2873,19 @@ export class PortalService {
     dto: CreateDeliverableDto,
     filePath: string,
   ) {
+    if (dto.taskId) {
+      const task = await this.prisma.task.findFirst({
+        where: { id: dto.taskId, projectId: dto.projectId },
+        select: { id: true },
+      });
+      if (!task) {
+        throw new BadRequestException({
+          code: "DELIVERABLE_TASK_PROJECT_MISMATCH",
+          details: {},
+        });
+      }
+    }
+
     return this.prisma.deliverable.create({
       data: {
         projectId: dto.projectId,
@@ -2497,11 +2925,24 @@ export class PortalService {
     return deliverable;
   }
 
-  async approveDeliverable(id: string, userId: string) {
+  async approveDeliverable(id: string, userId: string, clientId?: string) {
     const deliverable = await this.prisma.deliverable.findUnique({
       where: { id },
-      include: { project: { select: { clientId: true, name: true } } },
+      include: {
+        project: { select: { clientId: true, name: true } },
+        task: { select: { id: true } },
+      },
     });
+
+    if (deliverable?.task?.id) {
+      if (!clientId) {
+        throw new BadRequestException({
+          code: "TASK_REVIEW_MUST_USE_PORTAL_WORKFLOW",
+          details: {},
+        });
+      }
+      await this.approvePortalTask(clientId, deliverable.task.id, userId);
+    }
 
     const updated = await this.prisma.deliverable.update({
       where: { id },
@@ -2532,11 +2973,40 @@ export class PortalService {
     return updated;
   }
 
-  async rejectDeliverable(id: string) {
+  async rejectDeliverable(
+    id: string,
+    clientId?: string,
+    requestDescription?: string,
+    actorId?: string,
+  ) {
     const deliverable = await this.prisma.deliverable.findUnique({
       where: { id },
-      include: { project: { select: { clientId: true, name: true } } },
+      include: {
+        project: { select: { clientId: true, name: true } },
+        task: { select: { id: true } },
+      },
     });
+
+    if (deliverable?.task?.id) {
+      if (!clientId) {
+        throw new BadRequestException({
+          code: "TASK_REVIEW_MUST_USE_PORTAL_WORKFLOW",
+          details: {},
+        });
+      }
+      if (!requestDescription?.trim()) {
+        throw new BadRequestException({
+          code: "TASK_REVISION_DESCRIPTION_REQUIRED",
+          details: {},
+        });
+      }
+      await this.requestPortalTaskRevision(
+        clientId,
+        deliverable.task.id,
+        { requestDescription: requestDescription.trim() },
+        actorId ?? clientId,
+      );
+    }
 
     const updated = await this.prisma.deliverable.update({
       where: { id },
@@ -2564,6 +3034,23 @@ export class PortalService {
   }
 
   async createRevision(id: string, clientId: string, dto: CreateRevisionDto) {
+    const deliverable = await this.prisma.deliverable.findFirst({
+      where: { id, project: { clientId } },
+      select: { id: true, taskId: true },
+    });
+    if (!deliverable) {
+      throw new NotFoundException({
+        code: "DELIVERABLE_NOT_FOUND",
+        details: {},
+      });
+    }
+
+    if (deliverable.taskId) {
+      await this.requestPortalTaskRevision(clientId, deliverable.taskId, {
+        requestDescription: dto.requestDescription,
+      });
+    }
+
     return this.prisma.clientRevisionRequest.create({
       data: {
         deliverableId: id,
@@ -2582,7 +3069,7 @@ export class PortalService {
 
   async findDeliverablesByProject(projectId: string) {
     const deliverables = await this.prisma.deliverable.findMany({
-      where: { projectId },
+      where: { projectId, isVisibleToClient: true },
       include: { revisionRequests: true },
       orderBy: { createdAt: "desc" },
     });
@@ -2611,7 +3098,7 @@ export class PortalService {
     });
     const projectIds = projects.map((p) => p.id);
     const deliverables = await this.prisma.deliverable.findMany({
-      where: { projectId: { in: projectIds } },
+      where: { projectId: { in: projectIds }, isVisibleToClient: true },
       include: {
         project: { select: { id: true, name: true } },
         revisionRequests: true,
@@ -3686,6 +4173,21 @@ export class PortalService {
       throw new BadRequestException({
         code: "PROJECT_NOT_AWAITING_REVIEW",
         details: {},
+      });
+    }
+
+    const pendingTasks = await this.prisma.task.count({
+      where: {
+        projectId,
+        isVisibleToClient: true,
+        archivedAt: null,
+        reviewStage: { not: TaskReviewStage.CLIENT_APPROVED },
+      },
+    });
+    if (pendingTasks > 0) {
+      throw new BadRequestException({
+        code: "PROJECT_TASKS_PENDING_CLIENT_REVIEW",
+        details: { pendingTasks },
       });
     }
 

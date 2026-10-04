@@ -11,6 +11,9 @@ import {
   PROJECT_STATUS_AR,
   PROPOSAL_STATUS_AR,
   REQUEST_STATUS_AR,
+  TaskReviewStage,
+  TASK_DEPARTMENT_AR,
+  TaskDepartment,
 } from "@hassad/shared";
 import type {
   NotificationEventCode,
@@ -110,6 +113,30 @@ const INVOICE_STATUS_LABELS: Record<string, string> = {
   LATE: "متأخرة",
   CANCELLED: "ملغاة",
 };
+
+const TASK_REVIEW_STAGE_LABELS: Record<TaskReviewStage, string> = {
+  [TaskReviewStage.NOT_SUBMITTED]: "لم يتم التسليم",
+  [TaskReviewStage.PM_REVIEW]: "قيد مراجعة مدير المشروع",
+  [TaskReviewStage.PM_REVISION_REQUESTED]: "تعديلات مطلوبة من مدير المشروع",
+  [TaskReviewStage.CLIENT_REVIEW]: "بانتظار مراجعة العميل",
+  [TaskReviewStage.CLIENT_REVISION_REQUESTED]: "تعديلات مطلوبة من العميل",
+  [TaskReviewStage.CLIENT_APPROVED]: "اعتمدها العميل",
+  [TaskReviewStage.LEGACY_COMPLETED]: "مكتملة من النظام السابق",
+};
+
+export function taskReviewStageLabel(stage: string | null | undefined): string {
+  if (!stage) return UNKNOWN_STATUS_LABEL;
+  return (
+    TASK_REVIEW_STAGE_LABELS[stage as TaskReviewStage] ?? UNKNOWN_STATUS_LABEL
+  );
+}
+
+export function taskDepartmentLabel(
+  department: string | null | undefined,
+): string {
+  if (!department) return "غير محدد";
+  return TASK_DEPARTMENT_AR[department as TaskDepartment] ?? department;
+}
 
 const PAYMENT_PLAN_TRIGGER_LABELS: Record<string, string> = {
   ON_SIGN: "عند التوقيع",
@@ -1095,6 +1122,14 @@ const NOTIFICATION_PRESENTATIONS: Record<string, NotificationPresentation> = {
   TASK_SUBMITTED: { title: "تم تسليم المهمة", body: "تم تسليم مهمة للمراجعة." },
   TASK_APPROVED: { title: "تم اعتماد المهمة", body: "تم اعتماد المهمة." },
   TASK_REJECTED: { title: "تم رفض المهمة", body: "تحتاج المهمة إلى تعديلات." },
+  TASK_CLIENT_APPROVED: {
+    title: "اعتمد العميل المهمة",
+    body: "تم اعتماد نتيجة المهمة من العميل.",
+  },
+  TASK_CLIENT_REVISION_REQUESTED: {
+    title: "طلب العميل تعديلاً",
+    body: "طلب العميل تعديلات على نتيجة المهمة.",
+  },
   TASK_COMMENT_ADDED: {
     title: "تعليق جديد على المهمة",
     body: "تمت إضافة تعليق إلى مهمة.",
@@ -1467,6 +1502,20 @@ export function portalErrorMessage(error: unknown): string {
       "ليس لديك صلاحية لمحادثة هذا المستخدم.",
     PROJECT_GROUP_CHAT_NOT_FOUND: "لم يتم العثور على محادثة المشروع.",
     PROJECT_NOT_FOUND: "لم يتم العثور على المشروع.",
+    PROJECT_PERIOD_NOT_FOUND: "لم يتم العثور على الفترة.",
+    TASK_NOT_FOUND: "لم يتم العثور على المهمة.",
+    TASK_NOT_READY_FOR_CLIENT_APPROVAL:
+      "المهمة ليست جاهزة لاعتماد العميل حالياً.",
+    TASK_NOT_READY_FOR_CLIENT_REVISION:
+      "المهمة ليست جاهزة لطلب تعديل من العميل حالياً.",
+    TASK_REVISION_DESCRIPTION_REQUIRED: "يرجى كتابة تفاصيل التعديل المطلوب.",
+    TASK_REVIEW_MUST_USE_PORTAL_WORKFLOW:
+      "يجب تنفيذ مراجعة المهمة من خلال بوابة العميل.",
+    TASK_PERIOD_PROJECT_MISMATCH: "الفترة لا تنتمي إلى هذا المشروع.",
+    DELIVERABLE_TASK_PROJECT_MISMATCH:
+      "ملف التسليم لا ينتمي إلى المهمة المحددة.",
+    PROJECT_TASKS_PENDING_CLIENT_REVIEW:
+      "توجد مهام لم تكتمل مراجعتها من العميل بعد.",
     FILE_TYPE_NOT_ALLOWED: "نوع الملف غير مسموح.",
     INVALID_FILE_TYPE: "نوع الملف غير مدعوم.",
     INVALID_FILE_CONTENT: "محتوى الملف غير صالح.",

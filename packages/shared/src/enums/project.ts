@@ -28,6 +28,17 @@ export enum TaskStatus {
   REVISION = "REVISION",
 }
 
+/** Review stage shared by employee, PM, and client task workflows. */
+export enum TaskReviewStage {
+  NOT_SUBMITTED = "NOT_SUBMITTED",
+  PM_REVIEW = "PM_REVIEW",
+  PM_REVISION_REQUESTED = "PM_REVISION_REQUESTED",
+  CLIENT_REVIEW = "CLIENT_REVIEW",
+  CLIENT_REVISION_REQUESTED = "CLIENT_REVISION_REQUESTED",
+  CLIENT_APPROVED = "CLIENT_APPROVED",
+  LEGACY_COMPLETED = "LEGACY_COMPLETED",
+}
+
 export const TASK_STATUS_AR: Record<TaskStatus, string> = {
   TODO: "قيد الانتظار",
   IN_PROGRESS: "قيد التنفيذ",
