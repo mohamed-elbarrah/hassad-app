@@ -4,11 +4,12 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { TaskStatus } from "@hassad/shared";
+import { TaskReviewStage, TaskStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
 import { AdminTasksQueryDto } from "../dto/admin-tasks.dto";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
+import { NotificationsService } from "../../notifications/services/notifications.service";
 
 @Injectable()
 export class AdminTasksService {
@@ -16,6 +17,7 @@ export class AdminTasksService {
     private readonly prisma: PrismaService,
     private readonly actionLog: AdminActionLogService,
     private readonly projectGroupChatService: ProjectGroupChatService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private buildWhere(query: AdminTasksQueryDto): Prisma.TaskWhereInput {
@@ -131,7 +133,9 @@ export class AdminTasksService {
         where: { AND: [where, { status: "IN_PROGRESS" }] },
       }),
       this.prisma.task.count({
-        where: { AND: [where, { status: "IN_REVIEW" }] },
+        where: {
+          AND: [where, { status: { in: ["IN_REVIEW", "CLIENT_REVIEW"] } }],
+        },
       }),
       this.prisma.task.count({ where: { AND: [where, { status: "DONE" }] } }),
     ]);
@@ -168,7 +172,9 @@ export class AdminTasksService {
       case TaskStatus.IN_PROGRESS:
         return [TaskStatus.IN_REVIEW];
       case TaskStatus.IN_REVIEW:
-        return [TaskStatus.DONE, TaskStatus.REVISION];
+        return [TaskStatus.CLIENT_REVIEW, TaskStatus.REVISION];
+      case TaskStatus.CLIENT_REVIEW:
+        return [TaskStatus.REVISION];
       case TaskStatus.REVISION:
         return [TaskStatus.IN_PROGRESS];
       case TaskStatus.DONE:
@@ -391,7 +397,13 @@ export class AdminTasksService {
     reason: string,
     adminId: string,
   ) {
-    const task = await this.prisma.task.findUnique({ where: { id: taskId } });
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        files: true,
+        project: { select: { client: { select: { userId: true } } } },
+      },
+    });
     if (!task)
       throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
 
@@ -405,20 +417,72 @@ export class AdminTasksService {
       });
     }
 
-    const before = { status: task.status };
-    const after = { status, reason };
+    if (status === TaskStatus.DONE) {
+      throw new BadRequestException({
+        code: "TASK_CLIENT_APPROVAL_REQUIRED",
+        details: {},
+      });
+    }
 
-    await this.prisma.$transaction([
-      this.prisma.task.update({ where: { id: taskId }, data: { status } }),
-      this.prisma.taskStatusHistory.create({
+    const before = { status: task.status, reviewStage: task.reviewStage };
+    const after = {
+      status,
+      reviewStage:
+        status === TaskStatus.CLIENT_REVIEW
+          ? TaskReviewStage.CLIENT_REVIEW
+          : status === TaskStatus.REVISION
+            ? TaskReviewStage.PM_REVISION_REQUESTED
+            : status === TaskStatus.IN_PROGRESS
+              ? TaskReviewStage.NOT_SUBMITTED
+              : task.reviewStage,
+      reason,
+    };
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.task.update({
+        where: { id: taskId },
+        data: {
+          status,
+          reviewStage:
+            status === TaskStatus.CLIENT_REVIEW
+              ? TaskReviewStage.CLIENT_REVIEW
+              : status === TaskStatus.REVISION
+                ? TaskReviewStage.PM_REVISION_REQUESTED
+                : status === TaskStatus.IN_PROGRESS
+                  ? TaskReviewStage.NOT_SUBMITTED
+                  : undefined,
+          isVisibleToClient:
+            status === TaskStatus.CLIENT_REVIEW ? true : undefined,
+          pmAcceptedAt:
+            status === TaskStatus.CLIENT_REVIEW ? new Date() : undefined,
+        },
+      });
+      await tx.taskStatusHistory.create({
         data: {
           taskId,
           fromStatus: task.status,
           toStatus: status,
           changedBy: adminId,
         },
-      }),
-      this.prisma.ledger.create({
+      });
+      await tx.taskReviewHistory.create({
+        data: {
+          taskId,
+          fromStage: task.reviewStage,
+          toStage:
+            status === TaskStatus.CLIENT_REVIEW
+              ? TaskReviewStage.CLIENT_REVIEW
+              : status === TaskStatus.REVISION
+                ? TaskReviewStage.PM_REVISION_REQUESTED
+                : status === TaskStatus.IN_PROGRESS
+                  ? TaskReviewStage.NOT_SUBMITTED
+                  : task.reviewStage,
+          actorId: adminId,
+          actorType: "ADMIN",
+          comment: reason,
+        },
+      });
+      await tx.ledger.create({
         data: {
           action: "admin.tasks.force-transition",
           entity: "task",
@@ -427,8 +491,51 @@ export class AdminTasksService {
           before,
           after,
         },
-      }),
-    ]);
+      });
+
+      if (status === TaskStatus.CLIENT_REVIEW) {
+        await tx.taskFile.updateMany({
+          where: { taskId, purpose: { not: "INTERNAL_DRAFT" } },
+          data: { purpose: "DELIVERABLE" },
+        });
+        const existing = await tx.deliverable.findFirst({
+          where: { taskId },
+          select: { id: true, filePath: true },
+        });
+        const submittedFile = task.files.find(
+          (file) => file.purpose !== "INTERNAL_DRAFT",
+        );
+        if (existing) {
+          await tx.deliverable.updateMany({
+            where: { taskId },
+            data: {
+              status: TaskStatus.IN_REVIEW,
+              isVisibleToClient: true,
+              periodId: task.periodId,
+            },
+          });
+          if (!existing.filePath && submittedFile) {
+            await tx.deliverable.update({
+              where: { id: existing.id },
+              data: { filePath: submittedFile.filePath },
+            });
+          }
+        } else if (submittedFile) {
+          await tx.deliverable.create({
+            data: {
+              projectId: task.projectId,
+              taskId,
+              periodId: task.periodId,
+              title: task.title,
+              description: task.description,
+              filePath: submittedFile.filePath,
+              status: TaskStatus.IN_REVIEW,
+              isVisibleToClient: true,
+            },
+          });
+        }
+      }
+    });
 
     await this.actionLog.record({
       actorId: adminId,
@@ -439,6 +546,23 @@ export class AdminTasksService {
       beforeState: before,
       afterState: after,
     });
+
+    if (status === TaskStatus.CLIENT_REVIEW && task.project.client?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: taskId,
+          entityType: "task",
+          eventType: "TASK_SUBMITTED_TO_CLIENT",
+          userId: task.project.client.userId,
+          metadata: {
+            taskId,
+            projectId: task.projectId,
+            periodId: task.periodId,
+            taskTitle: task.title,
+          },
+        })
+        .catch(() => undefined);
+    }
 
     return { code: "TASK_STATUS_UPDATED" };
   }

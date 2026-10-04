@@ -71,6 +71,7 @@ function getEntityIcon(entityType: string | null | undefined) {
 function resolvePortalUrl(
   entityType: string | null | undefined,
   entityId: string | null | undefined,
+  metadata?: Record<string, unknown> | null,
 ): string | null {
   const type = normalizeEntityType(entityType);
   if (!type || !entityId) return null;
@@ -78,6 +79,12 @@ function resolvePortalUrl(
   if (type === "contract") return `/portal/contracts/${entityId}`;
   if (type === "deliverable") return `/portal/deliverables/${entityId}`;
   if (type === "project") return `/portal/projects`;
+  if (type === "task") {
+    const projectId = metadata?.projectId;
+    return typeof projectId === "string"
+      ? `/portal/projects/${projectId}?tab=tasks&taskId=${entityId}${metadata?.periodId ? `&periodId=${metadata.periodId}` : ""}`
+      : null;
+  }
   if (type === "campaign") return `/portal/campaigns/${entityId}`;
   if (type === "marketing_strategy")
     return `/portal/marketing-strategies/${entityId}`;
@@ -96,6 +103,7 @@ function getPrimaryActionLabel(entityType: string | null | undefined): string {
   if (type === "invoice") return "دفع الفاتورة";
   if (type === "payment") return "عرض الفاتورة";
   if (type === "project") return "متابعة المشروع";
+  if (type === "task") return "مراجعة المهمة";
   if (type === "campaign") return "عرض الحملة";
   return "عرض التفاصيل";
 }
@@ -249,7 +257,7 @@ export default function PortalNotificationsPage() {
     const url =
       typeof metadataUrl === "string"
         ? metadataUrl
-        : resolvePortalUrl(n.entityType, n.entityId);
+        : resolvePortalUrl(n.entityType, n.entityId, metadata);
     if (url) router.push(url);
   }
 

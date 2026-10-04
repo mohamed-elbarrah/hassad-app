@@ -22,6 +22,7 @@ export const CLIENT_ACTION_NOTIFICATION_EVENTS = [
   NotificationEventType.INVOICE_SENT,
   NotificationEventType.DELIVERABLE_APPROVAL,
   NotificationEventType.DELIVERABLE_READY,
+  NotificationEventType.TASK_SUBMITTED_TO_CLIENT,
   NotificationEventType.MARKETING_STRATEGY_SENT,
   NotificationEventType.ACTION_REQUIRED,
 ] as const;

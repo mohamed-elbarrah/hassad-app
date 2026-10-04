@@ -1120,6 +1120,10 @@ const NOTIFICATION_PRESENTATIONS: Record<string, NotificationPresentation> = {
   PAYMENT_RECEIVED: { title: "تم استلام دفعة", body: "تم استلام دفعة جديدة." },
   TASK_STARTED: { title: "بدأت المهمة", body: "بدأ تنفيذ إحدى المهام." },
   TASK_SUBMITTED: { title: "تم تسليم المهمة", body: "تم تسليم مهمة للمراجعة." },
+  TASK_SUBMITTED_TO_CLIENT: {
+    title: "مهمة بانتظار مراجعتك",
+    body: "تم تجهيز مهمة جديدة لمراجعة العميل.",
+  },
   TASK_APPROVED: { title: "تم اعتماد المهمة", body: "تم اعتماد المهمة." },
   TASK_REJECTED: { title: "تم رفض المهمة", body: "تحتاج المهمة إلى تعديلات." },
   TASK_CLIENT_APPROVED: {

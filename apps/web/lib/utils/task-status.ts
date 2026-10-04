@@ -4,7 +4,10 @@
  * Single source of truth for Arabic labels, tone classes, and kanban layout.
  */
 import { TaskStatus, TASK_PRIORITY_AR, type Task } from "@hassad/shared";
-import { KANBAN_TONES, type KanbanToneClasses } from "@/components/dashboard/kanban/theme";
+import {
+  KANBAN_TONES,
+  type KanbanToneClasses,
+} from "@/components/dashboard/kanban/theme";
 
 // ── Extended task type (includes API relations) ─────────────────────────────
 
@@ -19,6 +22,7 @@ export const TASK_STATUS_TONES: Record<TaskStatus, KanbanToneClasses> = {
   [TaskStatus.TODO]: KANBAN_TONES.neutral,
   [TaskStatus.IN_PROGRESS]: KANBAN_TONES.blue,
   [TaskStatus.IN_REVIEW]: KANBAN_TONES.purple,
+  [TaskStatus.CLIENT_REVIEW]: KANBAN_TONES.blue,
   [TaskStatus.REVISION]: KANBAN_TONES.orange,
   [TaskStatus.DONE]: KANBAN_TONES.green,
 };
@@ -28,7 +32,8 @@ export const TASK_STATUS_TONES: Record<TaskStatus, KanbanToneClasses> = {
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.TODO]: "للتنفيذ",
   [TaskStatus.IN_PROGRESS]: "قيد التنفيذ",
-  [TaskStatus.IN_REVIEW]: "قيد المراجعة",
+  [TaskStatus.IN_REVIEW]: "قيد مراجعة مدير المشروع",
+  [TaskStatus.CLIENT_REVIEW]: "قيد مراجعة العميل",
   [TaskStatus.REVISION]: "يحتاج تعديل",
   [TaskStatus.DONE]: "منجز",
 };
@@ -39,6 +44,7 @@ export const TASK_KANBAN_ORDER: TaskStatus[] = [
   TaskStatus.TODO,
   TaskStatus.IN_PROGRESS,
   TaskStatus.IN_REVIEW,
+  TaskStatus.CLIENT_REVIEW,
   TaskStatus.REVISION,
   TaskStatus.DONE,
 ];

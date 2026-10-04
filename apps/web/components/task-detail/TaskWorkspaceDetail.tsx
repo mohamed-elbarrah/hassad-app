@@ -22,6 +22,7 @@ import {
   FilePurpose,
   TaskDepartment,
   TaskPriority,
+  TaskReviewStage,
   TaskStatus,
   UserRole,
   type TaskComment,
@@ -91,6 +92,7 @@ import {
   marketingErrorMessage,
   pmErrorMessage,
   pmSuccessMessage,
+  taskReviewStageLabel,
   UNKNOWN_STATUS_LABEL,
 } from "@/lib/i18n";
 import { useAppSelector } from "@/lib/hooks";
@@ -173,6 +175,7 @@ type WorkspaceTask = TaskWithProject & {
   submittedAt?: string | Date | null;
   approvedAt?: string | Date | null;
   isVisibleToClient?: boolean | null;
+  reviewStage?: TaskReviewStage;
   statusHistory?: TaskHistoryEntry[];
 };
 
@@ -331,7 +334,7 @@ export function TaskWorkspaceDetail({
   const [commentText, setCommentText] = useState("");
   const [noteText, setNoteText] = useState("");
   const [filePurpose, setFilePurpose] = useState<FilePurpose>(
-    FilePurpose.REFERENCE,
+    FilePurpose.DELIVERABLE,
   );
   const marketingTabs = useMarketingTaskExtraTabs({
     taskId,
@@ -343,12 +346,16 @@ export function TaskWorkspaceDetail({
     skip: pmOwned || teamOwned || marketingOwned,
   });
   const pmTaskQuery = useGetPmTaskByIdQuery(taskId, { skip: !pmOwned });
-  const marketingTaskQuery = useGetMarketingTaskByIdQuery(taskId, { skip: !marketingOwned });
+  const marketingTaskQuery = useGetMarketingTaskByIdQuery(taskId, {
+    skip: !marketingOwned,
+  });
   const teamTaskQuery = useGetTeamTaskQuery(taskId, { skip: !teamOwned });
   const genericFilesQuery = useGetTaskFilesQuery(taskId, {
     skip: pmOwned || teamOwned || marketingOwned,
   });
-  const marketingFilesQuery = useGetMarketingTaskFilesQuery(taskId, { skip: !marketingOwned });
+  const marketingFilesQuery = useGetMarketingTaskFilesQuery(taskId, {
+    skip: !marketingOwned,
+  });
   const pmFilesQuery = useGetPmTaskFilesQuery(taskId, { skip: !pmOwned });
   const teamFilesQuery = useGetTeamTaskFilesQuery(
     { id: taskId, page: 1, limit: 25 },
@@ -357,7 +364,9 @@ export function TaskWorkspaceDetail({
   const genericCommentsQuery = useGetTaskCommentsQuery(taskId, {
     skip: pmOwned || teamOwned || marketingOwned,
   });
-  const marketingCommentsQuery = useGetMarketingTaskCommentsQuery(taskId, { skip: !marketingOwned });
+  const marketingCommentsQuery = useGetMarketingTaskCommentsQuery(taskId, {
+    skip: !marketingOwned,
+  });
   const pmCommentsQuery = useGetPmTaskCommentsQuery(taskId, { skip: !pmOwned });
   const pmNotesQuery = useGetPmTaskNotesQuery(taskId, { skip: !pmOwned });
   const teamCommentsQuery = useGetTeamTaskCommentsQuery(
@@ -369,7 +378,10 @@ export function TaskWorkspaceDetail({
     marketingTaskQuery.data ??
     genericTaskQuery.data) as WorkspaceTask | undefined;
   const files =
-    pmFilesQuery.data ?? teamFilesQuery.data?.items ?? marketingFilesQuery.data ?? genericFilesQuery.data;
+    pmFilesQuery.data ??
+    teamFilesQuery.data?.items ??
+    marketingFilesQuery.data ??
+    genericFilesQuery.data;
   const comments =
     pmCommentsQuery.data ??
     teamCommentsQuery.data?.items ??
@@ -436,15 +448,18 @@ export function TaskWorkspaceDetail({
   const [rejectTask] = useRejectTaskMutation();
   const [uploadFile, { isLoading: isUploadingGeneric }] =
     useUploadTaskFileMutation();
-  const [uploadMarketingFile, { isLoading: isUploadingMarketingFile }] = useUploadMarketingTaskFileMutation();
+  const [uploadMarketingFile, { isLoading: isUploadingMarketingFile }] =
+    useUploadMarketingTaskFileMutation();
   const [deleteFile, { isLoading: isDeletingGenericFile }] =
     useDeleteTaskFileMutation();
   const [deletePmFile, { isLoading: isDeletingPmFile }] =
     useDeletePmTaskFileMutation();
-  const [deleteMarketingFile, { isLoading: isDeletingMarketingFile }] = useDeleteMarketingTaskFileMutation();
+  const [deleteMarketingFile, { isLoading: isDeletingMarketingFile }] =
+    useDeleteMarketingTaskFileMutation();
   const [addComment, { isLoading: isAddingGenericComment }] =
     useAddTaskCommentMutation();
-  const [addMarketingComment, { isLoading: isAddingMarketingComment }] = useAddMarketingTaskCommentMutation();
+  const [addMarketingComment, { isLoading: isAddingMarketingComment }] =
+    useAddMarketingTaskCommentMutation();
   const [addTeamComment, { isLoading: isAddingTeamComment }] =
     useAddTeamTaskCommentMutation();
   const [addPmComment, { isLoading: isAddingPmComment }] =
@@ -458,10 +473,17 @@ export function TaskWorkspaceDetail({
   const [getTeamFileDownload] = useLazyGetTeamTaskFileDownloadQuery();
   const [getMarketingFileDownload] = useLazyGetMarketingTaskFileDownloadQuery();
   const isUploading =
-    isUploadingGeneric || isUploadingPmFile || isUploadingTeamFile || isUploadingMarketingFile;
-  const isDeletingFile = isDeletingGenericFile || isDeletingPmFile || isDeletingMarketingFile;
+    isUploadingGeneric ||
+    isUploadingPmFile ||
+    isUploadingTeamFile ||
+    isUploadingMarketingFile;
+  const isDeletingFile =
+    isDeletingGenericFile || isDeletingPmFile || isDeletingMarketingFile;
   const isAddingComment =
-    isAddingGenericComment || isAddingPmComment || isAddingTeamComment || isAddingMarketingComment;
+    isAddingGenericComment ||
+    isAddingPmComment ||
+    isAddingTeamComment ||
+    isAddingMarketingComment;
   const notes = pmNotesQuery.data;
   const notesData = mapNotes(notes);
   const notesLoading = pmNotesQuery.isLoading;
@@ -494,7 +516,10 @@ export function TaskWorkspaceDetail({
 
   const isPmReviewer =
     user.role === UserRole.PM || user.role === UserRole.ADMIN;
-  const canReview = isPmReviewer && task.status === TaskStatus.IN_REVIEW;
+  const canReview =
+    isPmReviewer &&
+    (task.reviewStage === TaskReviewStage.PM_REVIEW ||
+      (!task.reviewStage && task.status === TaskStatus.IN_REVIEW));
   const canStart =
     !isPmReviewer &&
     [TaskStatus.TODO, TaskStatus.REVISION].includes(task.status);
@@ -530,7 +555,10 @@ export function TaskWorkspaceDetail({
           status: statusByAction[action],
         }).unwrap();
       } else if (marketingOwned) {
-        await changeMarketingTaskStatus({ id: taskId, status: statusByAction[action] }).unwrap();
+        await changeMarketingTaskStatus({
+          id: taskId,
+          status: statusByAction[action],
+        }).unwrap();
       } else {
         if (action === "start") await startTask(taskId).unwrap();
         if (action === "submit") await submitTask(taskId).unwrap();
@@ -552,7 +580,11 @@ export function TaskWorkspaceDetail({
       } else if (pmOwned) {
         await uploadPmFile({ taskId, file, purpose: filePurpose }).unwrap();
       } else if (marketingOwned) {
-        await uploadMarketingFile({ taskId, file, purpose: filePurpose }).unwrap();
+        await uploadMarketingFile({
+          taskId,
+          file,
+          purpose: filePurpose,
+        }).unwrap();
       } else {
         await uploadFile({ taskId, file, purpose: filePurpose }).unwrap();
       }
@@ -617,7 +649,7 @@ export function TaskWorkspaceDetail({
         <>
           <Button onClick={() => runStatusAction("approve")}>
             <Check data-icon="inline-start" />
-            اعتماد وإنجاز
+            قبول وإرسال للعميل
           </Button>
           <Button variant="outline" onClick={() => runStatusAction("reject")}>
             <X data-icon="inline-start" />
@@ -881,7 +913,9 @@ export function TaskWorkspaceDetail({
                   ))}
                 </SelectContent>
               </Select>
-              <label htmlFor="task-file-upload" className="sr-only">ملف المهمة</label>
+              <label htmlFor="task-file-upload" className="sr-only">
+                ملف المهمة
+              </label>
               <input
                 id="task-file-upload"
                 ref={fileInputRef}
@@ -909,7 +943,9 @@ export function TaskWorkspaceDetail({
           ) : filesError ? (
             <Alert variant="destructive">
               <AlertTitle>تعذر تحميل الملفات</AlertTitle>
-              <AlertDescription>{workspaceErrorMessage(filesError)}</AlertDescription>
+              <AlertDescription>
+                {workspaceErrorMessage(filesError)}
+              </AlertDescription>
             </Alert>
           ) : filesData.length === 0 ? (
             <Card>
@@ -978,10 +1014,21 @@ export function TaskWorkspaceDetail({
                                 "noopener,noreferrer",
                               );
                             } else if (marketingOwned) {
-                              const result = await getMarketingFileDownload({ taskId, fileId: file.id }).unwrap();
-                              window.open(result.url, "_blank", "noopener,noreferrer");
+                              const result = await getMarketingFileDownload({
+                                taskId,
+                                fileId: file.id,
+                              }).unwrap();
+                              window.open(
+                                result.url,
+                                "_blank",
+                                "noopener,noreferrer",
+                              );
                             } else {
-                              await downloadTaskFile(taskId, file.id, file.fileName);
+                              await downloadTaskFile(
+                                taskId,
+                                file.id,
+                                file.fileName,
+                              );
                             }
                           } catch (error) {
                             toast.error(workspaceErrorMessage(error));
@@ -1083,10 +1130,12 @@ export function TaskWorkspaceDetail({
         />
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
-            {TASK_STATUS_LABELS[task.status as TaskStatus] ?? UNKNOWN_STATUS_LABEL}
+            {TASK_STATUS_LABELS[task.status as TaskStatus] ??
+              UNKNOWN_STATUS_LABEL}
           </Badge>
           <Badge variant="outline">
-            {TASK_PRIORITY_LABELS[task.priority as TaskPriority] ?? UNKNOWN_STATUS_LABEL}
+            {TASK_PRIORITY_LABELS[task.priority as TaskPriority] ??
+              UNKNOWN_STATUS_LABEL}
           </Badge>
           {task.project?.name ? (
             <Badge variant="outline">المشروع: {task.project.name}</Badge>
@@ -1141,14 +1190,19 @@ export function TaskWorkspaceDetail({
               </div>
               <TaskWorkflowStepper
                 currentStatus={task.status as TaskStatus}
+                reviewStage={task.reviewStage}
                 revisionCount={task.revisionCount ?? 0}
               />
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
-                  {TASK_STATUS_LABELS[task.status as TaskStatus] ?? UNKNOWN_STATUS_LABEL}
+                  {task.reviewStage
+                    ? taskReviewStageLabel(task.reviewStage)
+                    : (TASK_STATUS_LABELS[task.status as TaskStatus] ??
+                      UNKNOWN_STATUS_LABEL)}
                 </Badge>
                 <Badge variant="outline">
-                  {TASK_PRIORITY_LABELS[task.priority as TaskPriority] ?? UNKNOWN_STATUS_LABEL}
+                  {TASK_PRIORITY_LABELS[task.priority as TaskPriority] ??
+                    UNKNOWN_STATUS_LABEL}
                 </Badge>
                 {task.dueDate ? (
                   <Badge variant="outline">

@@ -24,6 +24,7 @@ export enum TaskStatus {
   TODO = "TODO",
   IN_PROGRESS = "IN_PROGRESS",
   IN_REVIEW = "IN_REVIEW",
+  CLIENT_REVIEW = "CLIENT_REVIEW",
   DONE = "DONE",
   REVISION = "REVISION",
 }
@@ -42,7 +43,8 @@ export enum TaskReviewStage {
 export const TASK_STATUS_AR: Record<TaskStatus, string> = {
   TODO: "قيد الانتظار",
   IN_PROGRESS: "قيد التنفيذ",
-  IN_REVIEW: "قيد المراجعة",
+  IN_REVIEW: "قيد مراجعة مدير المشروع",
+  CLIENT_REVIEW: "قيد مراجعة العميل",
   DONE: "مكتمل",
   REVISION: "مراجعة",
 };

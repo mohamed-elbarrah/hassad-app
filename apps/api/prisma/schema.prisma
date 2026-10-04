@@ -2286,6 +2286,7 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   IN_REVIEW
+  CLIENT_REVIEW
   DONE
   REVISION
 }

@@ -136,7 +136,7 @@ export class TasksService {
       case TaskStatus.IN_REVIEW:
         return { eventType: "TASK_SUBMITTED" };
       case TaskStatus.DONE:
-        return { eventType: "TASK_APPROVED" };
+        return { eventType: "TASK_SUBMITTED_TO_CLIENT" };
       case TaskStatus.REVISION:
         return { eventType: "TASK_REJECTED" };
       default:
@@ -411,7 +411,7 @@ export class TasksService {
       include: {
         project: {
           include: {
-            client: true,
+            client: { select: { id: true, companyName: true, userId: true } },
             manager: { select: { id: true, name: true, email: true } },
           },
         },
@@ -469,6 +469,23 @@ export class TasksService {
   ) {
     const task = await this.findOne(id);
 
+    if (toStatus === TaskStatus.DONE || toStatus === TaskStatus.REVISION) {
+      const actor = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: { select: { name: true } } },
+      });
+      const actorRole = actor?.role.name as UserRole | undefined;
+      const isAdmin = actorRole === UserRole.ADMIN;
+      const isProjectManager =
+        actorRole === UserRole.PM && task.project.projectManagerId === userId;
+      if (!isAdmin && !isProjectManager) {
+        throw new BadRequestException({
+          code: "TASK_REVIEW_ACTOR_FORBIDDEN",
+          details: {},
+        });
+      }
+    }
+
     // Workflow enforcement
     if (
       toStatus === TaskStatus.IN_PROGRESS &&
@@ -505,6 +522,8 @@ export class TasksService {
       });
     }
 
+    const persistedStatus =
+      toStatus === TaskStatus.DONE ? TaskStatus.CLIENT_REVIEW : toStatus;
     const nextReviewStage =
       toStatus === TaskStatus.IN_REVIEW
         ? TaskReviewStage.PM_REVIEW
@@ -520,11 +539,13 @@ export class TasksService {
       const updated = await tx.task.update({
         where: { id },
         data: {
-          status: toStatus,
+          status: persistedStatus,
           reviewStage: nextReviewStage,
           approvedBy: approvedBy || undefined,
-          approvedAt: toStatus === TaskStatus.DONE ? new Date() : undefined,
+          approvedAt: undefined,
           pmAcceptedAt: toStatus === TaskStatus.DONE ? new Date() : undefined,
+          // PM acceptance publishes the existing task output for client review.
+          isVisibleToClient: toStatus === TaskStatus.DONE ? true : undefined,
           submittedAt:
             toStatus === TaskStatus.IN_REVIEW ? new Date() : undefined,
           startedAt:
@@ -541,7 +562,7 @@ export class TasksService {
         data: {
           taskId: id,
           fromStatus: task.status,
-          toStatus: toStatus,
+          toStatus: persistedStatus,
           changedBy: userId,
         },
       });
@@ -566,43 +587,45 @@ export class TasksService {
       }
 
       if (toStatus === TaskStatus.DONE) {
-        const portalDepts = [
-          TaskDepartment.DESIGN,
-          TaskDepartment.CONTENT,
-          TaskDepartment.MARKETING,
-        ];
-        const deptName = task.department?.name;
-        if (deptName && portalDepts.includes(deptName as TaskDepartment)) {
-          const existing = await tx.deliverable.findFirst({
+        await tx.taskFile.updateMany({
+          where: { taskId: id, purpose: { not: FilePurpose.INTERNAL_DRAFT } },
+          data: { purpose: FilePurpose.DELIVERABLE },
+        });
+        const existing = await tx.deliverable.findFirst({
+          where: { taskId: id },
+        });
+        const submittedFile = task.files.find(
+          (file) => file.purpose !== FilePurpose.INTERNAL_DRAFT,
+        );
+        if (existing) {
+          await tx.deliverable.updateMany({
             where: { taskId: id },
+            data: {
+              periodId: task.periodId,
+              status: TaskStatus.IN_REVIEW,
+              isVisibleToClient: true,
+            },
           });
-          const submittedFile = task.files.find(
-            (file) => file.purpose === FilePurpose.DELIVERABLE,
-          );
-          if (existing && !existing.filePath && submittedFile) {
+          if (!existing.filePath && submittedFile) {
             await tx.deliverable.update({
               where: { id: existing.id },
-              data: {
-                filePath: submittedFile.filePath,
-                periodId: task.periodId,
-                status: TaskStatus.IN_REVIEW,
-              },
-            });
-          } else if (!existing && submittedFile) {
-            await tx.deliverable.create({
-              data: {
-                projectId: task.projectId,
-                taskId: id,
-                periodId: task.periodId,
-                title: task.title,
-                description: task.description || undefined,
-                // Reuse the existing task file; do not upload or duplicate it.
-                filePath: submittedFile.filePath,
-                status: TaskStatus.IN_REVIEW,
-                isVisibleToClient: task.isVisibleToClient,
-              },
+              data: { filePath: submittedFile.filePath },
             });
           }
+        } else if (submittedFile) {
+          await tx.deliverable.create({
+            data: {
+              projectId: task.projectId,
+              taskId: id,
+              periodId: task.periodId,
+              title: task.title,
+              description: task.description || undefined,
+              // Reuse the existing task file; do not upload or duplicate it.
+              filePath: submittedFile.filePath,
+              status: TaskStatus.IN_REVIEW,
+              isVisibleToClient: true,
+            },
+          });
         }
       }
 
@@ -652,6 +675,27 @@ export class TasksService {
       );
     }
 
+    if (toStatus === TaskStatus.DONE && task.project.client?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: id,
+          entityType: "task",
+          eventType: "TASK_SUBMITTED_TO_CLIENT",
+          userId: task.project.client.userId,
+          metadata: {
+            taskId: id,
+            projectId: task.projectId,
+            periodId: task.periodId,
+            taskTitle: task.title,
+          },
+        })
+        .catch((error) =>
+          this.logger.warn(
+            `Failed to notify client about task=${id}: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+        );
+    }
+
     return updatedTask;
   }
 
@@ -670,7 +714,7 @@ export class TasksService {
     });
 
     if (!existingTask) {
-      throw new NotFoundException(`Task with ID ${id} not found`);
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
     }
 
     const assigneeInfo = await this.resolveAssignableUser(
@@ -839,9 +883,22 @@ export class TasksService {
       where: { id: fileId, taskId },
     });
 
-    if (file) {
-      await this.storageService.deleteByKey(file.filePath).catch(() => {});
+    if (!file) {
+      throw new NotFoundException({ code: "TASK_FILE_NOT_FOUND", details: {} });
     }
+
+    const publishedDeliverable = await this.prisma.deliverable.findFirst({
+      where: { taskId, filePath: file.filePath, isVisibleToClient: true },
+      select: { id: true },
+    });
+    if (publishedDeliverable) {
+      throw new BadRequestException({
+        code: "TASK_FILE_PUBLISHED_TO_CLIENT",
+        details: {},
+      });
+    }
+
+    await this.storageService.deleteByKey(file.filePath).catch(() => {});
 
     return this.prisma.taskFile.delete({
       where: { id: fileId, taskId },
@@ -855,7 +912,7 @@ export class TasksService {
     });
 
     if (!task) {
-      throw new NotFoundException(`Task with ID ${id} not found`);
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
     }
 
     const comment = await this.prisma.taskComment.create({
@@ -1021,7 +1078,9 @@ export class TasksService {
       total,
       todo: counts[TaskStatus.TODO] ?? 0,
       inProgress: counts[TaskStatus.IN_PROGRESS] ?? 0,
-      inReview: counts[TaskStatus.IN_REVIEW] ?? 0,
+      inReview:
+        (counts[TaskStatus.IN_REVIEW] ?? 0) +
+        (counts[TaskStatus.CLIENT_REVIEW] ?? 0),
       done: counts[TaskStatus.DONE] ?? 0,
       overdue,
       projects: projectIds.length,
@@ -1150,7 +1209,7 @@ export class TasksService {
       });
 
       if (!existingTask) {
-        throw new NotFoundException(`Task with ID ${id} not found`);
+        throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
       }
 
       const deletedTask = await tx.task.delete({ where: { id } });

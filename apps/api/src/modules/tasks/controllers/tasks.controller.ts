@@ -11,6 +11,7 @@ import {
   UploadedFile,
   UseInterceptors,
   Redirect,
+  BadRequestException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { TasksService } from "../services/tasks.service";
@@ -139,7 +140,7 @@ export class TasksController {
     @Body() dto: UploadTaskFileDto,
   ) {
     if (!file) {
-      throw new Error("Task file is required");
+      throw new BadRequestException({ code: "FILE_REQUIRED", details: {} });
     }
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.TASK_FILE,
@@ -151,13 +152,18 @@ export class TasksController {
         size: file.size,
       },
     });
-    return this.tasksService.addFile(id, user.id, {
-      key: uploadResult.key,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      purpose: dto.purpose,
-    });
+    try {
+      return await this.tasksService.addFile(id, user.id, {
+        key: uploadResult.key,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        purpose: dto.purpose,
+      });
+    } catch (error) {
+      await this.storageService.deleteByKey(uploadResult.key).catch(() => {});
+      throw error;
+    }
   }
 
   @Get(":id/files/:fileId/download")
