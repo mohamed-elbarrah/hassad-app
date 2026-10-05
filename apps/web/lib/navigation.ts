@@ -188,6 +188,17 @@ export const adminNavSections: NavSection[] = [
     ],
   },
   {
+    label: "التواصل",
+    icon: Megaphone,
+    items: [
+      {
+        title: "مركز التواصل",
+        url: "/dashboard/admin/communication",
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
     label: "الإعدادات",
     icon: Settings,
     items: [
@@ -376,7 +387,7 @@ export const roleNavSections: NavSection[] = [
 /* ── Shared dashboard navigation ───────────────────────────────────────────── */
 
 export const adminChatNavSection: NavSection = {
-  label: "التواصل",
+  label: "تواصل الإدارة",
   icon: MessageSquare,
   items: [
     {
@@ -390,7 +401,7 @@ export const adminChatNavSection: NavSection = {
 
 export const sharedNavSections: NavSection[] = [
   {
-    label: "التواصل",
+    label: "التواصل العام",
     icon: MessageSquare,
     layout: "flat",
     items: [
@@ -400,6 +411,12 @@ export const sharedNavSections: NavSection[] = [
         icon: MessageSquare,
         exact: true,
         roles: ["TEAM", "MARKETING", "ACCOUNTANT"],
+      },
+      {
+        title: "بلاغاتي",
+        url: "/dashboard/issues",
+        icon: AlertTriangle,
+        roles: ["ADMIN", "PM", "SALES", "MARKETING", "ACCOUNTANT", "TEAM"],
       },
     ],
   },

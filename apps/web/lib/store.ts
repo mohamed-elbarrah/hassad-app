@@ -39,6 +39,7 @@ import { adminBackupsApi } from "@/features/admin/adminBackupsApi";
 import { periodsApi } from "@/features/projects/periodsApi";
 import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
 import { aiAssistantApi } from "@/features/aiAssistantApi";
+import { communicationApi } from "@/features/communication/communicationApi";
 
 const authLifecycleMiddleware = createListenerMiddleware();
 
@@ -83,6 +84,7 @@ export const store = configureStore({
     [adminBackupsApi.reducerPath]: adminBackupsApi.reducer,
     [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
     [aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
+    [communicationApi.reducerPath]: communicationApi.reducer,
   },
   middleware: (getDefaultMiddleware) => {
     const middleware = [
@@ -124,6 +126,7 @@ export const store = configureStore({
       periodsApi.middleware,
       pmDisputesApi.middleware,
       aiAssistantApi.middleware,
+      communicationApi.middleware,
     ];
     return getDefaultMiddleware({
       serializableCheck: false,
@@ -174,6 +177,7 @@ authLifecycleMiddleware.startListening({
       periodsApi,
       pmDisputesApi,
       aiAssistantApi,
+      communicationApi,
     ]) {
       listenerApi.dispatch(api.util.resetApiState());
     }

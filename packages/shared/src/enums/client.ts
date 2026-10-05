@@ -299,4 +299,5 @@ export enum NotificationEventType {
   NEW_MESSAGE = "NEW_MESSAGE",
   // Action items
   ACTION_REQUIRED = "ACTION_REQUIRED",
+  ANNOUNCEMENT_PUBLISHED = "ANNOUNCEMENT_PUBLISHED",
 }

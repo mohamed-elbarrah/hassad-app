@@ -48,6 +48,7 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
     items: [
       { label: "المحادثات", href: "/portal/chat", icon: MessageSquare },
       { label: "الإشعارات", href: "/portal/notifications", icon: Bell },
+      { label: "بلاغاتي", href: "/portal/issues", icon: MessageSquare },
       { label: "إجراءاتي", href: "/portal/actions", icon: CheckCircle2 },
       { label: "النزاعات", href: "/portal/disputes", icon: Scale },
     ],

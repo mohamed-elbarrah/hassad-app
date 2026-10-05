@@ -10,6 +10,7 @@ export enum StorageCategory {
   CURRENCY_SVG = "currency_svg",
   MARKETING_STRATEGY = "marketing_strategy",
   DISPUTE_ATTACHMENT = "dispute_attachment",
+  ISSUE_ATTACHMENT = "issue_attachment",
 }
 
 export const STORAGE_CONFIG: Record<
@@ -157,6 +158,20 @@ export const STORAGE_CONFIG: Record<
     keyPrefix: "currency-svgs",
     maxFileSize: 1024 * 1024,
     allowedMimeTypes: ["image/svg+xml"],
+  },
+  [StorageCategory.ISSUE_ATTACHMENT]: {
+    keyPrefix: "issues",
+    maxFileSize: 10 * 1024 * 1024,
+    allowedMimeTypes: [
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+    ],
   },
   [StorageCategory.DISPUTE_ATTACHMENT]: {
     keyPrefix: "disputes",

@@ -110,6 +110,13 @@ model User {
   disputeHistoryChanges DisputeHistory[]
   disputeStats          PmDisputeStats?
   aiConversations       AiConversation[]
+  createdAnnouncements  Announcement[] @relation("AnnouncementCreator")
+  announcementStates    AnnouncementUserState[]
+  reportedIssues        IssueReport[] @relation("IssueReporter")
+  assignedIssues        IssueReport[] @relation("IssueAssignee")
+  issueMessages         IssueMessage[]
+  issueHistoryChanges   IssueHistory[]
+  uploadedIssueAttachments IssueAttachment[] @relation("IssueAttachmentUploader")
 
   @@index([roleId])
   @@index([createdAt])
@@ -2011,6 +2018,210 @@ model Notification {
   @@index([isRead])
   @@index([sentAt])
   @@map("notifications")
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+
+  @@map("announcement_statuses")
+}
+
+enum AnnouncementType {
+  INFO
+  SUCCESS
+  WARNING
+  CRITICAL
+
+  @@map("announcement_types")
+}
+
+enum AnnouncementPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+
+  @@map("announcement_priorities")
+}
+
+enum AnnouncementAudienceType {
+  ALL_STAFF
+  ADMIN
+  PM
+  SALES
+  MARKETING
+  ACCOUNTANT
+  TEAM
+  CLIENT_PORTAL
+
+  @@map("announcement_audience_types")
+}
+
+model Announcement {
+  id                    String               @id @default(uuid())
+  title                 String
+  body                  String               @db.Text
+  type                  AnnouncementType     @default(INFO)
+  priority              AnnouncementPriority @default(NORMAL)
+  status                AnnouncementStatus   @default(DRAFT)
+  startsAt              DateTime?            @map("starts_at")
+  expiresAt             DateTime?            @map("expires_at")
+  allowDismissal        Boolean              @default(true) @map("allow_dismissal")
+  actionLabel           String?              @map("action_label")
+  actionUrl             String?              @map("action_url")
+  createdById           String               @map("created_by_id")
+  publishedAt           DateTime?            @map("published_at")
+  archivedAt            DateTime?            @map("archived_at")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  createdBy User @relation("AnnouncementCreator", fields: [createdById], references: [id])
+  audiences AnnouncementAudience[]
+  userStates AnnouncementUserState[]
+
+  @@index([status, startsAt, expiresAt])
+  @@index([createdAt])
+  @@map("announcements")
+}
+
+model AnnouncementAudience {
+  id             String                  @id @default(uuid())
+  announcementId String                  @map("announcement_id")
+  audience       AnnouncementAudienceType
+  announcement   Announcement             @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, audience])
+  @@map("announcement_audiences")
+}
+
+model AnnouncementUserState {
+  id             String       @id @default(uuid())
+  announcementId String       @map("announcement_id")
+  userId         String       @map("user_id")
+  viewedAt       DateTime?    @map("viewed_at")
+  dismissedAt    DateTime?    @map("dismissed_at")
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId, viewedAt])
+  @@map("announcement_user_states")
+}
+
+enum IssueReportSource {
+  DASHBOARD
+  PORTAL
+
+  @@map("issue_report_sources")
+}
+
+enum IssueCategory {
+  BUG
+  PERFORMANCE
+  ACCESS
+  DATA
+  PAYMENT
+  OTHER
+
+  @@map("issue_categories")
+}
+
+enum IssueSeverity {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+
+  @@map("issue_severities")
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_USER
+  RESOLVED
+  CLOSED
+
+  @@map("issue_statuses")
+}
+
+model IssueReport {
+  id           String            @id @default(uuid())
+  reportNumber Int               @unique @default(autoincrement()) @map("report_number")
+  reporterId   String            @map("reporter_id")
+  source       IssueReportSource
+  category     IssueCategory
+  severity     IssueSeverity     @default(NORMAL)
+  status       IssueStatus       @default(OPEN)
+  title        String
+  description  String            @db.Text
+  pagePath     String?           @map("page_path")
+  assignedToId String?           @map("assigned_to_id")
+  resolvedAt   DateTime?         @map("resolved_at")
+  closedAt     DateTime?         @map("closed_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  reporter     User              @relation("IssueReporter", fields: [reporterId], references: [id])
+  assignedTo   User?             @relation("IssueAssignee", fields: [assignedToId], references: [id])
+  messages     IssueMessage[]
+  history      IssueHistory[]
+  attachments  IssueAttachment[]
+
+  @@index([reporterId])
+  @@index([status, severity])
+  @@index([assignedToId])
+  @@index([createdAt])
+  @@map("issue_reports")
+}
+
+model IssueMessage {
+  id        String      @id @default(uuid())
+  issueId   String      @map("issue_id")
+  authorId  String      @map("author_id")
+  content   String      @db.Text
+  createdAt DateTime    @default(now()) @map("created_at")
+  issue     IssueReport @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  author    User        @relation(fields: [authorId], references: [id])
+  attachments IssueAttachment[]
+
+  @@index([issueId, createdAt])
+  @@map("issue_messages")
+}
+
+model IssueAttachment {
+  id         String        @id @default(uuid())
+  issueId    String        @map("issue_id")
+  messageId  String?       @map("message_id")
+  uploadedBy String        @map("uploaded_by")
+  fileName   String        @map("file_name")
+  filePath   String        @map("file_path")
+  fileSize   Int           @map("file_size")
+  mimeType   String        @map("mime_type")
+  uploadedAt DateTime      @default(now()) @map("uploaded_at")
+  issue      IssueReport   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  message    IssueMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploader   User          @relation("IssueAttachmentUploader", fields: [uploadedBy], references: [id])
+
+  @@index([issueId, uploadedAt])
+  @@index([messageId])
+  @@map("issue_attachments")
+}
+
+model IssueHistory {
+  id        String      @id @default(uuid())
+  issueId   String      @map("issue_id")
+  changedBy String      @map("changed_by")
+  eventCode String
+  metadata  Json?
+  createdAt DateTime    @default(now()) @map("created_at")
+  issue     IssueReport @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  changer   User        @relation(fields: [changedBy], references: [id])
+
+  @@index([issueId, createdAt])
+  @@map("issue_history")
 }
 
 model AiAnalysisLog {
