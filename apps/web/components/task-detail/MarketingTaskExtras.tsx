@@ -37,10 +37,23 @@ import {
   useUpdateCampaignStatusMutation,
   useUploadStrategyMutation,
 } from "@/features/marketing/marketingApi";
+import {
+  useApprovePmStrategyForClientMutation,
+  useGetPmStrategyByTaskQuery,
+  useLazyGetPmStrategyDownloadUrlQuery,
+  useRequestPmStrategyRevisionMutation,
+} from "@/features/tasks/tasksApi";
 import type { TaskTabItem } from "@/components/task-detail/TaskDetailPattern";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -104,26 +117,52 @@ function StrategyTab({
   taskId,
   canManage,
   enabled,
+  pmOwned,
 }: {
   taskId: string;
   canManage: boolean;
   enabled: boolean;
+  pmOwned: boolean;
 }) {
-  const {
-    data: strategy,
-    isLoading,
-    refetch,
-  } = useGetTaskStrategyQuery(taskId, { skip: !enabled });
-  const [uploadStrategy, { isLoading: isUploading }] = useUploadStrategyMutation();
-  const [getDownloadUrl, { isFetching: isDownloading }] = useLazyGetStrategyDownloadUrlQuery();
-  const [sendStrategy, { isLoading: isSending }] = useSendStrategyToClientMutation();
-  const [resubmitStrategy, { isLoading: isResubmitting }] = useResubmitStrategyMutation();
+  const marketingStrategyQuery = useGetTaskStrategyQuery(taskId, {
+    skip: !enabled || pmOwned,
+  });
+  const pmStrategyQuery = useGetPmStrategyByTaskQuery(taskId, {
+    skip: !enabled || !pmOwned,
+  });
+  const strategy = pmOwned ? pmStrategyQuery.data : marketingStrategyQuery.data;
+  const isLoading = pmOwned
+    ? pmStrategyQuery.isLoading
+    : marketingStrategyQuery.isLoading;
+  const refetch = pmOwned
+    ? pmStrategyQuery.refetch
+    : marketingStrategyQuery.refetch;
+  const [uploadStrategy, { isLoading: isUploading }] =
+    useUploadStrategyMutation();
+  const [getDownloadUrl, { isFetching: isMarketingDownloading }] =
+    useLazyGetStrategyDownloadUrlQuery();
+  const [getPmDownloadUrl, { isFetching: isPmDownloading }] =
+    useLazyGetPmStrategyDownloadUrlQuery();
+  const isDownloading = isMarketingDownloading || isPmDownloading;
+  const [sendStrategy, { isLoading: isSending }] =
+    useSendStrategyToClientMutation();
+  const [approveForClient, { isLoading: isApprovingForClient }] =
+    useApprovePmStrategyForClientMutation();
+  const [requestPmRevision, { isLoading: isRequestingPmRevision }] =
+    useRequestPmStrategyRevisionMutation();
+  const [resubmitStrategy, { isLoading: isResubmitting }] =
+    useResubmitStrategyMutation();
+  const [pmRevisionComment, setPmRevisionComment] = useState("");
   const uploadRef = useRef<HTMLInputElement>(null);
   const reviseRef = useRef<HTMLInputElement>(null);
 
   async function handleNewFile(file: File, mode: "create" | "revise") {
     if (file.type !== "application/pdf") {
-      toast.error(marketingErrorMessage({ data: { error: { code: "MARKETING_STRATEGY_PDF_REQUIRED" } } }));
+      toast.error(
+        marketingErrorMessage({
+          data: { error: { code: "MARKETING_STRATEGY_PDF_REQUIRED" } },
+        }),
+      );
       return;
     }
 
@@ -135,6 +174,33 @@ function StrategyTab({
         await resubmitStrategy({ id: strategy.id, file }).unwrap();
         toast.success("تم رفع النسخة المعدلة");
       }
+      void refetch();
+    } catch (error) {
+      toast.error(marketingErrorMessage(error));
+    }
+  }
+
+  async function handleApproveForClient() {
+    if (!strategy) return;
+    try {
+      await approveForClient({ strategyId: strategy.id, taskId }).unwrap();
+      toast.success("تم اعتماد الدراسة وإرسالها للعميل");
+      void refetch();
+    } catch (error) {
+      toast.error(marketingErrorMessage(error));
+    }
+  }
+
+  async function handleRequestPmRevision() {
+    if (!strategy || !pmRevisionComment.trim()) return;
+    try {
+      await requestPmRevision({
+        strategyId: strategy.id,
+        taskId,
+        comment: pmRevisionComment.trim(),
+      }).unwrap();
+      toast.success("تم إرجاع الدراسة للتعديل");
+      setPmRevisionComment("");
       void refetch();
     } catch (error) {
       toast.error(marketingErrorMessage(error));
@@ -159,14 +225,22 @@ function StrategyTab({
               <FileText />
             </EmptyMedia>
             <EmptyHeader>
-              <EmptyTitle>لا توجد دراسة تسويقية</EmptyTitle>
+              <EmptyTitle>
+                {pmOwned
+                  ? "لم تُرسل الدراسة التسويقية للمراجعة بعد"
+                  : "لا توجد دراسة تسويقية"}
+              </EmptyTitle>
               <EmptyDescription>
-                ارفع الدراسة التسويقية أولًا قبل متابعة إنشاء الحملات.
+                {pmOwned
+                  ? "ستظهر هنا بعد إرسالها من قبل موظف التسويق."
+                  : "ارفع الدراسة التسويقية أولًا قبل متابعة إنشاء الحملات."}
               </EmptyDescription>
             </EmptyHeader>
             {canManage ? (
               <EmptyContent>
-                <label htmlFor="marketing-strategy-upload" className="sr-only">الدراسة التسويقية</label>
+                <label htmlFor="marketing-strategy-upload" className="sr-only">
+                  الدراسة التسويقية
+                </label>
                 <input
                   id="marketing-strategy-upload"
                   ref={uploadRef}
@@ -179,7 +253,10 @@ function StrategyTab({
                     if (uploadRef.current) uploadRef.current.value = "";
                   }}
                 />
-                <Button onClick={() => uploadRef.current?.click()} disabled={isUploading}>
+                <Button
+                  onClick={() => uploadRef.current?.click()}
+                  disabled={isUploading}
+                >
                   <Upload data-icon="inline-start" />
                   {isUploading ? "جارٍ الرفع..." : "رفع الدراسة"}
                 </Button>
@@ -214,40 +291,96 @@ function StrategyTab({
           <div className="rounded-lg border p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{strategy.fileName}</p>
+                <p className="truncate text-sm font-medium">
+                  {strategy.fileName}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {(strategy.fileSize / 1024).toFixed(1)} KB
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" disabled={isDownloading} onClick={async () => {
-                  try {
-                    const url = await getDownloadUrl(strategy.id).unwrap();
-                    window.location.assign(url);
-                  } catch (error) {
-                    toast.error(marketingErrorMessage(error));
-                  }
-                }}>
-                  <Download data-icon="inline-start" />
-                  {isDownloading ? "جارٍ التحميل..." : "تحميل"}
-                </Button>
-                {canManage && status === MarketingStrategyStatus.DRAFT ? (
-                  <Button size="sm" onClick={async () => {
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isDownloading}
+                  onClick={async () => {
                     try {
-                      await sendStrategy(strategy.id).unwrap();
-                      toast.success("تم إرسال الدراسة للعميل");
-                      void refetch();
+                      const url = pmOwned
+                        ? (await getPmDownloadUrl(strategy.id).unwrap()).url
+                        : await getDownloadUrl(strategy.id).unwrap();
+                      window.location.assign(url);
                     } catch (error) {
                       toast.error(marketingErrorMessage(error));
                     }
-                  }} disabled={isSending}>
+                  }}
+                >
+                  <Download data-icon="inline-start" />
+                  {isDownloading ? "جارٍ التحميل..." : "تحميل"}
+                </Button>
+                {pmOwned && status === MarketingStrategyStatus.PM_REVIEW ? (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => void handleApproveForClient()}
+                      disabled={isApprovingForClient}
+                    >
+                      <Send data-icon="inline-start" />
+                      {isApprovingForClient
+                        ? "جارٍ الاعتماد..."
+                        : "اعتماد وإرسال للعميل"}
+                    </Button>
+                    <Textarea
+                      className="min-h-9 w-64"
+                      placeholder="ملاحظات التعديل"
+                      value={pmRevisionComment}
+                      onChange={(event) =>
+                        setPmRevisionComment(event.target.value)
+                      }
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleRequestPmRevision()}
+                      disabled={
+                        isRequestingPmRevision || !pmRevisionComment.trim()
+                      }
+                    >
+                      {isRequestingPmRevision
+                        ? "جارٍ الإرجاع..."
+                        : "إرجاع للتعديل"}
+                    </Button>
+                  </>
+                ) : null}
+                {canManage && status === MarketingStrategyStatus.DRAFT ? (
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await sendStrategy(strategy.id).unwrap();
+                        toast.success("تم إرسال الدراسة لمراجعة مدير المشروع");
+                        void refetch();
+                      } catch (error) {
+                        toast.error(marketingErrorMessage(error));
+                      }
+                    }}
+                    disabled={isSending}
+                  >
                     <Send data-icon="inline-start" />
-                    {isSending ? "جارٍ الإرسال..." : "إرسال للعميل"}
+                    {isSending ? "جارٍ الإرسال..." : "إرسال للمراجعة"}
                   </Button>
                 ) : null}
-                {canManage && status === MarketingStrategyStatus.REVISION_REQUESTED ? (
+                {canManage &&
+                (status === MarketingStrategyStatus.PM_REVISION_REQUESTED ||
+                  status ===
+                    MarketingStrategyStatus.CLIENT_REVISION_REQUESTED ||
+                  status === MarketingStrategyStatus.REVISION_REQUESTED) ? (
                   <>
-                    <label htmlFor="marketing-strategy-revision-upload" className="sr-only">النسخة المعدلة من الدراسة التسويقية</label>
+                    <label
+                      htmlFor="marketing-strategy-revision-upload"
+                      className="sr-only"
+                    >
+                      النسخة المعدلة من الدراسة التسويقية
+                    </label>
                     <input
                       id="marketing-strategy-revision-upload"
                       ref={reviseRef}
@@ -260,7 +393,11 @@ function StrategyTab({
                         if (reviseRef.current) reviseRef.current.value = "";
                       }}
                     />
-                    <Button size="sm" onClick={() => reviseRef.current?.click()} disabled={isResubmitting}>
+                    <Button
+                      size="sm"
+                      onClick={() => reviseRef.current?.click()}
+                      disabled={isResubmitting}
+                    >
                       <Upload data-icon="inline-start" />
                       {isResubmitting ? "جارٍ الرفع..." : "رفع نسخة معدلة"}
                     </Button>
@@ -274,7 +411,9 @@ function StrategyTab({
             <Card className="border-destructive/30 bg-destructive/5">
               <CardContent className="p-4">
                 <p className="text-sm font-medium">ملاحظات التعديل</p>
-                <p className="mt-2 text-sm text-muted-foreground">{strategy.revisionNote}</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {strategy.revisionNote}
+                </p>
               </CardContent>
             </Card>
           ) : null}
@@ -282,12 +421,21 @@ function StrategyTab({
           <div className="grid gap-4 md:grid-cols-3">
             <MiniMetric
               title="الحالة"
-              value={MARKETING_STRATEGY_STATUS_AR[status] || UNKNOWN_STATUS_LABEL}
+              value={
+                MARKETING_STRATEGY_STATUS_AR[status] || UNKNOWN_STATUS_LABEL
+              }
             />
-            <MiniMetric title="أُنشئت" value={new Date(strategy.createdAt).toLocaleDateString("ar-SA")} />
+            <MiniMetric
+              title="أُنشئت"
+              value={new Date(strategy.createdAt).toLocaleDateString("ar-SA")}
+            />
             <MiniMetric
               title="أُرسلت"
-              value={strategy.sentAt ? new Date(strategy.sentAt).toLocaleDateString("ar-SA") : "—"}
+              value={
+                strategy.sentAt
+                  ? new Date(strategy.sentAt).toLocaleDateString("ar-SA")
+                  : "—"
+              }
             />
           </div>
         </CardContent>
@@ -316,9 +464,13 @@ function CampaignCreateDialog({
 }) {
   const [createCampaign, { isLoading }] = useCreateCampaignMutation();
   const [name, setName] = useState("");
-  const [platform, setPlatform] = useState<CampaignPlatform>(CampaignPlatform.GOOGLE);
+  const [platform, setPlatform] = useState<CampaignPlatform>(
+    CampaignPlatform.GOOGLE,
+  );
   const [budgetTotal, setBudgetTotal] = useState("1000");
-  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -360,7 +512,10 @@ function CampaignCreateDialog({
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="campaign-platform">المنصة</Label>
-            <Select value={platform} onValueChange={(value) => setPlatform(value as CampaignPlatform)}>
+            <Select
+              value={platform}
+              onValueChange={(value) => setPlatform(value as CampaignPlatform)}
+            >
               <SelectTrigger id="campaign-platform">
                 <SelectValue />
               </SelectTrigger>
@@ -397,7 +552,11 @@ function CampaignCreateDialog({
             </div>
           </div>
           <DialogFooter className="gap-2 sm:space-x-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               إلغاء
             </Button>
             <Button type="submit" disabled={isLoading}>
@@ -414,18 +573,30 @@ function CampaignsTab({
   taskId,
   canManage,
   enabled,
+  pmOwned,
 }: {
   taskId: string;
   canManage: boolean;
   enabled: boolean;
+  pmOwned: boolean;
 }) {
-  const { data: campaigns = [], isLoading } = useGetCampaignsByTaskQuery(taskId, {
-    skip: !enabled,
+  const { data: campaigns = [], isLoading } = useGetCampaignsByTaskQuery(
+    taskId,
+    {
+      skip: !enabled,
+    },
+  );
+  const marketingStrategyQuery = useGetTaskStrategyQuery(taskId, {
+    skip: !enabled || pmOwned,
   });
-  const { data: strategy } = useGetTaskStrategyQuery(taskId, { skip: !enabled });
+  const pmStrategyQuery = useGetPmStrategyByTaskQuery(taskId, {
+    skip: !enabled || !pmOwned,
+  });
+  const strategy = pmOwned ? pmStrategyQuery.data : marketingStrategyQuery.data;
   const [updateStatus] = useUpdateCampaignStatusMutation();
   const [isOpen, setIsOpen] = useState(false);
-  const strategyApproved = strategy?.status === MarketingStrategyStatus.APPROVED;
+  const strategyApproved =
+    strategy?.status === MarketingStrategyStatus.APPROVED;
 
   if (isLoading) {
     return (
@@ -473,7 +644,9 @@ function CampaignsTab({
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>لا توجد حملات</EmptyTitle>
-                <EmptyDescription>لم يتم إنشاء أي حملة مرتبطة بهذه المهمة بعد.</EmptyDescription>
+                <EmptyDescription>
+                  لم يتم إنشاء أي حملة مرتبطة بهذه المهمة بعد.
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           </CardContent>
@@ -484,7 +657,9 @@ function CampaignsTab({
             const metrics = computeCampaignMetrics(campaign);
             const budgetPct =
               campaign.budgetTotal > 0
-                ? Math.round((campaign.budgetSpent / campaign.budgetTotal) * 100)
+                ? Math.round(
+                    (campaign.budgetSpent / campaign.budgetTotal) * 100,
+                  )
                 : 0;
             const canStart = campaign.status === CampaignStatus.PLANNING;
             const canPause = campaign.status === CampaignStatus.ACTIVE;
@@ -500,59 +675,100 @@ function CampaignsTab({
                 <CardHeader className="gap-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <CardTitle className="text-base">{campaign.name}</CardTitle>
+                      <CardTitle className="text-base">
+                        {campaign.name}
+                      </CardTitle>
                       <CardDescription>
-                        {PLATFORM_LABELS[campaign.platform] || UNKNOWN_STATUS_LABEL}
+                        {PLATFORM_LABELS[campaign.platform] ||
+                          UNKNOWN_STATUS_LABEL}
                       </CardDescription>
                     </div>
                     <Badge variant={campaignStatusVariant(campaign.status)}>
-                      {CAMPAIGN_STATUS_LABELS[campaign.status] || UNKNOWN_STATUS_LABEL}
+                      {CAMPAIGN_STATUS_LABELS[campaign.status] ||
+                        UNKNOWN_STATUS_LABEL}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <MiniMetric title="الميزانية" value={formatCurrency(campaign.budgetTotal)} />
-                    <MiniMetric title="الإنفاق" value={formatCurrency(campaign.budgetSpent)} />
-                    <MiniMetric title="العائد" value={formatCurrency(metrics.revenue)} />
+                    <MiniMetric
+                      title="الميزانية"
+                      value={formatCurrency(campaign.budgetTotal)}
+                    />
+                    <MiniMetric
+                      title="الإنفاق"
+                      value={formatCurrency(campaign.budgetSpent)}
+                    />
+                    <MiniMetric
+                      title="العائد"
+                      value={formatCurrency(metrics.revenue)}
+                    />
                     <MiniMetric
                       title="ROAS"
-                      value={metrics.roas > 0 ? `${metrics.roas.toFixed(2)}x` : "—"}
+                      value={
+                        metrics.roas > 0 ? `${metrics.roas.toFixed(2)}x` : "—"
+                      }
                     />
                   </div>
                   <div className="rounded-lg border p-3 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">استهلاك الميزانية</span>
+                      <span className="text-muted-foreground">
+                        استهلاك الميزانية
+                      </span>
                       <span className="font-medium">{budgetPct}%</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/dashboard/marketing/campaigns/${campaign.id}`}>
+                      <Link
+                        href={`/dashboard/marketing/campaigns/${campaign.id}`}
+                      >
                         <Eye data-icon="inline-start" />
                         إدارة
                       </Link>
                     </Button>
                     {canManage && canStart ? (
-                      <Button size="sm" onClick={() => updateStatus({ id: campaign.id, action: "start" })}>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          updateStatus({ id: campaign.id, action: "start" })
+                        }
+                      >
                         <PlayCircle data-icon="inline-start" />
                         تشغيل
                       </Button>
                     ) : null}
                     {canManage && canPause ? (
-                      <Button variant="outline" size="sm" onClick={() => updateStatus({ id: campaign.id, action: "pause" })}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          updateStatus({ id: campaign.id, action: "pause" })
+                        }
+                      >
                         <PauseCircle data-icon="inline-start" />
                         إيقاف
                       </Button>
                     ) : null}
                     {canManage && canStop ? (
-                      <Button variant="outline" size="sm" onClick={() => updateStatus({ id: campaign.id, action: "stop" })}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          updateStatus({ id: campaign.id, action: "stop" })
+                        }
+                      >
                         <StopCircle data-icon="inline-start" />
                         إنهاء
                       </Button>
                     ) : null}
                     {canManage && canComplete ? (
-                      <Button size="sm" onClick={() => updateStatus({ id: campaign.id, action: "end" })}>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          updateStatus({ id: campaign.id, action: "end" })
+                        }
+                      >
                         <CheckCircle2 data-icon="inline-start" />
                         إكمال
                       </Button>
@@ -566,7 +782,11 @@ function CampaignsTab({
       )}
 
       {canManage ? (
-        <CampaignCreateDialog open={isOpen} onOpenChange={setIsOpen} taskId={taskId} />
+        <CampaignCreateDialog
+          open={isOpen}
+          onOpenChange={setIsOpen}
+          taskId={taskId}
+        />
       ) : null}
     </div>
   );
@@ -579,9 +799,12 @@ function PerformanceTab({
   taskId: string;
   enabled: boolean;
 }) {
-  const { data: campaigns = [], isLoading } = useGetCampaignsByTaskQuery(taskId, {
-    skip: !enabled,
-  });
+  const { data: campaigns = [], isLoading } = useGetCampaignsByTaskQuery(
+    taskId,
+    {
+      skip: !enabled,
+    },
+  );
 
   const aggregated = useMemo(() => {
     return campaigns.reduce(
@@ -595,7 +818,14 @@ function PerformanceTab({
         acc.conversions += metrics.conversions;
         return acc;
       },
-      { budgetTotal: 0, spend: 0, revenue: 0, clicks: 0, impressions: 0, conversions: 0 },
+      {
+        budgetTotal: 0,
+        spend: 0,
+        revenue: 0,
+        clicks: 0,
+        impressions: 0,
+        conversions: 0,
+      },
     );
   }, [campaigns]);
 
@@ -619,7 +849,9 @@ function PerformanceTab({
             </EmptyMedia>
             <EmptyHeader>
               <EmptyTitle>لا توجد بيانات أداء</EmptyTitle>
-              <EmptyDescription>ستظهر مؤشرات الأداء هنا بعد إنشاء الحملات.</EmptyDescription>
+              <EmptyDescription>
+                ستظهر مؤشرات الأداء هنا بعد إنشاء الحملات.
+              </EmptyDescription>
             </EmptyHeader>
           </Empty>
         </CardContent>
@@ -628,7 +860,10 @@ function PerformanceTab({
   }
 
   const roas = aggregated.spend > 0 ? aggregated.revenue / aggregated.spend : 0;
-  const ctr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions) * 100 : 0;
+  const ctr =
+    aggregated.impressions > 0
+      ? (aggregated.clicks / aggregated.impressions) * 100
+      : 0;
   const cpc = aggregated.clicks > 0 ? aggregated.spend / aggregated.clicks : 0;
 
   return (
@@ -637,8 +872,12 @@ function PerformanceTab({
         <Card>
           <CardContent className="flex items-start justify-between gap-4 p-5">
             <div className="flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">إجمالي الميزانية</span>
-              <span className="text-lg font-semibold">{formatCurrency(aggregated.budgetTotal)}</span>
+              <span className="text-sm text-muted-foreground">
+                إجمالي الميزانية
+              </span>
+              <span className="text-lg font-semibold">
+                {formatCurrency(aggregated.budgetTotal)}
+              </span>
             </div>
             <Wallet className="size-5 text-muted-foreground" />
           </CardContent>
@@ -646,8 +885,12 @@ function PerformanceTab({
         <Card>
           <CardContent className="flex items-start justify-between gap-4 p-5">
             <div className="flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">إجمالي الإنفاق</span>
-              <span className="text-lg font-semibold">{formatCurrency(aggregated.spend)}</span>
+              <span className="text-sm text-muted-foreground">
+                إجمالي الإنفاق
+              </span>
+              <span className="text-lg font-semibold">
+                {formatCurrency(aggregated.spend)}
+              </span>
             </div>
             <Wallet className="size-5 text-muted-foreground" />
           </CardContent>
@@ -655,8 +898,12 @@ function PerformanceTab({
         <Card>
           <CardContent className="flex items-start justify-between gap-4 p-5">
             <div className="flex flex-col gap-2">
-              <span className="text-sm text-muted-foreground">إجمالي التحويلات</span>
-              <span className="text-lg font-semibold">{formatNumber(aggregated.conversions)}</span>
+              <span className="text-sm text-muted-foreground">
+                إجمالي التحويلات
+              </span>
+              <span className="text-lg font-semibold">
+                {formatNumber(aggregated.conversions)}
+              </span>
             </div>
             <Target className="size-5 text-muted-foreground" />
           </CardContent>
@@ -665,7 +912,9 @@ function PerformanceTab({
           <CardContent className="flex items-start justify-between gap-4 p-5">
             <div className="flex flex-col gap-2">
               <span className="text-sm text-muted-foreground">متوسط ROAS</span>
-              <span className="text-lg font-semibold">{roas > 0 ? `${roas.toFixed(2)}x` : "—"}</span>
+              <span className="text-lg font-semibold">
+                {roas > 0 ? `${roas.toFixed(2)}x` : "—"}
+              </span>
             </div>
             <BarChart3 className="size-5 text-muted-foreground" />
           </CardContent>
@@ -675,12 +924,20 @@ function PerformanceTab({
       <Card>
         <CardHeader>
           <CardTitle>ملخص الأداء</CardTitle>
-          <CardDescription>مؤشرات مجمعة لجميع الحملات المرتبطة بالمهمة.</CardDescription>
+          <CardDescription>
+            مؤشرات مجمعة لجميع الحملات المرتبطة بالمهمة.
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <MiniMetric title="CTR" value={ctr > 0 ? `${ctr.toFixed(2)}%` : "—"} />
+          <MiniMetric
+            title="CTR"
+            value={ctr > 0 ? `${ctr.toFixed(2)}%` : "—"}
+          />
           <MiniMetric title="CPC" value={cpc > 0 ? formatCurrency(cpc) : "—"} />
-          <MiniMetric title="الزيارات / الظهورات" value={`${formatNumber(aggregated.clicks)} / ${formatNumber(aggregated.impressions)}`} />
+          <MiniMetric
+            title="الزيارات / الظهورات"
+            value={`${formatNumber(aggregated.clicks)} / ${formatNumber(aggregated.impressions)}`}
+          />
         </CardContent>
       </Card>
     </div>
@@ -691,34 +948,60 @@ export function useMarketingTaskExtraTabs({
   taskId,
   canManage,
   enabled = true,
+  pmOwned = false,
 }: {
   taskId: string;
   canManage: boolean;
   enabled?: boolean;
+  pmOwned?: boolean;
 }) {
   const { data: campaigns = [] } = useGetCampaignsByTaskQuery(taskId, {
-    skip: !enabled,
+    skip: !enabled || pmOwned,
   });
 
-  return [
+  const tabs: TaskTabItem[] = [
     {
       value: "marketing-strategy",
       label: "الدراسة التسويقية",
       icon: FileText,
-      content: <StrategyTab taskId={taskId} canManage={canManage} enabled={enabled} />,
+      content: (
+        <StrategyTab
+          taskId={taskId}
+          canManage={canManage}
+          enabled={enabled}
+          pmOwned={pmOwned}
+        />
+      ),
     },
-    {
-      value: "marketing-campaigns",
-      label: "الحملات",
-      icon: Megaphone,
-      badge: String(campaigns.length),
-      content: <CampaignsTab taskId={taskId} canManage={canManage} enabled={enabled} />,
-    },
-    {
-      value: "marketing-performance",
-      label: "الأداء",
-      icon: BarChart3,
-      content: <PerformanceTab taskId={taskId} enabled={enabled} />,
-    },
-  ] satisfies TaskTabItem[];
+    ...(!pmOwned
+      ? [
+          {
+            value: "marketing-campaigns",
+            label: "الحملات",
+            icon: Megaphone,
+            badge: String(campaigns.length),
+            content: (
+              <CampaignsTab
+                taskId={taskId}
+                canManage={canManage}
+                enabled={enabled}
+                pmOwned={pmOwned}
+              />
+            ),
+          },
+        ]
+      : []),
+    ...(!pmOwned
+      ? [
+          {
+            value: "marketing-performance",
+            label: "الأداء",
+            icon: BarChart3,
+            content: <PerformanceTab taskId={taskId} enabled={enabled} />,
+          },
+        ]
+      : []),
+  ];
+
+  return tabs;
 }

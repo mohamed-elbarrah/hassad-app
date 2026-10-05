@@ -9,7 +9,11 @@ import {
   useChangePmTaskStatusMutation,
   type TaskWithProject,
 } from "@/features/tasks/tasksApi";
-import type { TaskWithMeta } from "@/lib/utils/task-status";
+import {
+  getTaskKanbanStage,
+  getTaskStatusForKanbanStage,
+  type TaskWithMeta,
+} from "@/lib/utils/task-status";
 import { pmErrorMessage } from "@/lib/i18n";
 
 interface PmTasksKanbanProps {
@@ -34,7 +38,7 @@ export function PmTasksKanban({
     try {
       await changeTaskStatus({
         id: taskId,
-        status: nextStatus as TaskStatus,
+        status: getTaskStatusForKanbanStage(nextStatus),
       }).unwrap();
     } catch (error) {
       toast.error(pmErrorMessage(error));
@@ -42,34 +46,40 @@ export function PmTasksKanban({
   }
 
   function canDropItem(task: TaskWithMeta, nextStatus: string) {
-    const currentStatus = task.status as TaskStatus;
+    const currentStatus = getTaskStatusForKanbanStage(getTaskKanbanStage(task));
+    if (currentStatus === TaskStatus.CLIENT_REVIEW) return false;
+    const destinationStatus = getTaskStatusForKanbanStage(nextStatus);
     return (
-      (currentStatus === TaskStatus.TODO ||
+      ((currentStatus === TaskStatus.TODO ||
         currentStatus === TaskStatus.REVISION) &&
-        nextStatus === TaskStatus.IN_PROGRESS ||
-      currentStatus === TaskStatus.IN_PROGRESS &&
-        nextStatus === TaskStatus.IN_REVIEW ||
-      currentStatus === TaskStatus.IN_REVIEW &&
-        (nextStatus === TaskStatus.DONE || nextStatus === TaskStatus.REVISION)
+        destinationStatus === TaskStatus.IN_PROGRESS) ||
+      (currentStatus === TaskStatus.IN_PROGRESS &&
+        destinationStatus === TaskStatus.IN_REVIEW) ||
+      (currentStatus === TaskStatus.IN_REVIEW &&
+        (destinationStatus === TaskStatus.DONE ||
+          destinationStatus === TaskStatus.REVISION))
     );
   }
 
   return (
-    <KanbanBoard
+    <KanbanBoard<TaskWithMeta>
       config={TASK_STATUS_CONFIG}
       items={kanbanTasks}
-      getItemStage={(task) => task.status}
+      getItemStage={getTaskKanbanStage}
       renderCard={(task) => (
-        <TaskKanbanCardContent
-          task={task}
-          detailPath="/dashboard/pm/tasks"
-        />
+        <TaskKanbanCardContent task={task} detailPath="/dashboard/pm/tasks" />
       )}
       onDragEnd={handleDragEnd}
       canDropItem={canDropItem}
+      canDragItem={(task) =>
+        getTaskStatusForKanbanStage(getTaskKanbanStage(task)) !==
+        TaskStatus.CLIENT_REVIEW
+      }
       onInvalidDrop={() =>
         toast.error(
-          pmErrorMessage({ data: { error: { code: "TASK_DROP_NOT_ALLOWED" } } }),
+          pmErrorMessage({
+            data: { error: { code: "TASK_DROP_NOT_ALLOWED" } },
+          }),
         )
       }
       isLoading={isLoading}

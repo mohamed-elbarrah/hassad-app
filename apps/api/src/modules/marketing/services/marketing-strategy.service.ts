@@ -35,11 +35,17 @@ export class MarketingStrategyService {
     });
 
     if (!task) {
-      throw new NotFoundException({ code: "MARKETING_TASK_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "MARKETING_TASK_NOT_FOUND",
+        details: {},
+      });
     }
 
     if (task.department?.name !== TaskDepartment.MARKETING) {
-      throw new BadRequestException({ code: "MARKETING_TASK_DEPARTMENT_REQUIRED", details: {} });
+      throw new BadRequestException({
+        code: "MARKETING_TASK_DEPARTMENT_REQUIRED",
+        details: {},
+      });
     }
 
     if (task.assignedTo !== userId) {
@@ -56,6 +62,10 @@ export class MarketingStrategyService {
         status: {
           in: [
             MarketingStrategyStatus.DRAFT,
+            MarketingStrategyStatus.PM_REVIEW,
+            MarketingStrategyStatus.PM_REVISION_REQUESTED,
+            MarketingStrategyStatus.CLIENT_REVIEW,
+            MarketingStrategyStatus.CLIENT_REVISION_REQUESTED,
             MarketingStrategyStatus.SENT,
             MarketingStrategyStatus.APPROVED,
           ],
@@ -71,7 +81,10 @@ export class MarketingStrategyService {
     }
 
     if (!task.project?.clientId) {
-      throw new BadRequestException({ code: "MARKETING_TASK_CLIENT_REQUIRED", details: {} });
+      throw new BadRequestException({
+        code: "MARKETING_TASK_CLIENT_REQUIRED",
+        details: {},
+      });
     }
 
     const strategy = await this.prisma.marketingStrategy.create({
@@ -91,67 +104,75 @@ export class MarketingStrategyService {
     return strategy;
   }
 
-  async sendToClient(id: string, userId: string) {
+  async submitForPm(id: string, userId: string) {
     const strategy = await this.prisma.marketingStrategy.findUnique({
       where: { id },
       include: {
-        task: { select: { title: true, createdBy: true, assignedTo: true } },
+        task: {
+          select: {
+            title: true,
+            createdBy: true,
+            assignedTo: true,
+            project: { select: { projectManagerId: true } },
+          },
+        },
       },
     });
 
     if (!strategy) {
-      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     if (strategy.createdBy !== userId) {
-      throw new BadRequestException({ code: "MARKETING_STRATEGY_OWNER_REQUIRED", details: {} });
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_OWNER_REQUIRED",
+        details: {},
+      });
     }
 
     if (
       strategy.status !== MarketingStrategyStatus.DRAFT &&
+      strategy.status !== MarketingStrategyStatus.CLIENT_REVISION_REQUESTED &&
       strategy.status !== MarketingStrategyStatus.REVISION_REQUESTED
     ) {
-      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_INVALID_STATUS",
+        details: { status: strategy.status },
+      });
     }
 
-    const updated = await this.prisma.marketingStrategy.update({
-      where: { id },
-      data: {
-        status: MarketingStrategyStatus.SENT,
-        sentAt: new Date(),
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.marketingStrategy.update({
+        where: { id },
+        data: {
+          status: MarketingStrategyStatus.PM_REVIEW,
+          submittedAt: new Date(),
+          isVisibleToClient: false,
+        },
+      });
+      await tx.marketingStrategyReviewHistory.create({
+        data: {
+          strategyId: strategy.id,
+          fromStatus: strategy.status,
+          toStatus: MarketingStrategyStatus.PM_REVIEW,
+          actorId: userId,
+          actorRole: "MARKETING",
+        },
+      });
+      return result;
     });
 
-    // Notify client
-    const client = await this.prisma.client.findUnique({
-      where: { id: strategy.clientId },
-      select: { userId: true },
-    });
-
-    if (client?.userId) {
+    if (strategy.task.project?.projectManagerId) {
       await this.notifications
         .createNotification({
           entityId: id,
           entityType: "marketing_strategy",
-          eventType: "MARKETING_STRATEGY_SENT",
-          userId: client.userId,
-        })
-        .catch((err) =>
-          this.logger.error(
-            `Failed to notify client about strategy ${id}`,
-            err,
-          ),
-        );
-    }
-
-    // Notify PM
-    if (strategy.task.createdBy) {
-      await this.notifications
-        .createNotification({
-          entityId: id,
-          entityType: "marketing_strategy",
-          eventType: "MARKETING_STRATEGY_SENT",
-          userId: strategy.task.createdBy,
+          eventType: "MARKETING_STRATEGY_SUBMITTED_FOR_PM_REVIEW",
+          metadata: { taskId: strategy.taskId, projectId: strategy.projectId },
+          userId: strategy.task.project.projectManagerId,
         })
         .catch((err) =>
           this.logger.error(`Failed to notify PM about strategy ${id}`, err),
@@ -161,38 +182,214 @@ export class MarketingStrategyService {
     return updated;
   }
 
+  async approveForClient(id: string, pmUserId: string) {
+    const strategy = await this.prisma.marketingStrategy.findUnique({
+      where: { id },
+      include: {
+        task: {
+          select: {
+            project: { select: { projectManagerId: true } },
+          },
+        },
+      },
+    });
+    if (!strategy) {
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
+    }
+    if (strategy.task.project?.projectManagerId !== pmUserId) {
+      throw new BadRequestException({ code: "PERMISSION_DENIED", details: {} });
+    }
+    if (strategy.status !== MarketingStrategyStatus.PM_REVIEW) {
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_INVALID_STATUS",
+        details: { status: strategy.status },
+      });
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.marketingStrategy.update({
+        where: { id },
+        data: {
+          status: MarketingStrategyStatus.CLIENT_REVIEW,
+          sentAt: new Date(),
+          pmReviewedBy: pmUserId,
+          pmReviewedAt: new Date(),
+          isVisibleToClient: true,
+        },
+      });
+      await tx.marketingStrategyReviewHistory.create({
+        data: {
+          strategyId: strategy.id,
+          fromStatus: strategy.status,
+          toStatus: MarketingStrategyStatus.CLIENT_REVIEW,
+          actorId: pmUserId,
+          actorRole: "PM",
+        },
+      });
+      return result;
+    });
+
+    const client = await this.prisma.client.findUnique({
+      where: { id: strategy.clientId },
+      select: { userId: true },
+    });
+    if (client?.userId) {
+      await this.notifications
+        .createNotification({
+          entityId: id,
+          entityType: "marketing_strategy",
+          eventType: "MARKETING_STRATEGY_SENT",
+          metadata: { taskId: strategy.taskId, projectId: strategy.projectId },
+          userId: client.userId,
+        })
+        .catch((err) =>
+          this.logger.error(
+            `Failed to notify client about strategy ${id}`,
+            err,
+          ),
+        );
+    }
+    return updated;
+  }
+
+  async requestPmRevision(id: string, pmUserId: string, comment: string) {
+    const strategy = await this.prisma.marketingStrategy.findUnique({
+      where: { id },
+      include: {
+        task: {
+          select: {
+            project: { select: { projectManagerId: true } },
+          },
+        },
+      },
+    });
+    if (!strategy) {
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
+    }
+    if (strategy.task.project?.projectManagerId !== pmUserId) {
+      throw new BadRequestException({ code: "PERMISSION_DENIED", details: {} });
+    }
+    if (strategy.status !== MarketingStrategyStatus.PM_REVIEW) {
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_INVALID_STATUS",
+        details: { status: strategy.status },
+      });
+    }
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.marketingStrategy.update({
+        where: { id },
+        data: {
+          status: MarketingStrategyStatus.PM_REVISION_REQUESTED,
+          revisionNote: comment,
+          isVisibleToClient: false,
+        },
+      });
+      await tx.marketingStrategyReviewHistory.create({
+        data: {
+          strategyId: strategy.id,
+          fromStatus: strategy.status,
+          toStatus: MarketingStrategyStatus.PM_REVISION_REQUESTED,
+          actorId: pmUserId,
+          actorRole: "PM",
+          comment,
+        },
+      });
+      return result;
+    });
+    if (strategy.createdBy) {
+      await this.notifications
+        .createNotification({
+          entityId: id,
+          entityType: "marketing_strategy",
+          eventType: "MARKETING_STRATEGY_PM_REVISION_REQUESTED",
+          metadata: { taskId: strategy.taskId, projectId: strategy.projectId },
+          userId: strategy.createdBy,
+        })
+        .catch((err) =>
+          this.logger.error(
+            `Failed to notify Marketing about strategy ${id}`,
+            err,
+          ),
+        );
+    }
+    return updated;
+  }
+
   async approve(id: string, clientUserId: string) {
     const strategy = await this.prisma.marketingStrategy.findUnique({
       where: { id },
       include: {
-        task: { select: { title: true, createdBy: true, assignedTo: true } },
+        task: {
+          select: {
+            title: true,
+            createdBy: true,
+            assignedTo: true,
+            isVisibleToClient: true,
+          },
+        },
       },
     });
 
     if (!strategy) {
-      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
-
-    if (strategy.status !== MarketingStrategyStatus.SENT) {
-      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
+    if (!strategy.isVisibleToClient) {
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_NOT_VISIBLE_TO_CLIENT",
+        details: {},
+      });
     }
 
-    const updated = await this.prisma.marketingStrategy.update({
-      where: { id },
-      data: {
-        status: MarketingStrategyStatus.APPROVED,
-        approvedBy: clientUserId,
-        approvedAt: new Date(),
-      },
+    if (
+      strategy.status !== MarketingStrategyStatus.CLIENT_REVIEW &&
+      strategy.status !== MarketingStrategyStatus.SENT
+    ) {
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_INVALID_STATUS",
+        details: { status: strategy.status },
+      });
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.marketingStrategy.update({
+        where: { id },
+        data: {
+          status: MarketingStrategyStatus.APPROVED,
+          approvedBy: clientUserId,
+          approvedAt: new Date(),
+        },
+      });
+      await tx.marketingStrategyReviewHistory.create({
+        data: {
+          strategyId: strategy.id,
+          fromStatus: strategy.status,
+          toStatus: MarketingStrategyStatus.APPROVED,
+          actorId: clientUserId,
+          actorRole: "CLIENT",
+        },
+      });
+      return result;
     });
 
     // Notify marketer & PM
-    const recipients = [
-      strategy.task.assignedTo,
-      strategy.task.createdBy,
-    ].filter(Boolean) as string[];
+    const recipients = Array.from(
+      new Set(
+        [strategy.task.assignedTo, strategy.task.createdBy].filter(
+          Boolean,
+        ) as string[],
+      ),
+    );
 
     for (const recipientId of recipients) {
       await this.notifications
@@ -200,6 +397,7 @@ export class MarketingStrategyService {
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_APPROVED",
+          metadata: { taskId: strategy.taskId, projectId: strategy.projectId },
           userId: recipientId,
         })
         .catch((err) =>
@@ -217,33 +415,72 @@ export class MarketingStrategyService {
     const strategy = await this.prisma.marketingStrategy.findUnique({
       where: { id },
       include: {
-        task: { select: { title: true, createdBy: true, assignedTo: true } },
+        task: {
+          select: {
+            title: true,
+            createdBy: true,
+            assignedTo: true,
+            isVisibleToClient: true,
+          },
+        },
       },
     });
 
     if (!strategy) {
-      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
-
-    if (strategy.status !== MarketingStrategyStatus.SENT) {
-      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
+    if (!strategy.isVisibleToClient) {
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_NOT_VISIBLE_TO_CLIENT",
+        details: {},
+      });
     }
 
-    const updated = await this.prisma.marketingStrategy.update({
-      where: { id },
-      data: {
-        status: MarketingStrategyStatus.REVISION_REQUESTED,
-        revisionNote: comment,
-      },
+    if (
+      strategy.status !== MarketingStrategyStatus.CLIENT_REVIEW &&
+      strategy.status !== MarketingStrategyStatus.SENT
+    ) {
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_INVALID_STATUS",
+        details: { status: strategy.status },
+      });
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.marketingStrategy.update({
+        where: { id },
+        data: {
+          status: MarketingStrategyStatus.CLIENT_REVISION_REQUESTED,
+          revisionNote: comment,
+          isVisibleToClient: false,
+        },
+      });
+      await tx.marketingStrategyReviewHistory.create({
+        data: {
+          strategyId: strategy.id,
+          fromStatus: strategy.status,
+          toStatus: MarketingStrategyStatus.CLIENT_REVISION_REQUESTED,
+          actorId: clientUserId,
+          actorRole: "CLIENT",
+          comment,
+        },
+      });
+      return result;
     });
 
     // Notify marketer & PM
-    const recipients = [
-      strategy.task.assignedTo,
-      strategy.task.createdBy,
-    ].filter(Boolean) as string[];
+    const recipients = Array.from(
+      new Set(
+        [strategy.task.assignedTo, strategy.task.createdBy].filter(
+          Boolean,
+        ) as string[],
+      ),
+    );
 
     for (const recipientId of recipients) {
       await this.notifications
@@ -251,6 +488,7 @@ export class MarketingStrategyService {
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_REVISION_REQUESTED",
+          metadata: { taskId: strategy.taskId, projectId: strategy.projectId },
           userId: recipientId,
         })
         .catch((err) =>
@@ -273,21 +511,44 @@ export class MarketingStrategyService {
     });
 
     if (!strategy) {
-      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     await this.verifyClientOwnsStrategy(strategy.clientId, clientUserId);
 
-    if (strategy.status !== MarketingStrategyStatus.SENT) {
-      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
+    if (
+      strategy.status !== MarketingStrategyStatus.CLIENT_REVIEW &&
+      strategy.status !== MarketingStrategyStatus.SENT
+    ) {
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_INVALID_STATUS",
+        details: { status: strategy.status },
+      });
     }
 
-    const updated = await this.prisma.marketingStrategy.update({
-      where: { id },
-      data: {
-        status: MarketingStrategyStatus.REJECTED,
-        revisionNote: reason ?? null,
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.marketingStrategy.update({
+        where: { id },
+        data: {
+          status: MarketingStrategyStatus.REJECTED,
+          revisionNote: reason ?? null,
+          isVisibleToClient: false,
+        },
+      });
+      await tx.marketingStrategyReviewHistory.create({
+        data: {
+          strategyId: strategy.id,
+          fromStatus: strategy.status,
+          toStatus: MarketingStrategyStatus.REJECTED,
+          actorId: clientUserId,
+          actorRole: "CLIENT",
+          comment: reason,
+        },
+      });
+      return result;
     });
 
     // Notify marketer & PM
@@ -302,6 +563,7 @@ export class MarketingStrategyService {
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_REJECTED",
+          metadata: { taskId: strategy.taskId, projectId: strategy.projectId },
           userId: recipientId,
         })
         .catch((err) =>
@@ -322,65 +584,71 @@ export class MarketingStrategyService {
   ) {
     const strategy = await this.prisma.marketingStrategy.findUnique({
       where: { id },
-      include: { task: { select: { createdBy: true } } },
     });
 
     if (!strategy) {
-      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     if (strategy.createdBy !== userId) {
-      throw new BadRequestException({ code: "MARKETING_STRATEGY_OWNER_REQUIRED", details: {} });
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_OWNER_REQUIRED",
+        details: {},
+      });
     }
 
-    if (strategy.status !== MarketingStrategyStatus.REVISION_REQUESTED) {
-      throw new BadRequestException({ code: "MARKETING_STRATEGY_INVALID_STATUS", details: { status: strategy.status } });
+    if (
+      strategy.status !== MarketingStrategyStatus.PM_REVISION_REQUESTED &&
+      strategy.status !== MarketingStrategyStatus.CLIENT_REVISION_REQUESTED &&
+      strategy.status !== MarketingStrategyStatus.REVISION_REQUESTED
+    ) {
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_INVALID_STATUS",
+        details: { status: strategy.status },
+      });
     }
 
-    const updated = await this.prisma.marketingStrategy.update({
-      where: { id },
-      data: {
-        fileName: file.originalName,
-        filePath: file.key,
-        fileSize: file.size,
-        fileType: file.mimeType,
-        status: MarketingStrategyStatus.SENT,
-        sentAt: new Date(),
-        revisionNote: null,
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.marketingStrategy.update({
+        where: { id },
+        data: {
+          fileName: file.originalName,
+          filePath: file.key,
+          fileSize: file.size,
+          fileType: file.mimeType,
+          status: MarketingStrategyStatus.DRAFT,
+          revisionNote: null,
+          isVisibleToClient: false,
+        },
+      });
+      await tx.marketingStrategyReviewHistory.create({
+        data: {
+          strategyId: strategy.id,
+          fromStatus: strategy.status,
+          toStatus: MarketingStrategyStatus.DRAFT,
+          actorId: userId,
+          actorRole: "MARKETING",
+        },
+      });
+      return result;
     });
 
-    // Notify client
-    const client = await this.prisma.client.findUnique({
-      where: { id: strategy.clientId },
-      select: { userId: true },
-    });
-
-    const pmId = strategy.task?.createdBy;
-    const resubmitRecipients = [client?.userId, pmId].filter(Boolean) as string[];
-
-    if (resubmitRecipients.length > 0) {
-      await this.notifications
-        .notifyUsers({
-          userIds: resubmitRecipients,
-          entityId: id,
-          entityType: "marketing_strategy",
-          eventType: "MARKETING_STRATEGY_SENT",
-        })
-        .catch((err) =>
-          this.logger.error(
-            `Failed to notify about resubmit ${id}`,
-            err,
-          ),
-        );
+    if (strategy.filePath !== file.key) {
+      await this.storageService.deleteByKey(strategy.filePath).catch(() => {});
     }
 
     return updated;
   }
 
-  async findByTask(taskId: string) {
+  async findByTask(taskId: string, userId?: string) {
     const strategies = await this.prisma.marketingStrategy.findMany({
-      where: { taskId },
+      where: {
+        taskId,
+        ...(userId ? { task: { assignedTo: userId } } : {}),
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -409,9 +677,12 @@ export class MarketingStrategyService {
     });
   }
 
-  async findOne(id: string) {
-    const strategy = await this.prisma.marketingStrategy.findUnique({
-      where: { id },
+  async findOne(id: string, userId?: string) {
+    const strategy = await this.prisma.marketingStrategy.findFirst({
+      where: {
+        id,
+        ...(userId ? { task: { assignedTo: userId } } : {}),
+      },
       include: {
         task: {
           select: {
@@ -422,24 +693,37 @@ export class MarketingStrategyService {
         },
         creator: { select: { id: true, name: true } },
         approver: { select: { id: true, name: true } },
+        reviewHistory: {
+          include: { actor: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
 
     if (!strategy) {
-      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     return strategy;
   }
 
-  async getDownloadUrl(id: string): Promise<string> {
-    const strategy = await this.prisma.marketingStrategy.findUnique({
-      where: { id },
+  async getDownloadUrl(id: string, userId?: string): Promise<string> {
+    const strategy = await this.prisma.marketingStrategy.findFirst({
+      where: {
+        id,
+        ...(userId ? { task: { assignedTo: userId } } : {}),
+      },
       select: { filePath: true },
     });
 
     if (!strategy) {
-      throw new NotFoundException({ code: "MARKETING_STRATEGY_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
     return this.storageService.getPresignedUrl(strategy.filePath);

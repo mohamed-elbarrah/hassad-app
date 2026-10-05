@@ -43,14 +43,23 @@ export class TaskMarketingStrategyController {
   async create(
     @Param("taskId") taskId: string,
     @CurrentUser() user: JwtPayload,
-    @UploadedFile(new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY })) file: Express.Multer.File | undefined,
+    @UploadedFile(
+      new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY }),
+    )
+    file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
+      throw new BadRequestException({
+        code: "FILE_TYPE_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     if (file.mimetype !== "application/pdf") {
-      throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
+      throw new BadRequestException({
+        code: "FILE_TYPE_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     const uploadResult = await this.storageService.upload({
@@ -64,22 +73,27 @@ export class TaskMarketingStrategyController {
       },
     });
 
-    return this.strategyService.create(
-      taskId,
-      {
-        key: uploadResult.key,
-        originalName: file.originalname,
-        size: file.size,
-        mimeType: file.mimetype,
-      },
-      user.id,
-    );
+    try {
+      return await this.strategyService.create(
+        taskId,
+        {
+          key: uploadResult.key,
+          originalName: file.originalname,
+          size: file.size,
+          mimeType: file.mimetype,
+        },
+        user.id,
+      );
+    } catch (error) {
+      await this.storageService.deleteByKey(uploadResult.key).catch(() => {});
+      throw error;
+    }
   }
 
   @Get(":taskId/marketing-strategy")
   @RequirePermissions("marketing.read")
-  findByTask(@Param("taskId") taskId: string) {
-    return this.strategyService.findByTask(taskId);
+  findByTask(@Param("taskId") taskId: string, @CurrentUser() user: JwtPayload) {
+    return this.strategyService.findByTask(taskId, user.id);
   }
 }
 
@@ -99,25 +113,32 @@ export class MarketingStrategiesController {
 
   @Get(":id")
   @RequirePermissions("marketing.read")
-  findOne(@Param("id") id: string) {
-    return this.strategyService.findOne(id);
+  findOne(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
+    return this.strategyService.findOne(id, user.id);
   }
 
   @Get(":id/download")
   @RequirePermissions("marketing.read")
-  async download(@Param("id") id: string) {
-    const url = await this.strategyService.getDownloadUrl(id);
+  async download(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
+    const url = await this.strategyService.getDownloadUrl(id, user.id);
     return { url };
   }
 
-  @Patch(":id/send")
+  @Patch(":id/submit-pm")
   @RequirePermissions("marketing.update")
-  sendToClient(
+  submitForPm(
     @Param("id") id: string,
     @CurrentUser() user: JwtPayload,
     @Body() _dto: SendStrategyDto,
   ) {
-    return this.strategyService.sendToClient(id, user.id);
+    return this.strategyService.submitForPm(id, user.id);
+  }
+
+  /** Legacy alias retained for existing integrations; it now submits to PM review. */
+  @Patch(":id/send")
+  @RequirePermissions("marketing.update")
+  legacySubmitForPm(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
+    return this.strategyService.submitForPm(id, user.id);
   }
 
   @Post(":id/resubmit")
@@ -126,14 +147,23 @@ export class MarketingStrategiesController {
   async resubmit(
     @Param("id") id: string,
     @CurrentUser() user: JwtPayload,
-    @UploadedFile(new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY })) file: Express.Multer.File | undefined,
+    @UploadedFile(
+      new FileValidationPipe({ category: StorageCategory.MARKETING_STRATEGY }),
+    )
+    file: Express.Multer.File | undefined,
   ) {
     if (!file) {
-      throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
+      throw new BadRequestException({
+        code: "FILE_TYPE_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     if (file.mimetype !== "application/pdf") {
-      throw new BadRequestException({ code: "FILE_TYPE_NOT_ALLOWED", details: {} });
+      throw new BadRequestException({
+        code: "FILE_TYPE_NOT_ALLOWED",
+        details: {},
+      });
     }
 
     const uploadResult = await this.storageService.upload({
@@ -147,15 +177,20 @@ export class MarketingStrategiesController {
       },
     });
 
-    return this.strategyService.resubmit(
-      id,
-      {
-        key: uploadResult.key,
-        originalName: file.originalname,
-        size: file.size,
-        mimeType: file.mimetype,
-      },
-      user.id,
-    );
+    try {
+      return await this.strategyService.resubmit(
+        id,
+        {
+          key: uploadResult.key,
+          originalName: file.originalname,
+          size: file.size,
+          mimeType: file.mimetype,
+        },
+        user.id,
+      );
+    } catch (error) {
+      await this.storageService.deleteByKey(uploadResult.key).catch(() => {});
+      throw error;
+    }
   }
 }

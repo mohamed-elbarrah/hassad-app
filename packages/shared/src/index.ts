@@ -1,6 +1,7 @@
 // Enums
 export * from "./enums/roles";
 export * from "./enums/client";
+export * from "./enums/client-actions";
 export * from "./enums/project";
 
 export * from "./enums/finance";
@@ -50,6 +51,7 @@ import {
 import {
   ProjectStatus,
   TaskStatus,
+  TaskReviewStage,
   TaskPriority,
   TaskDepartment,
   MarketingStrategyStatus,
@@ -379,6 +381,7 @@ export interface Task {
   assignedTo?: string | null;
   createdBy: string;
   status: TaskStatus;
+  reviewStage?: TaskReviewStage;
   priority: TaskPriority;
   dueDate: Date | string;
   revisionCount?: number;

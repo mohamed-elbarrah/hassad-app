@@ -47,6 +47,17 @@ export class FileValidationPipe implements PipeTransform {
       });
     }
 
+    if (
+      (declaredMime === "application/pdf" ||
+        expectedMime === "application/pdf") &&
+      file.buffer.subarray(0, 5).toString("ascii") !== "%PDF-"
+    ) {
+      throw new BadRequestException({
+        code: "INVALID_FILE_CONTENT",
+        details: { expectedMime: "application/pdf" },
+      });
+    }
+
     return file;
   }
 }

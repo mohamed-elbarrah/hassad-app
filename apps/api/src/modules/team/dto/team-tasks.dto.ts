@@ -1,6 +1,21 @@
 import { Type } from "class-transformer";
-import { IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
-import { TaskDepartment, TaskPriority, TaskStatus, FilePurpose } from "@hassad/shared";
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from "class-validator";
+import {
+  TaskDepartment,
+  TaskPriority,
+  TaskReviewStage,
+  TaskStatus,
+  FilePurpose,
+} from "@hassad/shared";
 
 export class TeamTasksQueryDto {
   @IsOptional()
@@ -14,6 +29,10 @@ export class TeamTasksQueryDto {
   @IsOptional()
   @IsEnum(TaskPriority)
   priority?: TaskPriority;
+
+  @IsOptional()
+  @IsEnum(TaskReviewStage)
+  reviewStage?: TaskReviewStage;
 
   @IsOptional()
   @IsEnum(TaskDepartment)

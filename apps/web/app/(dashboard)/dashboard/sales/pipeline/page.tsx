@@ -39,6 +39,7 @@ import type { CreateRequestContactLogPayload } from "@/features/requests/request
 import { useGetSalesProposalByIdQuery } from "@/features/proposals/proposalsApi";
 import { useGetSalesContractByIdQuery } from "@/features/contracts/contractsApi";
 import { ProposalFormDialog } from "@/components/dashboard/sales/ProposalFormDialog";
+import { ProposalShareLinkDialog } from "@/components/dashboard/sales/ProposalShareLinkDialog";
 import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
 import {
   Dialog,
@@ -244,6 +245,9 @@ export default function PipelinePage() {
   );
   const [workflowDialog, setWorkflowDialog] =
     useState<PipelineWorkflowDialog | null>(null);
+  const [proposalShareLink, setProposalShareLink] = useState<string | null>(
+    null,
+  );
   const deferredSearch = useDeferredValue(search);
   const [updatePipelineStatus, { isLoading: isUpdatingStatus }] =
     useUpdateSalesPipelineStatusMutation();
@@ -836,8 +840,17 @@ export default function PipelinePage() {
           open
           onOpenChange={handleWorkflowDialogChange}
           onSaved={handleWorkflowSaved}
+          onCreated={setProposalShareLink}
         />
       ) : null}
+
+      <ProposalShareLinkDialog
+        open={Boolean(proposalShareLink)}
+        shareLink={proposalShareLink}
+        onOpenChange={(open) => {
+          if (!open) setProposalShareLink(null);
+        }}
+      />
 
       {workflowDialog?.type === "proposal" &&
       workflowDialog.mode === "edit" &&

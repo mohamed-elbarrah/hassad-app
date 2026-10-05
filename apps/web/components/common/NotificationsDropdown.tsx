@@ -17,10 +17,7 @@ import type { NotificationItem } from "@/features/notifications/notificationsApi
 import Link from "next/link";
 import { UserRole } from "@hassad/shared";
 import { formatRelativeTime } from "@/lib/format";
-import {
-  notificationErrorMessage,
-  notificationPresentation,
-} from "@/lib/i18n";
+import { notificationErrorMessage, notificationPresentation } from "@/lib/i18n";
 import { toast } from "sonner";
 
 // Role-aware URL resolver — uses canonical redirect which handles EMPLOYEE/PM/ADMIN
@@ -28,9 +25,16 @@ export function resolveEntityUrl(
   entityType: string | null | undefined,
   entityId: string | null | undefined,
   role: UserRole | string | undefined,
+  metadata?: Record<string, unknown> | null,
 ): string | null {
   if (!entityType || !entityId) return null;
   if (entityType === "task") {
+    if (role === UserRole.CLIENT) {
+      const projectId = metadata?.projectId;
+      return typeof projectId === "string"
+        ? `/portal/projects/${projectId}?tab=tasks&taskId=${entityId}${typeof metadata?.periodId === "string" ? `&periodId=${metadata.periodId}` : ""}`
+        : null;
+    }
     if (role === UserRole.TEAM) return `/dashboard/team/tasks/${entityId}`;
     if (role === UserRole.MARKETING)
       return `/dashboard/marketing/tasks/${entityId}`;
@@ -61,8 +65,14 @@ export function resolveEntityUrl(
   if (entityType === "marketing_strategy") {
     if (role === UserRole.CLIENT)
       return `/portal/marketing-strategies/${entityId}`;
-    if (role === UserRole.MARKETING)
-      return `/dashboard/marketing/tasks/${entityId}`;
+    const taskId = metadata?.taskId;
+    if (typeof taskId === "string") {
+      if (role === UserRole.MARKETING)
+        return `/dashboard/marketing/tasks/${taskId}`;
+      if (role === UserRole.PM || role === UserRole.ADMIN)
+        return `/dashboard/pm/tasks/${taskId}`;
+    }
+    if (role === UserRole.MARKETING) return `/dashboard/marketing`;
     return `/dashboard/marketing`;
   }
   if (entityType === "invoice" || entityType === "INVOICE") {
@@ -91,7 +101,10 @@ function NotificationListItem({
   notification: NotificationItem;
   onSelect: (n: NotificationItem) => void;
 }) {
-  const presentation = notificationPresentation(notification.eventType, notification.metadata);
+  const presentation = notificationPresentation(
+    notification.eventType,
+    notification.metadata,
+  );
 
   return (
     <button
@@ -166,6 +179,7 @@ export function NotificationsDropdown() {
       selectedNotification.entityType,
       selectedNotification.entityId,
       user?.role,
+      selectedNotification.metadata as Record<string, unknown> | null,
     );
     if (url) {
       setSelectedNotification(null);
@@ -179,6 +193,7 @@ export function NotificationsDropdown() {
         selectedNotification.entityType,
         selectedNotification.entityId,
         user?.role,
+        selectedNotification.metadata as Record<string, unknown> | null,
       )
     : null;
 
@@ -256,10 +271,12 @@ export function NotificationsDropdown() {
       <Dialog
         open={!!selectedNotification}
         onOpenChange={(open) => !open && setSelectedNotification(null)}
-        title={notificationPresentation(
-          selectedNotification?.eventType,
-          selectedNotification?.metadata,
-        ).title}
+        title={
+          notificationPresentation(
+            selectedNotification?.eventType,
+            selectedNotification?.metadata,
+          ).title
+        }
         description={
           selectedNotification?.createdAt
             ? formatRelativeTime(selectedNotification.createdAt as string)
@@ -300,10 +317,12 @@ export function NotificationsDropdown() {
         }
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap">
-          {notificationPresentation(
-            selectedNotification?.eventType,
-            selectedNotification?.metadata,
-          ).body}
+          {
+            notificationPresentation(
+              selectedNotification?.eventType,
+              selectedNotification?.metadata,
+            ).body
+          }
         </p>
       </Dialog>
     </>

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  Calendar,
+  CheckCircle2,
   DollarSign,
   FileText,
   Megaphone,
@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
-  useGetPortalProjectDetailQuery,
-  useGetPortalProjectPeriodsQuery,
+  useGetPortalProjectWorkspaceQuery,
   useLazyDownloadPeriodReportQuery,
   useLazyDownloadPeriodFileQuery,
   type PortalPeriodSummary,
@@ -38,13 +37,19 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   ProjectHeader,
   GoalsTab,
+  TasksTab,
   FilesTab,
   ReportsTab,
   CampaignsTab,
   MeetingsTab,
   InvoiceTab,
+  FixedProjectWorkspace,
 } from "@/components/portal/project-detail";
-import { ProjectPeriodStatus, PROJECT_STATUS_AR } from "@hassad/shared";
+import {
+  ProjectPeriodStatus,
+  PROJECT_STATUS_AR,
+  TaskReviewStage,
+} from "@hassad/shared";
 import { ProjectPeriodWorkspace } from "@/components/project-detail/ProjectPeriodWorkspace";
 import { daysUntil, formatShortDate } from "@/lib/format";
 
@@ -56,6 +61,7 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { id: "goals", label: "الأهداف", icon: Target },
+  { id: "tasks", label: "المهام", icon: CheckCircle2 },
   { id: "files", label: "الملفات", icon: Paperclip },
   { id: "reports", label: "التقارير", icon: FileText },
   { id: "campaigns", label: "الحملات", icon: Megaphone },
@@ -64,8 +70,14 @@ const TABS: TabDef[] = [
 ];
 
 /** Resolve the initially selected period (ACTIVE → first → null). */
-function pickInitialPeriod(periods: PortalPeriodSummary[]): string | null {
+function pickInitialPeriod(
+  periods: PortalPeriodSummary[],
+  requestedPeriodId?: string | null,
+): string | null {
   if (periods.length === 0) return null;
+  if (requestedPeriodId && periods.some((p) => p.id === requestedPeriodId)) {
+    return requestedPeriodId;
+  }
   const active = periods.find((p) => p.status === ProjectPeriodStatus.ACTIVE);
   return (active ?? periods[0]).id;
 }
@@ -87,6 +99,13 @@ function pickInitialPeriod(periods: PortalPeriodSummary[]): string | null {
  * period switches.
  */
 function pickInitialTab(period: PortalPeriodSummary): string {
+  if (
+    period.tasks.some(
+      (task) => task.reviewStage === TaskReviewStage.CLIENT_REVIEW,
+    )
+  ) {
+    return "tasks";
+  }
   if (period.stats.hasReport) return "reports";
   if (period.invoice) return "invoices";
   if (period.meetings.length > 0) return "meetings";
@@ -96,20 +115,18 @@ function pickInitialTab(period: PortalPeriodSummary): string {
 
 export default function PortalProjectPeriodsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
+  const focusTaskId = searchParams.get("taskId");
 
   const {
-    data: project,
-    isLoading: projectLoading,
-    isError: projectError,
-    refetch: refetchProject,
-  } = useGetPortalProjectDetailQuery(projectId);
-  const {
-    data: periods,
-    isLoading: periodsLoading,
-    isError: periodsError,
-    refetch: refetchPeriods,
-  } = useGetPortalProjectPeriodsQuery(projectId);
+    data: workspace,
+    isLoading: workspaceLoading,
+    isError: workspaceError,
+    refetch: refetchWorkspace,
+  } = useGetPortalProjectWorkspaceQuery(projectId);
+  const project = workspace?.project;
+  const periods = workspace?.periods ?? [];
 
   const [triggerReportDownload] = useLazyDownloadPeriodReportQuery();
   const [triggerFileDownload] = useLazyDownloadPeriodFileQuery();
@@ -127,22 +144,27 @@ export default function PortalProjectPeriodsPage() {
     setActiveTab("goals");
   }, [projectId]);
 
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (requestedTab && TABS.some((tab) => tab.id === requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
+
   // Auto-select the active (or first) period once periods load, AND pick
   // the most informative initial tab for that period.
   //
-  // Depends ONLY on `periods` — when the user explicitly picks a different
-  // period we don't want to re-run this effect and override their tab.
-  // (Audit issue #12, polish issue #1.)
+  // The selected period guard prevents explicit tab/period choices from being
+  // overridden after the initial workspace load.
   useEffect(() => {
     if (periods && periods.length > 0 && !selectedPeriodId) {
-      const periodId = pickInitialPeriod(periods);
+      const periodId = pickInitialPeriod(periods, searchParams.get("periodId"));
       const period = periods.find((p) => p.id === periodId);
       setSelectedPeriodId(periodId);
-      if (period) setActiveTab(pickInitialTab(period));
+      const requestedTab = searchParams.get("tab");
+      if (!requestedTab && period) setActiveTab(pickInitialTab(period));
     }
-    // selectedPeriodId intentionally omitted — see comment above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periods]);
+  }, [periods, searchParams, selectedPeriodId]);
 
   const selectedPeriod =
     periods?.find((p) => p.id === selectedPeriodId) ?? null;
@@ -201,7 +223,7 @@ export default function PortalProjectPeriodsPage() {
 
   // ── Loading ────────────────────────────────────────────────────────────────
 
-  if (periodsLoading || projectLoading) {
+  if (workspaceLoading) {
     return (
       <main className="flex flex-col gap-6" dir="rtl">
         <Skeleton className="h-12 w-full" />
@@ -215,10 +237,9 @@ export default function PortalProjectPeriodsPage() {
   // ── Error ─────────────────────────────────────────────────────────────────
   // Without this branch a 403/404/500 is silently swallowed and the page
   // shows the “no periods yet” empty state. See audit issue #1.
-  if (periodsError || projectError) {
+  if (workspaceError) {
     const handleRetry = () => {
-      if (periodsError) void refetchPeriods();
-      if (projectError) void refetchProject();
+      void refetchWorkspace();
     };
     return (
       <main className="flex flex-col gap-6" dir="rtl">
@@ -246,34 +267,23 @@ export default function PortalProjectPeriodsPage() {
     );
   }
 
-  // ── No periods yet ──────────────────────────────────────────────────────────
-
-  if (!periods || periods.length === 0) {
+  if (workspace?.scope === "PROJECT" && project && workspace.resources) {
     return (
       <main className="flex flex-col gap-6" dir="rtl">
-        {project && <ProjectHeader project={project} />}
-        <Card>
-          <CardContent className="pt-6">
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Calendar />
-                </EmptyMedia>
-                <EmptyTitle>لا توجد فترات بعد</EmptyTitle>
-                <EmptyDescription>
-                  سيتم إنشاء الفترات بعد تفعيل العقد.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          </CardContent>
-        </Card>
+        <ProjectHeader project={project} />
+        <FixedProjectWorkspace
+          project={project}
+          resources={workspace.resources}
+          focusTaskId={focusTaskId}
+          initialTab={searchParams.get("tab")}
+        />
       </main>
     );
   }
 
   return (
     <main className="flex flex-col gap-6" dir="rtl">
-      {project && <ProjectHeader project={project} />}
+      {project && <ProjectHeader project={project} showProgress={false} />}
 
       {selectedPeriod && (
         <ProjectPeriodWorkspace
@@ -286,82 +296,132 @@ export default function PortalProjectPeriodsPage() {
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                 <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
                   <dt className="text-xs text-muted-foreground">العميل</dt>
-                  <dd className="truncate font-medium">{project?.client.companyName}</dd>
+                  <dd className="truncate font-medium">
+                    {project?.client.companyName}
+                  </dd>
                 </div>
                 <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
-                  <dt className="text-xs text-muted-foreground">مدير المشروع</dt>
-                  <dd className="truncate font-medium">{project?.manager?.name || "غير محدد"}</dd>
+                  <dt className="text-xs text-muted-foreground">
+                    مدير المشروع
+                  </dt>
+                  <dd className="truncate font-medium">
+                    {project?.manager?.name || "غير محدد"}
+                  </dd>
                 </div>
                 <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
-                  <dt className="text-xs text-muted-foreground">حالة المشروع</dt>
-                  <dd><Badge variant="secondary">{project ? PROJECT_STATUS_AR[project.status] : "—"}</Badge></dd>
+                  <dt className="text-xs text-muted-foreground">
+                    حالة المشروع
+                  </dt>
+                  <dd>
+                    <Badge variant="secondary">
+                      {project ? PROJECT_STATUS_AR[project.status] : "—"}
+                    </Badge>
+                  </dd>
                 </div>
                 <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
                   <dt className="text-xs text-muted-foreground">مدة المشروع</dt>
-                  <dd className="font-medium">{formatShortDate(project?.startDate)} - {formatShortDate(project?.endDate)}</dd>
+                  <dd className="font-medium">
+                    {formatShortDate(project?.startDate)} -{" "}
+                    {formatShortDate(project?.endDate)}
+                  </dd>
                 </div>
               </dl>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                <div className="flex items-center justify-between gap-2 border-b pb-3"><dt className="text-xs text-muted-foreground">الأهداف المكتملة</dt><dd className="font-semibold tabular-nums">{selectedPeriod.stats.goalsCompleted}/{selectedPeriod.stats.goalsTotal}</dd></div>
-                <div className="flex items-center justify-between gap-2 border-b pb-3"><dt className="text-xs text-muted-foreground">الملفات</dt><dd className="font-semibold tabular-nums">{selectedPeriod.stats.filesCount}</dd></div>
-                <div className="flex items-center justify-between gap-2 border-b pb-3"><dt className="text-xs text-muted-foreground">التقارير</dt><dd className="font-semibold tabular-nums">{selectedPeriod.stats.reportsCount}</dd></div>
-                <div className="flex items-center justify-between gap-2 border-b pb-3"><dt className="text-xs text-muted-foreground">الوقت المتبقي</dt><dd className="font-semibold tabular-nums">{daysUntil(project?.endDate) ?? "—"}</dd></div>
+                <div className="flex items-center justify-between gap-2 border-b pb-3">
+                  <dt className="text-xs text-muted-foreground">
+                    الأهداف المكتملة
+                  </dt>
+                  <dd className="font-semibold tabular-nums">
+                    {selectedPeriod.stats.goalsCompleted}/
+                    {selectedPeriod.stats.goalsTotal}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-2 border-b pb-3">
+                  <dt className="text-xs text-muted-foreground">الملفات</dt>
+                  <dd className="font-semibold tabular-nums">
+                    {selectedPeriod.stats.filesCount}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-2 border-b pb-3">
+                  <dt className="text-xs text-muted-foreground">التقارير</dt>
+                  <dd className="font-semibold tabular-nums">
+                    {selectedPeriod.stats.reportsCount}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-2 border-b pb-3">
+                  <dt className="text-xs text-muted-foreground">
+                    الوقت المتبقي
+                  </dt>
+                  <dd className="font-semibold tabular-nums">
+                    {daysUntil(project?.endDate) ?? "—"}
+                  </dd>
+                </div>
               </dl>
             </div>
           }
         >
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          dir="rtl"
-          className="w-full"
-        >
-          <TabsList className="h-auto w-full flex-wrap justify-start overflow-x-auto sm:flex-nowrap">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className="gap-2 py-2.5"
-                >
-                  <Icon className="size-4" />
-                  {tab.label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            dir="rtl"
+            className="w-full"
+          >
+            <TabsList className="h-auto w-full flex-wrap justify-start overflow-x-auto sm:flex-nowrap">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    className="gap-2 py-2.5"
+                  >
+                    <Icon className="size-4" />
+                    {tab.label}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
 
-          <TabsContent value="goals" className="mt-4">
-            <GoalsTab goals={selectedPeriod.goals} />
-          </TabsContent>
+            <TabsContent value="goals" className="mt-4">
+              <GoalsTab goals={selectedPeriod.goals} />
+            </TabsContent>
 
-          <TabsContent value="files" className="mt-4">
-            <FilesTab
-              files={selectedPeriod.files}
-              onDownload={downloadPeriodFile}
-            />
-          </TabsContent>
+            <TabsContent value="tasks" className="mt-4">
+              <TasksTab
+                tasks={selectedPeriod.tasks}
+                focusTaskId={focusTaskId}
+              />
+            </TabsContent>
 
-          <TabsContent value="reports" className="mt-4">
-            <ReportsTab
-              period={selectedPeriod}
-              onDownloadReport={downloadPeriodReport}
-            />
-          </TabsContent>
+            <TabsContent value="files" className="mt-4">
+              <FilesTab
+                files={selectedPeriod.files}
+                onDownload={downloadPeriodFile}
+              />
+            </TabsContent>
 
-          <TabsContent value="campaigns" className="mt-4">
-            <CampaignsTab projectId={projectId} periodId={selectedPeriod.id} />
-          </TabsContent>
+            <TabsContent value="reports" className="mt-4">
+              <ReportsTab
+                period={selectedPeriod}
+                onDownloadReport={downloadPeriodReport}
+              />
+            </TabsContent>
 
-          <TabsContent value="meetings" className="mt-4">
-            <MeetingsTab meetings={selectedPeriod.meetings} />
-          </TabsContent>
+            <TabsContent value="campaigns" className="mt-4">
+              <CampaignsTab
+                projectId={projectId}
+                periodId={selectedPeriod.id}
+              />
+            </TabsContent>
 
-          <TabsContent value="invoices" className="mt-4">
-            <InvoiceTab invoice={selectedPeriod.invoice} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="meetings" className="mt-4">
+              <MeetingsTab meetings={selectedPeriod.meetings} />
+            </TabsContent>
+
+            <TabsContent value="invoices" className="mt-4">
+              <InvoiceTab invoice={selectedPeriod.invoice} />
+            </TabsContent>
+          </Tabs>
         </ProjectPeriodWorkspace>
       )}
     </main>

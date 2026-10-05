@@ -13,6 +13,8 @@ import type {
   Client,
   ProjectStatus,
   TaskPriority,
+  TaskStatus,
+  TaskReviewStage,
 } from "@hassad/shared";
 import type { ClientProfileV2 } from "@/features/clients/clientsApi";
 
@@ -99,11 +101,20 @@ export interface DisputeListResponse {
   };
 }
 
+export interface ProjectProgressPeriod {
+  id: string;
+  periodNumber: number;
+  status: "UPCOMING" | "ACTIVE" | "CLOSED" | "SUSPENDED";
+  completionPercentage: number;
+}
+
 export interface ProjectSummary {
   id: string;
   name: string;
   status: ProjectStatus;
   progress: number;
+  progressMode: "PERIODS" | "PROJECT";
+  periods: ProjectProgressPeriod[];
   startDate: string;
   endDate: string;
   projectManager: {
@@ -176,11 +187,22 @@ export interface ActivityFeedItem {
   icon: "palette" | "file" | "trending" | "check" | "dollar";
 }
 
+export interface CampaignSummaryIndicator {
+  key: "IMPRESSIONS" | "CONVERSIONS" | "ROAS";
+  unit: "COUNT" | "MULTIPLIER";
+  globalValue: number | null;
+  last30DaysValue: number | null;
+}
+
 export interface CampaignSummary {
-  totalVisits: number;
-  totalConversions: number;
-  avgRoas: number;
-  improvementPercent: number;
+  scope: "CLIENT_CAMPAIGNS";
+  eligibleCampaignCount: number;
+  globalCampaignsWithData: number;
+  last30DaysCampaignsWithData: number;
+  globalSnapshotCount: number;
+  last30DaysSnapshotCount: number;
+  indicators: CampaignSummaryIndicator[];
+  lastUpdatedAt: string | null;
 }
 
 export interface CampaignAnalytics {
@@ -430,6 +452,10 @@ export interface PortalStrategySummary {
   fileSize: number;
   fileType: string;
   revisionNote: string | null;
+  isVisibleToClient: boolean;
+  submittedAt: string | null;
+  pmReviewedBy: string | null;
+  pmReviewedAt: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
   sentAt: string | null;
@@ -522,6 +548,7 @@ export interface PortalPeriodSummary {
   reportFilePath: string | null;
   completionPercentage: number;
   goals: PeriodGoal[];
+  tasks: PortalProjectWorkspaceTask[];
   files: PortalPeriodFile[];
   invoice: PortalPeriodInvoice | null;
   meetings: PortalPeriodMeeting[];
@@ -549,6 +576,66 @@ export interface PortalProjectDetail {
     phoneWhatsapp: string | null;
   };
 }
+
+export interface PortalProjectWorkspaceResourceFile extends PortalPeriodFile {
+  filePath: string;
+}
+
+export interface PortalProjectWorkspaceTaskFile {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  purpose: string;
+  uploadedAt: string;
+  url: string | null;
+}
+
+export interface PortalProjectWorkspaceTask {
+  id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  reviewStage: TaskReviewStage;
+  dueDate: string;
+  progress: number;
+  assignee: {
+    id: string;
+    name: string;
+    jobTitle: string | null;
+  } | null;
+  department: string | null;
+  files: PortalProjectWorkspaceTaskFile[];
+  revisionCount: number;
+  revisionRequests: Array<{
+    id: string;
+    requestDescription: string;
+    status: string;
+    createdAt: string;
+    resolvedAt: string | null;
+  }>;
+}
+
+interface PortalProjectWorkspaceResources {
+  files: PortalProjectWorkspaceResourceFile[];
+  meetings: PortalPeriodMeeting[];
+  invoices: PortalPeriodInvoice[];
+  tasks: PortalProjectWorkspaceTask[];
+}
+
+export type PortalProjectWorkspace =
+  | {
+      scope: "PERIODS";
+      project: PortalProjectDetail;
+      periods: PortalPeriodSummary[];
+      resources?: never;
+    }
+  | {
+      scope: "PROJECT";
+      project: PortalProjectDetail;
+      periods: [];
+      resources: PortalProjectWorkspaceResources;
+    };
 
 export interface PortalInvoiceItem {
   id: string;
@@ -1024,6 +1111,43 @@ export const portalApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "PortalProjects", id }],
     }),
 
+    getPortalProjectWorkspace: builder.query<PortalProjectWorkspace, string>({
+      query: (projectId) => `/portal/projects/${projectId}/workspace`,
+      providesTags: (_result, _error, id) => [{ type: "PortalProjects", id }],
+    }),
+
+    approvePortalTask: builder.mutation<unknown, string>({
+      query: (taskId) => ({
+        url: `/portal/tasks/${taskId}/approve`,
+        method: "POST",
+      }),
+      invalidatesTags: [
+        "PortalProjects",
+        "ProjectProgress",
+        "ReviewProjects",
+        "ActionItems",
+        "ActivityFeed",
+      ],
+    }),
+
+    requestPortalTaskRevision: builder.mutation<
+      unknown,
+      { taskId: string; requestDescription: string }
+    >({
+      query: ({ taskId, requestDescription }) => ({
+        url: `/portal/tasks/${taskId}/request-revision`,
+        method: "POST",
+        body: { requestDescription },
+      }),
+      invalidatesTags: [
+        "PortalProjects",
+        "ProjectProgress",
+        "ReviewProjects",
+        "ActionItems",
+        "ActivityFeed",
+      ],
+    }),
+
     getPortalInvoiceDetail: builder.query<PortalInvoiceDetail, string>({
       query: (invoiceId) => `/portal/invoices/${invoiceId}`,
       providesTags: (_result, _error, id) => [{ type: "PortalInvoices", id }],
@@ -1141,7 +1265,7 @@ export const portalApi = createApi({
       providesTags: (result, error, id) => [{ type: "PortalStrategies", id }],
     }),
 
-    approveStrategy: builder.mutation<any, string>({
+    approveStrategy: builder.mutation<PortalStrategySummary, string>({
       query: (id) => ({
         url: `/portal/marketing-strategies/${id}/approve`,
         method: "POST",
@@ -1154,7 +1278,7 @@ export const portalApi = createApi({
     }),
 
     requestStrategyRevision: builder.mutation<
-      any,
+      PortalStrategySummary,
       { id: string; comment: string }
     >({
       query: ({ id, comment }) => ({
@@ -1167,6 +1291,11 @@ export const portalApi = createApi({
         "ActionItems",
         "ActivityFeed", // NEW
       ],
+    }),
+
+    getClientStrategyDownloadUrl: builder.query<string, string>({
+      query: (id) => `/portal/marketing-strategies/${id}/download`,
+      transformResponse: (response: { url: string }) => response.url,
     }),
 
     // ─── Dispute Endpoints ──────────────────────────────────────────────────
@@ -1378,6 +1507,9 @@ export const {
   useLazyDownloadPeriodReportQuery,
   useLazyDownloadPeriodFileQuery,
   useGetPortalProjectDetailQuery,
+  useGetPortalProjectWorkspaceQuery,
+  useApprovePortalTaskMutation,
+  useRequestPortalTaskRevisionMutation,
   useGetPortalInvoiceDetailQuery,
   useGetPortalPaymentGatewaysQuery,
   useGetPortalPaymentBankAccountsQuery,
@@ -1393,6 +1525,7 @@ export const {
   useGetClientStrategyQuery,
   useApproveStrategyMutation,
   useRequestStrategyRevisionMutation,
+  useLazyGetClientStrategyDownloadUrlQuery,
   // Dispute hooks
   useGetClientDisputesQuery,
   useGetClientDisputeDetailQuery,

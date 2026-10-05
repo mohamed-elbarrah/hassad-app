@@ -7,6 +7,7 @@ import {
   useGetClientStrategyQuery,
   useApproveStrategyMutation,
   useRequestStrategyRevisionMutation,
+  useLazyGetClientStrategyDownloadUrlQuery,
 } from "@/features/portal/portalApi";
 import {
   MARKETING_STRATEGY_STATUS_AR,
@@ -36,6 +37,7 @@ import {
 const STATUS_ICON: Record<string, LucideIcon> = {
   DRAFT: FileText,
   SENT: Clock,
+  CLIENT_REVIEW: Clock,
   APPROVED: CheckCircle2,
   REVISION_REQUESTED: AlertCircle,
   REJECTED: XCircle,
@@ -50,11 +52,19 @@ const STATUS_CLASSES: Record<string, { icon: string; badge: string }> = {
     icon: "bg-info/10 text-info",
     badge: "border-info/20 bg-info/10 text-info",
   },
+  CLIENT_REVIEW: {
+    icon: "bg-info/10 text-info",
+    badge: "border-info/20 bg-info/10 text-info",
+  },
   APPROVED: {
     icon: "bg-success-100 text-success-600",
     badge: "border-success-200 bg-success-100 text-success-600",
   },
   REVISION_REQUESTED: {
+    icon: "bg-warning-100 text-warning-600",
+    badge: "border-warning-200 bg-warning-100 text-warning-600",
+  },
+  CLIENT_REVISION_REQUESTED: {
     icon: "bg-warning-100 text-warning-600",
     badge: "border-warning-200 bg-warning-100 text-warning-600",
   },
@@ -80,6 +90,8 @@ export default function MarketingStrategyDetailPage() {
     useApproveStrategyMutation();
   const [requestRevision, { isLoading: isRequestingRevision }] =
     useRequestStrategyRevisionMutation();
+  const [getDownloadUrl, { isFetching: isDownloading }] =
+    useLazyGetClientStrategyDownloadUrlQuery();
 
   const [revisionComment, setRevisionComment] = useState("");
   const [showRevisionForm, setShowRevisionForm] = useState(false);
@@ -108,11 +120,13 @@ export default function MarketingStrategyDetailPage() {
     }
   };
 
-  const handleDownload = () => {
-    window.open(
-      `${process.env.NEXT_PUBLIC_API_URL || "/v1"}/portal/marketing-strategies/${id}/download`,
-      "_blank",
-    );
+  const handleDownload = async () => {
+    try {
+      const url = await getDownloadUrl(id).unwrap();
+      window.location.assign(url);
+    } catch (err) {
+      toast.error(portalErrorMessage(err));
+    }
   };
 
   if (isLoading) {
@@ -196,18 +210,20 @@ export default function MarketingStrategyDetailPage() {
             </div>
             <Button
               data-icon="inline-start"
-              onClick={handleDownload}
+              onClick={() => void handleDownload()}
+              disabled={isDownloading}
               variant="outline"
               size="sm"
               className="gap-2"
             >
               <Download className="h-4 w-4" />
-              تحميل PDF
+              {isDownloading ? "جارٍ التحميل..." : "تحميل PDF"}
             </Button>
           </div>
 
           {/* Status-specific messages and actions */}
-          {strategy.status === MarketingStrategyStatus.SENT && (
+          {(strategy.status === MarketingStrategyStatus.SENT ||
+            strategy.status === MarketingStrategyStatus.CLIENT_REVIEW) && (
             <div className="flex flex-col gap-4">
               <div className="rounded-lg border border-warning-200 bg-warning-100 p-4">
                 <p className="text-sm text-warning-800">
@@ -295,7 +311,9 @@ export default function MarketingStrategyDetailPage() {
             </div>
           )}
 
-          {strategy.status === "REVISION_REQUESTED" && (
+          {(strategy.status === "REVISION_REQUESTED" ||
+            strategy.status ===
+              MarketingStrategyStatus.CLIENT_REVISION_REQUESTED) && (
             <div className="rounded-lg border border-danger-200 bg-danger-100 p-4">
               <p className="mb-1 text-sm font-medium text-danger-800">
                 طلب تعديل

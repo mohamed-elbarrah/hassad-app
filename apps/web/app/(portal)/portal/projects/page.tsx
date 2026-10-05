@@ -56,6 +56,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SegmentedProjectProgress } from "@/components/portal/shared/SegmentedProjectProgress";
 
 const STATUS_OPTIONS = Object.values(ProjectStatus) as ProjectStatus[];
 
@@ -298,7 +299,11 @@ export default function PortalProjectsPage() {
                       </span>
                       <span className="font-medium">{project.progress}%</span>
                     </div>
-                    <Progress value={project.progress} />
+                    {project.progressMode === "PERIODS" ? (
+                      <SegmentedProjectProgress periods={project.periods} />
+                    ) : (
+                      <Progress value={project.progress} />
+                    )}
                   </div>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
@@ -313,7 +318,7 @@ export default function PortalProjectsPage() {
                   <Button asChild variant="outline" className="mt-auto">
                     <Link href={`/portal/projects/${project.id}`}>
                       <ExternalLink />
-                      عرض الفترات
+                      عرض التفاصيل
                     </Link>
                   </Button>
                 </CardContent>

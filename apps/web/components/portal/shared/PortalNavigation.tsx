@@ -56,22 +56,17 @@ function resolveNotificationUrl(
   entityType?: string | null,
   entityId?: string | null,
 ) {
-  if (!entityType || !entityId) return null;
-  if (entityType === "proposal") return `/portal/proposals/${entityId}`;
-  if (entityType === "contract") return `/portal/contracts/${entityId}`;
-  if (entityType === "deliverable") return `/portal/deliverables/${entityId}`;
-  if (entityType === "campaign") return `/portal/campaigns/${entityId}`;
-  if (entityType === "marketing_strategy")
+  const type = entityType?.trim().toLowerCase();
+  if (!type || !entityId) return null;
+  if (type === "proposal") return `/portal/proposals/${entityId}`;
+  if (type === "contract") return `/portal/contracts/${entityId}`;
+  if (type === "deliverable") return `/portal/deliverables/${entityId}`;
+  if (type === "campaign") return `/portal/campaigns/${entityId}`;
+  if (type === "marketing_strategy")
     return `/portal/marketing-strategies/${entityId}`;
-  if (entityType === "project" || entityType === "conversation")
-    return "/portal/projects";
-  if (
-    entityType === "invoice" ||
-    entityType === "INVOICE" ||
-    entityType === "payment" ||
-    entityType === "PAYMENT"
-  )
-    return "/portal/finance";
+  if (type === "project" || type === "conversation") return "/portal/projects";
+  if (type === "invoice") return `/portal/invoices/${entityId}`;
+  if (type === "payment") return "/portal/finance";
   return null;
 }
 
@@ -113,8 +108,17 @@ function PortalNotificationMenu() {
         // Navigation should still work when marking the notification fails.
       }
     }
+    const metadata = notification.metadata as
+      | Record<string, unknown>
+      | null
+      | undefined;
+    const metadataUrl = metadata?.actionUrl;
     router.push(
-      resolveNotificationUrl(notification.entityType, notification.entityId) ??
+      (typeof metadataUrl === "string" ? metadataUrl : null) ??
+        resolveNotificationUrl(
+          notification.entityType,
+          notification.entityId,
+        ) ??
         "/portal/notifications",
     );
   };
@@ -368,7 +372,9 @@ export function PortalSidebar() {
                             className="text-start data-[active=true]:bg-sidebar-active/80 data-[active=true]:text-sidebar-foreground"
                           >
                             <Icon aria-hidden="true" />
-                            <span className="min-w-0 flex-1 truncate">{group.label}</span>
+                            <span className="min-w-0 flex-1 truncate">
+                              {group.label}
+                            </span>
                             <ChevronDown
                               aria-hidden="true"
                               className="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180"

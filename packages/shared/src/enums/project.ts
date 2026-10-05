@@ -24,14 +24,27 @@ export enum TaskStatus {
   TODO = "TODO",
   IN_PROGRESS = "IN_PROGRESS",
   IN_REVIEW = "IN_REVIEW",
+  CLIENT_REVIEW = "CLIENT_REVIEW",
   DONE = "DONE",
   REVISION = "REVISION",
+}
+
+/** Review stage shared by employee, PM, and client task workflows. */
+export enum TaskReviewStage {
+  NOT_SUBMITTED = "NOT_SUBMITTED",
+  PM_REVIEW = "PM_REVIEW",
+  PM_REVISION_REQUESTED = "PM_REVISION_REQUESTED",
+  CLIENT_REVIEW = "CLIENT_REVIEW",
+  CLIENT_REVISION_REQUESTED = "CLIENT_REVISION_REQUESTED",
+  CLIENT_APPROVED = "CLIENT_APPROVED",
+  LEGACY_COMPLETED = "LEGACY_COMPLETED",
 }
 
 export const TASK_STATUS_AR: Record<TaskStatus, string> = {
   TODO: "قيد الانتظار",
   IN_PROGRESS: "قيد التنفيذ",
-  IN_REVIEW: "قيد المراجعة",
+  IN_REVIEW: "قيد مراجعة مدير المشروع",
+  CLIENT_REVIEW: "قيد مراجعة العميل",
   DONE: "مكتمل",
   REVISION: "مراجعة",
 };
@@ -134,9 +147,13 @@ export enum DelayAlertLevel {
 
 export enum MarketingStrategyStatus {
   DRAFT = "DRAFT",
-  SENT = "SENT",
+  PM_REVIEW = "PM_REVIEW",
+  PM_REVISION_REQUESTED = "PM_REVISION_REQUESTED",
+  CLIENT_REVIEW = "CLIENT_REVIEW",
+  CLIENT_REVISION_REQUESTED = "CLIENT_REVISION_REQUESTED",
+  SENT = "SENT", // Legacy alias for CLIENT_REVIEW
   APPROVED = "APPROVED",
-  REVISION_REQUESTED = "REVISION_REQUESTED",
+  REVISION_REQUESTED = "REVISION_REQUESTED", // Legacy alias for client revision
   REJECTED = "REJECTED",
 }
 
@@ -145,6 +162,10 @@ export const MARKETING_STRATEGY_STATUS_AR: Record<
   string
 > = {
   DRAFT: "مسودة",
+  PM_REVIEW: "بانتظار مراجعة مدير المشروع",
+  PM_REVISION_REQUESTED: "مطلوب تعديل من مدير المشروع",
+  CLIENT_REVIEW: "بانتظار مراجعة العميل",
+  CLIENT_REVISION_REQUESTED: "مطلوب تعديل من العميل",
   SENT: "تم الإرسال",
   APPROVED: "تمت الموافقة",
   REVISION_REQUESTED: "مطلوب تعديل",

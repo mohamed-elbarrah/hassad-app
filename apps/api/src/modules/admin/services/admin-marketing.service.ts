@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { MarketingStrategyStatus } from "@hassad/shared";
 
 @Injectable()
 export class AdminMarketingService {
@@ -63,44 +64,27 @@ export class AdminMarketingService {
     const strategy = await this.prisma.marketingStrategy.findUnique({
       where: { id },
     });
-    if (!strategy) throw new NotFoundException("الاستراتيجية غير موجودة");
-
-    const validStatuses = [
-      "DRAFT",
-      "SENT",
-      "APPROVED",
-      "REJECTED",
-      "REVISION_REQUESTED",
-    ];
-    if (!validStatuses.includes(status))
-      throw new BadRequestException("حالة غير صالحة");
-
-    const updateData: any = { status: status as any };
-    if (status === "APPROVED") {
-      updateData.approvedBy = userId;
-      updateData.approvedAt = new Date();
-    }
-    if (status === "SENT") {
-      updateData.sentAt = new Date();
-    }
-    if (status === "REVISION_REQUESTED" && note) {
-      updateData.revisionNote = note;
+    if (!strategy) {
+      throw new NotFoundException({
+        code: "MARKETING_STRATEGY_NOT_FOUND",
+        details: {},
+      });
     }
 
-    const updated = await this.prisma.marketingStrategy.update({
-      where: { id },
-      data: updateData,
+    const validStatuses = Object.values(MarketingStrategyStatus) as string[];
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException({
+        code: "MARKETING_STRATEGY_INVALID_STATUS",
+        details: { status },
+      });
+    }
+
+    // Strategy transitions must go through the Marketing/PM/Portal workflow
+    // services so task review state, history, visibility, and notifications
+    // remain synchronized. This legacy admin mutation is intentionally blocked.
+    throw new BadRequestException({
+      code: "MARKETING_STRATEGY_WORKFLOW_REQUIRED",
+      details: { status },
     });
-
-    await this.audit(
-      "ADMIN_UPDATE_MARKETING_STRATEGY_STATUS",
-      "MarketingStrategy",
-      id,
-      userId,
-      { status: strategy.status, note },
-      { status: updated.status },
-    );
-
-    return updated;
   }
 }

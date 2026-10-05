@@ -2,6 +2,7 @@
 
 import { DollarSign, FileText } from "lucide-react";
 import type { PortalPeriodInvoice } from "@/features/portal/portalApi";
+import { invoiceStatusLabel } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -59,7 +60,9 @@ export function InvoiceTab({
           </p>
         </div>
         <div className="flex flex-col items-start gap-3">
-          <Badge variant={statusVariant}>{invoice.status}</Badge>
+          <Badge variant={statusVariant}>
+            {invoiceStatusLabel(invoice.status)}
+          </Badge>
           <p className="flex items-center gap-1 text-sm text-muted-foreground">
             <FileText />
             {formatDateTz(invoice.issueDate)}

@@ -3,7 +3,6 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import authReducer, { logout } from "@/features/auth/authSlice";
 import { authApi } from "@/features/auth/authApi";
 import { clientsApi } from "@/features/clients/clientsApi";
-import { leadsApi } from "@/features/leads/leadsApi";
 import { projectsApi } from "@/features/projects/projectsApi";
 import { tasksApi } from "@/features/tasks/tasksApi";
 import { teamApi } from "@/features/team/teamApi";
@@ -15,7 +14,6 @@ import { requestsApi } from "@/features/requests/requestsApi";
 import { salesApi } from "@/features/sales/salesApi";
 import { financeApi } from "@/features/finance/financeApi";
 
-import { deliverablesApi } from "@/features/deliverables/deliverablesApi";
 import { marketingApi } from "@/features/marketing/marketingApi";
 import { portalApi } from "@/features/portal/portalApi";
 import { portalNotificationsApi } from "@/features/portal-notifications/portalNotificationsApi";
@@ -23,11 +21,7 @@ import { servicesApi } from "@/features/services/servicesApi";
 import { chatApi } from "@/features/chat/chatApi";
 import { settingsApi } from "@/features/settings/settingsApi";
 import { integrationsApi } from "@/features/settings/integrationsApi";
-import { departmentsApi } from "@/features/departments/departmentsApi";
-import { rolesApi } from "@/features/roles/rolesApi";
-import { permissionsApi } from "@/features/permissions/permissionsApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
-import { healthApi } from "@/features/health/healthApi";
 import { adminApi } from "@/features/admin/adminApi";
 import { adminUsersApi } from "@/features/admin/adminUsersApi";
 import { adminServicesApi } from "@/features/admin/adminServicesApi";
@@ -45,8 +39,7 @@ import { adminBackupsApi } from "@/features/admin/adminBackupsApi";
 import { periodsApi } from "@/features/projects/periodsApi";
 import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
 import { aiAssistantApi } from "@/features/aiAssistantApi";
-import { notificationTemplatesApi } from "@/features/notification-templates/notificationTemplatesApi";
-import { intakeFormApi } from "@/features/intakeForm/intakeFormApi";
+import { communicationApi } from "@/features/communication/communicationApi";
 
 const authLifecycleMiddleware = createListenerMiddleware();
 
@@ -56,7 +49,6 @@ export const store = configureStore({
     notifications: notificationsReducer,
     [authApi.reducerPath]: authApi.reducer,
     [clientsApi.reducerPath]: clientsApi.reducer,
-    [leadsApi.reducerPath]: leadsApi.reducer,
     [projectsApi.reducerPath]: projectsApi.reducer,
     [tasksApi.reducerPath]: tasksApi.reducer,
     [teamApi.reducerPath]: teamApi.reducer,
@@ -68,7 +60,6 @@ export const store = configureStore({
     [salesApi.reducerPath]: salesApi.reducer,
     [financeApi.reducerPath]: financeApi.reducer,
 
-    [deliverablesApi.reducerPath]: deliverablesApi.reducer,
     [marketingApi.reducerPath]: marketingApi.reducer,
     [portalApi.reducerPath]: portalApi.reducer,
     [portalNotificationsApi.reducerPath]: portalNotificationsApi.reducer,
@@ -76,10 +67,6 @@ export const store = configureStore({
     [chatApi.reducerPath]: chatApi.reducer,
     [settingsApi.reducerPath]: settingsApi.reducer,
     [integrationsApi.reducerPath]: integrationsApi.reducer,
-    [departmentsApi.reducerPath]: departmentsApi.reducer,
-    [rolesApi.reducerPath]: rolesApi.reducer,
-    [permissionsApi.reducerPath]: permissionsApi.reducer,
-    [healthApi.reducerPath]: healthApi.reducer,
     [periodsApi.reducerPath]: periodsApi.reducer,
     [adminApi.reducerPath]: adminApi.reducer,
     [adminUsersApi.reducerPath]: adminUsersApi.reducer,
@@ -97,15 +84,13 @@ export const store = configureStore({
     [adminBackupsApi.reducerPath]: adminBackupsApi.reducer,
     [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
     [aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
-    [notificationTemplatesApi.reducerPath]: notificationTemplatesApi.reducer,
-    [intakeFormApi.reducerPath]: intakeFormApi.reducer,
+    [communicationApi.reducerPath]: communicationApi.reducer,
   },
   middleware: (getDefaultMiddleware) => {
     const middleware = [
       authLifecycleMiddleware.middleware,
       authApi.middleware,
       clientsApi.middleware,
-      leadsApi.middleware,
       projectsApi.middleware,
       tasksApi.middleware,
       teamApi.middleware,
@@ -117,7 +102,6 @@ export const store = configureStore({
       salesApi.middleware,
       financeApi.middleware,
 
-      deliverablesApi.middleware,
       marketingApi.middleware,
       portalApi.middleware,
       portalNotificationsApi.middleware,
@@ -125,10 +109,6 @@ export const store = configureStore({
       chatApi.middleware,
       settingsApi.middleware,
       integrationsApi.middleware,
-      departmentsApi.middleware,
-      rolesApi.middleware,
-      permissionsApi.middleware,
-      healthApi.middleware,
       adminApi.middleware,
       adminUsersApi.middleware,
       adminServicesApi.middleware,
@@ -146,8 +126,7 @@ export const store = configureStore({
       periodsApi.middleware,
       pmDisputesApi.middleware,
       aiAssistantApi.middleware,
-      notificationTemplatesApi.middleware,
-      intakeFormApi.middleware,
+      communicationApi.middleware,
     ];
     return getDefaultMiddleware({
       serializableCheck: false,
@@ -164,7 +143,6 @@ authLifecycleMiddleware.startListening({
     for (const api of [
       authApi,
       clientsApi,
-      leadsApi,
       projectsApi,
       tasksApi,
       teamApi,
@@ -175,7 +153,6 @@ authLifecycleMiddleware.startListening({
       requestsApi,
       salesApi,
       financeApi,
-      deliverablesApi,
       marketingApi,
       portalApi,
       portalNotificationsApi,
@@ -183,10 +160,6 @@ authLifecycleMiddleware.startListening({
       chatApi,
       settingsApi,
       integrationsApi,
-      departmentsApi,
-      rolesApi,
-      permissionsApi,
-      healthApi,
       adminApi,
       adminUsersApi,
       adminServicesApi,
@@ -204,8 +177,7 @@ authLifecycleMiddleware.startListening({
       periodsApi,
       pmDisputesApi,
       aiAssistantApi,
-      notificationTemplatesApi,
-      intakeFormApi,
+      communicationApi,
     ]) {
       listenerApi.dispatch(api.util.resetApiState());
     }

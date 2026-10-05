@@ -10,7 +10,7 @@ import {
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Check, Copy, FileText, Loader2, Plus, Trash2 } from "lucide-react";
+import { FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { DurationUnit } from "@hassad/shared";
 import {
   useCreateSalesProposalMutation,
@@ -23,7 +23,6 @@ import {
   salesWorkflowErrorMessage,
   salesWorkflowValidationMessages,
 } from "@/lib/i18n";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -83,6 +82,7 @@ export interface ProposalFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved?: () => void;
+  onCreated?: (shareLink: string) => void;
   preSelectedRequestId?: string;
 }
 
@@ -125,11 +125,11 @@ export function ProposalFormDialog({
   open: controlledOpen,
   onOpenChange,
   onSaved,
+  onCreated,
   preSelectedRequestId = "",
 }: ProposalFormDialogProps) {
   const isEdit = mode === "edit";
   const [file, setFile] = useState<File | null>(null);
-  const [shareLink, setShareLink] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initializedDialogRef = useRef<string | null>(null);
   const open = controlledOpen;
@@ -233,12 +233,13 @@ export function ProposalFormDialog({
         }).unwrap();
         toast.success("تم إنشاء العرض الفني");
         onSaved?.();
+        handleOpenChange(false);
         if (result.shareLinkToken) {
-          setShareLink(
+          onCreated?.(
             `${window.location.origin}/proposal/${result.shareLinkToken}`,
           );
-          return;
         }
+        return;
       }
 
       handleOpenChange(false);
@@ -251,16 +252,9 @@ export function ProposalFormDialog({
     }
   }
 
-  async function copyShareLink() {
-    if (!shareLink) return;
-    await navigator.clipboard.writeText(shareLink);
-    toast.success("تم نسخ الرابط");
-  }
-
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
       setFile(null);
-      setShareLink(null);
       form.reset(getDefaultValues(null, ""));
       form.clearErrors();
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -273,6 +267,7 @@ export function ProposalFormDialog({
       <DialogContent
         className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0"
         dir="rtl"
+        closeLabel="إغلاق"
       >
         <DialogHeader className="shrink-0  border-b px-6 py-4 text-right">
           <DialogTitle>
@@ -388,6 +383,7 @@ export function ProposalFormDialog({
                         type="button"
                         variant="ghost"
                         size="sm"
+                        className="min-h-11"
                         aria-label="حذف الخدمة"
                         disabled={fields.length === 1}
                         onClick={() => remove(index)}
@@ -540,27 +536,6 @@ export function ProposalFormDialog({
                   </p>
                 ) : null}
               </div>
-
-              {shareLink ? (
-                <Alert>
-                  <Check data-icon="inline-start" />
-                  <AlertTitle>تم إنشاء العرض</AlertTitle>
-                  <AlertDescription className="flex flex-wrap items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate" dir="ltr">
-                      {shareLink}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={copyShareLink}
-                    >
-                      <Copy data-icon="inline-start" />
-                      نسخ الرابط
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              ) : null}
             </form>
           </Form>
         </div>
@@ -573,21 +548,13 @@ export function ProposalFormDialog({
           >
             إلغاء
           </Button>
-          <Button
-            type="submit"
-            form="proposal-form"
-            disabled={isSubmitting || Boolean(shareLink)}
-          >
+          <Button type="submit" form="proposal-form" disabled={isSubmitting}>
             {isSubmitting ? (
               <Loader2 data-icon="inline-start" className="animate-spin" />
             ) : (
               <FileText data-icon="inline-start" />
             )}
-            {shareLink
-              ? "تم إنشاء العرض"
-              : isEdit
-                ? "حفظ التعديلات"
-                : "إنشاء العرض"}
+            {isEdit ? "حفظ التعديلات" : "إنشاء العرض"}
           </Button>
         </DialogFooter>
       </DialogContent>

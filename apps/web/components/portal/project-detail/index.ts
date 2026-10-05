@@ -1,4 +1,6 @@
 export { ProjectHeader } from "./ProjectHeader";
+export { FixedProjectWorkspace } from "./FixedProjectWorkspace";
+export { TasksTab } from "./TasksTab";
 export { HeroCard } from "./HeroCard";
 export { PeriodTimeline } from "./PeriodTimeline";
 export { StatCards } from "./StatCards";

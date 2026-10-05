@@ -11,6 +11,9 @@ import {
   PROJECT_STATUS_AR,
   PROPOSAL_STATUS_AR,
   REQUEST_STATUS_AR,
+  TaskReviewStage,
+  TASK_DEPARTMENT_AR,
+  TaskDepartment,
 } from "@hassad/shared";
 import type {
   NotificationEventCode,
@@ -110,6 +113,30 @@ const INVOICE_STATUS_LABELS: Record<string, string> = {
   LATE: "متأخرة",
   CANCELLED: "ملغاة",
 };
+
+const TASK_REVIEW_STAGE_LABELS: Record<TaskReviewStage, string> = {
+  [TaskReviewStage.NOT_SUBMITTED]: "لم يتم التسليم",
+  [TaskReviewStage.PM_REVIEW]: "قيد مراجعة مدير المشروع",
+  [TaskReviewStage.PM_REVISION_REQUESTED]: "تعديلات مطلوبة من مدير المشروع",
+  [TaskReviewStage.CLIENT_REVIEW]: "بانتظار مراجعة العميل",
+  [TaskReviewStage.CLIENT_REVISION_REQUESTED]: "تعديلات مطلوبة من العميل",
+  [TaskReviewStage.CLIENT_APPROVED]: "اعتمدها العميل",
+  [TaskReviewStage.LEGACY_COMPLETED]: "مكتملة من النظام السابق",
+};
+
+export function taskReviewStageLabel(stage: string | null | undefined): string {
+  if (!stage) return UNKNOWN_STATUS_LABEL;
+  return (
+    TASK_REVIEW_STAGE_LABELS[stage as TaskReviewStage] ?? UNKNOWN_STATUS_LABEL
+  );
+}
+
+export function taskDepartmentLabel(
+  department: string | null | undefined,
+): string {
+  if (!department) return "غير محدد";
+  return TASK_DEPARTMENT_AR[department as TaskDepartment] ?? department;
+}
 
 const PAYMENT_PLAN_TRIGGER_LABELS: Record<string, string> = {
   ON_SIGN: "عند التوقيع",
@@ -247,6 +274,17 @@ export function projectErrorMessage(error: unknown): string {
 
 const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   AUTHENTICATION_REQUIRED: "يلزم تسجيل الدخول.",
+  ANNOUNCEMENT_NOT_FOUND: "لم يتم العثور على الإعلان.",
+  ANNOUNCEMENT_ARCHIVED: "لا يمكن تعديل إعلان مؤرشف.",
+  ANNOUNCEMENT_DISMISSAL_NOT_ALLOWED: "لا يمكن إخفاء هذا الإعلان.",
+  ANNOUNCEMENT_ALREADY_PUBLISHED: "الإعلان منشور بالفعل.",
+  INVALID_ANNOUNCEMENT_DATES: "تواريخ الإعلان غير صحيحة.",
+  INVALID_ANNOUNCEMENT_ACTION_URL: "رابط الإعلان غير صالح.",
+  ISSUE_NOT_FOUND: "لم يتم العثور على البلاغ.",
+  INVALID_ISSUE_STATUS_TRANSITION: "لا يمكن الانتقال إلى هذه الحالة.",
+  INVALID_ISSUE_ASSIGNEE: "المستخدم المحدد غير صالح للتعيين.",
+  ISSUE_CLOSED: "لا يمكن إضافة رسالة إلى بلاغ مغلق.",
+
   PROJECT_NOT_FOUND: "لم يتم العثور على المشروع.",
   PROJECT_NOT_ARCHIVED: "المشروع غير مؤرشف.",
   PROJECT_MANAGER_NOT_ELIGIBLE: "مدير المشروع المحدد غير نشط أو غير مؤهل.",
@@ -414,6 +452,27 @@ export function adminErrorMessage(error: unknown): string {
     (code && ADMIN_ERROR_MESSAGES[code]) || ADMIN_ERROR_MESSAGES.UNKNOWN_ERROR
   );
 }
+
+export const communicationErrorMessage = adminErrorMessage;
+
+const ISSUE_HISTORY_LABELS: Record<string, string> = {
+  ISSUE_REPORTED: "تم إرسال البلاغ",
+  ISSUE_ASSIGNED: "تم تعيين مسؤول للبلاغ",
+  ISSUE_STATUS_OPEN: "تم فتح البلاغ",
+  ISSUE_STATUS_IN_PROGRESS: "بدأ الفريق معالجة البلاغ",
+  ISSUE_STATUS_WAITING_FOR_USER: "بانتظار معلومات من المستخدم",
+  ISSUE_STATUS_RESOLVED: "تم حل البلاغ",
+  ISSUE_STATUS_CLOSED: "تم إغلاق البلاغ",
+};
+
+export function issueHistoryLabel(code: string): string {
+  return ISSUE_HISTORY_LABELS[code] ?? "تم تحديث البلاغ";
+}
+
+const ISSUE_CATEGORY_LABELS: Record<string, string> = { BUG: "خلل أو خطأ", PERFORMANCE: "بطء أو أداء", ACCESS: "صلاحيات أو دخول", DATA: "بيانات غير صحيحة", PAYMENT: "مشكلة دفع", OTHER: "أخرى" };
+const ISSUE_SEVERITY_LABELS: Record<string, string> = { LOW: "منخفضة", NORMAL: "عادية", HIGH: "مرتفعة", CRITICAL: "حرجة" };
+export const issueCategoryLabel = (value: string) => ISSUE_CATEGORY_LABELS[value] ?? "أخرى";
+export const issueSeverityLabel = (value: string) => ISSUE_SEVERITY_LABELS[value] ?? "عادية";
 
 const ADMIN_ACTIVITY_ACTION_LABELS: Record<string, string> = {
   "admin.users.create": "إنشاء موظف",
@@ -698,6 +757,8 @@ export function portalActivityText(item: {
   const title = String(item.data?.title ?? "");
   const name = String(item.data?.name ?? "");
   const amount = Number(item.data?.amount ?? 0);
+  const currency = String(item.data?.currency ?? "SAR");
+  const currencyLabel = currency === "SAR" ? "ر.س" : currency;
   switch (item.type) {
     case "DELIVERABLE_APPROVED":
       return `تم اعتماد "${title}"`;
@@ -707,10 +768,26 @@ export function portalActivityText(item: {
       return `تم رفع "${title}"`;
     case "CAMPAIGN_LAUNCHED":
       return `تم إطلاق حملة "${name}"`;
+    case "PAYMENT_SUBMITTED":
+      return `تم إرسال طلب سداد بقيمة ${formatNumber(amount)} ${currencyLabel}`;
     case "PAYMENT_COMPLETED":
-      return `تم دفع ${formatNumber(amount)} ر.س`;
+      return `تم دفع ${formatNumber(amount)} ${currencyLabel}`;
+    case "PAYMENT_FAILED":
+      return `فشل سداد ${formatNumber(amount)} ${currencyLabel}`;
+    case "PAYMENT_REJECTED":
+      return `تم رفض سداد ${formatNumber(amount)} ${currencyLabel}`;
+    case "PAYMENT_REFUNDED":
+      return `تم رد مبلغ ${formatNumber(amount)} ${currencyLabel}`;
+    case "INVOICE_CANCELLED":
+      return `تم إلغاء الفاتورة بقيمة ${formatNumber(amount)} ${currencyLabel}`;
+    case "CLIENT_REQUEST_CREATED":
+      return "تم إنشاء طلب جديد";
     case "ACTION_ITEM_SNOOZED":
       return "تم تأجيل إجراء";
+    case "CONTRACT_ACTIVATED":
+      return "تم تفعيل العقد";
+    case "PROJECT_COMPLETED":
+      return "تم اكتمال المشروع";
     default:
       return "تم تسجيل تحديث جديد";
   }
@@ -929,6 +1006,10 @@ export function salesWorkflowValidationMessages(
 }
 
 const NOTIFICATION_PRESENTATIONS: Record<string, NotificationPresentation> = {
+  ANNOUNCEMENT_PUBLISHED: {
+    title: "إعلان جديد",
+    body: "تم نشر إعلان جديد من إدارة المنصة.",
+  },
   TASK_ASSIGNED: { title: "تم إسناد مهمة", body: "تم إسناد مهمة جديدة إليك." },
   PROJECT_STATUS_CHANGED: {
     title: "تغيرت حالة مشروع",
@@ -1075,8 +1156,20 @@ const NOTIFICATION_PRESENTATIONS: Record<string, NotificationPresentation> = {
   PAYMENT_RECEIVED: { title: "تم استلام دفعة", body: "تم استلام دفعة جديدة." },
   TASK_STARTED: { title: "بدأت المهمة", body: "بدأ تنفيذ إحدى المهام." },
   TASK_SUBMITTED: { title: "تم تسليم المهمة", body: "تم تسليم مهمة للمراجعة." },
+  TASK_SUBMITTED_TO_CLIENT: {
+    title: "مهمة بانتظار مراجعتك",
+    body: "تم تجهيز مهمة جديدة لمراجعة العميل.",
+  },
   TASK_APPROVED: { title: "تم اعتماد المهمة", body: "تم اعتماد المهمة." },
   TASK_REJECTED: { title: "تم رفض المهمة", body: "تحتاج المهمة إلى تعديلات." },
+  TASK_CLIENT_APPROVED: {
+    title: "اعتمد العميل المهمة",
+    body: "تم اعتماد نتيجة المهمة من العميل.",
+  },
+  TASK_CLIENT_REVISION_REQUESTED: {
+    title: "طلب العميل تعديلاً",
+    body: "طلب العميل تعديلات على نتيجة المهمة.",
+  },
   TASK_COMMENT_ADDED: {
     title: "تعليق جديد على المهمة",
     body: "تمت إضافة تعليق إلى مهمة.",
@@ -1129,6 +1222,14 @@ const NOTIFICATION_PRESENTATIONS: Record<string, NotificationPresentation> = {
   MARKETING_STRATEGY_SENT: {
     title: "تم إرسال الاستراتيجية",
     body: "تم إرسال الاستراتيجية التسويقية للمراجعة.",
+  },
+  MARKETING_STRATEGY_SUBMITTED_FOR_PM_REVIEW: {
+    title: "دراسة تسويقية بانتظار مراجعتك",
+    body: "تم إرسال دراسة تسويقية لمراجعة مدير المشروع.",
+  },
+  MARKETING_STRATEGY_PM_REVISION_REQUESTED: {
+    title: "مطلوب تعديل الدراسة التسويقية",
+    body: "أعاد مدير المشروع الدراسة التسويقية للتعديل.",
   },
   ACTION_ITEM_SNOOZED: {
     title: "تم تأجيل بند الإجراء",
@@ -1449,6 +1550,20 @@ export function portalErrorMessage(error: unknown): string {
       "ليس لديك صلاحية لمحادثة هذا المستخدم.",
     PROJECT_GROUP_CHAT_NOT_FOUND: "لم يتم العثور على محادثة المشروع.",
     PROJECT_NOT_FOUND: "لم يتم العثور على المشروع.",
+    PROJECT_PERIOD_NOT_FOUND: "لم يتم العثور على الفترة.",
+    TASK_NOT_FOUND: "لم يتم العثور على المهمة.",
+    TASK_NOT_READY_FOR_CLIENT_APPROVAL:
+      "المهمة ليست جاهزة لاعتماد العميل حالياً.",
+    TASK_NOT_READY_FOR_CLIENT_REVISION:
+      "المهمة ليست جاهزة لطلب تعديل من العميل حالياً.",
+    TASK_REVISION_DESCRIPTION_REQUIRED: "يرجى كتابة تفاصيل التعديل المطلوب.",
+    TASK_REVIEW_MUST_USE_PORTAL_WORKFLOW:
+      "يجب تنفيذ مراجعة المهمة من خلال بوابة العميل.",
+    TASK_PERIOD_PROJECT_MISMATCH: "الفترة لا تنتمي إلى هذا المشروع.",
+    DELIVERABLE_TASK_PROJECT_MISMATCH:
+      "ملف التسليم لا ينتمي إلى المهمة المحددة.",
+    PROJECT_TASKS_PENDING_CLIENT_REVIEW:
+      "توجد مهام لم تكتمل مراجعتها من العميل بعد.",
     FILE_TYPE_NOT_ALLOWED: "نوع الملف غير مسموح.",
     INVALID_FILE_TYPE: "نوع الملف غير مدعوم.",
     INVALID_FILE_CONTENT: "محتوى الملف غير صالح.",

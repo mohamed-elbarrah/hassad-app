@@ -46,6 +46,13 @@ async function main() {
   await prisma.request.deleteMany();
   await prisma.conversationParticipant.deleteMany();
   await prisma.conversation.deleteMany();
+  await prisma.issueAttachment.deleteMany();
+  await prisma.issueMessage.deleteMany();
+  await prisma.issueHistory.deleteMany();
+  await prisma.issueReport.deleteMany();
+  await prisma.announcementUserState.deleteMany();
+  await prisma.announcementAudience.deleteMany();
+  await prisma.announcement.deleteMany();
   await prisma.client.deleteMany();
   await prisma.user.deleteMany({ where: { email: "client2@hassad.com" } });
   await prisma.salary.deleteMany();
@@ -2384,6 +2391,11 @@ async function main() {
     "notifications.read",
     "notifications.update",
     "notifications.broadcast",
+    "communication.announcements.read",
+    "communication.announcements.create",
+    "communication.announcements.update",
+    "communication.issues.read",
+    "communication.issues.update",
     "marketing.manage_tests",
     "marketing.create",
     "marketing.read",

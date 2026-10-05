@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Calendar, User } from "lucide-react";
-import { TaskStatus } from "@hassad/shared";
+import { TaskReviewStage, TaskStatus } from "@hassad/shared";
 import {
   useGetPmTasksQuery,
   useChangePmTaskStatusMutation,
@@ -14,6 +14,12 @@ import { Button } from "@/components/ui/button";
 import { TASK_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/task-status";
 import { TaskKanbanCardContent } from "@/components/dashboard/kanban/cards/TaskKanbanCardContent";
 import type { TaskWithMeta } from "@/lib/utils/task-status";
+import {
+  getTaskKanbanStage,
+  getTaskStatusForKanbanStage,
+  TASK_KANBAN_STAGE,
+  TASK_KANBAN_STAGE_LABELS,
+} from "@/lib/utils/task-status";
 import { pmErrorMessage } from "@/lib/i18n";
 import { formatShortDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +35,10 @@ import {
   TableRow,
   TableCaption,
 } from "@/components/ui/table";
-import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/utils/task-status";
+import {
+  TASK_PRIORITY_LABELS,
+  TASK_STATUS_LABELS,
+} from "@/lib/utils/task-status";
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
@@ -39,60 +48,159 @@ interface TaskKanbanProps {
   view?: "kanban" | "table";
 }
 
-function useTaskStagePage(status: TaskStatus, projectId: string, periodId: string | undefined, enabled: boolean) {
+function useTaskStagePage(
+  stage: string,
+  projectId: string,
+  periodId: string | undefined,
+  enabled: boolean,
+) {
+  const status =
+    stage === TASK_KANBAN_STAGE.TODO
+      ? TaskStatus.TODO
+      : stage === TASK_KANBAN_STAGE.IN_PROGRESS
+        ? TaskStatus.IN_PROGRESS
+        : stage === TASK_KANBAN_STAGE.DONE
+          ? TaskStatus.DONE
+          : stage === TASK_KANBAN_STAGE.CLIENT_REVIEW
+            ? TaskStatus.CLIENT_REVIEW
+            : stage === TASK_KANBAN_STAGE.PM_REVISION_REQUESTED ||
+                stage === TASK_KANBAN_STAGE.CLIENT_REVISION_REQUESTED
+              ? TaskStatus.REVISION
+              : TaskStatus.IN_REVIEW;
+  const reviewStage =
+    stage === TASK_KANBAN_STAGE.PM_REVIEW
+      ? TaskReviewStage.PM_REVIEW
+      : stage === TASK_KANBAN_STAGE.CLIENT_REVIEW
+        ? TaskReviewStage.CLIENT_REVIEW
+        : stage === TASK_KANBAN_STAGE.PM_REVISION_REQUESTED
+          ? TaskReviewStage.PM_REVISION_REQUESTED
+          : stage === TASK_KANBAN_STAGE.CLIENT_REVISION_REQUESTED
+            ? TaskReviewStage.CLIENT_REVISION_REQUESTED
+            : undefined;
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<TaskWithMeta[]>([]);
-  const query = useGetPmTasksQuery({ projectId, periodId, status, page, limit: 10 }, { skip: !enabled });
+  const query = useGetPmTasksQuery(
+    { projectId, periodId, status, reviewStage, page, limit: 10 },
+    { skip: !enabled },
+  );
 
-  useEffect(() => { setPage(1); setItems([]); }, [status, projectId, periodId]);
+  useEffect(() => {
+    setPage(1);
+    setItems([]);
+  }, [status, projectId, periodId]);
   useEffect(() => {
     if (!enabled || !query.data || query.data.meta.page !== page) return;
     setItems((current) => {
       const seen = new Set(current.map((item) => item.id));
-      return [...current, ...query.data.items.filter((item) => !seen.has(item.id))] as TaskWithMeta[];
+      return [
+        ...current,
+        ...query.data.items.filter((item) => !seen.has(item.id)),
+      ] as TaskWithMeta[];
     });
   }, [enabled, page, query.data]);
 
   return {
-    items, isLoading: query.isLoading, isFetching: query.isFetching, isError: query.isError,
+    items,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    isError: query.isError,
     hasMore: page < (query.data?.meta.totalPages ?? 1),
-    onLoadMore: () => { if (!query.isFetching && page < (query.data?.meta.totalPages ?? 1)) setPage((current) => current + 1); },
+    onLoadMore: () => {
+      if (!query.isFetching && page < (query.data?.meta.totalPages ?? 1))
+        setPage((current) => current + 1);
+    },
   };
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanProps) {
+export function TaskKanban({
+  projectId,
+  periodId,
+  view = "kanban",
+}: TaskKanbanProps) {
   const [page, setPage] = useState(1);
   useEffect(() => {
     setPage(1);
   }, [projectId, periodId]);
-  const tableQuery = useGetPmTasksQuery({ projectId, periodId, page, limit: 24 }, { skip: view !== "table" });
+  const tableQuery = useGetPmTasksQuery(
+    { projectId, periodId, page, limit: 24 },
+    { skip: view !== "table" },
+  );
   const stageQueries = [
-    useTaskStagePage(TaskStatus.TODO, projectId, periodId, view === "kanban"),
-    useTaskStagePage(TaskStatus.IN_PROGRESS, projectId, periodId, view === "kanban"),
-    useTaskStagePage(TaskStatus.IN_REVIEW, projectId, periodId, view === "kanban"),
-    useTaskStagePage(TaskStatus.REVISION, projectId, periodId, view === "kanban"),
-    useTaskStagePage(TaskStatus.DONE, projectId, periodId, view === "kanban"),
+    useTaskStagePage(
+      TASK_KANBAN_STAGE.TODO,
+      projectId,
+      periodId,
+      view === "kanban",
+    ),
+    useTaskStagePage(
+      TASK_KANBAN_STAGE.IN_PROGRESS,
+      projectId,
+      periodId,
+      view === "kanban",
+    ),
+    useTaskStagePage(
+      TASK_KANBAN_STAGE.PM_REVIEW,
+      projectId,
+      periodId,
+      view === "kanban",
+    ),
+    useTaskStagePage(
+      TASK_KANBAN_STAGE.CLIENT_REVIEW,
+      projectId,
+      periodId,
+      view === "kanban",
+    ),
+    useTaskStagePage(
+      TASK_KANBAN_STAGE.PM_REVISION_REQUESTED,
+      projectId,
+      periodId,
+      view === "kanban",
+    ),
+    useTaskStagePage(
+      TASK_KANBAN_STAGE.CLIENT_REVISION_REQUESTED,
+      projectId,
+      periodId,
+      view === "kanban",
+    ),
+    useTaskStagePage(
+      TASK_KANBAN_STAGE.DONE,
+      projectId,
+      periodId,
+      view === "kanban",
+    ),
   ];
   const tasks = tableQuery.data;
-  const isLoading = view === "table" ? tableQuery.isLoading : stageQueries.some((query) => query.isLoading);
-  const isError = view === "table" ? tableQuery.isError : stageQueries.some((query) => query.isError);
-  const typedTasks = view === "table" ? ((tasks?.items ?? []) as TaskWithMeta[]) : stageQueries.flatMap((query) => query.items);
+  const isLoading =
+    view === "table"
+      ? tableQuery.isLoading
+      : stageQueries.some((query) => query.isLoading);
+  const isError =
+    view === "table"
+      ? tableQuery.isError
+      : stageQueries.some((query) => query.isError);
+  const typedTasks =
+    view === "table"
+      ? ((tasks?.items ?? []) as TaskWithMeta[])
+      : stageQueries.flatMap((query) => query.items);
   const stagePagination = Object.fromEntries(
-    TASK_STATUS_CONFIG.stageOrder.map((stage, index) => [stage, {
-      hasMore: stageQueries[index].hasMore,
-      isLoading: stageQueries[index].isFetching,
-      onLoadMore: stageQueries[index].onLoadMore,
-    }]),
+    TASK_STATUS_CONFIG.stageOrder.map((stage, index) => [
+      stage,
+      {
+        hasMore: stageQueries[index].hasMore,
+        isLoading: stageQueries[index].isFetching,
+        onLoadMore: stageQueries[index].onLoadMore,
+      },
+    ]),
   );
   const [changeTaskStatus] = useChangePmTaskStatusMutation();
 
   // ── Drag end handler (state machine) ─────────────────────────────────
   const handleDragEnd = useCallback(
     async (itemId: string, fromStage: string, toStage: string) => {
-      const currentStatus = fromStage as TaskStatus;
-      const newStatus = toStage as TaskStatus;
+      const currentStatus = getTaskStatusForKanbanStage(fromStage);
+      const newStatus = getTaskStatusForKanbanStage(toStage);
 
       if (newStatus === currentStatus) return;
 
@@ -108,7 +216,11 @@ export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanP
               newStatus === TaskStatus.REVISION));
 
         if (!validTransition) {
-          toast.error(pmErrorMessage({ data: { error: { code: "TASK_INVALID_TRANSITION" } } }));
+          toast.error(
+            pmErrorMessage({
+              data: { error: { code: "TASK_INVALID_TRANSITION" } },
+            }),
+          );
           return;
         }
 
@@ -141,68 +253,115 @@ export function TaskKanban({ projectId, periodId, view = "kanban" }: TaskKanbanP
       return (
         <Empty className="border">
           <EmptyTitle>لا توجد مهام</EmptyTitle>
-          <EmptyDescription>ابدأ بإضافة مهمة جديدة لهذه الفترة.</EmptyDescription>
+          <EmptyDescription>
+            ابدأ بإضافة مهمة جديدة لهذه الفترة.
+          </EmptyDescription>
         </Empty>
       );
     }
 
     return (
       <div className="flex flex-col gap-4">
-      <div className="overflow-hidden rounded-lg border">
-        <Table>
-          <TableCaption>قائمة مهام الفترة</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>المهمة</TableHead>
-              <TableHead>الحالة</TableHead>
-              <TableHead>الأولوية</TableHead>
-              <TableHead>المسند إليه</TableHead>
-              <TableHead>تاريخ الاستحقاق</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {typedTasks.map((task) => (
-              <TableRow key={task.id}>
-                <TableCell>
-                  <Link href={`/dashboard/pm/tasks/${task.id}`} className="font-medium hover:underline">
-                    {task.title}
-                  </Link>
-                </TableCell>
-                <TableCell><Badge variant="outline">{TASK_STATUS_LABELS[task.status as TaskStatus] ?? task.status}</Badge></TableCell>
-                <TableCell><Badge variant="secondary">{TASK_PRIORITY_LABELS[task.priority as keyof typeof TASK_PRIORITY_LABELS] ?? task.priority}</Badge></TableCell>
-                <TableCell>
-                  {task.assignee ? <span className="inline-flex items-center gap-1.5"><User className="size-4" aria-hidden="true" />{task.assignee.name}</span> : "—"}
-                </TableCell>
-                <TableCell><span className="inline-flex items-center gap-1.5"><Calendar className="size-4" aria-hidden="true" />{formatShortDate(task.dueDate)}</span></TableCell>
+        <div className="overflow-hidden rounded-lg border">
+          <Table>
+            <TableCaption>قائمة مهام الفترة</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>المهمة</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead>الأولوية</TableHead>
+                <TableHead>المسند إليه</TableHead>
+                <TableHead>تاريخ الاستحقاق</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      {(tasks?.meta.totalPages ?? 1) > 1 ? (
-        <div className="flex items-center justify-center gap-3">
-          <Button variant="outline" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>السابق</Button>
-          <span className="text-sm text-muted-foreground">صفحة {page} من {tasks?.meta.totalPages}</span>
-          <Button variant="outline" disabled={page >= (tasks?.meta.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>التالي</Button>
+            </TableHeader>
+            <TableBody>
+              {typedTasks.map((task) => (
+                <TableRow key={task.id}>
+                  <TableCell>
+                    <Link
+                      href={`/dashboard/pm/tasks/${task.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {task.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {TASK_KANBAN_STAGE_LABELS[getTaskKanbanStage(task)] ??
+                        TASK_STATUS_LABELS[task.status as TaskStatus] ??
+                        task.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {TASK_PRIORITY_LABELS[
+                        task.priority as keyof typeof TASK_PRIORITY_LABELS
+                      ] ?? task.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {task.assignee ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <User className="size-4" aria-hidden="true" />
+                        {task.assignee.name}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Calendar className="size-4" aria-hidden="true" />
+                      {formatShortDate(task.dueDate)}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
-      ) : null}
+        {(tasks?.meta.totalPages ?? 1) > 1 ? (
+          <div className="flex items-center justify-center gap-3">
+            <Button
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => setPage((current) => current - 1)}
+            >
+              السابق
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              صفحة {page} من {tasks?.meta.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              disabled={page >= (tasks?.meta.totalPages ?? 1)}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              التالي
+            </Button>
+          </div>
+        ) : null}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <KanbanBoard
-      config={TASK_STATUS_CONFIG}
-      items={typedTasks}
-      getItemStage={(t) => t.status}
-      renderCard={renderCard}
-      onDragEnd={handleDragEnd}
-      isLoading={isLoading}
-      isError={isError}
-      errorMessage="حدث خطأ أثناء تحميل المهام"
-      emptyMessage="لا توجد مهام — ابدأ بإضافة مهمة جديدة لهذا المشروع"
-      stagePagination={stagePagination}
+      <KanbanBoard<TaskWithMeta>
+        config={TASK_STATUS_CONFIG}
+        items={typedTasks}
+        getItemStage={getTaskKanbanStage}
+        renderCard={renderCard}
+        onDragEnd={handleDragEnd}
+        canDragItem={(task) =>
+          getTaskStatusForKanbanStage(getTaskKanbanStage(task)) !==
+          TaskStatus.CLIENT_REVIEW
+        }
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage="حدث خطأ أثناء تحميل المهام"
+        emptyMessage="لا توجد مهام — ابدأ بإضافة مهمة جديدة لهذا المشروع"
+        stagePagination={stagePagination}
       />
     </div>
   );

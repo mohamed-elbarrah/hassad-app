@@ -14,6 +14,7 @@ import {
 import {
   TaskDepartment,
   TaskStatus,
+  TaskReviewStage,
   UserRole,
   ProjectStatus,
 } from "@hassad/shared";
@@ -43,11 +44,20 @@ export class TasksService {
     );
   }
 
-  private progressWeightByStatus(status: TaskStatus): number {
-    if (status === TaskStatus.DONE) return 100;
-    if (status === TaskStatus.IN_REVIEW) return 80;
+  private progressWeightByStatus(
+    status: TaskStatus,
+    reviewStage: TaskReviewStage,
+  ): number {
+    if (
+      reviewStage === TaskReviewStage.CLIENT_APPROVED ||
+      reviewStage === TaskReviewStage.LEGACY_COMPLETED
+    )
+      return 100;
+    if (reviewStage === TaskReviewStage.CLIENT_REVIEW) return 80;
+    if (reviewStage === TaskReviewStage.PM_REVIEW) return 70;
+    if (reviewStage === TaskReviewStage.CLIENT_REVISION_REQUESTED) return 50;
+    if (reviewStage === TaskReviewStage.PM_REVISION_REQUESTED) return 25;
     if (status === TaskStatus.IN_PROGRESS) return 50;
-    if (status === TaskStatus.REVISION) return 25;
     return 0;
   }
 
@@ -57,7 +67,7 @@ export class TasksService {
   ) {
     const tasks = await db.task.findMany({
       where: { projectId },
-      select: { status: true },
+      select: { status: true, reviewStage: true },
     });
 
     const completionPercentage =
@@ -66,7 +76,11 @@ export class TasksService {
         : Math.round(
             tasks.reduce(
               (sum, task) =>
-                sum + this.progressWeightByStatus(task.status as TaskStatus),
+                sum +
+                this.progressWeightByStatus(
+                  task.status as TaskStatus,
+                  task.reviewStage as TaskReviewStage,
+                ),
               0,
             ) / tasks.length,
           );
@@ -122,7 +136,7 @@ export class TasksService {
       case TaskStatus.IN_REVIEW:
         return { eventType: "TASK_SUBMITTED" };
       case TaskStatus.DONE:
-        return { eventType: "TASK_APPROVED" };
+        return { eventType: "TASK_SUBMITTED_TO_CLIENT" };
       case TaskStatus.REVISION:
         return { eventType: "TASK_REJECTED" };
       default:
@@ -258,11 +272,17 @@ export class TasksService {
     });
 
     if (!user) {
-      throw new NotFoundException({ code: "TASK_ASSIGNEE_NOT_FOUND", details: {} });
+      throw new NotFoundException({
+        code: "TASK_ASSIGNEE_NOT_FOUND",
+        details: {},
+      });
     }
 
     if (!user.isActive) {
-      throw new BadRequestException({ code: "TASK_ASSIGNEE_INACTIVE", details: {} });
+      throw new BadRequestException({
+        code: "TASK_ASSIGNEE_INACTIVE",
+        details: {},
+      });
     }
 
     const assigneeRole = user.role.name as UserRole;
@@ -272,7 +292,10 @@ export class TasksService {
         (d) => d.departmentId === departmentId,
       );
       if (!inDepartment) {
-        throw new BadRequestException({ code: "TASK_ASSIGNEE_DEPARTMENT_MISMATCH", details: {} });
+        throw new BadRequestException({
+          code: "TASK_ASSIGNEE_DEPARTMENT_MISMATCH",
+          details: {},
+        });
       }
     } else if (assigneeRole === UserRole.MARKETING) {
       const deptName =
@@ -284,10 +307,16 @@ export class TasksService {
           })
         )?.name;
       if (deptName !== TaskDepartment.MARKETING) {
-        throw new BadRequestException({ code: "TASK_MARKETING_DEPARTMENT_REQUIRED", details: {} });
+        throw new BadRequestException({
+          code: "TASK_MARKETING_DEPARTMENT_REQUIRED",
+          details: {},
+        });
       }
     } else {
-      throw new BadRequestException({ code: "TASK_ASSIGNEE_ROLE_INVALID", details: {} });
+      throw new BadRequestException({
+        code: "TASK_ASSIGNEE_ROLE_INVALID",
+        details: {},
+      });
     }
 
     return user;
@@ -298,19 +327,31 @@ export class TasksService {
       where: { name: dto.dept },
     });
     if (!department) {
-      throw new BadRequestException({ code: "TASK_DEPARTMENT_NOT_FOUND", details: {} });
+      throw new BadRequestException({
+        code: "TASK_DEPARTMENT_NOT_FOUND",
+        details: {},
+      });
     }
 
     if (dto.assignedTo) {
-      await this.resolveAssignableUser(
-        dto.assignedTo,
-        department.id,
-        dto.dept,
-      );
+      await this.resolveAssignableUser(dto.assignedTo, department.id, dto.dept);
     }
 
     const { dept: _dept, periodId: dtoPeriodId, ...rest } = dto;
     void _dept;
+
+    if (dtoPeriodId) {
+      const period = await this.prisma.projectPeriod.findFirst({
+        where: { id: dtoPeriodId, projectId: dto.projectId },
+        select: { id: true },
+      });
+      if (!period) {
+        throw new BadRequestException({
+          code: "TASK_PERIOD_PROJECT_MISMATCH",
+          details: {},
+        });
+      }
+    }
 
     // Auto-link the task to the project's ACTIVE period when not explicitly provided.
     const periodId =
@@ -335,7 +376,6 @@ export class TasksService {
     });
 
     if (createdTask.assignedTo) {
-
       this.notificationsService
         .createNotification({
           entityId: createdTask.id,
@@ -371,7 +411,7 @@ export class TasksService {
       include: {
         project: {
           include: {
-            client: true,
+            client: { select: { id: true, companyName: true, userId: true } },
             manager: { select: { id: true, name: true, email: true } },
           },
         },
@@ -429,37 +469,83 @@ export class TasksService {
   ) {
     const task = await this.findOne(id);
 
+    if (toStatus === TaskStatus.DONE || toStatus === TaskStatus.REVISION) {
+      const actor = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: { select: { name: true } } },
+      });
+      const actorRole = actor?.role.name as UserRole | undefined;
+      const isAdmin = actorRole === UserRole.ADMIN;
+      const isProjectManager =
+        actorRole === UserRole.PM && task.project.projectManagerId === userId;
+      if (!isAdmin && !isProjectManager) {
+        throw new BadRequestException({
+          code: "TASK_REVIEW_ACTOR_FORBIDDEN",
+          details: {},
+        });
+      }
+    }
+
     // Workflow enforcement
     if (
       toStatus === TaskStatus.IN_PROGRESS &&
       task.status !== TaskStatus.TODO &&
       task.status !== TaskStatus.REVISION
     ) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_START", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID_FOR_START",
+        details: {},
+      });
     }
     if (
       toStatus === TaskStatus.IN_REVIEW &&
       task.status !== TaskStatus.IN_PROGRESS
     ) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_SUBMIT", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID_FOR_SUBMIT",
+        details: {},
+      });
     }
     if (toStatus === TaskStatus.DONE && task.status !== TaskStatus.IN_REVIEW) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_APPROVE", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID_FOR_APPROVE",
+        details: {},
+      });
     }
     if (
       toStatus === TaskStatus.REVISION &&
       task.status !== TaskStatus.IN_REVIEW
     ) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_REVISION", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID_FOR_REVISION",
+        details: {},
+      });
     }
+
+    const persistedStatus =
+      toStatus === TaskStatus.DONE ? TaskStatus.CLIENT_REVIEW : toStatus;
+    const nextReviewStage =
+      toStatus === TaskStatus.IN_REVIEW
+        ? TaskReviewStage.PM_REVIEW
+        : toStatus === TaskStatus.DONE
+          ? TaskReviewStage.CLIENT_REVIEW
+          : toStatus === TaskStatus.REVISION
+            ? TaskReviewStage.PM_REVISION_REQUESTED
+            : toStatus === TaskStatus.IN_PROGRESS
+              ? TaskReviewStage.NOT_SUBMITTED
+              : task.reviewStage;
 
     const updatedTask = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.task.update({
         where: { id },
         data: {
-          status: toStatus,
+          status: persistedStatus,
+          reviewStage: nextReviewStage,
           approvedBy: approvedBy || undefined,
-          approvedAt: toStatus === TaskStatus.DONE ? new Date() : undefined,
+          approvedAt: undefined,
+          pmAcceptedAt: toStatus === TaskStatus.DONE ? new Date() : undefined,
+          // PM acceptance publishes the existing task output for client review.
+          isVisibleToClient: toStatus === TaskStatus.DONE ? true : undefined,
           submittedAt:
             toStatus === TaskStatus.IN_REVIEW ? new Date() : undefined,
           startedAt:
@@ -476,34 +562,70 @@ export class TasksService {
         data: {
           taskId: id,
           fromStatus: task.status,
-          toStatus: toStatus,
+          toStatus: persistedStatus,
           changedBy: userId,
         },
       });
 
+      if (task.reviewStage !== nextReviewStage) {
+        await tx.taskReviewHistory.create({
+          data: {
+            taskId: id,
+            fromStage: task.reviewStage,
+            toStage: nextReviewStage,
+            actorId: userId,
+            actorType: "STAFF",
+          },
+        });
+      }
+
+      if (toStatus === TaskStatus.IN_REVIEW) {
+        await tx.taskRevisionRequest.updateMany({
+          where: { taskId: id, status: "OPEN" },
+          data: { status: "RESOLVED", resolvedAt: new Date() },
+        });
+      }
+
       if (toStatus === TaskStatus.DONE) {
-        const portalDepts = [
-          TaskDepartment.DESIGN,
-          TaskDepartment.CONTENT,
-          TaskDepartment.MARKETING,
-        ];
-        const deptName = task.department?.name;
-        if (deptName && portalDepts.includes(deptName as TaskDepartment)) {
-          const existing = await tx.deliverable.findFirst({
+        await tx.taskFile.updateMany({
+          where: { taskId: id, purpose: { not: FilePurpose.INTERNAL_DRAFT } },
+          data: { purpose: FilePurpose.DELIVERABLE },
+        });
+        const existing = await tx.deliverable.findFirst({
+          where: { taskId: id },
+        });
+        const submittedFile = task.files.find(
+          (file) => file.purpose !== FilePurpose.INTERNAL_DRAFT,
+        );
+        if (existing) {
+          await tx.deliverable.updateMany({
             where: { taskId: id },
+            data: {
+              periodId: task.periodId,
+              status: TaskStatus.IN_REVIEW,
+              isVisibleToClient: true,
+            },
           });
-          if (!existing) {
-            await tx.deliverable.create({
-              data: {
-                projectId: task.projectId,
-                taskId: id,
-                title: task.title,
-                description: task.description || undefined,
-                filePath: "",
-                isVisibleToClient: task.isVisibleToClient,
-              },
+          if (!existing.filePath && submittedFile) {
+            await tx.deliverable.update({
+              where: { id: existing.id },
+              data: { filePath: submittedFile.filePath },
             });
           }
+        } else if (submittedFile) {
+          await tx.deliverable.create({
+            data: {
+              projectId: task.projectId,
+              taskId: id,
+              periodId: task.periodId,
+              title: task.title,
+              description: task.description || undefined,
+              // Reuse the existing task file; do not upload or duplicate it.
+              filePath: submittedFile.filePath,
+              status: TaskStatus.IN_REVIEW,
+              isVisibleToClient: true,
+            },
+          });
         }
       }
 
@@ -553,6 +675,27 @@ export class TasksService {
       );
     }
 
+    if (toStatus === TaskStatus.DONE && task.project.client?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: id,
+          entityType: "task",
+          eventType: "TASK_SUBMITTED_TO_CLIENT",
+          userId: task.project.client.userId,
+          metadata: {
+            taskId: id,
+            projectId: task.projectId,
+            periodId: task.periodId,
+            taskTitle: task.title,
+          },
+        })
+        .catch((error) =>
+          this.logger.warn(
+            `Failed to notify client about task=${id}: ${error instanceof Error ? error.message : String(error)}`,
+          ),
+        );
+    }
+
     return updatedTask;
   }
 
@@ -571,7 +714,7 @@ export class TasksService {
     });
 
     if (!existingTask) {
-      throw new NotFoundException(`Task with ID ${id} not found`);
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
     }
 
     const assigneeInfo = await this.resolveAssignableUser(
@@ -644,12 +787,18 @@ export class TasksService {
   async changeStatus(id: string, userId: string, toStatus: TaskStatus) {
     const validStatuses = Object.values(TaskStatus);
     if (!validStatuses.includes(toStatus)) {
-      throw new BadRequestException({ code: "TASK_STATUS_INVALID", details: {} });
+      throw new BadRequestException({
+        code: "TASK_STATUS_INVALID",
+        details: {},
+      });
     }
 
     switch (toStatus) {
       case TaskStatus.TODO:
-        throw new BadRequestException({ code: "TASK_STATUS_INVALID_FOR_TODO", details: {} });
+        throw new BadRequestException({
+          code: "TASK_STATUS_INVALID_FOR_TODO",
+          details: {},
+        });
       case TaskStatus.IN_PROGRESS:
         return this.start(id, userId);
       case TaskStatus.IN_REVIEW:
@@ -659,7 +808,10 @@ export class TasksService {
       case TaskStatus.REVISION:
         return this.reject(id, userId);
       default:
-        throw new BadRequestException({ code: "TASK_STATUS_UNHANDLED", details: {} });
+        throw new BadRequestException({
+          code: "TASK_STATUS_UNHANDLED",
+          details: {},
+        });
     }
   }
 
@@ -731,9 +883,22 @@ export class TasksService {
       where: { id: fileId, taskId },
     });
 
-    if (file) {
-      await this.storageService.deleteByKey(file.filePath).catch(() => {});
+    if (!file) {
+      throw new NotFoundException({ code: "TASK_FILE_NOT_FOUND", details: {} });
     }
+
+    const publishedDeliverable = await this.prisma.deliverable.findFirst({
+      where: { taskId, filePath: file.filePath, isVisibleToClient: true },
+      select: { id: true },
+    });
+    if (publishedDeliverable) {
+      throw new BadRequestException({
+        code: "TASK_FILE_PUBLISHED_TO_CLIENT",
+        details: {},
+      });
+    }
+
+    await this.storageService.deleteByKey(file.filePath).catch(() => {});
 
     return this.prisma.taskFile.delete({
       where: { id: fileId, taskId },
@@ -747,7 +912,7 @@ export class TasksService {
     });
 
     if (!task) {
-      throw new NotFoundException(`Task with ID ${id} not found`);
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
     }
 
     const comment = await this.prisma.taskComment.create({
@@ -913,7 +1078,9 @@ export class TasksService {
       total,
       todo: counts[TaskStatus.TODO] ?? 0,
       inProgress: counts[TaskStatus.IN_PROGRESS] ?? 0,
-      inReview: counts[TaskStatus.IN_REVIEW] ?? 0,
+      inReview:
+        (counts[TaskStatus.IN_REVIEW] ?? 0) +
+        (counts[TaskStatus.CLIENT_REVIEW] ?? 0),
       done: counts[TaskStatus.DONE] ?? 0,
       overdue,
       projects: projectIds.length,
@@ -933,7 +1100,10 @@ export class TasksService {
     },
     includeCampaigns: boolean = false,
   ) {
-    const where: Record<string, unknown> = { assignedTo: userId, archivedAt: null };
+    const where: Record<string, unknown> = {
+      assignedTo: userId,
+      archivedAt: null,
+    };
     if (filters.status) where["status"] = filters.status;
     if (filters.priority) where["priority"] = filters.priority;
     if (filters.dept) where["departmentId"] = filters.dept;
@@ -1039,7 +1209,7 @@ export class TasksService {
       });
 
       if (!existingTask) {
-        throw new NotFoundException(`Task with ID ${id} not found`);
+        throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
       }
 
       const deletedTask = await tx.task.delete({ where: { id } });

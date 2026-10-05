@@ -1,0 +1,33 @@
+.track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+}
+
+.copy {
+  flex: none;
+}
+
+.marquee {
+  animation: announcement-marquee var(--announcement-marquee-duration, 20s) linear infinite;
+}
+
+@keyframes announcement-marquee {
+  from {
+    transform: translateX(calc(-1 * var(--announcement-marquee-distance)));
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    animation: none;
+  }
+
+  .copy ~ .copy {
+    display: none;
+  }
+}

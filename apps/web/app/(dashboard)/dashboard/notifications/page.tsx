@@ -3,11 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import {
-  Bell,
-  CheckCheck,
-  ExternalLink,
-} from "lucide-react";
+import { Bell, CheckCheck, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,10 +47,7 @@ import type { NotificationItem } from "@/features/notifications/notificationsApi
 import { useAppSelector } from "@/lib/hooks";
 import { formatRelativeTime } from "@/lib/format";
 import { resolveEntityUrl } from "@/components/common/NotificationsDropdown";
-import {
-  notificationErrorMessage,
-  notificationPresentation,
-} from "@/lib/i18n";
+import { notificationErrorMessage, notificationPresentation } from "@/lib/i18n";
 
 const PAGE_SIZE = 20;
 
@@ -98,6 +91,7 @@ export default function NotificationsPage() {
       selectedNotification.entityType,
       selectedNotification.entityId,
       user?.role,
+      selectedNotification.metadata as Record<string, unknown> | null,
     );
     if (url) {
       setSelectedNotification(null);
@@ -110,6 +104,7 @@ export default function NotificationsPage() {
         selectedNotification.entityType,
         selectedNotification.entityId,
         user?.role,
+        selectedNotification.metadata as Record<string, unknown> | null,
       )
     : null;
 
@@ -211,39 +206,42 @@ export default function NotificationsPage() {
           ) : (
             <div className="flex flex-col divide-y">
               {notifications.map((notification) => {
-                const presentation = notificationPresentation(notification.eventType, notification.metadata);
+                const presentation = notificationPresentation(
+                  notification.eventType,
+                  notification.metadata,
+                );
                 return (
-                <button
-                  key={notification.id}
-                  type="button"
-                  className="group flex w-full items-start gap-3 p-5 text-right transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                  data-unread={!notification.isRead || undefined}
-                  onClick={() => handleClickNotification(notification)}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`mt-2 size-2 shrink-0 rounded-full ${
-                      notification.isRead ? "bg-transparent" : "bg-primary"
-                    }`}
-                  />
-                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <button
+                    key={notification.id}
+                    type="button"
+                    className="group flex w-full items-start gap-3 p-5 text-right transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    data-unread={!notification.isRead || undefined}
+                    onClick={() => handleClickNotification(notification)}
+                  >
                     <span
-                      className={`truncate text-sm ${
-                        notification.isRead
-                          ? "font-normal text-foreground"
-                          : "font-semibold text-foreground"
+                      aria-hidden="true"
+                      className={`mt-2 size-2 shrink-0 rounded-full ${
+                        notification.isRead ? "bg-transparent" : "bg-primary"
                       }`}
-                    >
-                      {presentation.title}
+                    />
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span
+                        className={`truncate text-sm ${
+                          notification.isRead
+                            ? "font-normal text-foreground"
+                            : "font-semibold text-foreground"
+                        }`}
+                      >
+                        {presentation.title}
+                      </span>
+                      <span className="line-clamp-2 text-sm text-muted-foreground">
+                        {presentation.body}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatRelativeTime(notification.createdAt as string)}
+                      </span>
                     </span>
-                    <span className="line-clamp-2 text-sm text-muted-foreground">
-                      {presentation.body}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatRelativeTime(notification.createdAt as string)}
-                    </span>
-                  </span>
-                </button>
+                  </button>
                 );
               })}
             </div>
@@ -290,10 +288,12 @@ export default function NotificationsPage() {
         >
           <DialogHeader className="text-right sm:text-right">
             <DialogTitle>
-              {notificationPresentation(
-                selectedNotification?.eventType,
-                selectedNotification?.metadata,
-              ).title}
+              {
+                notificationPresentation(
+                  selectedNotification?.eventType,
+                  selectedNotification?.metadata,
+                ).title
+              }
             </DialogTitle>
             <DialogDescription>
               {selectedNotification?.createdAt
@@ -303,10 +303,12 @@ export default function NotificationsPage() {
           </DialogHeader>
           <div className="max-h-80 overflow-y-auto rounded-md bg-muted/50 p-4">
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-              {notificationPresentation(
-                selectedNotification?.eventType,
-                selectedNotification?.metadata,
-              ).body}
+              {
+                notificationPresentation(
+                  selectedNotification?.eventType,
+                  selectedNotification?.metadata,
+                ).body
+              }
             </p>
           </div>
           <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">

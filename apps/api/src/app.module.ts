@@ -34,6 +34,7 @@ import { SettingsModule } from "./modules/settings/settings.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { HealthModule } from "./modules/health/health.module";
 import { DisputesModule } from "./modules/disputes/disputes.module";
+import { CommunicationModule } from "./modules/communication/communication.module";
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { DisputesModule } from "./modules/disputes/disputes.module";
     SalesModule,
     HealthModule,
     DisputesModule,
+    CommunicationModule,
   ],
   providers: [
     RobustErrorLoggerService,

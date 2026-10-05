@@ -15,6 +15,7 @@ import { useCreateDisputeMutation } from "@/features/portal/portalApi";
 
 interface ProjectHeaderProps {
   project: PortalProjectDetail;
+  showProgress?: boolean;
 }
 
 /**
@@ -22,7 +23,10 @@ interface ProjectHeaderProps {
  * consistent title/description hierarchy, project metadata, and a single
  * contextual action.
  */
-export function ProjectHeader({ project }: ProjectHeaderProps) {
+export function ProjectHeader({
+  project,
+  showProgress = true,
+}: ProjectHeaderProps) {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
   const handleCreateDispute = async (
@@ -65,9 +69,11 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         actions={
           <>
             <Badge variant="outline">بوابة العميل</Badge>
-            <Badge variant="secondary">
-              التقدم {project.completionPercentage}%
-            </Badge>
+            {showProgress ? (
+              <Badge variant="secondary">
+                التقدم {project.completionPercentage}%
+              </Badge>
+            ) : null}
             <Button
               variant="outline"
               size="sm"

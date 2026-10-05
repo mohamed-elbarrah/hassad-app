@@ -132,9 +132,11 @@ import {
   CreateIntakeFormDto,
   SaveDraftDto,
   RequestProjectRevisionDto,
+  RequestTaskRevisionDto,
 } from "../dto/portal.dto";
 import {
   TaskStatus,
+  TaskReviewStage,
   ContractStatus,
   InvoiceStatus,
   ProposalStatus,
@@ -142,10 +144,20 @@ import {
   CampaignStatus,
   RequestStatus,
   BusinessType,
+  ClientActionType,
+  MarketingStrategyStatus,
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
 import { StorageService } from "../../../common/storage/storage.service";
 import { MarketingStrategyService } from "../../marketing/services/marketing-strategy.service";
+
+const PORTAL_ACTIVITY_FEED_LIMIT = 5;
+const PORTAL_VISIBLE_HISTORY_EVENT_TYPES = [
+  "ACTION_ITEM_SNOOZED",
+  "CLIENT_REQUEST_CREATED",
+  "CONTRACT_ACTIVATED",
+  "PROJECT_COMPLETED",
+] as const;
 
 @Injectable()
 export class PortalService {
@@ -399,6 +411,15 @@ export class PortalService {
           select: { id: true, name: true, isActive: true },
         },
         completionPercentage: true,
+        periods: {
+          select: {
+            id: true,
+            periodNumber: true,
+            status: true,
+            completionPercentage: true,
+          },
+          orderBy: { periodNumber: "asc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -411,6 +432,8 @@ export class PortalService {
         name: p.name,
         status: p.status,
         progress: p.completionPercentage,
+        progressMode: p.periods.length > 0 ? "PERIODS" : "PROJECT",
+        periods: p.periods,
         startDate: p.startDate,
         endDate: p.endDate,
         projectManager: p.manager
@@ -474,6 +497,15 @@ export class PortalService {
           manager: {
             select: { id: true, name: true, isActive: true },
           },
+          periods: {
+            select: {
+              id: true,
+              periodNumber: true,
+              status: true,
+              completionPercentage: true,
+            },
+            orderBy: { periodNumber: "asc" },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip: (query.page - 1) * query.limit,
@@ -497,6 +529,8 @@ export class PortalService {
               isOnline: p.manager.isActive,
             }
           : null,
+        progressMode: p.periods.length > 0 ? "PERIODS" : "PROJECT",
+        periods: p.periods,
       };
     });
 
@@ -528,6 +562,51 @@ export class PortalService {
         reportFilePath: true,
         completionPercentage: true,
         goals: true,
+        tasks: {
+          where: { isVisibleToClient: true, archivedAt: null },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            reviewStage: true,
+            dueDate: true,
+            revisionCount: true,
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+                employee: { select: { role: true } },
+              },
+            },
+            department: { select: { name: true } },
+            files: {
+              where: { purpose: "DELIVERABLE" },
+              select: {
+                id: true,
+                fileName: true,
+                fileType: true,
+                fileSize: true,
+                purpose: true,
+                uploadedAt: true,
+                filePath: true,
+              },
+              orderBy: { uploadedAt: "desc" },
+            },
+            revisionRequests: {
+              where: { clientId },
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                requestDescription: true,
+                status: true,
+                createdAt: true,
+                resolvedAt: true,
+              },
+            },
+          },
+          orderBy: { dueDate: "asc" },
+        },
         invoice: {
           select: {
             id: true,
@@ -570,7 +649,10 @@ export class PortalService {
 
     // Presign all file URLs in one batch (covers period files).
     const allFileKeys = periods
-      .flatMap((p) => p.files.map((f) => f.filePath))
+      .flatMap((p) => [
+        ...p.files.map((f) => f.filePath),
+        ...p.tasks.flatMap((task) => task.files.map((f) => f.filePath)),
+      ])
       .filter(Boolean);
     const fileUrlMap =
       allFileKeys.length > 0
@@ -604,6 +686,35 @@ export class PortalService {
         url: fileUrlMap.get(f.filePath) ?? null,
       }));
 
+      const tasks = period.tasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        reviewStage: task.reviewStage,
+        dueDate: task.dueDate,
+        revisionCount: task.revisionCount,
+        progress: this.taskProgress(task.status, task.reviewStage),
+        assignee: task.assignee
+          ? {
+              id: task.assignee.id,
+              name: task.assignee.name,
+              jobTitle: task.assignee.employee?.role ?? null,
+            }
+          : null,
+        department: task.department?.name ?? null,
+        files: task.files.map((file) => ({
+          id: file.id,
+          fileName: file.fileName,
+          fileType: file.fileType,
+          fileSize: file.fileSize,
+          purpose: file.purpose,
+          uploadedAt: file.uploadedAt,
+          url: fileUrlMap.get(file.filePath) ?? null,
+        })),
+        revisionRequests: task.revisionRequests,
+      }));
+
       const upcomingMeeting = period.meetings
         .filter((m) => m.status === "SCHEDULED" || m.status === "RESCHEDULED")
         .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
@@ -619,6 +730,7 @@ export class PortalService {
         reportFilePath: period.reportFilePath,
         completionPercentage: period.completionPercentage,
         goals,
+        tasks,
         files,
         invoice,
         meetings: period.meetings,
@@ -639,6 +751,20 @@ export class PortalService {
         },
       };
     });
+  }
+
+  private taskProgress(status: string, reviewStage: string): number {
+    if (
+      reviewStage === TaskReviewStage.CLIENT_APPROVED ||
+      reviewStage === TaskReviewStage.LEGACY_COMPLETED
+    )
+      return 100;
+    if (reviewStage === TaskReviewStage.CLIENT_REVIEW) return 80;
+    if (reviewStage === TaskReviewStage.PM_REVIEW) return 70;
+    if (reviewStage === TaskReviewStage.CLIENT_REVISION_REQUESTED) return 50;
+    if (reviewStage === TaskReviewStage.PM_REVISION_REQUESTED) return 25;
+    if (status === TaskStatus.IN_PROGRESS) return 50;
+    return 0;
   }
 
   /** Normalize free-form Json goals into the canonical PeriodGoal shape. */
@@ -732,6 +858,454 @@ export class PortalService {
         phoneWhatsapp: project.client.user?.phoneWhatsapp ?? null,
       },
     };
+  }
+
+  /**
+   * Return the project workspace with an explicit scope. Period projects keep
+   * their existing period-scoped data; fixed projects receive project-scoped
+   * resources instead of an empty period workspace.
+   */
+  async getProjectWorkspace(clientId: string, projectId: string) {
+    const [project, periods] = await Promise.all([
+      this.getProjectDetail(clientId, projectId),
+      this.getProjectPeriods(clientId, projectId),
+    ]);
+
+    if (periods.length > 0) {
+      return { scope: "PERIODS" as const, project, periods };
+    }
+
+    const [files, meetings, invoiceItems, tasks] = await Promise.all([
+      this.prisma.projectFile.findMany({
+        where: { projectId, periodId: null, project: { clientId } },
+        select: {
+          id: true,
+          fileName: true,
+          fileType: true,
+          fileSize: true,
+          filePath: true,
+          uploadedAt: true,
+        },
+        orderBy: { uploadedAt: "desc" },
+      }),
+      this.prisma.projectMeeting.findMany({
+        where: { projectId, periodId: null, project: { clientId } },
+        select: {
+          id: true,
+          title: true,
+          scheduledAt: true,
+          durationMin: true,
+          location: true,
+          meetingLink: true,
+          status: true,
+          notes: true,
+        },
+        orderBy: { scheduledAt: "asc" },
+      }),
+      this.prisma.invoiceItem.findMany({
+        where: {
+          projectId,
+          invoice: { clientId, period: null },
+        },
+
+        select: {
+          invoice: {
+            select: {
+              id: true,
+              invoiceNumber: true,
+              amount: true,
+              status: true,
+              issueDate: true,
+              dueDate: true,
+              payments: { select: { amount: true, status: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.task.findMany({
+        where: {
+          projectId,
+          periodId: null,
+          isVisibleToClient: true,
+          archivedAt: null,
+          project: { clientId },
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          reviewStage: true,
+          dueDate: true,
+          revisionCount: true,
+          assignee: {
+            select: {
+              id: true,
+              name: true,
+              employee: { select: { role: true } },
+            },
+          },
+          department: { select: { name: true } },
+          files: {
+            where: { purpose: "DELIVERABLE" },
+            select: {
+              id: true,
+              fileName: true,
+              fileType: true,
+              fileSize: true,
+              purpose: true,
+              uploadedAt: true,
+              filePath: true,
+            },
+            orderBy: { uploadedAt: "desc" },
+          },
+          revisionRequests: {
+            where: { clientId },
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              requestDescription: true,
+              status: true,
+              createdAt: true,
+              resolvedAt: true,
+            },
+          },
+        },
+        orderBy: { dueDate: "asc" },
+      }),
+    ]);
+
+    const fileKeys = [
+      ...files.map((file) => file.filePath),
+      ...tasks.flatMap((task) => task.files.map((file) => file.filePath)),
+    ];
+    const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+    const projectInvoices = Array.from(
+      new Map(
+        invoiceItems.map((item) => [item.invoice.id, item.invoice]),
+      ).values(),
+    ).map((invoice) => {
+      const paidAmount = invoice.payments
+        .filter((payment) => payment.status === "SUCCESS")
+        .reduce((sum, payment) => sum + payment.amount, 0);
+      return {
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        amount: invoice.amount,
+        status: invoice.status,
+        issueDate: invoice.issueDate,
+        dueDate: invoice.dueDate,
+        paidAmount,
+        remainingAmount: Math.max(0, invoice.amount - paidAmount),
+      };
+    });
+
+    return {
+      scope: "PROJECT" as const,
+      project,
+      periods: [],
+      resources: {
+        files: files.map((file) => ({
+          ...file,
+          url: urlMap.get(file.filePath) ?? null,
+        })),
+        meetings,
+        invoices: projectInvoices,
+        tasks: tasks.map((task) => ({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          reviewStage: task.reviewStage,
+          dueDate: task.dueDate,
+          revisionCount: task.revisionCount,
+          progress: this.taskProgress(task.status, task.reviewStage),
+          assignee: task.assignee
+            ? {
+                id: task.assignee.id,
+                name: task.assignee.name,
+                jobTitle: task.assignee.employee?.role ?? null,
+              }
+            : null,
+          department: task.department?.name ?? null,
+          files: task.files.map((file) => ({
+            id: file.id,
+            fileName: file.fileName,
+            fileType: file.fileType,
+            fileSize: file.fileSize,
+            purpose: file.purpose,
+            uploadedAt: file.uploadedAt,
+            url: urlMap.get(file.filePath) ?? null,
+          })),
+          revisionRequests: task.revisionRequests,
+        })),
+      },
+    };
+  }
+
+  async getPortalProjectTasks(
+    clientId: string,
+    projectId: string,
+    periodId?: string,
+  ) {
+    await this.getProjectDetail(clientId, projectId);
+    if (periodId) {
+      const period = await this.prisma.projectPeriod.findFirst({
+        where: { id: periodId, projectId },
+        select: { id: true },
+      });
+      if (!period) {
+        throw new NotFoundException({
+          code: "PROJECT_PERIOD_NOT_FOUND",
+          details: {},
+        });
+      }
+    }
+
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        projectId,
+        periodId: periodId ?? null,
+        isVisibleToClient: true,
+        archivedAt: null,
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        reviewStage: true,
+        dueDate: true,
+        revisionCount: true,
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            employee: { select: { role: true } },
+          },
+        },
+        department: { select: { name: true } },
+        files: {
+          where: { purpose: "DELIVERABLE" },
+          select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            purpose: true,
+            uploadedAt: true,
+            filePath: true,
+          },
+          orderBy: { uploadedAt: "desc" },
+        },
+        revisionRequests: {
+          where: { clientId },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            requestDescription: true,
+            status: true,
+            createdAt: true,
+            resolvedAt: true,
+          },
+        },
+      },
+      orderBy: { dueDate: "asc" },
+    });
+
+    const keys = tasks.flatMap((task) =>
+      task.files.map((file) => file.filePath),
+    );
+    const urlMap = await this.storageService.getMultiplePresignedUrls(keys);
+    return tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      reviewStage: task.reviewStage,
+      dueDate: task.dueDate,
+      revisionCount: task.revisionCount,
+      progress: this.taskProgress(task.status, task.reviewStage),
+      assignee: task.assignee
+        ? {
+            id: task.assignee.id,
+            name: task.assignee.name,
+            jobTitle: task.assignee.employee?.role ?? null,
+          }
+        : null,
+      department: task.department?.name ?? null,
+      files: task.files.map((file) => ({
+        id: file.id,
+        fileName: file.fileName,
+        fileType: file.fileType,
+        fileSize: file.fileSize,
+        purpose: file.purpose,
+        uploadedAt: file.uploadedAt,
+        url: urlMap.get(file.filePath) ?? null,
+      })),
+      revisionRequests: task.revisionRequests,
+    }));
+  }
+
+  async approvePortalTask(
+    clientId: string,
+    taskId: string,
+    actorId: string = clientId,
+  ) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        isVisibleToClient: true,
+        project: { clientId },
+      },
+      select: {
+        id: true,
+        projectId: true,
+        reviewStage: true,
+        project: { select: { projectManagerId: true } },
+      },
+    });
+    if (!task) {
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
+    }
+    if (task.reviewStage !== TaskReviewStage.CLIENT_REVIEW) {
+      throw new BadRequestException({
+        code: "TASK_NOT_READY_FOR_CLIENT_APPROVAL",
+        details: {},
+      });
+    }
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.task.update({
+        where: { id: taskId },
+        data: {
+          status: TaskStatus.DONE,
+          reviewStage: TaskReviewStage.CLIENT_APPROVED,
+          clientApprovedAt: new Date(),
+        },
+      }),
+      this.prisma.deliverable.updateMany({
+        where: { taskId, projectId: task.projectId },
+        data: {
+          status: TaskStatus.DONE,
+          approvedAt: new Date(),
+        },
+      }),
+      this.prisma.taskReviewHistory.create({
+        data: {
+          taskId,
+          fromStage: task.reviewStage,
+          toStage: TaskReviewStage.CLIENT_APPROVED,
+          actorId,
+          actorType: "CLIENT",
+        },
+      }),
+    ]);
+    await this.refreshClientTaskProgress(task.projectId, clientId);
+    if (task.project.projectManagerId) {
+      this.notificationsService
+        .createNotification({
+          entityId: taskId,
+          entityType: "task",
+          eventType: "TASK_CLIENT_APPROVED",
+          userId: task.project.projectManagerId,
+        })
+        .catch(() => undefined);
+    }
+    return updated;
+  }
+
+  async requestPortalTaskRevision(
+    clientId: string,
+    taskId: string,
+    dto: RequestTaskRevisionDto,
+    actorId: string = clientId,
+  ) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        isVisibleToClient: true,
+        project: { clientId },
+      },
+      select: {
+        id: true,
+        reviewStage: true,
+        project: { select: { projectManagerId: true } },
+      },
+    });
+    if (!task) {
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
+    }
+    if (task.reviewStage !== TaskReviewStage.CLIENT_REVIEW) {
+      throw new BadRequestException({
+        code: "TASK_NOT_READY_FOR_CLIENT_REVISION",
+        details: {},
+      });
+    }
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.task.update({
+        where: { id: taskId },
+        data: {
+          status: TaskStatus.REVISION,
+          reviewStage: TaskReviewStage.CLIENT_REVISION_REQUESTED,
+          revisionCount: { increment: 1 },
+        },
+      }),
+      this.prisma.deliverable.updateMany({
+        where: { taskId },
+        data: { status: TaskStatus.REVISION },
+      }),
+      this.prisma.taskReviewHistory.create({
+        data: {
+          taskId,
+          fromStage: task.reviewStage,
+          toStage: TaskReviewStage.CLIENT_REVISION_REQUESTED,
+          actorId,
+          actorType: "CLIENT",
+          comment: dto.requestDescription,
+        },
+      }),
+      this.prisma.taskRevisionRequest.create({
+        data: {
+          taskId,
+          clientId,
+          requestDescription: dto.requestDescription,
+        },
+      }),
+    ]);
+    if (task.project.projectManagerId) {
+      this.notificationsService
+        .createNotification({
+          entityId: taskId,
+          entityType: "task",
+          eventType: "TASK_CLIENT_REVISION_REQUESTED",
+          userId: task.project.projectManagerId,
+          metadata: { requestDescription: dto.requestDescription },
+        })
+        .catch(() => undefined);
+    }
+    return updated;
+  }
+
+  private async refreshClientTaskProgress(projectId: string, clientId: string) {
+    const tasks = await this.prisma.task.findMany({
+      where: { projectId, isVisibleToClient: true, archivedAt: null },
+      select: { reviewStage: true },
+    });
+    if (tasks.length === 0) return;
+    const completed = tasks.filter(
+      (task) => task.reviewStage === TaskReviewStage.CLIENT_APPROVED,
+    ).length;
+    const completionPercentage = Math.round((completed / tasks.length) * 100);
+    const allCompleted = completed === tasks.length;
+    await this.prisma.project.update({
+      where: { id: projectId, clientId },
+      data: {
+        completionPercentage,
+        ...(allCompleted ? { status: ProjectStatus.AWAITING_REVIEW } : {}),
+      },
+    });
   }
 
   /** Client-scoped invoice detail (no PDF — PDF deferred to a later phase). */
@@ -1059,7 +1633,7 @@ export class PortalService {
       select: { itemType: true, itemId: true },
     });
     const snoozedKeys = new Set(
-      snoozedItems.map((s) => `${s.itemType}-${s.itemId}`),
+      snoozedItems.map((s) => `${s.itemType.toUpperCase()}-${s.itemId}`),
     );
 
     const fetchDeliverables =
@@ -1095,7 +1669,9 @@ export class PortalService {
           title: d.title,
           subtitleCode: "PROJECT",
           subtitleParams: { projectName: d.project.name },
-          actionUrl: `/portal/deliverables/${d.id}`,
+          actionUrl: d.taskId
+            ? `/portal/projects/${d.projectId}?tab=tasks&taskId=${d.taskId}${d.periodId ? `&periodId=${d.periodId}` : ""}`
+            : `/portal/deliverables/${d.id}`,
           priority: "high",
           createdAt: d.createdAt,
         });
@@ -1195,7 +1771,8 @@ export class PortalService {
       const pendingStrategies = await this.prisma.marketingStrategy.findMany({
         where: {
           clientId,
-          status: "SENT",
+          status: { in: ["CLIENT_REVIEW", "SENT"] },
+          isVisibleToClient: true,
         },
         include: {
           task: {
@@ -1225,8 +1802,18 @@ export class PortalService {
     }
 
     items.sort((a, b) => {
-      const prio = { high: 0, normal: 1, low: 2 };
-      return (prio[a.priority] ?? 2) - (prio[b.priority] ?? 2);
+      const priority = { high: 0, normal: 1, low: 2 };
+      const priorityDifference =
+        (priority[a.priority as keyof typeof priority] ?? 2) -
+        (priority[b.priority as keyof typeof priority] ?? 2);
+      if (priorityDifference !== 0) return priorityDifference;
+
+      const dueDateDifference =
+        (a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER) -
+        (b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER);
+      if (dueDateDifference !== 0) return dueDateDifference;
+
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     const total = items.length;
@@ -1279,11 +1866,7 @@ export class PortalService {
   async getSnoozedItems(clientId: string, activeOnly: boolean = true) {
     const now = new Date();
     const where: any = { clientId };
-    if (activeOnly) {
-      where.snoozedUntil = { gt: now };
-    } else {
-      where.snoozedUntil = { lte: now };
-    }
+    if (activeOnly) where.snoozedUntil = { gt: now };
 
     const snoozed = await this.prisma.clientSnoozedItem.findMany({
       where,
@@ -1292,20 +1875,13 @@ export class PortalService {
 
     if (snoozed.length === 0) return [];
 
-    // Resolve each snoozed item back into the action-item shape so the UI
-    // can reuse the same row rendering pipeline (ActionItemCard + Pill +
-    // ActionButton). We do this in O(n) by batching the lookups per type.
-    const byType = new Map<string, Set<string>>();
-    for (const s of snoozed) {
-      if (!byType.has(s.itemType)) byType.set(s.itemType, new Set());
-      byType.get(s.itemType)!.add(s.itemId);
-    }
-
+    // Resolve each snoozed item against the current entity state so completed
+    // actions do not reappear in the snoozed history.
     const enriched: any[] = [];
     for (const s of snoozed) {
       const item = await this.resolveActionItemShape(
         clientId,
-        s.itemType,
+        s.itemType.toUpperCase(),
         s.itemId,
       );
       if (!item) continue;
@@ -1348,7 +1924,11 @@ export class PortalService {
     switch (itemType) {
       case "DELIVERABLE_APPROVAL": {
         const d = await this.prisma.deliverable.findFirst({
-          where: { id: itemId, isVisibleToClient: true },
+          where: {
+            id: itemId,
+            status: TaskStatus.IN_REVIEW,
+            isVisibleToClient: true,
+          },
           include: { project: { select: { clientId: true, name: true } } },
         });
         if (!d || d.project.clientId !== clientId) return null;
@@ -1358,14 +1938,27 @@ export class PortalService {
           title: d.title,
           subtitleCode: "PROJECT",
           subtitleParams: { projectName: d.project.name },
-          actionUrl: `/portal/deliverables/${d.id}`,
+          actionUrl: d.taskId
+            ? `/portal/projects/${d.projectId}?tab=tasks&taskId=${d.taskId}${d.periodId ? `&periodId=${d.periodId}` : ""}`
+            : `/portal/deliverables/${d.id}`,
           priority: d.status === "IN_REVIEW" ? "high" : "normal",
           createdAt: d.createdAt,
         };
       }
       case "INVOICE_PAYMENT": {
         const inv = await this.prisma.invoice.findFirst({
-          where: { id: itemId, clientId },
+          where: {
+            id: itemId,
+            clientId,
+            status: {
+              in: [
+                InvoiceStatus.DUE,
+                InvoiceStatus.SENT,
+                InvoiceStatus.PARTIAL,
+                InvoiceStatus.LATE,
+              ],
+            },
+          },
         });
         if (!inv) return null;
         const daysUntilDue = inv.dueDate
@@ -1391,7 +1984,7 @@ export class PortalService {
       }
       case "CONTRACT_SIGN": {
         const c = await this.prisma.contract.findFirst({
-          where: { id: itemId, clientId },
+          where: { id: itemId, clientId, status: ContractStatus.SENT },
         });
         if (!c) return null;
         return {
@@ -1410,6 +2003,7 @@ export class PortalService {
         const p = await this.prisma.proposal.findFirst({
           where: {
             id: itemId,
+            status: ProposalStatus.SENT,
             OR: [{ clientId }, { request: { clientId } }],
           },
         });
@@ -1428,7 +2022,12 @@ export class PortalService {
       }
       case "STRATEGY_REVIEW": {
         const s = await this.prisma.marketingStrategy.findFirst({
-          where: { id: itemId, clientId },
+          where: {
+            id: itemId,
+            clientId,
+            status: { in: ["CLIENT_REVIEW", "SENT"] },
+            isVisibleToClient: true,
+          },
           include: {
             task: {
               select: {
@@ -1462,15 +2061,26 @@ export class PortalService {
     itemId: string,
     hours: number = 24,
   ) {
+    const canonicalItemType = itemType.toUpperCase();
+    this.assertActionType(canonicalItemType);
     const snoozedUntil = new Date();
     snoozedUntil.setHours(snoozedUntil.getHours() + hours);
 
     const result = await this.prisma.clientSnoozedItem.upsert({
       where: {
-        clientId_itemType_itemId: { clientId, itemType, itemId },
+        clientId_itemType_itemId: {
+          clientId,
+          itemType: canonicalItemType,
+          itemId,
+        },
       },
       update: { snoozedUntil, reminderSentAt: null },
-      create: { clientId, itemType, itemId, snoozedUntil },
+      create: {
+        clientId,
+        itemType: canonicalItemType,
+        itemId,
+        snoozedUntil,
+      },
     });
 
     // Write a history log so the PM / admin side can see the snooze.
@@ -1506,16 +2116,35 @@ export class PortalService {
   }
 
   async unsnoozeActionItem(clientId: string, itemType: string, itemId: string) {
+    const canonicalItemType = itemType.toUpperCase();
+    this.assertActionType(canonicalItemType);
     try {
       await this.prisma.clientSnoozedItem.delete({
         where: {
-          clientId_itemType_itemId: { clientId, itemType, itemId },
+          clientId_itemType_itemId: {
+            clientId,
+            itemType: canonicalItemType,
+            itemId,
+          },
         },
       });
     } catch {
       // Already removed — no-op
     }
     return {};
+  }
+
+  private assertActionType(
+    itemType: string,
+  ): asserts itemType is ClientActionType {
+    if (
+      !Object.values(ClientActionType).includes(itemType as ClientActionType)
+    ) {
+      throw new BadRequestException({
+        code: "INVALID_ACTION_ITEM_TYPE",
+        details: { itemType },
+      });
+    }
   }
 
   async getActivityFeed(clientId: string) {
@@ -1592,29 +2221,110 @@ export class PortalService {
       });
     }
 
-    const recentPayments = await this.prisma.payment.findMany({
-      where: { clientId, status: "SUCCESS", date: { gte: thirtyDaysAgo } },
-      select: { id: true, amount: true, date: true },
-      orderBy: { date: "desc" },
-      take: 5,
+    const recentPaymentEvents = await this.prisma.paymentEvent.findMany({
+      where: {
+        payment: { clientId },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      select: {
+        id: true,
+        type: true,
+        createdAt: true,
+        payment: {
+          select: {
+            amount: true,
+            currency: true,
+            invoice: { select: { invoiceNumber: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
     });
 
-    for (const p of recentPayments) {
+    for (const event of recentPaymentEvents) {
+      const typeByEvent = {
+        CREATED: "PAYMENT_SUBMITTED",
+        SUCCESS: "PAYMENT_COMPLETED",
+        FAILED: "PAYMENT_FAILED",
+        REJECTED: "PAYMENT_REJECTED",
+        REFUNDED: "PAYMENT_REFUNDED",
+      } as const;
       items.push({
-        id: `pay-${p.id}`,
-        date: p.date,
+        id: `payment-event-${event.id}`,
+        date: event.createdAt,
+        type: typeByEvent[event.type],
+        data: {
+          amount: event.payment.amount,
+          currency: event.payment.currency,
+          invoiceNumber: event.payment.invoice.invoiceNumber,
+        },
+        icon: "dollar",
+      });
+    }
+
+    const recentPayments = await this.prisma.payment.findMany({
+      where: {
+        clientId,
+        status: "SUCCESS",
+        date: { gte: thirtyDaysAgo },
+        events: { none: { createdAt: { gte: thirtyDaysAgo } } },
+      },
+      select: { id: true, amount: true, currency: true, date: true },
+      orderBy: { date: "desc" },
+      take: 20,
+    });
+
+    for (const payment of recentPayments) {
+      items.push({
+        id: `pay-${payment.id}`,
+        date: payment.date,
         type: "PAYMENT_COMPLETED",
-        data: { amount: p.amount },
+        data: { amount: payment.amount, currency: payment.currency },
+        icon: "dollar",
+      });
+    }
+
+    const cancelledInvoices = await this.prisma.invoice.findMany({
+      where: {
+        clientId,
+        status: InvoiceStatus.CANCELLED,
+        updatedAt: { gte: thirtyDaysAgo },
+      },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        amount: true,
+        currency: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 20,
+    });
+
+    for (const invoice of cancelledInvoices) {
+      items.push({
+        id: `invoice-cancelled-${invoice.id}`,
+        date: invoice.updatedAt,
+        type: "INVOICE_CANCELLED",
+        data: {
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.amount,
+          currency: invoice.currency,
+        },
         icon: "dollar",
       });
     }
 
     const historyLogs = await this.prisma.clientHistoryLog.findMany({
-      where: { clientId, occurredAt: { gte: thirtyDaysAgo } },
+      where: {
+        clientId,
+        eventType: { in: [...PORTAL_VISIBLE_HISTORY_EVENT_TYPES] },
+        occurredAt: { gte: thirtyDaysAgo },
+      },
       select: {
         id: true,
         eventType: true,
-        description: true,
         occurredAt: true,
       },
       orderBy: { occurredAt: "desc" },
@@ -1630,91 +2340,166 @@ export class PortalService {
       });
     }
 
-    items.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
+    items.sort((a, b) => {
+      const dateDifference =
+        new Date(b.date).getTime() - new Date(a.date).getTime();
+      return dateDifference || String(a.id).localeCompare(String(b.id));
+    });
 
     const unique = items.filter(
       (item, index, self) => index === self.findIndex((t) => t.id === item.id),
     );
 
-    return { items: unique.slice(0, 15) };
+    return { items: unique.slice(0, PORTAL_ACTIVITY_FEED_LIMIT) };
   }
 
   async getCampaignSummary(clientId: string) {
     const campaigns = await this.prisma.campaign.findMany({
-      where: { clientId, isArchived: false },
-      select: { id: true, status: true },
-    });
-
-    if (campaigns.length === 0) {
-      return {
-        totalVisits: 0,
-        totalConversions: 0,
-        avgRoas: 0,
-        improvementPercent: 0,
-      };
-    }
-
-    const campaignIds = campaigns.map((c) => c.id);
-
-    const latestSnapshots = await this.prisma.campaignKpiSnapshot.findMany({
-      where: { campaignId: { in: campaignIds } },
-      orderBy: { recordedAt: "desc" },
-      distinct: ["campaignId"],
-    });
-
-    let totalVisits = 0;
-    let totalConversions = 0;
-    let totalRoas = 0;
-    let roasCount = 0;
-
-    for (const s of latestSnapshots) {
-      totalVisits += s.impressions;
-      totalConversions += s.conversions;
-      if (s.roas > 0) {
-        totalRoas += s.roas;
-        roasCount++;
-      }
-    }
-
-    const avgRoas =
-      roasCount > 0 ? Math.round((totalRoas / roasCount) * 10) / 10 : 0;
-
-    let improvementPercent = 0;
-    if (latestSnapshots.length > 0) {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      const olderSnapshots = await this.prisma.campaignKpiSnapshot.findMany({
-        where: {
-          campaignId: { in: campaignIds },
-          recordedAt: { lt: sevenDaysAgo },
+      where: {
+        clientId,
+        isArchived: false,
+        status: {
+          in: [
+            CampaignStatus.ACTIVE,
+            CampaignStatus.COMPLETED,
+            CampaignStatus.PAUSED,
+            CampaignStatus.STOPPED,
+          ],
         },
-        orderBy: { recordedAt: "desc" },
-        distinct: ["campaignId"],
-      });
+      },
+      select: {
+        id: true,
+        kpiSnapshots: {
+          select: {
+            impressions: true,
+            conversions: true,
+            roas: true,
+            recordedAt: true,
+          },
+          orderBy: { recordedAt: "asc" },
+        },
+      },
+    });
 
-      if (olderSnapshots.length > 0) {
-        const olderTotalConversions = olderSnapshots.reduce(
-          (s, snap) => s + snap.conversions,
-          0,
-        );
-        if (olderTotalConversions > 0) {
-          improvementPercent = Math.round(
-            ((totalConversions - olderTotalConversions) /
-              olderTotalConversions) *
-              100,
-          );
-        }
-      }
-    }
+    const average = (values: number[]) =>
+      values.length > 0
+        ? values.reduce((sum, value) => sum + value, 0) / values.length
+        : null;
+    const round = (value: number | null, decimals = 1) =>
+      value === null
+        ? null
+        : Math.round(value * 10 ** decimals) / 10 ** decimals;
+    const averageMetric = (
+      sourceCampaigns: typeof campaigns,
+      selector: (
+        snapshot: (typeof campaigns)[number]["kpiSnapshots"][number],
+      ) => number,
+      isValid: (value: number) => boolean = () => true,
+    ) => {
+      const campaignAverages = sourceCampaigns
+        .map((campaign) =>
+          average(
+            campaign.kpiSnapshots
+              .map((snapshot) => selector(snapshot))
+              .filter(isValid),
+          ),
+        )
+        .filter((value): value is number => value !== null);
+      return average(campaignAverages);
+    };
+
+    const now = new Date();
+    const lastThirtyDays = new Date(now);
+    lastThirtyDays.setDate(lastThirtyDays.getDate() - 30);
+    const campaignsWithSnapshots = campaigns.filter(
+      (campaign) => campaign.kpiSnapshots.length > 0,
+    );
+    const recentCampaigns = campaigns
+      .map((campaign) => ({
+        ...campaign,
+        kpiSnapshots: campaign.kpiSnapshots.filter(
+          (snapshot) => snapshot.recordedAt >= lastThirtyDays,
+        ),
+      }))
+      .filter((campaign) => campaign.kpiSnapshots.length > 0);
+
+    const globalSnapshotCount = campaignsWithSnapshots.reduce(
+      (count, campaign) => count + campaign.kpiSnapshots.length,
+      0,
+    );
+    const last30DaysSnapshotCount = recentCampaigns.reduce(
+      (count, campaign) => count + campaign.kpiSnapshots.length,
+      0,
+    );
+    const allSnapshots = campaignsWithSnapshots.flatMap(
+      (campaign) => campaign.kpiSnapshots,
+    );
+    const lastUpdatedAt = allSnapshots.reduce<Date | null>(
+      (latest, snapshot) =>
+        !latest || snapshot.recordedAt > latest ? snapshot.recordedAt : latest,
+      null,
+    );
 
     return {
-      totalVisits,
-      totalConversions,
-      avgRoas,
-      improvementPercent,
+      scope: "CLIENT_CAMPAIGNS" as const,
+      eligibleCampaignCount: campaigns.length,
+      globalCampaignsWithData: campaignsWithSnapshots.length,
+      last30DaysCampaignsWithData: recentCampaigns.length,
+      globalSnapshotCount,
+      last30DaysSnapshotCount,
+      indicators: [
+        {
+          key: "IMPRESSIONS" as const,
+          unit: "COUNT" as const,
+          globalValue: round(
+            averageMetric(
+              campaignsWithSnapshots,
+              (snapshot) => snapshot.impressions,
+            ),
+            0,
+          ),
+          last30DaysValue: round(
+            averageMetric(recentCampaigns, (snapshot) => snapshot.impressions),
+            0,
+          ),
+        },
+        {
+          key: "CONVERSIONS" as const,
+          unit: "COUNT" as const,
+          globalValue: round(
+            averageMetric(
+              campaignsWithSnapshots,
+              (snapshot) => snapshot.conversions,
+            ),
+            1,
+          ),
+          last30DaysValue: round(
+            averageMetric(recentCampaigns, (snapshot) => snapshot.conversions),
+            1,
+          ),
+        },
+        {
+          key: "ROAS" as const,
+          unit: "MULTIPLIER" as const,
+          globalValue: round(
+            averageMetric(
+              campaignsWithSnapshots,
+              (snapshot) => snapshot.roas,
+              (value) => value > 0,
+            ),
+            1,
+          ),
+          last30DaysValue: round(
+            averageMetric(
+              recentCampaigns,
+              (snapshot) => snapshot.roas,
+              (value) => value > 0,
+            ),
+            1,
+          ),
+        },
+      ],
+      lastUpdatedAt,
     };
   }
 
@@ -2095,6 +2880,19 @@ export class PortalService {
     dto: CreateDeliverableDto,
     filePath: string,
   ) {
+    if (dto.taskId) {
+      const task = await this.prisma.task.findFirst({
+        where: { id: dto.taskId, projectId: dto.projectId },
+        select: { id: true },
+      });
+      if (!task) {
+        throw new BadRequestException({
+          code: "DELIVERABLE_TASK_PROJECT_MISMATCH",
+          details: {},
+        });
+      }
+    }
+
     return this.prisma.deliverable.create({
       data: {
         projectId: dto.projectId,
@@ -2134,11 +2932,24 @@ export class PortalService {
     return deliverable;
   }
 
-  async approveDeliverable(id: string, userId: string) {
+  async approveDeliverable(id: string, userId: string, clientId?: string) {
     const deliverable = await this.prisma.deliverable.findUnique({
       where: { id },
-      include: { project: { select: { clientId: true, name: true } } },
+      include: {
+        project: { select: { clientId: true, name: true } },
+        task: { select: { id: true } },
+      },
     });
+
+    if (deliverable?.task?.id) {
+      if (!clientId) {
+        throw new BadRequestException({
+          code: "TASK_REVIEW_MUST_USE_PORTAL_WORKFLOW",
+          details: {},
+        });
+      }
+      await this.approvePortalTask(clientId, deliverable.task.id, userId);
+    }
 
     const updated = await this.prisma.deliverable.update({
       where: { id },
@@ -2169,11 +2980,40 @@ export class PortalService {
     return updated;
   }
 
-  async rejectDeliverable(id: string) {
+  async rejectDeliverable(
+    id: string,
+    clientId?: string,
+    requestDescription?: string,
+    actorId?: string,
+  ) {
     const deliverable = await this.prisma.deliverable.findUnique({
       where: { id },
-      include: { project: { select: { clientId: true, name: true } } },
+      include: {
+        project: { select: { clientId: true, name: true } },
+        task: { select: { id: true } },
+      },
     });
+
+    if (deliverable?.task?.id) {
+      if (!clientId) {
+        throw new BadRequestException({
+          code: "TASK_REVIEW_MUST_USE_PORTAL_WORKFLOW",
+          details: {},
+        });
+      }
+      if (!requestDescription?.trim()) {
+        throw new BadRequestException({
+          code: "TASK_REVISION_DESCRIPTION_REQUIRED",
+          details: {},
+        });
+      }
+      await this.requestPortalTaskRevision(
+        clientId,
+        deliverable.task.id,
+        { requestDescription: requestDescription.trim() },
+        actorId ?? clientId,
+      );
+    }
 
     const updated = await this.prisma.deliverable.update({
       where: { id },
@@ -2201,6 +3041,23 @@ export class PortalService {
   }
 
   async createRevision(id: string, clientId: string, dto: CreateRevisionDto) {
+    const deliverable = await this.prisma.deliverable.findFirst({
+      where: { id, project: { clientId } },
+      select: { id: true, taskId: true },
+    });
+    if (!deliverable) {
+      throw new NotFoundException({
+        code: "DELIVERABLE_NOT_FOUND",
+        details: {},
+      });
+    }
+
+    if (deliverable.taskId) {
+      await this.requestPortalTaskRevision(clientId, deliverable.taskId, {
+        requestDescription: dto.requestDescription,
+      });
+    }
+
     return this.prisma.clientRevisionRequest.create({
       data: {
         deliverableId: id,
@@ -2219,7 +3076,7 @@ export class PortalService {
 
   async findDeliverablesByProject(projectId: string) {
     const deliverables = await this.prisma.deliverable.findMany({
-      where: { projectId },
+      where: { projectId, isVisibleToClient: true },
       include: { revisionRequests: true },
       orderBy: { createdAt: "desc" },
     });
@@ -2248,7 +3105,7 @@ export class PortalService {
     });
     const projectIds = projects.map((p) => p.id);
     const deliverables = await this.prisma.deliverable.findMany({
-      where: { projectId: { in: projectIds } },
+      where: { projectId: { in: projectIds }, isVisibleToClient: true },
       include: {
         project: { select: { id: true, name: true } },
         revisionRequests: true,
@@ -3326,6 +4183,21 @@ export class PortalService {
       });
     }
 
+    const pendingTasks = await this.prisma.task.count({
+      where: {
+        projectId,
+        isVisibleToClient: true,
+        archivedAt: null,
+        reviewStage: { not: TaskReviewStage.CLIENT_APPROVED },
+      },
+    });
+    if (pendingTasks > 0) {
+      throw new BadRequestException({
+        code: "PROJECT_TASKS_PENDING_CLIENT_REVIEW",
+        details: { pendingTasks },
+      });
+    }
+
     const updated = await this.prisma.project.update({
       where: { id: projectId },
       data: { status: ProjectStatus.COMPLETED },
@@ -3436,7 +4308,19 @@ export class PortalService {
 
   async getClientStrategies(clientId: string) {
     return this.prisma.marketingStrategy.findMany({
-      where: { clientId },
+      where: {
+        clientId,
+        status: {
+          in: [
+            MarketingStrategyStatus.CLIENT_REVIEW,
+            MarketingStrategyStatus.SENT,
+            MarketingStrategyStatus.APPROVED,
+            MarketingStrategyStatus.CLIENT_REVISION_REQUESTED,
+            MarketingStrategyStatus.REVISION_REQUESTED,
+          ],
+        },
+        isVisibleToClient: true,
+      },
       include: {
         task: {
           select: {
@@ -3451,8 +4335,21 @@ export class PortalService {
   }
 
   async getClientStrategyOne(id: string, clientId: string) {
-    const strategy = await this.prisma.marketingStrategy.findUnique({
-      where: { id },
+    const strategy = await this.prisma.marketingStrategy.findFirst({
+      where: {
+        id,
+        clientId,
+        status: {
+          in: [
+            MarketingStrategyStatus.CLIENT_REVIEW,
+            MarketingStrategyStatus.SENT,
+            MarketingStrategyStatus.APPROVED,
+            MarketingStrategyStatus.CLIENT_REVISION_REQUESTED,
+            MarketingStrategyStatus.REVISION_REQUESTED,
+          ],
+        },
+        isVisibleToClient: true,
+      },
       include: {
         task: {
           select: {

@@ -93,6 +93,8 @@ model User {
   createdTasks          Task[]                    @relation("TaskCreator")
   createdStrategies     MarketingStrategy[]       @relation("StrategyCreator")
   approvedStrategies    MarketingStrategy[]       @relation("StrategyApprover")
+  reviewedStrategies    MarketingStrategy[]       @relation("StrategyPmReviewer")
+  strategyReviewHistory MarketingStrategyReviewHistory[]
   departments           UserDepartment[]
   permissions           UserPermission[]
   role                  Role                      @relation(fields: [roleId], references: [id])
@@ -108,6 +110,13 @@ model User {
   disputeHistoryChanges DisputeHistory[]
   disputeStats          PmDisputeStats?
   aiConversations       AiConversation[]
+  createdAnnouncements  Announcement[] @relation("AnnouncementCreator")
+  announcementStates    AnnouncementUserState[]
+  reportedIssues        IssueReport[] @relation("IssueReporter")
+  assignedIssues        IssueReport[] @relation("IssueAssignee")
+  issueMessages         IssueMessage[]
+  issueHistoryChanges   IssueHistory[]
+  uploadedIssueAttachments IssueAttachment[] @relation("IssueAttachmentUploader")
 
   @@index([roleId])
   @@index([createdAt])
@@ -303,6 +312,7 @@ model Client {
   payments             Payment[]
   intakeForms          PortalIntakeForm[]
   projectRevisionReqs  ProjectRevisionRequest[]
+  taskRevisionRequests TaskRevisionRequest[]
   projects             Project[]
   proposals            Proposal[]
   requests             Request[]
@@ -836,11 +846,14 @@ model Task {
   title               String
   description         String?
   status              TaskStatus
+  reviewStage         TaskReviewStage @default(NOT_SUBMITTED) @map("review_stage")
   priority            TaskPriority
   dueDate             DateTime            @map("due_date")
   startedAt           DateTime?           @map("started_at")
   submittedAt         DateTime?           @map("submitted_at")
   approvedAt          DateTime?           @map("approved_at")
+  pmAcceptedAt        DateTime?           @map("pm_accepted_at")
+  clientApprovedAt    DateTime?           @map("client_approved_at")
   revisionCount       Int                 @default(0) @map("revision_count")
   isVisibleToClient   Boolean             @default(false) @map("is_visible_to_client")
   periodId            String?             @map("period_id")
@@ -857,6 +870,8 @@ model Task {
   delayAlerts         TaskDelayAlert[]
   files               TaskFile[]
   statusHistory       TaskStatusHistory[]
+  revisionRequests    TaskRevisionRequest[]
+  reviewHistory       TaskReviewHistory[]
   approver            User?               @relation("TaskApprover", fields: [approvedBy], references: [id])
   assignee            User?               @relation("TaskAssignee", fields: [assignedTo], references: [id])
   creator             User                @relation("TaskCreator", fields: [createdBy], references: [id])
@@ -870,6 +885,39 @@ model Task {
   @@index([createdAt])
   @@index([periodId])
   @@map("tasks")
+}
+
+model TaskRevisionRequest {
+  id                 String             @id @default(uuid())
+  taskId             String             @map("task_id")
+  clientId           String             @map("client_id")
+  requestDescription String             @map("request_description")
+  status             TaskRevisionStatus @default(OPEN)
+  createdAt          DateTime           @default(now()) @map("created_at")
+  resolvedAt         DateTime?          @map("resolved_at")
+  task               Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  client             Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([clientId])
+  @@index([status])
+  @@map("task_revision_requests")
+}
+
+model TaskReviewHistory {
+  id         String          @id @default(uuid())
+  taskId     String          @map("task_id")
+  fromStage  TaskReviewStage  @map("from_stage")
+  toStage    TaskReviewStage  @map("to_stage")
+  actorId    String          @map("actor_id")
+  actorType  String          @map("actor_type")
+  comment    String?
+  createdAt  DateTime        @default(now()) @map("created_at")
+  task       Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([createdAt])
+  @@map("task_review_history")
 }
 
 model TaskStatusHistory {
@@ -1056,7 +1104,11 @@ model MarketingStrategy {
   filePath     String                  @map("file_path")
   fileSize     Int                     @map("file_size")
   fileType     String                  @default("application/pdf") @map("file_type")
-  revisionNote String?                 @map("revision_note")
+  revisionNote      String?                 @map("revision_note")
+  isVisibleToClient Boolean                 @default(false) @map("is_visible_to_client")
+  submittedAt       DateTime?               @map("submitted_at")
+  pmReviewedBy      String?                 @map("pm_reviewed_by")
+  pmReviewedAt      DateTime?               @map("pm_reviewed_at")
   approvedBy   String?                 @map("approved_by")
   approvedAt   DateTime?               @map("approved_at")
   sentAt       DateTime?               @map("sent_at")
@@ -1066,13 +1118,32 @@ model MarketingStrategy {
   task     Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   creator  User     @relation("StrategyCreator", fields: [createdBy], references: [id])
   client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  approver User?    @relation("StrategyApprover", fields: [approvedBy], references: [id])
-  project  Project? @relation(fields: [projectId], references: [id])
+  approver   User?    @relation("StrategyApprover", fields: [approvedBy], references: [id])
+  pmReviewer User?    @relation("StrategyPmReviewer", fields: [pmReviewedBy], references: [id])
+  project    Project? @relation(fields: [projectId], references: [id])
+  reviewHistory MarketingStrategyReviewHistory[]
 
   @@index([taskId])
   @@index([clientId])
   @@index([status])
   @@map("marketing_strategies")
+}
+
+model MarketingStrategyReviewHistory {
+  id         String                   @id @default(uuid())
+  strategyId String                   @map("strategy_id")
+  fromStatus MarketingStrategyStatus? @map("from_status")
+  toStatus   MarketingStrategyStatus  @map("to_status")
+  actorId    String                   @map("actor_id")
+  actorRole  String                   @map("actor_role")
+  comment    String?
+  createdAt  DateTime                 @default(now()) @map("created_at")
+
+  strategy MarketingStrategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  actor    User              @relation(fields: [actorId], references: [id])
+
+  @@index([strategyId, createdAt])
+  @@map("marketing_strategy_review_history")
 }
 
 model AdPlatformConnection {
@@ -1949,6 +2020,210 @@ model Notification {
   @@map("notifications")
 }
 
+enum AnnouncementStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+
+  @@map("announcement_statuses")
+}
+
+enum AnnouncementType {
+  INFO
+  SUCCESS
+  WARNING
+  CRITICAL
+
+  @@map("announcement_types")
+}
+
+enum AnnouncementPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+
+  @@map("announcement_priorities")
+}
+
+enum AnnouncementAudienceType {
+  ALL_STAFF
+  ADMIN
+  PM
+  SALES
+  MARKETING
+  ACCOUNTANT
+  TEAM
+  CLIENT_PORTAL
+
+  @@map("announcement_audience_types")
+}
+
+model Announcement {
+  id                    String               @id @default(uuid())
+  title                 String
+  body                  String               @db.Text
+  type                  AnnouncementType     @default(INFO)
+  priority              AnnouncementPriority @default(NORMAL)
+  status                AnnouncementStatus   @default(DRAFT)
+  startsAt              DateTime?            @map("starts_at")
+  expiresAt             DateTime?            @map("expires_at")
+  allowDismissal        Boolean              @default(true) @map("allow_dismissal")
+  actionLabel           String?              @map("action_label")
+  actionUrl             String?              @map("action_url")
+  createdById           String               @map("created_by_id")
+  publishedAt           DateTime?            @map("published_at")
+  archivedAt            DateTime?            @map("archived_at")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  createdBy User @relation("AnnouncementCreator", fields: [createdById], references: [id])
+  audiences AnnouncementAudience[]
+  userStates AnnouncementUserState[]
+
+  @@index([status, startsAt, expiresAt])
+  @@index([createdAt])
+  @@map("announcements")
+}
+
+model AnnouncementAudience {
+  id             String                  @id @default(uuid())
+  announcementId String                  @map("announcement_id")
+  audience       AnnouncementAudienceType
+  announcement   Announcement             @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, audience])
+  @@map("announcement_audiences")
+}
+
+model AnnouncementUserState {
+  id             String       @id @default(uuid())
+  announcementId String       @map("announcement_id")
+  userId         String       @map("user_id")
+  viewedAt       DateTime?    @map("viewed_at")
+  dismissedAt    DateTime?    @map("dismissed_at")
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId, viewedAt])
+  @@map("announcement_user_states")
+}
+
+enum IssueReportSource {
+  DASHBOARD
+  PORTAL
+
+  @@map("issue_report_sources")
+}
+
+enum IssueCategory {
+  BUG
+  PERFORMANCE
+  ACCESS
+  DATA
+  PAYMENT
+  OTHER
+
+  @@map("issue_categories")
+}
+
+enum IssueSeverity {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+
+  @@map("issue_severities")
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_USER
+  RESOLVED
+  CLOSED
+
+  @@map("issue_statuses")
+}
+
+model IssueReport {
+  id           String            @id @default(uuid())
+  reportNumber Int               @unique @default(autoincrement()) @map("report_number")
+  reporterId   String            @map("reporter_id")
+  source       IssueReportSource
+  category     IssueCategory
+  severity     IssueSeverity     @default(NORMAL)
+  status       IssueStatus       @default(OPEN)
+  title        String
+  description  String            @db.Text
+  pagePath     String?           @map("page_path")
+  assignedToId String?           @map("assigned_to_id")
+  resolvedAt   DateTime?         @map("resolved_at")
+  closedAt     DateTime?         @map("closed_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  reporter     User              @relation("IssueReporter", fields: [reporterId], references: [id])
+  assignedTo   User?             @relation("IssueAssignee", fields: [assignedToId], references: [id])
+  messages     IssueMessage[]
+  history      IssueHistory[]
+  attachments  IssueAttachment[]
+
+  @@index([reporterId])
+  @@index([status, severity])
+  @@index([assignedToId])
+  @@index([createdAt])
+  @@map("issue_reports")
+}
+
+model IssueMessage {
+  id        String      @id @default(uuid())
+  issueId   String      @map("issue_id")
+  authorId  String      @map("author_id")
+  content   String      @db.Text
+  createdAt DateTime    @default(now()) @map("created_at")
+  issue     IssueReport @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  author    User        @relation(fields: [authorId], references: [id])
+  attachments IssueAttachment[]
+
+  @@index([issueId, createdAt])
+  @@map("issue_messages")
+}
+
+model IssueAttachment {
+  id         String        @id @default(uuid())
+  issueId    String        @map("issue_id")
+  messageId  String?       @map("message_id")
+  uploadedBy String        @map("uploaded_by")
+  fileName   String        @map("file_name")
+  filePath   String        @map("file_path")
+  fileSize   Int           @map("file_size")
+  mimeType   String        @map("mime_type")
+  uploadedAt DateTime      @default(now()) @map("uploaded_at")
+  issue      IssueReport   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  message    IssueMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploader   User          @relation("IssueAttachmentUploader", fields: [uploadedBy], references: [id])
+
+  @@index([issueId, uploadedAt])
+  @@index([messageId])
+  @@map("issue_attachments")
+}
+
+model IssueHistory {
+  id        String      @id @default(uuid())
+  issueId   String      @map("issue_id")
+  changedBy String      @map("changed_by")
+  eventCode String
+  metadata  Json?
+  createdAt DateTime    @default(now()) @map("created_at")
+  issue     IssueReport @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  changer   User        @relation(fields: [changedBy], references: [id])
+
+  @@index([issueId, createdAt])
+  @@map("issue_history")
+}
+
 model AiAnalysisLog {
   id              String         @id @default(uuid())
   entityId        String         @map("entity_id")
@@ -2247,8 +2522,24 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   IN_REVIEW
+  CLIENT_REVIEW
   DONE
   REVISION
+}
+
+enum TaskReviewStage {
+  NOT_SUBMITTED
+  PM_REVIEW
+  PM_REVISION_REQUESTED
+  CLIENT_REVIEW
+  CLIENT_REVISION_REQUESTED
+  CLIENT_APPROVED
+  LEGACY_COMPLETED
+}
+
+enum TaskRevisionStatus {
+  OPEN
+  RESOLVED
 }
 
 enum TaskPriority {
@@ -2295,6 +2586,10 @@ enum CampaignPlatform {
 
 enum MarketingStrategyStatus {
   DRAFT
+  PM_REVIEW
+  PM_REVISION_REQUESTED
+  CLIENT_REVIEW
+  CLIENT_REVISION_REQUESTED
   SENT
   APPROVED
   REVISION_REQUESTED

@@ -45,7 +45,9 @@ export function SidebarAccountMenu({ settingsHref }: { settingsHref: string }) {
       // Local sign-out must still complete when the remote session is unavailable.
     }
     dispatch(logout());
-    router.replace("/login");
+    // Use a document navigation so the next account starts with a new
+    // application runtime instead of reusing the current route tree/store.
+    window.location.replace("/login");
   };
 
   return (

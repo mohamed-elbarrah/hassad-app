@@ -83,6 +83,7 @@ import {
 } from "@/components/ui/sidebar";
 import { SidebarAccountMenu } from "@/components/shared/navigation/SidebarAccountMenu";
 import { SidebarBrand } from "@/components/shared/navigation/SidebarBrand";
+import { AnnouncementBar } from "@/components/communication/AnnouncementBar";
 
 function isActiveLink(item: Pick<NavItem, "url" | "exact">, pathname: string) {
   if (item.exact) {
@@ -639,6 +640,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       <DashboardSidebarContent />
       <SidebarInset>
         <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">
+          <AnnouncementBar surface="dashboard" />
           <header className="z-20 shrink-0 flex h-16 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <SidebarTrigger className="!size-11 shrink-0" />

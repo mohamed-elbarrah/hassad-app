@@ -10,7 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PLATFORM_LABELS } from "@/lib/utils/campaign-constants";
+import {
+  CAMPAIGN_STATUS_LABELS,
+  PLATFORM_LABELS,
+} from "@/lib/utils/campaign-constants";
 import { useCurrency } from "@/hooks/useCurrency";
 import { EmptyState } from "./EmptyState";
 
@@ -32,10 +35,12 @@ function CampaignCard({
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="text-base">{campaign.name}</CardTitle>
-          <Badge variant={statusVariant}>{campaign.status}</Badge>
+          <Badge variant={statusVariant}>
+            {CAMPAIGN_STATUS_LABELS[campaign.status] ?? "غير محدد"}
+          </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          {PLATFORM_LABELS[campaign.platform] ?? campaign.platform}
+          {PLATFORM_LABELS[campaign.platform] ?? "منصة غير محددة"}
         </p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -74,7 +79,11 @@ export function CampaignsTab({
   projectId,
   periodId,
 }: { projectId?: string; periodId?: string } = {}) {
-  const { data: campaigns, isLoading } = useGetPortalCampaignsQuery(
+  const {
+    data: campaigns,
+    isLoading,
+    isError,
+  } = useGetPortalCampaignsQuery(
     projectId || periodId ? { projectId, periodId } : undefined,
   );
   const { fmtAmount } = useCurrency();
@@ -90,11 +99,24 @@ export function CampaignsTab({
         </CardContent>
       </Card>
     );
+  const isProjectScoped = Boolean(projectId && !periodId);
+  if (isError)
+    return (
+      <EmptyState
+        icon={TrendingUp}
+        title="تعذر تحميل الحملات"
+        description="يرجى المحاولة مرة أخرى لاحقاً."
+      />
+    );
   if (!campaigns?.length)
     return (
       <EmptyState
         icon={TrendingUp}
-        title="لا توجد حملات لهذه الفترة"
+        title={
+          isProjectScoped
+            ? "لا توجد حملات للمشروع"
+            : "لا توجد حملات لهذه الفترة"
+        }
         description="ستظهر الحملات المرتبطة بالمشروع هنا فور إطلاقها."
       />
     );
@@ -103,7 +125,7 @@ export function CampaignsTab({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Megaphone />
-          الحملات
+          {isProjectScoped ? "حملات المشروع" : "الحملات"}
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2">

@@ -1,49 +1,49 @@
-import { TaskStatus } from "@hassad/shared";
 import type { KanbanConfig } from "../types";
 import { KANBAN_TONES } from "../theme";
+import {
+  TASK_KANBAN_ORDER,
+  TASK_KANBAN_STAGE,
+  TASK_KANBAN_STAGE_LABELS,
+} from "@/lib/utils/task-status";
 
-/**
- * Task status kanban configuration.
- *
- * Flat layout (no groups).  Each status is a standalone column.
- * Tone classes match TASK_STATUS_TONES in lib/utils/task-status.ts.
- */
 export const TASK_STATUS_CONFIG: KanbanConfig = {
   groups: [],
-
   stages: {
-    [TaskStatus.TODO]: {
-      label: "للتنفيذ",
+    [TASK_KANBAN_STAGE.TODO]: {
+      label: TASK_KANBAN_STAGE_LABELS.TODO,
       ...KANBAN_TONES.neutral,
       emptyLabel: "لا توجد مهام",
     },
-    [TaskStatus.IN_PROGRESS]: {
-      label: "قيد التنفيذ",
+    [TASK_KANBAN_STAGE.IN_PROGRESS]: {
+      label: TASK_KANBAN_STAGE_LABELS.IN_PROGRESS,
       ...KANBAN_TONES.blue,
       emptyLabel: "لا توجد مهام",
     },
-    [TaskStatus.IN_REVIEW]: {
-      label: "قيد المراجعة",
+    [TASK_KANBAN_STAGE.PM_REVIEW]: {
+      label: TASK_KANBAN_STAGE_LABELS.PM_REVIEW,
       ...KANBAN_TONES.purple,
       emptyLabel: "لا توجد مهام",
     },
-    [TaskStatus.REVISION]: {
-      label: "يحتاج تعديل",
+    [TASK_KANBAN_STAGE.CLIENT_REVIEW]: {
+      label: TASK_KANBAN_STAGE_LABELS.CLIENT_REVIEW,
+      ...KANBAN_TONES.blue,
+      emptyLabel: "لا توجد مهام",
+    },
+    [TASK_KANBAN_STAGE.PM_REVISION_REQUESTED]: {
+      label: TASK_KANBAN_STAGE_LABELS.PM_REVISION_REQUESTED,
       ...KANBAN_TONES.orange,
       emptyLabel: "لا توجد مهام",
     },
-    [TaskStatus.DONE]: {
-      label: "منجز",
+    [TASK_KANBAN_STAGE.CLIENT_REVISION_REQUESTED]: {
+      label: TASK_KANBAN_STAGE_LABELS.CLIENT_REVISION_REQUESTED,
+      ...KANBAN_TONES.orange,
+      emptyLabel: "لا توجد مهام",
+    },
+    [TASK_KANBAN_STAGE.DONE]: {
+      label: TASK_KANBAN_STAGE_LABELS.DONE,
       ...KANBAN_TONES.green,
       emptyLabel: "لا توجد مهام",
     },
   },
-
-  stageOrder: [
-    TaskStatus.TODO,
-    TaskStatus.IN_PROGRESS,
-    TaskStatus.IN_REVIEW,
-    TaskStatus.REVISION,
-    TaskStatus.DONE,
-  ],
+  stageOrder: TASK_KANBAN_ORDER,
 };

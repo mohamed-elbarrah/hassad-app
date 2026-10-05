@@ -7,6 +7,7 @@ import { ProjectsModule } from "../projects/projects.module";
 import { TasksModule } from "../tasks/tasks.module";
 import { StorageModule } from "../../common/storage/storage.module";
 import { CrmModule } from "../crm/crm.module";
+import { MarketingModule } from "../marketing/marketing.module";
 import { PmChatController } from "./controllers/pm-chat.controller";
 import { PmChatService } from "./services/pm-chat.service";
 import { PmClientsController } from "./controllers/pm-clients.controller";
@@ -19,11 +20,44 @@ import { PmProjectsService } from "./services/pm-projects.service";
 import { PmProjectActionsService } from "./services/pm-project-actions.service";
 import { PmTasksService } from "./services/pm-tasks.service";
 import { PmRequestsService } from "./services/pm-requests.service";
+import { PmMarketingStrategiesController } from "./controllers/pm-marketing-strategies.controller";
+import { PmMarketingStrategiesService } from "./services/pm-marketing-strategies.service";
 
 @Module({
-  imports: [ChatModule, NotificationsModule, ProjectPeriodsModule, ProjectsModule, TasksModule, StorageModule, CrmModule],
-  controllers: [PmChatController, PmClientsController, PmProjectsController, PmProjectActionsController, PmTasksController, PmRequestsController],
-  providers: [PmChatService, PmClientsService, PmProjectsService, PmProjectActionsService, PmTasksService, PmRequestsService],
-  exports: [PmChatService, PmClientsService, PmProjectsService, PmProjectActionsService, PmTasksService],
+  imports: [
+    ChatModule,
+    NotificationsModule,
+    ProjectPeriodsModule,
+    ProjectsModule,
+    TasksModule,
+    StorageModule,
+    CrmModule,
+    MarketingModule,
+  ],
+  controllers: [
+    PmChatController,
+    PmClientsController,
+    PmProjectsController,
+    PmProjectActionsController,
+    PmTasksController,
+    PmRequestsController,
+    PmMarketingStrategiesController,
+  ],
+  providers: [
+    PmChatService,
+    PmClientsService,
+    PmProjectsService,
+    PmProjectActionsService,
+    PmTasksService,
+    PmRequestsService,
+    PmMarketingStrategiesService,
+  ],
+  exports: [
+    PmChatService,
+    PmClientsService,
+    PmProjectsService,
+    PmProjectActionsService,
+    PmTasksService,
+  ],
 })
 export class PmModule {}
