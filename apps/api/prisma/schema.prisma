@@ -2214,7 +2214,7 @@ model IssueHistory {
   id        String      @id @default(uuid())
   issueId   String      @map("issue_id")
   changedBy String      @map("changed_by")
-  eventCode String
+  eventCode String      @map("event_code")
   metadata  Json?
   createdAt DateTime    @default(now()) @map("created_at")
   issue     IssueReport @relation(fields: [issueId], references: [id], onDelete: Cascade)

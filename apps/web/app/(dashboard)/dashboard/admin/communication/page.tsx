@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Archive, Bug, Eye, Megaphone, Pencil, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -11,10 +11,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatDateTime } from "@/lib/format";
 import {
-  useAddAdminIssueMessageMutation,
   useArchiveAnnouncementMutation,
   useAssignIssueMutation,
   useCreateAnnouncementMutation,
@@ -52,12 +54,28 @@ const statusLabels: Record<IssueStatus, string> = {
   CLOSED: "مغلق",
 };
 
-const transitions: Record<IssueStatus, IssueStatus[]> = {
-  OPEN: ["IN_PROGRESS", "CLOSED"],
-  IN_PROGRESS: ["WAITING_FOR_USER", "RESOLVED", "CLOSED"],
-  WAITING_FOR_USER: ["IN_PROGRESS", "RESOLVED", "CLOSED"],
-  RESOLVED: ["IN_PROGRESS", "CLOSED"],
-  CLOSED: [],
+const announcementStatusLabels: Record<Announcement["status"], string> = {
+  DRAFT: "مسودة",
+  SCHEDULED: "مجدول",
+  PUBLISHED: "منشور",
+  ARCHIVED: "مؤرشف",
+};
+
+const audienceLabels = Object.fromEntries(audienceOptions.map(({ value, label }) => [value, label])) as Record<AnnouncementAudience, string>;
+
+const visibleAnnouncementAudiences = (announcement: Announcement) => {
+  const selected = announcement.audiences?.map(({ audience }) => audience) ?? [];
+  return selected.includes("ALL_STAFF")
+    ? selected.filter((audience) => audience === "ALL_STAFF" || audience === "CLIENT_PORTAL")
+    : selected;
+};
+
+const toDateTimeLocalValue = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 const emptyAnnouncement: AnnouncementInput = {
@@ -70,10 +88,13 @@ const emptyAnnouncement: AnnouncementInput = {
 };
 
 export default function CommunicationCenterPage() {
+  const [activeTab, setActiveTab] = useState("announcements");
   const [announcementPage, setAnnouncementPage] = useState(1);
   const [issuePage, setIssuePage] = useState(1);
-  const { data: announcementsResponse, isLoading: announcementsLoading } = useGetAdminAnnouncementsQuery({ page: announcementPage });
-  const { data: issuesResponse, isLoading: issuesLoading } = useGetAdminIssuesQuery({ page: issuePage });
+  const [announcementSearch, setAnnouncementSearch] = useState("");
+  const [issueSearch, setIssueSearch] = useState("");
+  const { data: announcementsResponse, isLoading: announcementsLoading } = useGetAdminAnnouncementsQuery({ page: announcementPage, search: announcementSearch });
+  const { data: issuesResponse, isLoading: issuesLoading } = useGetAdminIssuesQuery({ page: issuePage, search: issueSearch });
   const announcements = announcementsResponse?.data ?? [];
   const issues = issuesResponse?.data ?? [];
   const [createAnnouncement, createState] = useCreateAnnouncementMutation();
@@ -85,16 +106,13 @@ export default function CommunicationCenterPage() {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [announcementForm, setAnnouncementForm] = useState<AnnouncementInput>(emptyAnnouncement);
   const [issueId, setIssueId] = useState<string | null>(null);
+  const [assignmentIssue, setAssignmentIssue] = useState<IssueReport | null>(null);
+  const [assignmentSearch, setAssignmentSearch] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
-  const [issueMessage, setIssueMessage] = useState("");
-  const [assigneeSearch, setAssigneeSearch] = useState("");
-  const { data: assignees = [] } = useGetIssueAssigneesQuery(assigneeSearch || undefined);
-  const [issueMessageFiles, setIssueMessageFiles] = useState<File[]>([]);
-  const [addMessage, messageState] = useAddAdminIssueMessageMutation();
-  const { data: issueDetail } = useGetAdminIssueQuery(issueId ?? "", { skip: !issueId });
+  const { data: assignees = [] } = useGetIssueAssigneesQuery(assignmentSearch || undefined);
+  const { data: issueDetail, isLoading: issueDetailLoading } = useGetAdminIssueQuery(issueId ?? "", { skip: !issueId });
 
   const isAnnouncementBusy = createState.isLoading || updateState.isLoading;
-  const issueTransitions = useMemo(() => (issueDetail ? transitions[issueDetail.status] : []), [issueDetail]);
 
   const openCreate = () => {
     setSelectedAnnouncement(null);
@@ -110,8 +128,8 @@ export default function CommunicationCenterPage() {
       type: announcement.type,
       priority: announcement.priority,
       audiences: announcement.audiences?.map((item) => item.audience) ?? ["ALL_STAFF"],
-      startsAt: announcement.startsAt ?? undefined,
-      expiresAt: announcement.expiresAt ?? undefined,
+      startsAt: toDateTimeLocalValue(announcement.startsAt),
+      expiresAt: toDateTimeLocalValue(announcement.expiresAt),
       allowDismissal: announcement.allowDismissal,
       actionLabel: announcement.actionLabel ?? undefined,
       actionUrl: announcement.actionUrl ?? undefined,
@@ -146,28 +164,14 @@ export default function CommunicationCenterPage() {
     }
   };
 
-  const changeIssueAssignment = async (assignedToId?: string) => {
-    if (!issueId) return;
-    try { await assignIssue({ id: issueId, assignedToId }).unwrap(); toast.success("تم تحديث المسؤول"); } catch (error) { toast.error(communicationErrorMessage(error)); }
+  const changeIssueAssignment = async (id: string, assignedToId?: string) => {
+    try { await assignIssue({ id, assignedToId }).unwrap(); toast.success("تم تحديث المسؤول"); } catch (error) { toast.error(communicationErrorMessage(error)); }
   };
 
   const changeIssueStatus = async (id: string, status: IssueStatus) => {
     try {
       await updateIssueStatus({ id, status }).unwrap();
       toast.success("تم تحديث حالة البلاغ");
-    } catch (error) {
-      toast.error(communicationErrorMessage(error));
-    }
-  };
-
-  const submitIssueMessage = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!issueId || !issueMessage.trim()) return;
-    try {
-      await addMessage({ id: issueId, content: issueMessage.trim(), files: issueMessageFiles }).unwrap();
-      setIssueMessage("");
-      setIssueMessageFiles([]);
-      toast.success("تم إرسال الرد");
     } catch (error) {
       toast.error(communicationErrorMessage(error));
     }
@@ -188,42 +192,79 @@ export default function CommunicationCenterPage() {
         title="مركز التواصل"
         description="إدارة إعلانات المنصة وبلاغات المشاكل من مكان واحد."
         icon={Megaphone}
-        actions={<Button onClick={openCreate}><Plus data-icon="inline-start" />إعلان جديد</Button>}
       />
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>الإعلانات</CardTitle><CardDescription>المسودات والإعلانات المنشورة والمجدولة.</CardDescription></CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {announcementsLoading ? <p className="text-sm text-muted-foreground">جارٍ التحميل...</p> : announcements.length ? announcements.map((item) => (
-              <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border p-3">
-                <div className="min-w-0"><p className="font-medium">{item.title}</p><p className="line-clamp-2 text-sm text-muted-foreground">{item.body}</p><Badge variant="outline" className="mt-2">{item.status}</Badge></div>
-                <div className="flex shrink-0 gap-1">
-                  {item.status !== "ARCHIVED" ? <Button size="icon" variant="ghost" onClick={() => openEdit(item)} aria-label="تعديل الإعلان"><Pencil data-icon="inline-start" /></Button> : null}
-                  {item.status === "DRAFT" ? <Button size="sm" variant="outline" onClick={() => void runAnnouncementAction("publish", item.id)}><Send data-icon="inline-start" />نشر</Button> : null}
-                  {item.status === "PUBLISHED" ? <Button size="icon" variant="ghost" onClick={() => void runAnnouncementAction("archive", item.id)} aria-label="أرشفة الإعلان"><Archive data-icon="inline-start" /></Button> : null}
-                </div>
-              </div>
-            )) : <p className="text-sm text-muted-foreground">لا توجد إعلانات بعد.</p>}
-          </CardContent>
-        </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="flex flex-col gap-4">
+        <TabsList className="h-auto w-full justify-start gap-1 sm:w-fit">
+          <TabsTrigger value="announcements" className="min-h-11 gap-2"><Megaphone data-icon="inline-start" />الإعلانات <Badge variant="secondary">{announcementsResponse?.meta?.total ?? 0}</Badge></TabsTrigger>
+          <TabsTrigger value="issues" className="min-h-11 gap-2"><Bug data-icon="inline-start" />بلاغات المشاكل <Badge variant="secondary">{issuesResponse?.meta?.total ?? 0}</Badge></TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader><CardTitle>بلاغات المشاكل</CardTitle><CardDescription>عدد البلاغات الحالية: {issuesResponse?.meta?.total ?? 0}</CardDescription></CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {issuesLoading ? <p className="text-sm text-muted-foreground">جارٍ التحميل...</p> : issues.length ? issues.map((issue) => (
-              <div key={issue.id} className="flex items-start justify-between gap-3 rounded-lg border p-3">
-                <div className="min-w-0"><p className="font-medium">#{issue.reportNumber} · {issue.title}</p><p className="text-sm text-muted-foreground">{issueCategoryLabel(issue.category)} · {issueSeverityLabel(issue.severity)}</p><Badge variant="outline" className="mt-2">{statusLabels[issue.status]}</Badge></div>
-                <div className="flex shrink-0 gap-1"><Button size="icon" variant="ghost" onClick={() => setIssueId(issue.id)} aria-label="عرض البلاغ"><Eye data-icon="inline-start" /></Button>{issue.status !== "CLOSED" ? <Select value={issue.status} onValueChange={(value) => void changeIssueStatus(issue.id, value as IssueStatus)}><SelectTrigger id={`issue-status-${issue.id}`} aria-label="حالة البلاغ" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value={issue.status}>{statusLabels[issue.status]}</SelectItem>{transitions[issue.status].map((status) => <SelectItem key={status} value={status}>{statusLabels[status]}</SelectItem>)}</SelectContent></Select> : null}</div>
+        <TabsContent value="announcements" className="mt-0">
+          <Card>
+            <CardHeader className="gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div><CardTitle>الإعلانات</CardTitle><CardDescription>إدارة المحتوى والجمهور والحالة والجدولة.</CardDescription></div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input value={announcementSearch} onChange={(event) => { setAnnouncementSearch(event.target.value); setAnnouncementPage(1); }} placeholder="ابحث في الإعلانات" aria-label="ابحث في الإعلانات" className="sm:max-w-64" />
+                <Button onClick={openCreate}><Plus data-icon="inline-start" />إعلان جديد</Button>
               </div>
-            )) : <div className="flex items-center gap-3 rounded-lg border p-4"><Bug className="text-muted-foreground" /><span className="text-sm text-muted-foreground">لا توجد بلاغات حالية.</span></div>}
-          </CardContent>
-        </Card>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-        <span>الإعلانات: {announcementsResponse?.meta?.total ?? 0} · البلاغات: {issuesResponse?.meta?.total ?? 0}</span>
-        <div className="flex flex-wrap gap-2"><span className="inline-flex items-center gap-1"><span>الإعلانات</span><Button variant="outline" size="sm" disabled={announcementPage <= 1} onClick={() => setAnnouncementPage((page) => Math.max(1, page - 1))}>السابق</Button><span>{announcementPage}</span><Button variant="outline" size="sm" disabled={announcementPage >= (announcementsResponse?.meta?.totalPages ?? 1)} onClick={() => setAnnouncementPage((page) => page + 1)}>التالي</Button></span><span className="inline-flex items-center gap-1"><span>البلاغات</span><Button variant="outline" size="sm" disabled={issuePage <= 1} onClick={() => setIssuePage((page) => Math.max(1, page - 1))}>السابق</Button><span>{issuePage}</span><Button variant="outline" size="sm" disabled={issuePage >= (issuesResponse?.meta?.totalPages ?? 1)} onClick={() => setIssuePage((page) => page + 1)}>التالي</Button></span></div>
-      </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <Table>
+                <TableHeader><TableRow><TableHead>الإعلان</TableHead><TableHead>النوع</TableHead><TableHead>الأولوية</TableHead><TableHead>الجمهور</TableHead><TableHead>الحالة</TableHead><TableHead>يبدأ في</TableHead><TableHead>ينتهي في</TableHead><TableHead>الإجراءات</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {announcementsLoading ? <TableRow><TableCell colSpan={8} className="h-24 text-center text-muted-foreground">جارٍ تحميل الإعلانات...</TableCell></TableRow> : announcements.length ? announcements.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="min-w-56"><p className="font-medium">{item.title}</p><p className="mt-1 line-clamp-2 max-w-md text-sm text-muted-foreground">{item.body}</p></TableCell>
+                      <TableCell><Badge variant={item.type === "CRITICAL" ? "destructive" : item.type === "WARNING" ? "warning" : "secondary"}>{item.type === "INFO" ? "معلومات" : item.type === "SUCCESS" ? "نجاح" : item.type === "WARNING" ? "تنبيه" : "حرج"}</Badge></TableCell>
+                      <TableCell><Badge variant={item.priority === "CRITICAL" ? "destructive" : item.priority === "HIGH" ? "warning" : "outline"}>{item.priority === "LOW" ? "منخفضة" : item.priority === "NORMAL" ? "عادية" : item.priority === "HIGH" ? "مرتفعة" : "حرجة"}</Badge></TableCell>
+                      <TableCell className="min-w-40"><div className="flex flex-wrap gap-1">{visibleAnnouncementAudiences(item).length ? visibleAnnouncementAudiences(item).map((audience) => <Badge key={audience} variant="outline">{audienceLabels[audience]}</Badge>) : <span className="text-muted-foreground">—</span>}</div></TableCell>
+                      <TableCell><Badge variant="outline">{announcementStatusLabels[item.status]}</Badge></TableCell>
+                      <TableCell className="min-w-32 text-muted-foreground">{formatDateTime(item.startsAt)}</TableCell>
+                      <TableCell className="min-w-32 text-muted-foreground">{formatDateTime(item.expiresAt)}</TableCell>
+                      <TableCell><div className="flex flex-wrap gap-1">
+                        {item.status !== "ARCHIVED" ? <Button size="icon" variant="ghost" onClick={() => openEdit(item)} aria-label={`تعديل الإعلان ${item.title}`}><Pencil data-icon="inline-start" /></Button> : null}
+                        {item.status === "DRAFT" ? <Button size="sm" variant="outline" onClick={() => void runAnnouncementAction("publish", item.id)}><Send data-icon="inline-start" />نشر</Button> : null}
+                        {item.status === "PUBLISHED" ? <Button size="icon" variant="ghost" onClick={() => void runAnnouncementAction("archive", item.id)} aria-label={`أرشفة الإعلان ${item.title}`}><Archive data-icon="inline-start" /></Button> : null}
+                      </div></TableCell>
+                    </TableRow>
+                  )) : <TableRow><TableCell colSpan={8} className="h-24 text-center text-muted-foreground">لا توجد إعلانات مطابقة.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+              <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground"><span>الإجمالي: {announcementsResponse?.meta?.total ?? 0}</span><div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={announcementPage <= 1} onClick={() => setAnnouncementPage((page) => Math.max(1, page - 1))}>السابق</Button><span>{announcementPage} / {announcementsResponse?.meta?.totalPages ?? 1}</span><Button variant="outline" size="sm" disabled={announcementPage >= (announcementsResponse?.meta?.totalPages ?? 1)} onClick={() => setAnnouncementPage((page) => page + 1)}>التالي</Button></div></div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="issues" className="mt-0">
+          <Card>
+            <CardHeader>
+              <CardTitle>بلاغات المشاكل</CardTitle>
+              <CardDescription>راجع بيانات البلاغ ومقدّمه والمسؤول والحالة.</CardDescription>
+              <Input value={issueSearch} onChange={(event) => { setIssueSearch(event.target.value); setIssuePage(1); }} placeholder="ابحث في العنوان أو التفاصيل" aria-label="ابحث في بلاغات المشاكل" className="sm:max-w-sm" />
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <Table>
+                <TableHeader><TableRow><TableHead>البلاغ</TableHead><TableHead>مقدّم البلاغ</TableHead><TableHead>التصنيف والأولوية</TableHead><TableHead>الحالة</TableHead><TableHead>المسؤول</TableHead><TableHead>تاريخ الإرسال</TableHead><TableHead>التفاصيل</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {issuesLoading ? <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">جارٍ تحميل البلاغات...</TableCell></TableRow> : issues.length ? issues.map((issue) => (
+                    <TableRow key={issue.id}>
+                      <TableCell className="min-w-52"><p className="font-medium">#{issue.reportNumber} · {issue.title}</p><p className="mt-1 line-clamp-2 max-w-sm text-sm text-muted-foreground">{issue.description}</p></TableCell>
+                      <TableCell className="min-w-40"><p>{issue.reporter?.name ?? "غير معروف"}</p><p className="text-xs text-muted-foreground">{issue.reporter?.email ?? "—"}</p><Badge variant="outline" className="mt-1">{issue.source === "PORTAL" ? "بوابة العميل" : "لوحة الموظف"}</Badge></TableCell>
+                      <TableCell><p>{issueCategoryLabel(issue.category)}</p><Badge variant={issue.severity === "CRITICAL" ? "destructive" : issue.severity === "HIGH" ? "warning" : "secondary"} className="mt-1">{issueSeverityLabel(issue.severity)}</Badge></TableCell>
+                      <TableCell className="min-w-40">{issue.availableTransitions?.length ? <Select value={issue.status} onValueChange={(value) => void changeIssueStatus(issue.id, value as IssueStatus)}><SelectTrigger id={`issue-status-${issue.id}`} aria-label={`حالة البلاغ ${issue.reportNumber}`} className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value={issue.status}>{statusLabels[issue.status]}</SelectItem>{issue.availableTransitions.map((status) => <SelectItem key={status} value={status}>{statusLabels[status]}</SelectItem>)}</SelectGroup></SelectContent></Select> : <Badge variant="outline">{statusLabels[issue.status]}</Badge>}</TableCell>
+                      <TableCell className="min-w-44"><div className="flex items-center gap-2"><span className="min-w-0 truncate">{issue.assignedTo?.name ?? "غير معين"}</span><Button variant="outline" size="sm" onClick={() => { setAssignmentIssue(issue); setAssignmentSearch(""); }}>تعيين</Button></div></TableCell>
+                      <TableCell className="min-w-36 text-muted-foreground">{formatDateTime(issue.createdAt)}</TableCell>
+                      <TableCell><Button size="icon" variant="ghost" onClick={() => setIssueId(issue.id)} aria-label={`عرض تفاصيل البلاغ ${issue.reportNumber}`}><Eye data-icon="inline-start" /></Button></TableCell>
+                    </TableRow>
+                  )) : <TableRow><TableCell colSpan={7} className="h-24 text-center text-muted-foreground">لا توجد بلاغات مطابقة.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+              <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground"><span>الإجمالي: {issuesResponse?.meta?.total ?? 0}</span><div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={issuePage <= 1} onClick={() => setIssuePage((page) => Math.max(1, page - 1))}>السابق</Button><span>{issuePage} / {issuesResponse?.meta?.totalPages ?? 1}</span><Button variant="outline" size="sm" disabled={issuePage >= (issuesResponse?.meta?.totalPages ?? 1)} onClick={() => setIssuePage((page) => page + 1)}>التالي</Button></div></div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
         <DialogContent dir="rtl" className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>{selectedAnnouncement ? "تعديل الإعلان" : "إنشاء إعلان"}</DialogTitle><DialogDescription>اكتب الإعلان وحدد اللوحات التي ستراه.</DialogDescription></DialogHeader>
@@ -240,8 +281,48 @@ export default function CommunicationCenterPage() {
       </Dialog>
 
       <Dialog open={Boolean(issueId)} onOpenChange={(open) => { if (!open) setIssueId(null); }}>
-        <DialogContent dir="rtl" className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle>{issueDetail ? `بلاغ #${issueDetail.reportNumber}: ${issueDetail.title}` : "تفاصيل البلاغ"}</DialogTitle><DialogDescription>راجع تفاصيل البلاغ وتواصل مع صاحبه.</DialogDescription></DialogHeader>
-          {issueDetail ? <div className="flex flex-col gap-4"><div className="rounded-lg border bg-muted/30 p-4"><p className="whitespace-pre-wrap text-sm">{issueDetail.description}</p>{issueDetail.attachments?.length ? <div className="mt-3 flex flex-wrap gap-2">{issueDetail.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noreferrer" className="text-sm text-primary underline">{attachment.fileName}</a>)}</div> : null}<p className="mt-3 text-xs text-muted-foreground">{issueDetail.reporter?.name} · {issueDetail.pagePath ?? "لا توجد صفحة محددة"}</p></div><div className="flex flex-col gap-2"><Label htmlFor="issue-assignee-search">بحث المسؤول</Label><Input id="issue-assignee-search" value={assigneeSearch} onChange={(event) => setAssigneeSearch(event.target.value)} placeholder="الاسم أو البريد الإلكتروني" /></div><div className="flex flex-col gap-2"><Label htmlFor="issue-assignee">المسؤول</Label><Select value={issueDetail.assignedTo?.id ?? "UNASSIGNED"} onValueChange={(value) => void changeIssueAssignment(value === "UNASSIGNED" ? undefined : value)}><SelectTrigger id="issue-assignee"><SelectValue placeholder="غير معين" /></SelectTrigger><SelectContent><SelectItem value="UNASSIGNED">غير معين</SelectItem>{assignees.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectContent></Select></div><div className="flex flex-col gap-2"><Label>سجل المحادثة</Label><div className="flex max-h-56 flex-col gap-2 overflow-y-auto rounded-lg border p-3">{issueDetail.messages?.length ? issueDetail.messages.map((message) => <div key={message.id} className="rounded-md bg-muted p-2 text-sm"><p>{message.content}</p>{message.attachments?.length ? <div className="mt-2 flex flex-wrap gap-2">{message.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noreferrer" className="text-xs text-primary underline">{attachment.fileName}</a>)}</div> : null}<p className="mt-1 text-xs text-muted-foreground">{message.author.name}</p></div>) : <p className="text-sm text-muted-foreground">لا توجد رسائل بعد.</p>}</div></div><form onSubmit={submitIssueMessage} className="flex flex-col gap-2"><Label htmlFor="issue-message">رد الإدارة</Label><Textarea id="issue-message" value={issueMessage} onChange={(event) => setIssueMessage(event.target.value)} maxLength={10000} disabled={issueDetail.status === "CLOSED"} /><Label htmlFor="admin-issue-files">مرفقات</Label><Input id="admin-issue-files" type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt" onChange={(event) => setIssueMessageFiles(Array.from(event.target.files ?? []).slice(0, 5))} /><Button type="submit" disabled={messageState.isLoading || !issueMessage.trim() || issueDetail.status === "CLOSED"}>إرسال الرد</Button>{issueDetail.status === "CLOSED" ? <p className="text-xs text-muted-foreground">لا يمكن الرد على بلاغ مغلق.</p> : null}</form><p className="text-xs text-muted-foreground">الانتقالات المتاحة: {issueTransitions.map((status) => statusLabels[status]).join("، ") || "لا توجد"}</p></div> : <p className="text-sm text-muted-foreground">جارٍ تحميل البلاغ...</p>}
+        <DialogContent dir="rtl" className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{issueDetail ? `بلاغ #${issueDetail.reportNumber}: ${issueDetail.title}` : "تفاصيل البلاغ"}</DialogTitle>
+            <DialogDescription>بيانات البلاغ ومقدّمه والمعلومات التي أرسلها.</DialogDescription>
+          </DialogHeader>
+          {issueDetail ? (
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">{statusLabels[issueDetail.status]}</Badge>
+                <Badge variant="secondary">{issueCategoryLabel(issueDetail.category)}</Badge>
+                <Badge variant={issueDetail.severity === "CRITICAL" ? "destructive" : issueDetail.severity === "HIGH" ? "warning" : "secondary"}>{issueSeverityLabel(issueDetail.severity)}</Badge>
+                <Badge variant="outline">{issueDetail.source === "PORTAL" ? "بوابة العميل" : "لوحة الموظف"}</Badge>
+              </div>
+              <dl className="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
+                <div><dt className="text-sm text-muted-foreground">مقدّم البلاغ</dt><dd className="mt-1 font-medium">{issueDetail.reporter?.name ?? "غير معروف"}</dd><dd className="text-sm text-muted-foreground">{issueDetail.reporter?.email ?? "—"}</dd></div>
+                <div><dt className="text-sm text-muted-foreground">المسؤول عن البلاغ</dt><dd className="mt-1 font-medium">{issueDetail.assignedTo?.name ?? "غير معين"}</dd></div>
+                <div><dt className="text-sm text-muted-foreground">تاريخ الإرسال</dt><dd className="mt-1">{formatDateTime(issueDetail.createdAt)}</dd></div>
+                <div><dt className="text-sm text-muted-foreground">الصفحة المرتبطة</dt><dd className="mt-1 break-all">{issueDetail.pagePath || "غير محددة"}</dd></div>
+              </dl>
+              <section className="flex flex-col gap-2">
+                <h3 className="text-sm font-medium">تفاصيل المشكلة</h3>
+                <p className="whitespace-pre-wrap rounded-lg border bg-muted/30 p-4 text-sm">{issueDetail.description}</p>
+              </section>
+              {issueDetail.attachments?.length ? <section className="flex flex-col gap-2"><h3 className="text-sm font-medium">المرفقات</h3><div className="flex flex-wrap gap-2">{issueDetail.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noreferrer" className="rounded-md border px-3 py-2 text-sm text-primary underline">{attachment.fileName}</a>)}</div></section> : null}
+            </div>
+          ) : <p className="text-sm text-muted-foreground">{issueDetailLoading ? "جارٍ تحميل تفاصيل البلاغ..." : "تعذر تحميل تفاصيل البلاغ."}</p>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(assignmentIssue)} onOpenChange={(open) => { if (!open) setAssignmentIssue(null); }}>
+        <DialogContent dir="rtl" className="sm:max-w-md">
+          <DialogHeader><DialogTitle>تعيين مسؤول للبلاغ</DialogTitle><DialogDescription>{assignmentIssue ? `بلاغ #${assignmentIssue.reportNumber}: ${assignmentIssue.title}` : "اختر المسؤول عن متابعة البلاغ."}</DialogDescription></DialogHeader>
+          <div className="flex flex-col gap-3">
+            <Label htmlFor="issue-assignee-search">ابحث عن مسؤول</Label>
+            <Input id="issue-assignee-search" value={assignmentSearch} onChange={(event) => setAssignmentSearch(event.target.value)} placeholder="الاسم أو البريد الإلكتروني" />
+            <Label htmlFor="issue-assignee-select">المسؤول</Label>
+            <Select value={assignmentIssue?.assignedTo?.id ?? "UNASSIGNED"} onValueChange={(value) => { if (assignmentIssue) void changeIssueAssignment(assignmentIssue.id, value === "UNASSIGNED" ? undefined : value); setAssignmentIssue(null); }}>
+              <SelectTrigger id="issue-assignee-select"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectGroup><SelectItem value="UNASSIGNED">غير معين</SelectItem>{assignmentIssue?.assignedTo && !assignees.some(({ id }) => id === assignmentIssue.assignedTo?.id) ? <SelectItem value={assignmentIssue.assignedTo.id}>{assignmentIssue.assignedTo.name}</SelectItem> : null}{assignees.map((user) => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}</SelectGroup></SelectContent>
+            </Select>
+            {!assignees.length && assignmentSearch ? <p className="text-sm text-muted-foreground">لا توجد نتائج مطابقة.</p> : null}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

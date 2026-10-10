@@ -75,6 +75,7 @@ export interface IssueReport {
   category: IssueCategory;
   severity: IssueSeverity;
   status: IssueStatus;
+  availableTransitions?: IssueStatus[];
   source?: "DASHBOARD" | "PORTAL";
   pagePath?: string | null;
   createdAt: string;

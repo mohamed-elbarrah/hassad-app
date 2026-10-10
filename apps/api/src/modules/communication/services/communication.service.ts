@@ -8,7 +8,6 @@ import { Cron } from "@nestjs/schedule";
 import { PrismaService } from "../../../prisma/prisma.service";
 import {
   AnnouncementAudienceType,
-  AnnouncementPriority,
   AnnouncementStatus,
   IssueStatus,
   IssueSeverity,
@@ -30,6 +29,14 @@ import { extname } from "path";
 
 const ISSUE_MAX_FILES = 5;
 const ISSUE_MAX_TOTAL_SIZE = 50 * 1024 * 1024;
+
+const ISSUE_STATUS_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
+  OPEN: [IssueStatus.IN_PROGRESS, IssueStatus.CLOSED],
+  IN_PROGRESS: [IssueStatus.WAITING_FOR_USER, IssueStatus.RESOLVED, IssueStatus.CLOSED],
+  WAITING_FOR_USER: [IssueStatus.IN_PROGRESS, IssueStatus.RESOLVED, IssueStatus.CLOSED],
+  RESOLVED: [IssueStatus.CLOSED, IssueStatus.IN_PROGRESS],
+  CLOSED: [],
+};
 
 const audienceForRole: Record<string, AnnouncementAudienceType | undefined> = {
   ADMIN: AnnouncementAudienceType.ADMIN,
@@ -267,7 +274,10 @@ export class CommunicationService {
     ]);
     return {
       __standardResponse: true as const,
-      data: { data: await Promise.all(issues.map((issue) => this.withAttachmentUrls(issue))) },
+      data: { data: await Promise.all(issues.map(async (issue) => ({
+        ...await this.withAttachmentUrls(issue),
+        availableTransitions: ISSUE_STATUS_TRANSITIONS[issue.status],
+      }))) },
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
@@ -303,14 +313,7 @@ export class CommunicationService {
 
   async updateIssueStatus(id: string, userId: string, dto: UpdateIssueStatusDto) {
     const existing = await this.getIssue(id);
-    const allowed: Record<IssueStatus, IssueStatus[]> = {
-      OPEN: [IssueStatus.IN_PROGRESS, IssueStatus.CLOSED],
-      IN_PROGRESS: [IssueStatus.WAITING_FOR_USER, IssueStatus.RESOLVED, IssueStatus.CLOSED],
-      WAITING_FOR_USER: [IssueStatus.IN_PROGRESS, IssueStatus.RESOLVED, IssueStatus.CLOSED],
-      RESOLVED: [IssueStatus.CLOSED, IssueStatus.IN_PROGRESS],
-      CLOSED: [],
-    };
-    if (existing.status !== dto.status && !allowed[existing.status].includes(dto.status)) {
+    if (existing.status !== dto.status && !ISSUE_STATUS_TRANSITIONS[existing.status].includes(dto.status)) {
       throw new BadRequestException({ code: "INVALID_ISSUE_STATUS_TRANSITION" });
     }
     const timestamps = {
