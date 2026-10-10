@@ -1,5 +1,6 @@
 import {
   ArrayNotEmpty,
+  ArrayUnique,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -7,24 +8,26 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  Matches,
   MinLength,
 } from "class-validator";
 import {
   AnnouncementAudienceType,
-  AnnouncementPriority,
+  AnnouncementStatus,
   AnnouncementType,
   IssueCategory,
-  IssueSeverity,
   IssueStatus,
 } from "@prisma/client";
 
 export class CreateAnnouncementDto {
   @IsString()
+  @Matches(/\S/)
   @MinLength(1)
   @MaxLength(160)
   title!: string;
 
   @IsString()
+  @Matches(/\S/)
   @MinLength(1)
   @MaxLength(5000)
   body!: string;
@@ -32,10 +35,6 @@ export class CreateAnnouncementDto {
   @IsOptional()
   @IsEnum(AnnouncementType)
   type?: AnnouncementType;
-
-  @IsOptional()
-  @IsEnum(AnnouncementPriority)
-  priority?: AnnouncementPriority;
 
   @IsOptional()
   @IsDateString()
@@ -61,25 +60,30 @@ export class CreateAnnouncementDto {
 
   @IsArray()
   @ArrayNotEmpty()
+  @ArrayUnique()
   @IsEnum(AnnouncementAudienceType, { each: true })
   audiences!: AnnouncementAudienceType[];
 }
 
 export class UpdateAnnouncementDto extends CreateAnnouncementDto {}
 
+export class UpdateAnnouncementStatusDto {
+  @IsEnum(AnnouncementStatus)
+  status!: AnnouncementStatus;
+}
+
 export class CreateIssueReportDto {
   @IsEnum(IssueCategory)
   category!: IssueCategory;
 
-  @IsEnum(IssueSeverity)
-  severity!: IssueSeverity;
-
   @IsString()
+  @Matches(/\S/)
   @MinLength(1)
   @MaxLength(160)
   title!: string;
 
   @IsString()
+  @Matches(/\S/)
   @MinLength(1)
   @MaxLength(10000)
   description!: string;
@@ -93,12 +97,6 @@ export class CreateIssueReportDto {
 export class UpdateIssueStatusDto {
   @IsEnum(IssueStatus)
   status!: IssueStatus;
-}
-
-export class AssignIssueDto {
-  @IsOptional()
-  @IsString()
-  assignedToId?: string;
 }
 
 export class CreateIssueMessageDto {

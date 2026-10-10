@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Bug, CheckCircle2, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { AlertTriangle, Bug, CheckCircle2, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,13 +26,11 @@ export function AnnouncementBar({ surface }: { surface: "dashboard" | "portal" }
   const { data: announcements = [], isLoading } = useGetActiveAnnouncementsQuery(surface, { skip: !isAuthenticated });
   const [viewAnnouncement] = useViewAnnouncementMutation();
   const [reportOpen, setReportOpen] = useState(false);
-  const [index, setIndex] = useState(0);
   const firstCopyRef = useRef<HTMLSpanElement>(null);
   const marqueeViewportRef = useRef<HTMLDivElement>(null);
   const [marqueeDistance, setMarqueeDistance] = useState(0);
   const [marqueeViewportWidth, setMarqueeViewportWidth] = useState(0);
-  const currentIndex = Math.min(index, announcements.length - 1);
-  const current = announcements[currentIndex] ?? announcements[0];
+  const current = announcements[0];
   const currentId = current?.id;
   const currentBody = current?.body;
 
@@ -87,7 +85,6 @@ export function AnnouncementBar({ surface }: { surface: "dashboard" | "portal" }
                 </span>
               </div>
               {current.actionUrl ? <Button asChild variant="link" size="sm" className="h-8 shrink-0 px-1"><Link href={current.actionUrl}>{current.actionLabel ?? "عرض"}</Link></Button> : null}
-              {announcements.length > 1 ? <div className="flex shrink-0 items-center gap-1"><Button variant="ghost" size="icon" className="size-10" onClick={() => setIndex((currentIndex + announcements.length - 1) % announcements.length)} aria-label="الإعلان السابق"><ChevronRight data-icon="inline-start" /></Button><span className="text-xs text-muted-foreground">{currentIndex + 1}/{announcements.length}</span><Button variant="ghost" size="icon" className="size-10" onClick={() => setIndex((currentIndex + 1) % announcements.length)} aria-label="الإعلان التالي"><ChevronLeft data-icon="inline-start" /></Button></div> : null}
               {/* Dismissal will be enabled in a later iteration. */}
             </> : <span className="sr-only">لا توجد إعلانات</span>}
           </div>

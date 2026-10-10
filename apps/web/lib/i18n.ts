@@ -278,11 +278,15 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   ANNOUNCEMENT_ARCHIVED: "لا يمكن تعديل إعلان مؤرشف.",
   ANNOUNCEMENT_DISMISSAL_NOT_ALLOWED: "لا يمكن إخفاء هذا الإعلان.",
   ANNOUNCEMENT_ALREADY_PUBLISHED: "الإعلان منشور بالفعل.",
+  ANNOUNCEMENT_ALREADY_ACTIVE: "تعذر نشر الإعلان لأن إعلانًا آخر نُشر بالتزامن. حدّث القائمة وحاول مرة أخرى.",
+  ANNOUNCEMENT_START_DATE_NOT_REACHED: "لم يحِن موعد بدء الإعلان بعد.",
+  ANNOUNCEMENT_SCHEDULE_DATE_REQUIRED: "حدد موعدًا مستقبليًا لجدولة الإعلان.",
+  ANNOUNCEMENT_EXPIRED: "انتهت صلاحية الإعلان. حدّث تاريخ الانتهاء قبل نشره.",
+  INVALID_ANNOUNCEMENT_STATUS_TRANSITION: "لا يمكن تغيير الإعلان إلى هذه الحالة.",
   INVALID_ANNOUNCEMENT_DATES: "تواريخ الإعلان غير صحيحة.",
   INVALID_ANNOUNCEMENT_ACTION_URL: "رابط الإعلان غير صالح.",
   ISSUE_NOT_FOUND: "لم يتم العثور على البلاغ.",
   INVALID_ISSUE_STATUS_TRANSITION: "لا يمكن الانتقال إلى هذه الحالة.",
-  INVALID_ISSUE_ASSIGNEE: "المستخدم المحدد غير صالح للتعيين.",
   ISSUE_CLOSED: "لا يمكن إضافة رسالة إلى بلاغ مغلق.",
 
   PROJECT_NOT_FOUND: "لم يتم العثور على المشروع.",
@@ -457,7 +461,6 @@ export const communicationErrorMessage = adminErrorMessage;
 
 const ISSUE_HISTORY_LABELS: Record<string, string> = {
   ISSUE_REPORTED: "تم إرسال البلاغ",
-  ISSUE_ASSIGNED: "تم تعيين مسؤول للبلاغ",
   ISSUE_STATUS_OPEN: "تم فتح البلاغ",
   ISSUE_STATUS_IN_PROGRESS: "بدأ الفريق معالجة البلاغ",
   ISSUE_STATUS_WAITING_FOR_USER: "بانتظار معلومات من المستخدم",
@@ -470,9 +473,7 @@ export function issueHistoryLabel(code: string): string {
 }
 
 const ISSUE_CATEGORY_LABELS: Record<string, string> = { BUG: "خلل أو خطأ", PERFORMANCE: "بطء أو أداء", ACCESS: "صلاحيات أو دخول", DATA: "بيانات غير صحيحة", PAYMENT: "مشكلة دفع", OTHER: "أخرى" };
-const ISSUE_SEVERITY_LABELS: Record<string, string> = { LOW: "منخفضة", NORMAL: "عادية", HIGH: "مرتفعة", CRITICAL: "حرجة" };
 export const issueCategoryLabel = (value: string) => ISSUE_CATEGORY_LABELS[value] ?? "أخرى";
-export const issueSeverityLabel = (value: string) => ISSUE_SEVERITY_LABELS[value] ?? "عادية";
 
 const ADMIN_ACTIVITY_ACTION_LABELS: Record<string, string> = {
   "admin.users.create": "إنشاء موظف",
