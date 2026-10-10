@@ -1,33 +1,49 @@
+.viewport {
+  overflow: hidden;
+}
+
 .track {
-  display: flex;
+  display: inline-flex;
   width: max-content;
   white-space: nowrap;
 }
 
 .copy {
   flex: none;
+  padding-inline-end: 4ch;
 }
 
 .marquee {
   animation: announcement-marquee var(--announcement-marquee-duration, 20s) linear infinite;
+  will-change: transform;
+}
+
+.viewport:hover .marquee,
+.viewport:focus-within .marquee {
+  animation-play-state: paused;
 }
 
 @keyframes announcement-marquee {
   from {
-    transform: translateX(calc(-1 * var(--announcement-marquee-distance)));
+    transform: translateX(0);
   }
 
   to {
-    transform: translateX(0);
+    transform: translateX(var(--announcement-marquee-distance));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .marquee {
-    animation: none;
+  .viewport {
+    overflow-x: auto;
   }
 
-  .copy ~ .copy {
+  .marquee {
+    animation: none;
+    will-change: auto;
+  }
+
+  .duplicate {
     display: none;
   }
 }

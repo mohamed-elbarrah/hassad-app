@@ -28,27 +28,33 @@ export function AnnouncementBar({ surface }: { surface: "dashboard" | "portal" }
   const [reportOpen, setReportOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const firstCopyRef = useRef<HTMLSpanElement>(null);
+  const marqueeViewportRef = useRef<HTMLDivElement>(null);
   const [marqueeDistance, setMarqueeDistance] = useState(0);
-  const current = announcements[index] ?? announcements[0];
+  const [marqueeViewportWidth, setMarqueeViewportWidth] = useState(0);
+  const currentIndex = Math.min(index, announcements.length - 1);
+  const current = announcements[currentIndex] ?? announcements[0];
+  const currentId = current?.id;
+  const currentBody = current?.body;
 
   useEffect(() => {
-    setIndex(0);
-  }, [announcements.length]);
-
-  useEffect(() => {
-    if (current) void viewAnnouncement({ surface, id: current.id });
-  }, [current?.id, surface, viewAnnouncement]);
+    if (currentId) void viewAnnouncement({ surface, id: currentId });
+  }, [currentId, surface, viewAnnouncement]);
 
   useEffect(() => {
     const copy = firstCopyRef.current;
-    if (!copy) return;
+    const viewport = marqueeViewportRef.current;
+    if (!copy || !viewport) return;
 
-    const measure = () => setMarqueeDistance(copy.getBoundingClientRect().width);
+    const measure = () => {
+      setMarqueeDistance(copy.getBoundingClientRect().width);
+      setMarqueeViewportWidth(viewport.getBoundingClientRect().width);
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(copy);
+    observer.observe(viewport);
     return () => observer.disconnect();
-  }, [current?.body]);
+  }, [currentBody]);
 
   const config = useMemo(() => typeConfig[current?.type ?? "INFO"], [current?.type]);
   const Icon = config.icon;
@@ -61,24 +67,27 @@ export function AnnouncementBar({ surface }: { surface: "dashboard" | "portal" }
           <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden" aria-live="polite">
             {isLoading ? <Skeleton className="h-4 w-48" /> : current ? <>
               <Badge variant={config.variant} className="shrink-0 gap-1"><Icon data-icon="inline-start" />{current.title}</Badge>
-              <div className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-sm text-foreground" title={current.body}>
+              <div ref={marqueeViewportRef} className={`${styles.viewport} min-w-0 flex-1 whitespace-nowrap text-sm text-foreground`} title={current.body} tabIndex={0} aria-label="نص الإعلان">
                 <span
-                  dir="ltr"
-                  className={`${styles.track} ${styles.marquee}`}
+                  dir="rtl"
+                  className={`${styles.track} ${marqueeDistance > marqueeViewportWidth ? styles.marquee : ""}`}
                   style={{
                     "--announcement-marquee-distance": `${marqueeDistance}px`,
-                    "--announcement-marquee-duration": `${Math.max(12, marqueeDistance / 60)}s`,
+                    "--announcement-marquee-duration": `${Math.max(12, marqueeDistance / 40)}s`,
                   } as React.CSSProperties}
                 >
-                  {Array.from({ length: 80 }, (_, copy) => (
-                    <span ref={copy === 0 ? firstCopyRef : undefined} key={copy} dir="rtl" aria-hidden={copy > 0} className={styles.copy}>
+                  <span ref={firstCopyRef} dir="rtl" className={styles.copy}>
+                    {current.body}
+                  </span>
+                  {marqueeDistance > marqueeViewportWidth ? (
+                    <span dir="rtl" aria-hidden="true" className={`${styles.copy} ${styles.duplicate}`}>
                       {current.body}
                     </span>
-                  ))}
+                  ) : null}
                 </span>
               </div>
               {current.actionUrl ? <Button asChild variant="link" size="sm" className="h-8 shrink-0 px-1"><Link href={current.actionUrl}>{current.actionLabel ?? "عرض"}</Link></Button> : null}
-              {announcements.length > 1 ? <div className="flex shrink-0 items-center gap-1"><Button variant="ghost" size="icon" className="size-10" onClick={() => setIndex((value) => (value + announcements.length - 1) % announcements.length)} aria-label="الإعلان السابق"><ChevronRight data-icon="inline-start" /></Button><span className="text-xs text-muted-foreground">{index + 1}/{announcements.length}</span><Button variant="ghost" size="icon" className="size-10" onClick={() => setIndex((value) => (value + 1) % announcements.length)} aria-label="الإعلان التالي"><ChevronLeft data-icon="inline-start" /></Button></div> : null}
+              {announcements.length > 1 ? <div className="flex shrink-0 items-center gap-1"><Button variant="ghost" size="icon" className="size-10" onClick={() => setIndex((currentIndex + announcements.length - 1) % announcements.length)} aria-label="الإعلان السابق"><ChevronRight data-icon="inline-start" /></Button><span className="text-xs text-muted-foreground">{currentIndex + 1}/{announcements.length}</span><Button variant="ghost" size="icon" className="size-10" onClick={() => setIndex((currentIndex + 1) % announcements.length)} aria-label="الإعلان التالي"><ChevronLeft data-icon="inline-start" /></Button></div> : null}
               {/* Dismissal will be enabled in a later iteration. */}
             </> : <span className="sr-only">لا توجد إعلانات</span>}
           </div>
