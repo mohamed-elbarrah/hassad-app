@@ -1538,6 +1538,7 @@ export function portalErrorMessage(error: unknown): string {
   const messages: Record<string, string> = {
     PERMISSION_DENIED: "ليس لديك صلاحية لعرض هذه البيانات.",
     AUTHENTICATION_REQUIRED: "انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+    DISPUTE_NOT_FOUND: "النزاع غير موجود.",
     CONVERSATION_NOT_FOUND: "لم يتم العثور على المحادثة.",
     CONVERSATION_PARTICIPATION_FORBIDDEN:
       "ليس لديك صلاحية للوصول إلى هذه المحادثة.",

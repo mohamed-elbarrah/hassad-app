@@ -154,6 +154,9 @@ export interface DisputeDetailPatternProps {
   timelineFields?: InfoField[];
   actionBanner?: ReactNode;
   actionTab?: ReactNode;
+  clientTabContent?: ReactNode;
+  onClientTabSelect?: () => void;
+  showClientTab?: boolean;
   onSendMessage?: (content: string, files?: File[]) => void | Promise<void>;
   isSendingMessage?: boolean;
   canSendMessage?: boolean;
@@ -188,6 +191,9 @@ export function DisputeDetailPattern({
   timelineFields = [],
   actionBanner,
   actionTab,
+  clientTabContent,
+  onClientTabSelect,
+  showClientTab = false,
   onSendMessage,
   isSendingMessage = false,
   canSendMessage = false,
@@ -371,7 +377,13 @@ export function DisputeDetailPattern({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="overview" className="flex flex-col gap-4">
+          <Tabs
+            defaultValue="overview"
+            onValueChange={(value) => {
+              if (value === "client") onClientTabSelect?.();
+            }}
+            className="flex flex-col gap-4"
+          >
             <TabsList className="h-auto w-full flex-wrap justify-start">
               <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
               <TabsTrigger value="messages">المحادثة</TabsTrigger>
@@ -379,6 +391,9 @@ export function DisputeDetailPattern({
               <TabsTrigger value="history">السجل</TabsTrigger>
               {actionTab ? (
                 <TabsTrigger value="actions">الإجراءات</TabsTrigger>
+              ) : null}
+              {showClientTab && audience === "admin" ? (
+                <TabsTrigger value="client">العميل</TabsTrigger>
               ) : null}
             </TabsList>
 
@@ -575,6 +590,11 @@ export function DisputeDetailPattern({
             {actionTab ? (
               <TabsContent value="actions" className="mt-0">
                 {actionTab}
+              </TabsContent>
+            ) : null}
+            {showClientTab && audience === "admin" ? (
+              <TabsContent value="client" className="mt-0">
+                {clientTabContent}
               </TabsContent>
             ) : null}
           </Tabs>

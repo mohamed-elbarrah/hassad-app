@@ -19,10 +19,7 @@ import {
   useReassignAdminTaskMutation,
   type AdminTaskDetail,
 } from "@/features/admin/adminTasksApi";
-import {
-  useLazyGetAdminClientByIdQuery,
-  type AdminClientFullDetail,
-} from "@/features/admin/adminClientsApi";
+import { useLazyGetAdminClientByIdQuery } from "@/features/admin/adminClientsApi";
 import {
   adminErrorMessage,
   adminSuccessMessage,
@@ -43,12 +40,7 @@ import {
   type TaskDetailEntity,
   type TaskTabItem,
 } from "@/components/task-detail/TaskDetailPattern";
-import {
-  buildDefaultClientStats,
-  ClientProfileCard,
-  ClientProfileOverviewCard,
-  type ClientDetailEntity,
-} from "@/components/client-detail/ClientDetailPattern";
+import { AdminClientInfoPanel } from "@/components/client-detail/AdminClientInfoPanel";
 import { ErrorState } from "@/components/design-system/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,34 +72,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-function mapClient(client: AdminClientFullDetail): ClientDetailEntity {
-  return {
-    id: client.id,
-    companyName: client.companyName,
-    businessName: client.businessName,
-    businessType: client.businessType,
-    status: client.status,
-    createdAt: client.createdAt,
-    updatedAt: client.updatedAt,
-    source: client.source,
-    hasPortalAccess: client.hasPortalAccess,
-    lastLoginAt: client.lastLoginAt,
-    lastSeenAt: client.lastSeenAt,
-    totalProjects: client.totalProjects,
-    activeProjects: client.activeProjects,
-    completedProjects: client.completedProjects,
-    totalContractValue: client.totalContractValue,
-    signedContractValue: client.signedContractValue,
-    totalInvoiced: client.totalInvoiced,
-    totalPaid: client.totalPaid,
-    avgSatisfactionScore: client.avgSatisfactionScore,
-    profile: client.profile,
-    manager: client.managerName ? { name: client.managerName } : null,
-    user: client.user,
-    counters: client.counters,
-  };
-}
 
 function mapTask(task: AdminTaskDetail): TaskDetailEntity {
   return {
@@ -146,12 +110,15 @@ function TaskDetailContent({ id }: { id: string }) {
     refetch,
   } = useGetAdminTaskByIdQuery(id);
   const clientId = task?.project.client?.id;
-  const [loadClient, {
-    currentData: clientDetail,
-    isFetching: isClientLoading,
-    isError: isClientError,
-    error: clientError,
-  }] = useLazyGetAdminClientByIdQuery();
+  const [
+    loadClient,
+    {
+      currentData: clientDetail,
+      isFetching: isClientLoading,
+      isError: isClientError,
+      error: clientError,
+    },
+  ] = useLazyGetAdminClientByIdQuery();
   const [
     forceTransition,
     {
@@ -220,7 +187,6 @@ function TaskDetailContent({ id }: { id: string }) {
     commentsCount: task.comments.length,
     filesCount: task.files.length,
   });
-  const clientEntity = clientDetail ? mapClient(clientDetail) : null;
   const tabs: TaskTabItem[] = [
     {
       value: "overview",
@@ -364,41 +330,17 @@ function TaskDetailContent({ id }: { id: string }) {
       value: "client",
       label: "العميل",
       icon: UserRound,
-      content: !clientId ? (
-        <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            لا يوجد عميل مرتبط بهذه المهمة.
-          </CardContent>
-        </Card>
-      ) : isClientLoading ? (
-        <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground" aria-live="polite">
-            جارٍ تحميل بيانات العميل…
-          </CardContent>
-        </Card>
-      ) : isClientError ? (
-        <ErrorState
-          title="تعذّر تحميل بيانات العميل"
-          message={adminErrorMessage(clientError)}
-          onRetry={() => clientId && loadClient(clientId)}
+      content: (
+        <AdminClientInfoPanel
+          clientId={clientId}
+          client={clientDetail}
+          isLoading={isClientLoading}
+          error={isClientError ? clientError : undefined}
+          onRetry={() => {
+            if (clientId) loadClient(clientId);
+          }}
         />
-      ) : clientEntity ? (
-        <div className="grid min-w-0 items-start gap-6 xl:grid-cols-2">
-          <ClientProfileOverviewCard
-            client={clientEntity}
-            profile={clientEntity.profile}
-            stats={buildDefaultClientStats(clientEntity, "admin")}
-          />
-          <ClientProfileCard
-            client={clientEntity}
-            profile={clientEntity.profile}
-            mode="admin"
-            title="بيانات النشاط"
-            description="المعلومات التعريفية والتسويقية المسجلة للعميل."
-            businessOnly
-          />
-        </div>
-      ) : null,
+      ),
     },
   ];
 
@@ -513,22 +455,30 @@ function TaskDetailContent({ id }: { id: string }) {
             ) : null}
             <div className="flex flex-wrap gap-2">
               <Button
-                disabled={!assigneeId || !reason || isReassigning || isTransitioning}
+                disabled={
+                  !assigneeId || !reason || isReassigning || isTransitioning
+                }
                 onClick={() => {
-                  void reassign({ id, assigneeId, reason }).unwrap().catch(() => undefined);
+                  void reassign({ id, assigneeId, reason })
+                    .unwrap()
+                    .catch(() => undefined);
                 }}
               >
                 إعادة تعيين المهمة
               </Button>
               <Button
                 variant="outline"
-                disabled={!nextStatus || !reason || isTransitioning || isReassigning}
+                disabled={
+                  !nextStatus || !reason || isTransitioning || isReassigning
+                }
                 onClick={() =>
                   void forceTransition({
                     id,
                     status: nextStatus as TaskStatus,
                     reason,
-                  }).unwrap().catch(() => undefined)
+                  })
+                    .unwrap()
+                    .catch(() => undefined)
                 }
               >
                 تغيير الحالة
@@ -543,7 +493,9 @@ function TaskDetailContent({ id }: { id: string }) {
         defaultValue="overview"
         tabs={tabs}
         onValueChange={(value) => {
-          if (value === "client" && clientId) loadClient(clientId);
+          if (value === "client" && clientId && !clientDetail && !isClientLoading) {
+            loadClient(clientId);
+          }
         }}
       />
     </div>

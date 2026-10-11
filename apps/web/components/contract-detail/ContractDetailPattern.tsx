@@ -206,6 +206,9 @@ export function ContractDetailView({
   actions,
   billingArea,
   responseArea,
+  clientTabContent,
+  onClientTabSelect,
+  showClientTab = false,
   audience = "internal",
 }: {
   contract: ContractDetailEntity;
@@ -215,6 +218,9 @@ export function ContractDetailView({
   actions?: ReactNode;
   billingArea?: ReactNode;
   responseArea?: ReactNode;
+  clientTabContent?: ReactNode;
+  onClientTabSelect?: () => void;
+  showClientTab?: boolean;
   audience?: "internal" | "client";
 }) {
   const invoices = contract.invoices ?? [];
@@ -363,7 +369,13 @@ export function ContractDetailView({
             </CardHeader>
           ) : null}
           <CardContent className={isClientAudience ? "p-4 sm:p-6" : undefined}>
-            <Tabs defaultValue="billing" className="flex flex-col gap-4">
+            <Tabs
+              defaultValue="billing"
+              onValueChange={(value) => {
+                if (value === "client") onClientTabSelect?.();
+              }}
+              className="flex flex-col gap-4"
+            >
               <TabsList className="h-auto w-full flex-wrap justify-start">
                 <TabsTrigger value="billing">الفوترة والدفع</TabsTrigger>
                 <TabsTrigger value="payment-plan">خطة الدفع</TabsTrigger>
@@ -374,6 +386,9 @@ export function ContractDetailView({
                 {!isClientAudience ? (
                   <TabsTrigger value="versions">الإصدارات</TabsTrigger>
                 ) : null}
+                {showClientTab && !isClientAudience ? (
+                  <TabsTrigger value="client">العميل</TabsTrigger>
+                ) : null}
                 <TabsTrigger value="document">الملف</TabsTrigger>
                 {responseArea ? (
                   <TabsTrigger value="action">
@@ -381,6 +396,12 @@ export function ContractDetailView({
                   </TabsTrigger>
                 ) : null}
               </TabsList>
+
+              {showClientTab && !isClientAudience ? (
+                <TabsContent value="client" className="mt-0">
+                  {clientTabContent}
+                </TabsContent>
+              ) : null}
 
               <TabsContent value="billing" className="mt-0">
                 {billingArea || (

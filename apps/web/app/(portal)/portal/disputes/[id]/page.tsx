@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { portalErrorMessage } from "@/lib/i18n";
 import { DisputeStatus } from "@hassad/shared";
 import {
   useAddDisputeMessageMutation,
@@ -25,7 +26,7 @@ export default function PortalDisputeDetailPage({
   const { id } = use(params);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
-  const { data: dispute, isLoading, refetch } = useGetClientDisputeDetailQuery(id, {
+  const { data: dispute, isLoading, error, refetch } = useGetClientDisputeDetailQuery(id, {
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
 
@@ -37,9 +38,8 @@ export default function PortalDisputeDetailPage({
     try {
       await addMessage({ disputeId: id, content, files }).unwrap();
       refetch();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
-      toast.error(message);
+    } catch (error: unknown) {
+      toast.error(portalErrorMessage(error));
     }
   };
 
@@ -52,9 +52,8 @@ export default function PortalDisputeDetailPage({
       toast.success("تم تأكيد الحل");
       setIsConfirmDialogOpen(false);
       refetch();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء تأكيد الحل";
-      toast.error(message);
+    } catch (error: unknown) {
+      toast.error(portalErrorMessage(error));
     }
   };
 
@@ -67,9 +66,8 @@ export default function PortalDisputeDetailPage({
       toast.success("تم تصعيد النزاع");
       setIsConfirmDialogOpen(false);
       refetch();
-    } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء التصعيد";
-      toast.error(message);
+    } catch (error: unknown) {
+      toast.error(portalErrorMessage(error));
     }
   };
 
@@ -81,7 +79,7 @@ export default function PortalDisputeDetailPage({
     return (
       <DisputeDetailEmptyState
         title="حدث خطأ أثناء تحميل بيانات النزاع"
-        description="تعذر فتح التذكرة المطلوبة حالياً."
+        description={portalErrorMessage(error)}
         backHref="/portal/disputes"
         backLabel="العودة إلى النزاعات"
       />
