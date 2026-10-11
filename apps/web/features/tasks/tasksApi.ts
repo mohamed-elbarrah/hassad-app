@@ -165,7 +165,7 @@ export const tasksApi = createApi({
         { type: "Task", id: "PM_STATS" },
         {
           type: "Task",
-          id: `PROJECT_${"projectId" in body ? (body as any).projectId : ""}`,
+          id: `PROJECT_${body.projectId}`,
         },
       ],
     }),

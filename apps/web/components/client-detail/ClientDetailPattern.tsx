@@ -68,7 +68,8 @@ export type ClientDetailMode =
   | "sales"
   | "portal"
   | "finance"
-  | "internal";
+  | "internal"
+  | "pm";
 
 type NullableString = string | null | undefined;
 
@@ -360,6 +361,15 @@ function getVisibleBusinessSections(mode: ClientDetailMode) {
         "performance",
         "visual",
       ];
+    case "pm":
+      return [
+        "identity",
+        "product",
+        "audience",
+        "journey",
+        "campaign",
+        "visual",
+      ];
     default:
       return [
         "identity",
@@ -497,6 +507,8 @@ export function buildClientPersonalFields(
           "أوقات التواصل",
         ].includes(field.label),
       );
+    case "pm":
+      return [];
     default:
       return fields;
   }
@@ -1604,13 +1616,15 @@ export function ClientProfileOverviewCard({
   profile,
   badges = [],
   stats = [],
+  mode = "admin",
 }: {
   client: ClientDetailEntity;
   profile?: ClientProfile | null;
   badges?: ReactNode[];
   stats?: ClientStatItem[];
+  mode?: ClientDetailMode;
 }) {
-  const personalFields = buildClientPersonalFields(client, profile, "admin");
+  const personalFields = buildClientPersonalFields(client, profile, mode);
   const businessName = getClientBusinessName(client, profile);
   const businessTypeLabel = BUSINESS_TYPE_AR[client.businessType as keyof typeof BUSINESS_TYPE_AR] || client.businessType;
 
@@ -1627,8 +1641,18 @@ export function ClientProfileOverviewCard({
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <dl className="grid gap-x-6 sm:grid-cols-2">{personalFields.map((field) => <InfoField key={field.label} {...field} />)}</dl>
-        <div className="border-t pt-2"><ClientStatsGrid stats={stats} compact /></div>
+        {personalFields.length > 0 ? (
+          <dl className="grid gap-x-6 sm:grid-cols-2">
+            {personalFields.map((field) => (
+              <InfoField key={field.label} {...field} />
+            ))}
+          </dl>
+        ) : null}
+        {stats.length > 0 ? (
+          <div className="border-t pt-2">
+            <ClientStatsGrid stats={stats} compact />
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

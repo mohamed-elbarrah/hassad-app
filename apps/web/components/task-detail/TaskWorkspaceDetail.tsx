@@ -29,6 +29,7 @@ import {
   type TaskFile,
   type TaskNote,
 } from "@hassad/shared";
+import { PmClientInfoPanel } from "@/components/client-detail/PmClientInfoPanel";
 import { ClientProfileCard } from "@/components/client-detail/ClientDetailPattern";
 import { TaskWorkflowStepper } from "@/components/dashboard/pm/TaskWorkflowStepper";
 import { useMarketingTaskExtraTabs } from "@/components/task-detail/MarketingTaskExtras";
@@ -101,10 +102,7 @@ import {
   TASK_PRIORITY_LABELS,
   TASK_STATUS_LABELS,
 } from "@/lib/utils/task-status";
-import {
-  useGetClientTeamViewQuery,
-  useGetPmClientTeamViewQuery,
-} from "@/features/clients/clientsApi";
+import { useGetClientTeamViewQuery } from "@/features/clients/clientsApi";
 import {
   useAddTaskCommentMutation,
   useApproveTaskMutation,
@@ -336,6 +334,7 @@ export function TaskWorkspaceDetail({
   const [filePurpose, setFilePurpose] = useState<FilePurpose>(
     FilePurpose.DELIVERABLE,
   );
+  const [clientTabEnabled, setClientTabEnabled] = useState(false);
   const marketingTabs = useMarketingTaskExtraTabs({
     taskId,
     canManage: canManageMarketingExtras,
@@ -374,7 +373,7 @@ export function TaskWorkspaceDetail({
     { id: taskId, page: 1, limit: 25 },
     { skip: !teamOwned },
   );
-  const task = (pmTaskQuery.data ??
+  const task = ((pmOwned ? pmTaskQuery.currentData : undefined) ??
     teamTaskQuery.data ??
     marketingTaskQuery.data ??
     genericTaskQuery.data) as WorkspaceTask | undefined;
@@ -435,10 +434,7 @@ export function TaskWorkspaceDetail({
   const { data: genericTeamView } = useGetClientTeamViewQuery(clientId, {
     skip: !clientId || pmOwned || teamOwned || marketingOwned,
   });
-  const { data: pmTeamView } = useGetPmClientTeamViewQuery(clientId, {
-    skip: !clientId || !pmOwned,
-  });
-  const teamView = pmTeamView ?? genericTeamView;
+  const teamView = genericTeamView;
 
   const [startTask] = useStartTaskMutation();
   const [changePmTaskStatus] = useChangePmTaskStatusMutation();
@@ -1068,7 +1064,19 @@ export function TaskWorkspaceDetail({
     },
   ];
 
-  if (teamView) {
+  if (pmOwned && clientId) {
+    tabs.push({
+      value: "client",
+      label: "العميل",
+      icon: User,
+      content: (
+        <PmClientInfoPanel
+          clientId={clientId}
+          active={clientTabEnabled}
+        />
+      ),
+    });
+  } else if (teamView) {
     tabs.push({
       value: "client",
       label: "العميل",
@@ -1216,7 +1224,13 @@ export function TaskWorkspaceDetail({
         </CardContent>
       </Card>
 
-      <TaskTabsCard defaultValue="overview" tabs={tabs} />
+      <TaskTabsCard
+        defaultValue="overview"
+        tabs={tabs}
+        onValueChange={(value) => {
+          if (value === "client" && pmOwned) setClientTabEnabled(true);
+        }}
+      />
     </div>
   );
 }

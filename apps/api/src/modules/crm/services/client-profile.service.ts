@@ -16,6 +16,17 @@ interface AuthenticatedUser {
   clientId?: string;
 }
 
+function omitKeys<T extends object, K extends keyof T>(
+  value: T,
+  keys: readonly K[],
+): Omit<T, K> {
+  const result = { ...value };
+  for (const key of keys) {
+    delete (result as Partial<T>)[key];
+  }
+  return result as Omit<T, K>;
+}
+
 @Injectable()
 export class ClientProfileService {
   constructor(private readonly prisma: PrismaService) {}
@@ -77,23 +88,21 @@ export class ClientProfileService {
       });
     }
 
-    // Return only non-sensitive client fields + full profile
-    const {
-      totalProjects: _tp,
-      activeProjects: _ap,
-      completedProjects: _cp,
-      cancelledProjects: _x,
-      totalContractValue: _tcv,
-      totalInvoiced: _ti,
-      totalPaid: _tpd,
-      avgSatisfactionScore: _as,
-      lastProjectAt: _lp,
-      portalAccessToken: _pat,
-      portalTokenExpiresAt: _pte,
-      userId: _u,
-      intakeCompleted: _ic,
-      ...safeClient
-    } = client;
+    const safeClient = omitKeys(client, [
+      "totalProjects",
+      "activeProjects",
+      "completedProjects",
+      "cancelledProjects",
+      "totalContractValue",
+      "totalInvoiced",
+      "totalPaid",
+      "avgSatisfactionScore",
+      "lastProjectAt",
+      "portalAccessToken",
+      "portalTokenExpiresAt",
+      "userId",
+      "intakeCompleted",
+    ] as const);
 
     return {
       client: safeClient,
@@ -118,8 +127,8 @@ export class ClientProfileService {
       let result;
 
       if (existing) {
-        const { createdBy: _, ...rest } = plainDto;
-        const updateData = rest as Prisma.ClientProfileUpdateInput;
+        const updateData = omitKeys(plainDto, ["createdBy"] as const) as
+          Prisma.ClientProfileUpdateInput;
 
         result = await tx.clientProfile.update({
           where: { clientId },
@@ -145,16 +154,15 @@ export class ClientProfileService {
       return result;
     });
 
+    const eventType = existing
+      ? "CLIENT_PROFILE_UPDATED"
+      : "CLIENT_PROFILE_CREATED";
     await this.prisma.clientHistoryLog.create({
       data: {
         clientId,
         userId: user.id,
-        eventType: existing
-          ? "CLIENT_PROFILE_UPDATED"
-          : "CLIENT_PROFILE_CREATED",
-        description: existing
-          ? "Client profile updated"
-          : "Client profile created",
+        eventType,
+        description: eventType,
         metadata: { profileId: profile.id },
       },
     });
@@ -238,16 +246,15 @@ export class ClientProfileService {
       return result;
     });
 
+    const eventType = existing
+      ? "CLIENT_PROFILE_UPDATED"
+      : "CLIENT_PROFILE_CREATED";
     await this.prisma.clientHistoryLog.create({
       data: {
         clientId,
         userId: user.id,
-        eventType: existing
-          ? "CLIENT_PROFILE_UPDATED"
-          : "CLIENT_PROFILE_CREATED",
-        description: existing
-          ? "Client profile updated (V2)"
-          : "Client profile created (V2)",
+        eventType,
+        description: eventType,
         metadata: { profileId: profile.id },
       },
     });

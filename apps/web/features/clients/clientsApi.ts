@@ -159,6 +159,44 @@ export interface ClientFilters {
   limit?: number;
 }
 
+export type PmClientProfileInfo = Pick<
+  ClientProfile,
+  | "id"
+  | "clientId"
+  | "productInfo"
+  | "audienceInfo"
+  | "brandVoice"
+  | "customerJourney"
+  | "campaignInfo"
+  | "visualIdentityInfo"
+  | "createdAt"
+  | "updatedAt"
+> & {
+  communicationInfo?:
+    | Pick<
+        NonNullable<ClientProfile["communicationInfo"]>,
+        "businessName" | "businessType" | "industry"
+      >
+    | null;
+};
+
+export interface PmClientTeamView {
+  client: Pick<
+    Client,
+    | "id"
+    | "companyName"
+    | "businessName"
+    | "businessType"
+    | "kind"
+    | "status"
+    | "createdAt"
+    | "updatedAt"
+  > & {
+    manager?: { id: string; name: string } | null;
+  };
+  profile: PmClientProfileInfo | null;
+}
+
 export interface HandoverInput {
   name: string;
   managerId: string;
@@ -318,10 +356,7 @@ export const clientsApi = createApi({
     }),
 
     /** GET /v1/pm/clients/:id/team-view — PM-owned client view */
-    getPmClientTeamView: builder.query<
-      { client: Client; profile: ClientProfile | null },
-      string
-    >({
+    getPmClientTeamView: builder.query<PmClientTeamView, string>({
       query: (id) => `/pm/clients/${id}/team-view`,
       providesTags: (_result, _err, id) => [
         { type: "Client", id },
