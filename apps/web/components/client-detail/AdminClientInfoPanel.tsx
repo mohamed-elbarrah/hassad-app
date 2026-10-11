@@ -2,11 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { ErrorState } from "@/components/design-system/EmptyState";
-import {
-  buildDefaultClientStats,
-  ClientProfileCard,
-  ClientProfileOverviewCard,
-} from "@/components/client-detail/ClientDetailPattern";
+import { ClientInfoCards } from "@/components/client-detail/ClientInfoCards";
 import type { AdminClientFullDetail } from "@/features/admin/adminClientsApi";
 import { adminErrorMessage } from "@/lib/i18n";
 import { mapAdminClientDetail } from "@/lib/mapAdminClientDetail";
@@ -67,23 +63,5 @@ export function AdminClientInfoPanel({
     );
   }
 
-  const clientEntity = mapAdminClientDetail(client);
-
-  return (
-    <div className="grid min-w-0 items-start gap-6 xl:grid-cols-2">
-      <ClientProfileOverviewCard
-        client={clientEntity}
-        profile={clientEntity.profile}
-        stats={buildDefaultClientStats(clientEntity, "admin")}
-      />
-      <ClientProfileCard
-        client={clientEntity}
-        profile={clientEntity.profile}
-        mode="admin"
-        title="بيانات النشاط"
-        description="المعلومات التعريفية والتسويقية المسجلة للعميل."
-        businessOnly
-      />
-    </div>
-  );
+  return <ClientInfoCards client={mapAdminClientDetail(client)} />;
 }

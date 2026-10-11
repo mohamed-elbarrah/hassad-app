@@ -20,6 +20,7 @@ import {
   UpsertClientProfileV2Dto,
 } from "../crm/dto/client-profile.dto";
 import { SalesClientQueryDto } from "./dto/sales-query.dto";
+import { SalesClientInfoService } from "./sales-client-info.service";
 
 type AuthUser = {
   id: string;
@@ -36,11 +37,17 @@ export class SalesClientsController {
     private readonly profileService: ClientProfileService,
     private readonly projectsService: ProjectsService,
     private readonly financeService: FinanceService,
+    private readonly clientInfoService: SalesClientInfoService,
   ) {}
 
   @Get()
   findAll(@Query() filters: SalesClientQueryDto) {
     return this.clientsService.findAllForSales(filters);
+  }
+
+  @Get(":id/info")
+  getClientInfo(@Param("id") id: string) {
+    return this.clientInfoService.getByClientId(id);
   }
 
   @Get(":id/profile/v2")

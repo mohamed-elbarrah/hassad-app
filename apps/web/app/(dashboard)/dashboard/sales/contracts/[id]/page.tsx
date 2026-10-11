@@ -15,6 +15,7 @@ import {
   ContractDetailView,
 } from "@/components/contract-detail/ContractDetailPattern";
 import { Button } from "@/components/ui/button";
+import { SalesClientInfoPanel } from "@/components/client-detail/SalesClientInfoPanel";
 import { SalesContractSendAction } from "@/components/dashboard/sales/SalesContractSendAction";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -35,12 +36,13 @@ export default function SalesContractDetailPage({
 }) {
   const { id } = use(params);
   const {
-    data: contract,
+    currentData: contract,
     error,
     isLoading,
     isError,
   } = useGetSalesContractDetailQuery(id);
   const [copied, setCopied] = useState(false);
+  const [clientTabEnabled, setClientTabEnabled] = useState(false);
   const [getShareLink, { isFetching: isShareLinkFetching }] =
     useLazyGetSalesContractShareLinkQuery();
 
@@ -91,9 +93,19 @@ export default function SalesContractDetailPage({
   }
 
   return (
-    <>
-      <ContractDetailView
+    <ContractDetailView
+      key={contract.id}
       contract={contract}
+      showClientTab
+      clientTabContent={
+        clientTabEnabled ? (
+          <SalesClientInfoPanel
+            clientId={contract.clientId}
+            active={clientTabEnabled}
+          />
+        ) : null
+      }
+      onClientTabSelect={() => setClientTabEnabled(true)}
       backHref="/dashboard/sales/contracts"
       backLabel="العودة إلى العقود"
       fileUrl={contract.filePath ? buildPortalFileUrl(contract.filePath) : null}
@@ -139,7 +151,6 @@ export default function SalesContractDetailPage({
           </Button>
         </>
       }
-      />
-    </>
+    />
   );
 }

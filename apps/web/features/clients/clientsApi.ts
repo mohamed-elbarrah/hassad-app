@@ -127,6 +127,22 @@ export interface UpsertClientProfileV2Input {
 
 // ── Response types ────────────────────────────────────────────────────────────
 
+export interface SalesClientInfo extends Client {
+  source?: string | null;
+  hasPortalAccess: boolean;
+  lastLoginAt?: string | null;
+  lastSeenAt?: string | null;
+  signedContractValue?: number | null;
+  counters: {
+    contracts: number;
+    projects: number;
+    invoices: number;
+    payments: number;
+    proposals: number;
+    requests: number;
+  };
+}
+
 export interface PaginatedClients {
   items: Client[];
   total: number;
@@ -260,6 +276,11 @@ export const clientsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Client", id }],
     }),
 
+    getSalesClientInfo: builder.query<SalesClientInfo, string>({
+      query: (id) => `/sales/clients/${id}/info`,
+      providesTags: (_result, _error, id) => [{ type: "Client", id }],
+    }),
+
     /** GET /v1/sales/clients/:id/profile */
     getSalesClientProfile: builder.query<ClientProfile | null, string>({
       query: (id) => `/sales/clients/${id}/profile`,
@@ -388,6 +409,7 @@ export const {
   useGetClientByIdQuery,
   useGetSalesClientsQuery,
   useGetSalesClientByIdQuery,
+  useGetSalesClientInfoQuery,
   useCreateClientMutation,
   useUpdateClientMutation,
   useHandoverClientMutation,

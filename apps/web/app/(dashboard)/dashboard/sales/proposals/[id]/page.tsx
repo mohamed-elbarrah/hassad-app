@@ -28,7 +28,7 @@ export default function SalesProposalDetailPage({
 }) {
   const { id } = use(params);
   const {
-    data: proposal,
+    currentData: proposal,
     isLoading,
     isError,
     error,
@@ -92,6 +92,7 @@ export default function SalesProposalDetailPage({
 
   return (
     <SalesProposalDetailView
+      key={proposal.id}
       proposal={proposal}
       backHref="/dashboard/sales/proposals"
       backLabel="العودة إلى العروض"
