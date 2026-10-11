@@ -393,12 +393,14 @@ export function TaskInfoGrid({
 export function TaskTabsCard({
   defaultValue,
   tabs,
+  onValueChange,
 }: {
   defaultValue: string;
   tabs: TaskTabItem[];
+  onValueChange?: (value: string) => void;
 }) {
   return (
-    <Tabs defaultValue={defaultValue} dir="rtl" className="w-full">
+    <Tabs defaultValue={defaultValue} onValueChange={onValueChange} dir="rtl" className="w-full">
       <Card>
         <CardHeader className="gap-4">
           <TabsList className="grid h-auto w-full grid-cols-2 gap-2 md:flex md:flex-wrap">

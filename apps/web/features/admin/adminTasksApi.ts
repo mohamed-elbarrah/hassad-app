@@ -88,7 +88,11 @@ export interface AdminTaskDetail {
   createdAt: string;
   updatedAt: string;
   archivedAt: string | null;
-  project: { id: string; name: string };
+  project: {
+    id: string;
+    name: string;
+    client: { id: string; companyName: string } | null;
+  };
   assignee: { id: string; name: string; email: string } | null;
   creator: { id: string; name: string };
   department: { name: string } | null;

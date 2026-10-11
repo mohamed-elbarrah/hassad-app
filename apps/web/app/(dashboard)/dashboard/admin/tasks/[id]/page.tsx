@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Paperclip,
   SquareCheckBig,
+  UserRound,
 } from "lucide-react";
 import {
   useForceTransitionAdminTaskMutation,
@@ -18,6 +19,10 @@ import {
   useReassignAdminTaskMutation,
   type AdminTaskDetail,
 } from "@/features/admin/adminTasksApi";
+import {
+  useLazyGetAdminClientByIdQuery,
+  type AdminClientFullDetail,
+} from "@/features/admin/adminClientsApi";
 import {
   adminErrorMessage,
   adminSuccessMessage,
@@ -38,6 +43,12 @@ import {
   type TaskDetailEntity,
   type TaskTabItem,
 } from "@/components/task-detail/TaskDetailPattern";
+import {
+  buildDefaultClientStats,
+  ClientProfileCard,
+  ClientProfileOverviewCard,
+  type ClientDetailEntity,
+} from "@/components/client-detail/ClientDetailPattern";
 import { ErrorState } from "@/components/design-system/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,6 +81,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+function mapClient(client: AdminClientFullDetail): ClientDetailEntity {
+  return {
+    id: client.id,
+    companyName: client.companyName,
+    businessName: client.businessName,
+    businessType: client.businessType,
+    status: client.status,
+    createdAt: client.createdAt,
+    updatedAt: client.updatedAt,
+    source: client.source,
+    hasPortalAccess: client.hasPortalAccess,
+    lastLoginAt: client.lastLoginAt,
+    lastSeenAt: client.lastSeenAt,
+    totalProjects: client.totalProjects,
+    activeProjects: client.activeProjects,
+    completedProjects: client.completedProjects,
+    totalContractValue: client.totalContractValue,
+    signedContractValue: client.signedContractValue,
+    totalInvoiced: client.totalInvoiced,
+    totalPaid: client.totalPaid,
+    avgSatisfactionScore: client.avgSatisfactionScore,
+    profile: client.profile,
+    manager: client.managerName ? { name: client.managerName } : null,
+    user: client.user,
+    counters: client.counters,
+  };
+}
+
 function mapTask(task: AdminTaskDetail): TaskDetailEntity {
   return {
     id: task.id,
@@ -98,12 +137,7 @@ function mapTask(task: AdminTaskDetail): TaskDetailEntity {
   };
 }
 
-export default function TaskDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+function TaskDetailContent({ id }: { id: string }) {
   const {
     data: task,
     isLoading,
@@ -111,6 +145,13 @@ export default function TaskDetailPage({
     error: loadError,
     refetch,
   } = useGetAdminTaskByIdQuery(id);
+  const clientId = task?.project.client?.id;
+  const [loadClient, {
+    currentData: clientDetail,
+    isFetching: isClientLoading,
+    isError: isClientError,
+    error: clientError,
+  }] = useLazyGetAdminClientByIdQuery();
   const [
     forceTransition,
     {
@@ -179,6 +220,7 @@ export default function TaskDetailPage({
     commentsCount: task.comments.length,
     filesCount: task.files.length,
   });
+  const clientEntity = clientDetail ? mapClient(clientDetail) : null;
   const tabs: TaskTabItem[] = [
     {
       value: "overview",
@@ -318,6 +360,46 @@ export default function TaskDetailPage({
         </div>
       ),
     },
+    {
+      value: "client",
+      label: "العميل",
+      icon: UserRound,
+      content: !clientId ? (
+        <Card>
+          <CardContent className="p-6 text-sm text-muted-foreground">
+            لا يوجد عميل مرتبط بهذه المهمة.
+          </CardContent>
+        </Card>
+      ) : isClientLoading ? (
+        <Card>
+          <CardContent className="p-6 text-sm text-muted-foreground" aria-live="polite">
+            جارٍ تحميل بيانات العميل…
+          </CardContent>
+        </Card>
+      ) : isClientError ? (
+        <ErrorState
+          title="تعذّر تحميل بيانات العميل"
+          message={adminErrorMessage(clientError)}
+          onRetry={() => clientId && loadClient(clientId)}
+        />
+      ) : clientEntity ? (
+        <div className="grid min-w-0 items-start gap-6 xl:grid-cols-2">
+          <ClientProfileOverviewCard
+            client={clientEntity}
+            profile={clientEntity.profile}
+            stats={buildDefaultClientStats(clientEntity, "admin")}
+          />
+          <ClientProfileCard
+            client={clientEntity}
+            profile={clientEntity.profile}
+            mode="admin"
+            title="بيانات النشاط"
+            description="المعلومات التعريفية والتسويقية المسجلة للعميل."
+            businessOnly
+          />
+        </div>
+      ) : null,
+    },
   ];
 
   return (
@@ -432,7 +514,9 @@ export default function TaskDetailPage({
             <div className="flex flex-wrap gap-2">
               <Button
                 disabled={!assigneeId || !reason || isReassigning || isTransitioning}
-                onClick={() => reassign({ id, assigneeId, reason }).unwrap()}
+                onClick={() => {
+                  void reassign({ id, assigneeId, reason }).unwrap().catch(() => undefined);
+                }}
               >
                 إعادة تعيين المهمة
               </Button>
@@ -440,11 +524,11 @@ export default function TaskDetailPage({
                 variant="outline"
                 disabled={!nextStatus || !reason || isTransitioning || isReassigning}
                 onClick={() =>
-                  forceTransition({
+                  void forceTransition({
                     id,
                     status: nextStatus as TaskStatus,
                     reason,
-                  }).unwrap()
+                  }).unwrap().catch(() => undefined)
                 }
               >
                 تغيير الحالة
@@ -454,7 +538,23 @@ export default function TaskDetailPage({
         </Card>
       ) : null}
 
-      <TaskTabsCard defaultValue="overview" tabs={tabs} />
+      <TaskTabsCard
+        key={id}
+        defaultValue="overview"
+        tabs={tabs}
+        onValueChange={(value) => {
+          if (value === "client" && clientId) loadClient(clientId);
+        }}
+      />
     </div>
   );
+}
+
+export default function TaskDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  return <TaskDetailContent key={id} id={id} />;
 }
