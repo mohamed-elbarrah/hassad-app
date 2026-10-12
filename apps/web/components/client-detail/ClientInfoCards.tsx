@@ -18,7 +18,7 @@ export function ClientInfoCards({
 }) {
   const clientStats =
     stats ??
-    (mode === "internal" || mode === "pm"
+    (mode === "internal" || mode === "operational"
       ? []
       : buildDefaultClientStats(client, mode));
 

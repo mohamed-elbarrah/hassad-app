@@ -9,9 +9,7 @@ import { Prisma } from "@prisma/client";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
   CampaignStatus,
-  CampaignPlatform,
   KpiSource,
-  TaskDepartment,
   MarketingStrategyStatus,
   NotificationEventType,
 } from "@hassad/shared";
@@ -607,14 +605,19 @@ export class CampaignsService {
       throw new NotFoundException({ code: "CAMPAIGN_NOT_FOUND", details: {} });
     }
 
-    const {
-      id: _,
-      createdAt: __,
-      updatedAt: ___,
-      budgetSpent,
-      needsOptimization,
-      ...data
-    } = original;
+    const omittedFields = new Set([
+      "id",
+      "createdAt",
+      "updatedAt",
+      "budgetSpent",
+      "needsOptimization",
+    ]);
+    const data = Object.fromEntries(
+      Object.entries(original).filter(([key]) => !omittedFields.has(key)),
+    ) as Omit<
+      typeof original,
+      "id" | "createdAt" | "updatedAt" | "budgetSpent" | "needsOptimization"
+    >;
 
     return this.prisma.campaign.create({
       data: {

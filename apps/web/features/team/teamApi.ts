@@ -8,6 +8,30 @@ import type {
   TaskReviewStage,
   FilePurpose,
 } from "@hassad/shared";
+import type { OperationalClientInfoView } from "@/features/clients/clientInfo.types";
+
+export interface TeamTaskDetail extends Task {
+  project?: {
+    id: string;
+    name: string;
+    clientId: string;
+    client?: { id: string; companyName: string };
+  };
+  assignee?: { id: string; name: string };
+  creator?: { id: string; name: string };
+  department?: { id: string; name: string };
+  startedAt?: string | Date | null;
+  submittedAt?: string | Date | null;
+  approvedAt?: string | Date | null;
+  isVisibleToClient?: boolean | null;
+  statusHistory?: Array<{
+    id: string;
+    fromStatus: string;
+    toStatus: string;
+    changedAt?: string | Date | null;
+    changer?: { name?: string | null } | null;
+  }>;
+}
 
 export interface TeamTaskCard extends Pick<
   Task,
@@ -74,7 +98,12 @@ export type TeamFilePage = TeamPage<TaskFile>;
 export const teamApi = createApi({
   reducerPath: "teamApi",
   baseQuery,
-  tagTypes: ["TeamTask", "TeamTaskComments", "TeamTaskFiles"],
+  tagTypes: [
+    "TeamTask",
+    "TeamTaskComments",
+    "TeamTaskFiles",
+    "TeamClientInfo",
+  ],
   endpoints: (builder) => ({
     getTeamOverview: builder.query<TeamOverview, TeamTasksParams | void>({
       query: (params = {}) => ({
@@ -83,9 +112,15 @@ export const teamApi = createApi({
       }),
       providesTags: [{ type: "TeamTask", id: "LIST" }],
     }),
-    getTeamTask: builder.query<Task, string>({
+    getTeamTask: builder.query<TeamTaskDetail, string>({
       query: (id) => `/team/tasks/${id}`,
       providesTags: (_r, _e, id) => [{ type: "TeamTask", id }],
+    }),
+    getTeamClientInfo: builder.query<OperationalClientInfoView, string>({
+      query: (clientId) => `/team/clients/${clientId}`,
+      providesTags: (_result, _error, clientId) => [
+        { type: "TeamClientInfo", id: clientId },
+      ],
     }),
     changeTeamTaskStatus: builder.mutation<
       Task,
@@ -170,6 +205,7 @@ export const {
   useGetTeamTasksQuery,
   useLazyGetTeamTasksQuery,
   useGetTeamTaskQuery,
+  useGetTeamClientInfoQuery,
   useChangeTeamTaskStatusMutation,
   useGetTeamTaskCommentsQuery,
   useAddTeamTaskCommentMutation,

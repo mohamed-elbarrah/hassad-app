@@ -18,6 +18,7 @@ import type {
   PaginatedInvoices,
   InvoiceFilters,
 } from "@/features/finance/financeApi";
+import type { OperationalClientInfoView } from "@/features/clients/clientInfo.types";
 
 // ── V2 Profile Types (unified with IntakeFormV2) ────────────────────────────────
 
@@ -159,43 +160,7 @@ export interface ClientFilters {
   limit?: number;
 }
 
-export type PmClientProfileInfo = Pick<
-  ClientProfile,
-  | "id"
-  | "clientId"
-  | "productInfo"
-  | "audienceInfo"
-  | "brandVoice"
-  | "customerJourney"
-  | "campaignInfo"
-  | "visualIdentityInfo"
-  | "createdAt"
-  | "updatedAt"
-> & {
-  communicationInfo?:
-    | Pick<
-        NonNullable<ClientProfile["communicationInfo"]>,
-        "businessName" | "businessType" | "industry"
-      >
-    | null;
-};
-
-export interface PmClientTeamView {
-  client: Pick<
-    Client,
-    | "id"
-    | "companyName"
-    | "businessName"
-    | "businessType"
-    | "kind"
-    | "status"
-    | "createdAt"
-    | "updatedAt"
-  > & {
-    manager?: { id: string; name: string } | null;
-  };
-  profile: PmClientProfileInfo | null;
-}
+export type PmClientTeamView = OperationalClientInfoView;
 
 export interface HandoverInput {
   name: string;
@@ -364,18 +329,6 @@ export const clientsApi = createApi({
       ],
     }),
 
-    /** GET /v1/clients/:id/team-view — legacy shared team view */
-    getClientTeamView: builder.query<
-      { client: Client; profile: ClientProfile | null },
-      string
-    >({
-      query: (id) => `/clients/${id}/team-view`,
-      providesTags: (_result, _err, id) => [
-        { type: "Client", id },
-        { type: "ClientProfile", id },
-      ],
-    }),
-
     /** PUT /v1/clients/:id/profile */
     upsertClientProfile: builder.mutation<
       ClientProfile,
@@ -453,7 +406,6 @@ export const {
   useGetSalesClientProjectsQuery,
   useGetSalesClientInvoicesQuery,
   useGetPmClientTeamViewQuery,
-  useGetClientTeamViewQuery,
   useUpsertClientProfileMutation,
   useGetClientProfileV2Query,
   useUpsertClientProfileV2Mutation,

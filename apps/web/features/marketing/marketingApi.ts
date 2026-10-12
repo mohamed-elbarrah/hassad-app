@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "../../lib/baseQuery";
+import type { OperationalClientInfoView } from "@/features/clients/clientInfo.types";
 import {
   Campaign,
   CampaignAnalytics,
@@ -64,7 +65,7 @@ export interface MarketingTask extends Task {
     id: string;
     name: string;
     clientId: string;
-    client?: { companyName: string; businessType: string };
+    client?: { companyName: string; businessType?: string };
   };
   campaigns?: Array<{ id: string; name: string; conversions?: number }>;
 }
@@ -142,6 +143,7 @@ export const marketingApi = createApi({
     "TaskStrategy",
     "Strategy",
     "MarketingTasks",
+    "MarketingClientInfo",
   ],
   endpoints: (builder) => ({
     // ── Marketing-owned task endpoints ──────────────────────────────────
@@ -171,6 +173,12 @@ export const marketingApi = createApi({
     getMarketingTaskById: builder.query<MarketingTask, string>({
       query: (id) => `/marketing/tasks/${id}`,
       providesTags: (_result, _error, id) => [{ type: "MarketingTasks", id }],
+    }),
+    getMarketingClientInfo: builder.query<OperationalClientInfoView, string>({
+      query: (clientId) => `/marketing/clients/${clientId}`,
+      providesTags: (_result, _error, clientId) => [
+        { type: "MarketingClientInfo", id: clientId },
+      ],
     }),
     getMarketingTaskComments: builder.query<TaskComment[], string>({
       query: (id) => `/marketing/tasks/${id}/comments`,
@@ -466,6 +474,7 @@ export const {
   useGetMarketingOverviewQuery,
   useGetMarketingTasksQuery,
   useGetMarketingTaskByIdQuery,
+  useGetMarketingClientInfoQuery,
   useChangeMarketingTaskStatusMutation,
   useGetMarketingTaskCommentsQuery,
   useAddMarketingTaskCommentMutation,

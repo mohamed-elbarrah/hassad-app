@@ -1,10 +1,10 @@
 import type { ClientDetailEntity } from "@/components/client-detail/ClientDetailPattern";
-import type { PmClientTeamView } from "@/features/clients/clientsApi";
+import type { OperationalClientInfoView } from "@/features/clients/clientInfo.types";
 
-export function mapPmClientTeamView(
-  teamView: PmClientTeamView,
+export function mapOperationalClientInfoView(
+  view: OperationalClientInfoView,
 ): ClientDetailEntity {
-  const { client, profile } = teamView;
+  const { client, profile } = view;
 
   return {
     id: client.id,
@@ -14,7 +14,6 @@ export function mapPmClientTeamView(
     status: client.status,
     createdAt: client.createdAt,
     updatedAt: client.updatedAt,
-    manager: client.manager,
     profile,
   };
 }

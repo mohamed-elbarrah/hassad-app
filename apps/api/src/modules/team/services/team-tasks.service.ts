@@ -166,9 +166,24 @@ export class TeamTasksService {
   async detail(userId: string, taskId: string) {
     await this.ownedTask(userId, taskId);
     const task = await this.tasksService.findOne(taskId);
+    const { project, ...taskDetails } = task;
+
     return {
-      ...task,
-      comments: task.comments.filter((comment: any) => !comment.isInternal),
+      ...taskDetails,
+      project: project
+        ? {
+            id: project.id,
+            name: project.name,
+            clientId: project.clientId,
+            client: project.client
+              ? {
+                  id: project.client.id,
+                  companyName: project.client.companyName,
+                }
+              : null,
+          }
+        : null,
+      comments: task.comments.filter((comment) => !comment.isInternal),
     };
   }
 

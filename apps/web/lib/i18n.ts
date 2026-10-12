@@ -915,7 +915,12 @@ const SALES_WORKFLOW_FIELD_MESSAGES: Record<string, string> = {
 export function clientWorkflowErrorMessage(error: unknown): string {
   const payload = getApiErrorPayload(error);
   const code = payload.data?.error?.code;
-  if (code === "CLIENT_NOT_FOUND" || code === "CLIENT_PROFILE_NOT_FOUND") {
+  if (
+    code === "CLIENT_NOT_FOUND" ||
+    code === "CLIENT_PROFILE_NOT_FOUND" ||
+    code === "TEAM_CLIENT_NOT_FOUND" ||
+    code === "MARKETING_CLIENT_NOT_FOUND"
+  ) {
     return "لم يتم العثور على بيانات العميل.";
   }
   if (code === "CLIENT_PROFILE_ACCESS_DENIED") {

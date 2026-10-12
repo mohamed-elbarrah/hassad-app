@@ -10,7 +10,6 @@ import {
   Delete,
   UploadedFile,
   UseInterceptors,
-  Redirect,
   BadRequestException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -22,7 +21,11 @@ import {
   UploadTaskFileDto,
   CreateTaskCommentDto,
 } from "../dto/task.dto";
-import { TaskDepartment, TaskStatus } from "@hassad/shared";
+import {
+  TaskDepartment,
+  TaskStatus,
+  type UserRole,
+} from "@hassad/shared";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -168,13 +171,18 @@ export class TasksController {
 
   @Get(":id/files/:fileId/download")
   @RequirePermissions("tasks.read")
-  @Redirect()
   async downloadFile(
     @Param("id") taskId: string,
     @Param("fileId") fileId: string,
+    @CurrentUser() user: { id: string; role: UserRole },
   ) {
-    const presignedUrl = await this.tasksService.getDownloadUrl(taskId, fileId);
-    return { url: presignedUrl, statusCode: 302 };
+    const url = await this.tasksService.getAuthorizedDownloadUrl(
+      taskId,
+      fileId,
+      user.id,
+      user.role,
+    );
+    return { url };
   }
 
   @Get(":id/files")

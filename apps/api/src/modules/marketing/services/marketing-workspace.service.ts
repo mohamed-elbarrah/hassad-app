@@ -4,7 +4,6 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import {
-  CampaignPlatform,
   CampaignStatus,
   MarketingStrategyStatus,
   TaskDepartment,
@@ -213,12 +212,23 @@ export class MarketingWorkspaceService {
   async taskDetail(userId: string, taskId: string) {
     await this.ownedTask(userId, taskId);
     const task = await this.tasks.findOne(taskId);
+    const { project, ...taskDetails } = task;
     const [strategy, campaigns] = await Promise.all([
       this.strategies.findByTask(taskId),
       this.campaigns.findByTask(taskId),
     ]);
     return {
-      ...task,
+      ...taskDetails,
+      project: project
+        ? {
+            id: project.id,
+            name: project.name,
+            clientId: project.clientId,
+            client: project.client
+              ? { companyName: project.client.companyName }
+              : null,
+          }
+        : null,
       comments: task.comments.filter((comment) => !comment.isInternal),
       marketing: { strategy, campaigns },
     };

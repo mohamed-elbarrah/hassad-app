@@ -12,6 +12,7 @@ export default function MarketingTaskDetailPage({
 
   return (
     <TaskWorkspaceDetail
+      key={taskId}
       taskId={taskId}
       listHref="/dashboard/marketing/tasks"
       listLabel="المهام التسويقية"
