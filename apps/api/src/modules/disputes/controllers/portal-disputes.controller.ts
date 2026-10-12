@@ -70,14 +70,18 @@ export class PortalDisputesController {
   @Get(":id")
   async getDisputeById(@CurrentUser() user: any, @Param("id") id: string) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new NotFoundException("التذكرة غير موجودة");
+    if (!clientId) {
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
+    }
     return this.disputesService.getClientDisputeById(clientId, id);
   }
 
   @Get(":id/threads")
   async getThreads(@CurrentUser() user: any, @Param("id") id: string) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new NotFoundException("التذكرة غير موجودة");
+    if (!clientId) {
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
+    }
     return this.disputesService.getClientThreads(clientId, id);
   }
 
@@ -89,7 +93,9 @@ export class PortalDisputesController {
     threadType: DisputeThreadType,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) throw new NotFoundException("التذكرة غير موجودة");
+    if (!clientId) {
+      throw new NotFoundException({ code: "DISPUTE_NOT_FOUND", details: {} });
+    }
     return this.disputesService.getClientThreadMessages(clientId, id, threadType);
   }
 

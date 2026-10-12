@@ -31,6 +31,7 @@ import {
   type RequestStatusHistoryItem,
 } from "@/features/requests/requestsApi";
 import { RequestContactLogDialog } from "@/components/request-detail/RequestContactLogDialog";
+import { SalesClientInfoPanel } from "@/components/client-detail/SalesClientInfoPanel";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -999,6 +1000,7 @@ export function SalesRequestWorkspace({
   isUpdatingStage?: boolean;
   isAddingContactLog?: boolean;
 }) {
+  const [clientTabEnabled, setClientTabEnabled] = useState(false);
   const stageLabel = requestStatusLabel(request.status);
   const recordCount =
     request.proposals.length +
@@ -1064,7 +1066,14 @@ export function SalesRequestWorkspace({
 
       <ClientCard request={request} />
 
-      <Tabs defaultValue="overview" dir="rtl" className="flex flex-col gap-4">
+      <Tabs
+        defaultValue="overview"
+        dir="rtl"
+        onValueChange={(value) => {
+          if (value === "client") setClientTabEnabled(true);
+        }}
+        className="flex flex-col gap-4"
+      >
         <div className="overflow-x-auto">
           <TabsList className="min-w-max">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
@@ -1072,6 +1081,7 @@ export function SalesRequestWorkspace({
             <TabsTrigger value="records">
               السجلات التجارية ({formatNumber(recordCount)})
             </TabsTrigger>
+            <TabsTrigger value="client">العميل</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="overview" className="mt-0">
@@ -1115,6 +1125,14 @@ export function SalesRequestWorkspace({
         </TabsContent>
         <TabsContent value="records" className="mt-0">
           <CommercialRecords request={request} />
+        </TabsContent>
+        <TabsContent value="client" className="mt-0">
+          {clientTabEnabled ? (
+            <SalesClientInfoPanel
+              clientId={request.clientId}
+              active={clientTabEnabled}
+            />
+          ) : null}
         </TabsContent>
       </Tabs>
     </div>

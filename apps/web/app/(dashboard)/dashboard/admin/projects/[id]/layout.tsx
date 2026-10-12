@@ -39,6 +39,7 @@ const TABS = [
   { key: "/deliverables", label: "التسليمات" },
   { key: "/team", label: "الفريق" },
   { key: "/finance", label: "المالية" },
+  { key: "/client", label: "العميل" },
 ];
 
 export default function ProjectDetailLayout({

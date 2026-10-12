@@ -1,6 +1,6 @@
 import { Type } from "class-transformer";
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
-import { IssueSeverity, IssueStatus } from "@prisma/client";
+import { IssueStatus } from "@prisma/client";
 
 export class CommunicationListQueryDto {
   @IsOptional()
@@ -24,7 +24,4 @@ export class CommunicationListQueryDto {
   @IsEnum(IssueStatus)
   status?: IssueStatus;
 
-  @IsOptional()
-  @IsEnum(IssueSeverity)
-  severity?: IssueSeverity;
 }

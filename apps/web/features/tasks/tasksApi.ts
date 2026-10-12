@@ -165,7 +165,7 @@ export const tasksApi = createApi({
         { type: "Task", id: "PM_STATS" },
         {
           type: "Task",
-          id: `PROJECT_${"projectId" in body ? (body as any).projectId : ""}`,
+          id: `PROJECT_${body.projectId}`,
         },
       ],
     }),
@@ -413,6 +413,15 @@ export const tasksApi = createApi({
       ],
     }),
 
+    /** GET /v1/tasks/:taskId/files/:fileId/download */
+    getTaskFileDownloadUrl: builder.query<
+      { url: string },
+      { taskId: string; fileId: string }
+    >({
+      query: ({ taskId, fileId }) =>
+        `/tasks/${taskId}/files/${fileId}/download`,
+    }),
+
     /** GET /v1/tasks/:taskId/comments */
     getTaskComments: builder.query<TaskComment[], string>({
       query: (taskId) => `/tasks/${taskId}/comments`,
@@ -576,6 +585,7 @@ export const {
   useLazyGetPmTaskFileDownloadQuery,
   useUploadTaskFileMutation,
   useDeleteTaskFileMutation,
+  useLazyGetTaskFileDownloadUrlQuery,
   useGetTaskCommentsQuery,
   useAddTaskCommentMutation,
   useStartTaskMutation,

@@ -11,6 +11,8 @@ import {
   useCloseDisputeMutation,
   useGetAdminDisputeByIdQuery,
 } from "@/features/admin/adminDisputesApi";
+import { useLazyGetAdminClientByIdQuery } from "@/features/admin/adminClientsApi";
+import { AdminClientInfoPanel } from "@/components/client-detail/AdminClientInfoPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +32,13 @@ export default function DisputeDetailPage({
   const [changePmDialogOpen, setChangePmDialogOpen] = useState(false);
   const [closeNote, setCloseNote] = useState("");
 
-  const { data: dispute, isLoading, isError, refetch, error } = useGetAdminDisputeByIdQuery(id);
+  const { currentData: dispute, isLoading, isError, refetch, error } = useGetAdminDisputeByIdQuery(id);
+  const [loadClient, clientQuery] = useLazyGetAdminClientByIdQuery();
+  const clientId = dispute?.clientId;
+  const clientDetail = clientQuery.currentData;
+  const hasCurrentClient = Boolean(clientId && clientDetail?.id === clientId);
+  const isClientQueryError =
+    clientQuery.isError && clientQuery.originalArgs === clientId;
   const [addInternalMessage, { isLoading: isSendingMessage }] =
     useAddAdminDisputeMessageMutation();
   const [closeDispute, { isLoading: isClosing }] = useCloseDisputeMutation();
@@ -195,7 +203,33 @@ export default function DisputeDetailPage({
   return (
     <>
       <DisputeDetailPattern
+        key={dispute.id}
         audience="admin"
+        showClientTab
+        clientTabContent={
+          <AdminClientInfoPanel
+            clientId={clientId}
+            client={hasCurrentClient ? clientDetail : undefined}
+            isLoading={
+              clientQuery.isFetching ||
+              Boolean(clientId && !hasCurrentClient && !isClientQueryError)
+            }
+            error={isClientQueryError ? clientQuery.error : undefined}
+            onRetry={() => {
+              if (clientId) loadClient(clientId);
+            }}
+          />
+        }
+        onClientTabSelect={() => {
+          if (
+            clientId &&
+            !hasCurrentClient &&
+            !clientQuery.isFetching &&
+            !isClientQueryError
+          ) {
+            loadClient(clientId);
+          }
+        }}
         title="تفاصيل النزاع"
         backHref="/dashboard/admin/disputes"
         backLabel="العودة إلى النزاعات"

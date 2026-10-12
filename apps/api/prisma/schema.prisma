@@ -113,7 +113,6 @@ model User {
   createdAnnouncements  Announcement[] @relation("AnnouncementCreator")
   announcementStates    AnnouncementUserState[]
   reportedIssues        IssueReport[] @relation("IssueReporter")
-  assignedIssues        IssueReport[] @relation("IssueAssignee")
   issueMessages         IssueMessage[]
   issueHistoryChanges   IssueHistory[]
   uploadedIssueAttachments IssueAttachment[] @relation("IssueAttachmentUploader")
@@ -2038,15 +2037,6 @@ enum AnnouncementType {
   @@map("announcement_types")
 }
 
-enum AnnouncementPriority {
-  LOW
-  NORMAL
-  HIGH
-  CRITICAL
-
-  @@map("announcement_priorities")
-}
-
 enum AnnouncementAudienceType {
   ALL_STAFF
   ADMIN
@@ -2065,7 +2055,6 @@ model Announcement {
   title                 String
   body                  String               @db.Text
   type                  AnnouncementType     @default(INFO)
-  priority              AnnouncementPriority @default(NORMAL)
   status                AnnouncementStatus   @default(DRAFT)
   startsAt              DateTime?            @map("starts_at")
   expiresAt             DateTime?            @map("expires_at")
@@ -2129,15 +2118,6 @@ enum IssueCategory {
   @@map("issue_categories")
 }
 
-enum IssueSeverity {
-  LOW
-  NORMAL
-  HIGH
-  CRITICAL
-
-  @@map("issue_severities")
-}
-
 enum IssueStatus {
   OPEN
   IN_PROGRESS
@@ -2154,25 +2134,21 @@ model IssueReport {
   reporterId   String            @map("reporter_id")
   source       IssueReportSource
   category     IssueCategory
-  severity     IssueSeverity     @default(NORMAL)
   status       IssueStatus       @default(OPEN)
   title        String
   description  String            @db.Text
   pagePath     String?           @map("page_path")
-  assignedToId String?           @map("assigned_to_id")
   resolvedAt   DateTime?         @map("resolved_at")
   closedAt     DateTime?         @map("closed_at")
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
   reporter     User              @relation("IssueReporter", fields: [reporterId], references: [id])
-  assignedTo   User?             @relation("IssueAssignee", fields: [assignedToId], references: [id])
   messages     IssueMessage[]
   history      IssueHistory[]
   attachments  IssueAttachment[]
 
   @@index([reporterId])
-  @@index([status, severity])
-  @@index([assignedToId])
+  @@index([status])
   @@index([createdAt])
   @@map("issue_reports")
 }
@@ -2214,7 +2190,7 @@ model IssueHistory {
   id        String      @id @default(uuid())
   issueId   String      @map("issue_id")
   changedBy String      @map("changed_by")
-  eventCode String
+  eventCode String      @map("event_code")
   metadata  Json?
   createdAt DateTime    @default(now()) @map("created_at")
   issue     IssueReport @relation(fields: [issueId], references: [id], onDelete: Cascade)

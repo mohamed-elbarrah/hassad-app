@@ -18,6 +18,7 @@ import type {
   PaginatedInvoices,
   InvoiceFilters,
 } from "@/features/finance/financeApi";
+import type { OperationalClientInfoView } from "@/features/clients/clientInfo.types";
 
 // ── V2 Profile Types (unified with IntakeFormV2) ────────────────────────────────
 
@@ -127,6 +128,22 @@ export interface UpsertClientProfileV2Input {
 
 // ── Response types ────────────────────────────────────────────────────────────
 
+export interface SalesClientInfo extends Client {
+  source?: string | null;
+  hasPortalAccess: boolean;
+  lastLoginAt?: string | null;
+  lastSeenAt?: string | null;
+  signedContractValue?: number | null;
+  counters: {
+    contracts: number;
+    projects: number;
+    invoices: number;
+    payments: number;
+    proposals: number;
+    requests: number;
+  };
+}
+
 export interface PaginatedClients {
   items: Client[];
   total: number;
@@ -142,6 +159,8 @@ export interface ClientFilters {
   page?: number;
   limit?: number;
 }
+
+export type PmClientTeamView = OperationalClientInfoView;
 
 export interface HandoverInput {
   name: string;
@@ -260,6 +279,11 @@ export const clientsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Client", id }],
     }),
 
+    getSalesClientInfo: builder.query<SalesClientInfo, string>({
+      query: (id) => `/sales/clients/${id}/info`,
+      providesTags: (_result, _error, id) => [{ type: "Client", id }],
+    }),
+
     /** GET /v1/sales/clients/:id/profile */
     getSalesClientProfile: builder.query<ClientProfile | null, string>({
       query: (id) => `/sales/clients/${id}/profile`,
@@ -297,23 +321,8 @@ export const clientsApi = createApi({
     }),
 
     /** GET /v1/pm/clients/:id/team-view — PM-owned client view */
-    getPmClientTeamView: builder.query<
-      { client: Client; profile: ClientProfile | null },
-      string
-    >({
+    getPmClientTeamView: builder.query<PmClientTeamView, string>({
       query: (id) => `/pm/clients/${id}/team-view`,
-      providesTags: (_result, _err, id) => [
-        { type: "Client", id },
-        { type: "ClientProfile", id },
-      ],
-    }),
-
-    /** GET /v1/clients/:id/team-view — legacy shared team view */
-    getClientTeamView: builder.query<
-      { client: Client; profile: ClientProfile | null },
-      string
-    >({
-      query: (id) => `/clients/${id}/team-view`,
       providesTags: (_result, _err, id) => [
         { type: "Client", id },
         { type: "ClientProfile", id },
@@ -388,6 +397,7 @@ export const {
   useGetClientByIdQuery,
   useGetSalesClientsQuery,
   useGetSalesClientByIdQuery,
+  useGetSalesClientInfoQuery,
   useCreateClientMutation,
   useUpdateClientMutation,
   useHandoverClientMutation,
@@ -396,7 +406,6 @@ export const {
   useGetSalesClientProjectsQuery,
   useGetSalesClientInvoicesQuery,
   useGetPmClientTeamViewQuery,
-  useGetClientTeamViewQuery,
   useUpsertClientProfileMutation,
   useGetClientProfileV2Query,
   useUpsertClientProfileV2Mutation,

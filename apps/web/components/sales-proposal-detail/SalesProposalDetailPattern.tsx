@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -27,6 +27,7 @@ import {
   RequestStatus,
 } from "@hassad/shared";
 import type { SalesProposalDetail } from "@/features/proposals/proposalsApi";
+import { SalesClientInfoPanel } from "@/components/client-detail/SalesClientInfoPanel";
 import { PageHeader } from "@/components/common/PageHeader";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -385,7 +386,9 @@ export function SalesProposalDetailView({
   actions?: ReactNode;
 }) {
   const request = proposal.request;
+  const [clientTabEnabled, setClientTabEnabled] = useState(false);
   const client = proposal.client ?? request?.client;
+  const clientId = client?.id ?? request?.clientId;
   const companyName = client?.companyName || request?.companyName || "—";
   const contactName = request?.contactName || client?.user?.name || "—";
   const statusLabel =
@@ -508,11 +511,18 @@ export function SalesProposalDetailView({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="services" className="flex flex-col gap-4">
-                <TabsList className="grid h-auto w-full grid-cols-3">
+              <Tabs
+                defaultValue="services"
+                onValueChange={(value) => {
+                  if (value === "client") setClientTabEnabled(true);
+                }}
+                className="flex flex-col gap-4"
+              >
+                <TabsList className="grid h-auto w-full grid-cols-4">
                   <TabsTrigger value="services">الخدمات</TabsTrigger>
                   <TabsTrigger value="document">ملف PDF</TabsTrigger>
                   <TabsTrigger value="history">حركة الطلب</TabsTrigger>
+                  <TabsTrigger value="client">العميل</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="services" className="mt-0 pt-2">
@@ -586,6 +596,14 @@ export function SalesProposalDetailView({
 
                 <TabsContent value="history" className="mt-0">
                   <StatusTimeline proposal={proposal} />
+                </TabsContent>
+                <TabsContent value="client" className="mt-0">
+                  {clientTabEnabled ? (
+                    <SalesClientInfoPanel
+                      clientId={clientId}
+                      active={clientTabEnabled}
+                    />
+                  ) : null}
                 </TabsContent>
               </Tabs>
             </CardContent>

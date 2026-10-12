@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Paperclip,
   SquareCheckBig,
+  UserRound,
 } from "lucide-react";
 import {
   useForceTransitionAdminTaskMutation,
@@ -18,6 +19,7 @@ import {
   useReassignAdminTaskMutation,
   type AdminTaskDetail,
 } from "@/features/admin/adminTasksApi";
+import { useLazyGetAdminClientByIdQuery } from "@/features/admin/adminClientsApi";
 import {
   adminErrorMessage,
   adminSuccessMessage,
@@ -38,6 +40,7 @@ import {
   type TaskDetailEntity,
   type TaskTabItem,
 } from "@/components/task-detail/TaskDetailPattern";
+import { AdminClientInfoPanel } from "@/components/client-detail/AdminClientInfoPanel";
 import { ErrorState } from "@/components/design-system/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -98,12 +101,7 @@ function mapTask(task: AdminTaskDetail): TaskDetailEntity {
   };
 }
 
-export default function TaskDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+function TaskDetailContent({ id }: { id: string }) {
   const {
     data: task,
     isLoading,
@@ -111,6 +109,16 @@ export default function TaskDetailPage({
     error: loadError,
     refetch,
   } = useGetAdminTaskByIdQuery(id);
+  const clientId = task?.project.client?.id;
+  const [
+    loadClient,
+    {
+      currentData: clientDetail,
+      isFetching: isClientLoading,
+      isError: isClientError,
+      error: clientError,
+    },
+  ] = useLazyGetAdminClientByIdQuery();
   const [
     forceTransition,
     {
@@ -318,6 +326,22 @@ export default function TaskDetailPage({
         </div>
       ),
     },
+    {
+      value: "client",
+      label: "العميل",
+      icon: UserRound,
+      content: (
+        <AdminClientInfoPanel
+          clientId={clientId}
+          client={clientDetail}
+          isLoading={isClientLoading}
+          error={isClientError ? clientError : undefined}
+          onRetry={() => {
+            if (clientId) loadClient(clientId);
+          }}
+        />
+      ),
+    },
   ];
 
   return (
@@ -431,20 +455,30 @@ export default function TaskDetailPage({
             ) : null}
             <div className="flex flex-wrap gap-2">
               <Button
-                disabled={!assigneeId || !reason || isReassigning || isTransitioning}
-                onClick={() => reassign({ id, assigneeId, reason }).unwrap()}
+                disabled={
+                  !assigneeId || !reason || isReassigning || isTransitioning
+                }
+                onClick={() => {
+                  void reassign({ id, assigneeId, reason })
+                    .unwrap()
+                    .catch(() => undefined);
+                }}
               >
                 إعادة تعيين المهمة
               </Button>
               <Button
                 variant="outline"
-                disabled={!nextStatus || !reason || isTransitioning || isReassigning}
+                disabled={
+                  !nextStatus || !reason || isTransitioning || isReassigning
+                }
                 onClick={() =>
-                  forceTransition({
+                  void forceTransition({
                     id,
                     status: nextStatus as TaskStatus,
                     reason,
-                  }).unwrap()
+                  })
+                    .unwrap()
+                    .catch(() => undefined)
                 }
               >
                 تغيير الحالة
@@ -454,7 +488,25 @@ export default function TaskDetailPage({
         </Card>
       ) : null}
 
-      <TaskTabsCard defaultValue="overview" tabs={tabs} />
+      <TaskTabsCard
+        key={id}
+        defaultValue="overview"
+        tabs={tabs}
+        onValueChange={(value) => {
+          if (value === "client" && clientId && !clientDetail && !isClientLoading) {
+            loadClient(clientId);
+          }
+        }}
+      />
     </div>
   );
+}
+
+export default function TaskDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  return <TaskDetailContent key={id} id={id} />;
 }

@@ -9,6 +9,7 @@ import { ProjectsModule } from "../projects/projects.module";
 import { FinanceModule } from "../finance/finance.module";
 import { SalesClientsController } from "./sales-clients.controller";
 import { SalesChatController } from "./sales-chat.controller";
+import { SalesClientInfoService } from "./sales-client-info.service";
 
 @Module({
   imports: [
@@ -20,6 +21,6 @@ import { SalesChatController } from "./sales-chat.controller";
     FinanceModule,
   ],
   controllers: [SalesController, SalesClientsController, SalesChatController],
-  providers: [SalesService],
+  providers: [SalesService, SalesClientInfoService],
 })
 export class SalesModule {}

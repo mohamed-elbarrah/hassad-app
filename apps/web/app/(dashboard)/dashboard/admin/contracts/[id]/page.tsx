@@ -12,6 +12,8 @@ import {
   useTriggerAdminContractRenewalAlertMutation,
   useUpdateAdminContractStatusMutation,
 } from "@/features/admin/adminContractsApi";
+import { useLazyGetAdminClientByIdQuery } from "@/features/admin/adminClientsApi";
+import { AdminClientInfoPanel } from "@/components/client-detail/AdminClientInfoPanel";
 import {
   ContractClientBillingArea,
   ContractDetailLoading,
@@ -49,12 +51,18 @@ export default function AdminContractDetailPage({
 }) {
   const { id } = use(params);
   const {
-    data: contract,
+    currentData: contract,
     isLoading,
     isError,
     error,
     refetch,
   } = useGetAdminContractByIdQuery(id);
+  const [loadClient, clientQuery] = useLazyGetAdminClientByIdQuery();
+  const clientId = contract?.clientId;
+  const clientDetail = clientQuery.currentData;
+  const hasCurrentClient = Boolean(clientId && clientDetail?.id === clientId);
+  const isClientQueryError =
+    clientQuery.isError && clientQuery.originalArgs === clientId;
   const {
     data: capabilities,
     error: capabilitiesError,
@@ -109,70 +117,96 @@ export default function AdminContractDetailPage({
   return (
     <>
       <ContractDetailView
-      contract={contract}
-      backHref="/dashboard/admin/contracts"
-      backLabel="العودة إلى العقود"
-      fileUrl={contract.fileUrl}
-      billingArea={
-        <ContractClientBillingArea
-          services={getContractServices(contract.servicesList)}
-          totalValue={contract.totalValue}
-          invoices={contract.invoices}
-          canPay={false}
-        />
-      }
-      actions={
-        <div className="flex flex-col items-start gap-2">
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/dashboard/admin/clients/${contract.clientId}`}>ملف العميل</Link>
-            </Button>
-            {contract.project ? (
+        key={contract.id}
+        contract={contract}
+        backHref="/dashboard/admin/contracts"
+        backLabel="العودة إلى العقود"
+        fileUrl={contract.fileUrl}
+        showClientTab
+        clientTabContent={
+          <AdminClientInfoPanel
+            clientId={contract.clientId}
+            client={hasCurrentClient ? clientDetail : undefined}
+            isLoading={
+              clientQuery.isFetching ||
+              Boolean(clientId && !hasCurrentClient && !isClientQueryError)
+            }
+            error={isClientQueryError ? clientQuery.error : undefined}
+            onRetry={() => {
+              loadClient(contract.clientId);
+            }}
+          />
+        }
+        onClientTabSelect={() => {
+          if (
+            clientId &&
+            !hasCurrentClient &&
+            !clientQuery.isFetching &&
+            !isClientQueryError
+          ) {
+            loadClient(clientId);
+          }
+        }}
+        billingArea={
+          <ContractClientBillingArea
+            services={getContractServices(contract.servicesList)}
+            totalValue={contract.totalValue}
+            invoices={contract.invoices}
+            canPay={false}
+          />
+        }
+        actions={
+          <div className="flex flex-col items-start gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline" size="sm">
-                <Link href={`/dashboard/admin/projects/${contract.project.id}`}>المشروع</Link>
+                <Link href={`/dashboard/admin/clients/${contract.clientId}`}>ملف العميل</Link>
               </Button>
-            ) : null}
-            {isCapabilitiesError ? (
-              <ErrorState
-                title="تعذّر تحميل صلاحيات الإدارة"
-                message={adminErrorMessage(capabilitiesError)}
-                onRetry={() => refetchCapabilities()}
-                className="min-h-0 flex-row gap-2 rounded-md border-0 bg-transparent p-0"
-              />
-            ) : canIntervene ? (
-              <>
-                {contract.status === ContractStatus.ACTIVE ? (
-                  <>
-                    <Button size="sm" variant="outline" onClick={() => triggerRenewalAlert(id)} disabled={renewalState.isLoading}>
-                      <RefreshCw data-icon="inline-start" />{renewalState.isLoading ? "جارٍ الجدولة..." : "جدولة تنبيه التجديد"}
-                    </Button>
-                    {!contract.project ? (
-                      <Button size="sm" onClick={() => convertToProject({ id })} disabled={conversionState.isLoading}>
-                        {conversionState.isLoading ? "جارٍ التحويل..." : "تحويل إلى مشروع"}
+              {contract.project ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/dashboard/admin/projects/${contract.project.id}`}>المشروع</Link>
+                </Button>
+              ) : null}
+              {isCapabilitiesError ? (
+                <ErrorState
+                  title="تعذّر تحميل صلاحيات الإدارة"
+                  message={adminErrorMessage(capabilitiesError)}
+                  onRetry={() => refetchCapabilities()}
+                  className="min-h-0 flex-row gap-2 rounded-md border-0 bg-transparent p-0"
+                />
+              ) : canIntervene ? (
+                <>
+                  {contract.status === ContractStatus.ACTIVE ? (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => triggerRenewalAlert(id)} disabled={renewalState.isLoading}>
+                        <RefreshCw data-icon="inline-start" />{renewalState.isLoading ? "جارٍ الجدولة..." : "جدولة تنبيه التجديد"}
                       </Button>
-                    ) : null}
-                  </>
-                ) : null}
-                {contract.status !== ContractStatus.CANCELLED ? (
-                  <Button size="sm" variant="destructive" onClick={() => setCancelOpen(true)} disabled={cancelState.isLoading}>
-                    {cancelState.isLoading ? "جارٍ الإلغاء..." : "إلغاء العقد"}
-                  </Button>
-                ) : null}
-                <Select
-                  value={contract.status}
-                  onValueChange={(status) => setStatusToUpdate(status as ContractStatus)}
-                  disabled={statusState.isLoading}
-                >
-                  <SelectTrigger id="admin-contract-detail-status" aria-label="تحديث حالة العقد" className="h-9 w-[170px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.values(ContractStatus).map((status) => <SelectItem key={status} value={status}>{contractStatusLabel(status)}</SelectItem>)}</SelectContent>
-                </Select>
-              </>
-            ) : null}
+                      {!contract.project ? (
+                        <Button size="sm" onClick={() => convertToProject({ id })} disabled={conversionState.isLoading}>
+                          {conversionState.isLoading ? "جارٍ التحويل..." : "تحويل إلى مشروع"}
+                        </Button>
+                      ) : null}
+                    </>
+                  ) : null}
+                  {contract.status !== ContractStatus.CANCELLED ? (
+                    <Button size="sm" variant="destructive" onClick={() => setCancelOpen(true)} disabled={cancelState.isLoading}>
+                      {cancelState.isLoading ? "جارٍ الإلغاء..." : "إلغاء العقد"}
+                    </Button>
+                  ) : null}
+                  <Select
+                    value={contract.status}
+                    onValueChange={(status) => setStatusToUpdate(status as ContractStatus)}
+                    disabled={statusState.isLoading}
+                  >
+                    <SelectTrigger id="admin-contract-detail-status" aria-label="تحديث حالة العقد" className="h-9 w-[170px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.values(ContractStatus).map((status) => <SelectItem key={status} value={status}>{contractStatusLabel(status)}</SelectItem>)}</SelectContent>
+                  </Select>
+                </>
+              ) : null}
+            </div>
+            {[cancelState, renewalState, conversionState, statusState].map((state, index) => state.error ? <p key={`error-${index}`} role="alert" className="text-sm text-destructive">{adminErrorMessage(state.error)}</p> : null)}
+            {[cancelState, renewalState, conversionState, statusState].map((state, index) => state.data ? <p key={`success-${index}`} role="status" className="text-sm text-success-600">{adminSuccessMessage(state.data.code)}</p> : null)}
           </div>
-          {[cancelState, renewalState, conversionState, statusState].map((state, index) => state.error ? <p key={`error-${index}`} role="alert" className="text-sm text-destructive">{adminErrorMessage(state.error)}</p> : null)}
-          {[cancelState, renewalState, conversionState, statusState].map((state, index) => state.data ? <p key={`success-${index}`} role="status" className="text-sm text-success-600">{adminSuccessMessage(state.data.code)}</p> : null)}
-        </div>
-      }
+        }
       />
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <AlertDialogContent dir="rtl">

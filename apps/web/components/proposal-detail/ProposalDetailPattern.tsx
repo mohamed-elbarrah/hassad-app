@@ -41,6 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/format";
 import { UNKNOWN_STATUS_LABEL } from "@/lib/i18n";
 
@@ -169,6 +170,9 @@ export function ProposalDetailView({
   actions,
   relatedAction,
   responseArea,
+  clientTabContent,
+  onClientTabSelect,
+  showClientTab = false,
   audience = "internal",
 }: {
   proposal: ProposalDetailEntity;
@@ -178,6 +182,9 @@ export function ProposalDetailView({
   actions?: ReactNode;
   relatedAction?: ReactNode;
   responseArea?: ReactNode;
+  clientTabContent?: ReactNode;
+  onClientTabSelect?: () => void;
+  showClientTab?: boolean;
   audience?: "internal" | "client";
 }) {
   const services = proposal.servicesList ?? [];
@@ -191,94 +198,8 @@ export function ProposalDetailView({
     proposal.request?.contactName || proposal.lead?.contactName || "—";
   const isClientAudience = audience === "client";
 
-  return (
-    <div className="flex flex-col gap-6 " dir="rtl">
-      {isClientAudience ? (
-        <PageHeader
-          title={proposal.title}
-          description={`${companyLabel}${contactLabel !== "—" ? ` — ${contactLabel}` : ""}`}
-          icon={FileText}
-          actions={
-            <Button asChild variant="outline">
-              <Link href={backHref}>{backLabel}</Link>
-            </Button>
-          }
-        />
-      ) : null}
-      {!isClientAudience ? (
-        <PageHeader
-          title={proposal.title}
-          description={`${companyLabel}${contactLabel !== "—" ? ` — ${contactLabel}` : ""}`}
-          icon={FileText}
-          actions={
-            <>
-              <Button asChild variant="outline">
-                <Link href={backHref}>{backLabel}</Link>
-              </Button>
-              {actions}
-            </>
-          }
-          badges={[
-            <Badge key="status" variant={proposalVariant(proposal.status)}>
-              {PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] || UNKNOWN_STATUS_LABEL}
-            </Badge>,
-            <Badge key="value" variant="outline">القيمة: {formatCurrency(proposal.totalPrice)}</Badge>,
-            <Badge key="services" variant="outline">الخدمات: {formatNumber(services.length)}</Badge>,
-            <Badge key="created" variant="outline">الإنشاء: {formatDateTime(proposal.createdAt)}</Badge>,
-          ]}
-        />
-      ) : null}
-
-      {!isClientAudience ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            {
-              label: "قيمة العرض",
-              value: formatCurrency(proposal.totalPrice),
-              hint: "القيمة الإجمالية",
-              icon: TrendingUp,
-            },
-            {
-              label: "الحالة",
-              value:
-                PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] ||
-                UNKNOWN_STATUS_LABEL,
-              hint: "مرحلة العرض الحالية",
-              icon: CheckCircle2,
-            },
-            {
-              label: "العميل",
-              value: companyLabel,
-              hint: "الجهة المرتبطة",
-              icon: Users,
-            },
-            {
-              label: "الخدمات",
-              value: formatNumber(services.length),
-              hint: "عدد الخدمات المضمنة",
-              icon: FileText,
-            },
-          ].map((item) => (
-            <Card key={item.label}>
-              <CardContent className="flex items-start justify-between gap-4 p-5">
-                <div className="flex flex-col gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {item.label}
-                  </span>
-                  <span className="text-lg font-semibold">{item.value}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {item.hint}
-                  </span>
-                </div>
-                <div className="flex size-10 items-center justify-center  rounded-xl bg-muted text-muted-foreground">
-                  <item.icon />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : null}
-
+  const proposalDetails = (
+    <>
       {!isClientAudience ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
           <Card>
@@ -431,6 +352,124 @@ export function ProposalDetailView({
           </Card>
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-6 " dir="rtl">
+      {isClientAudience ? (
+        <PageHeader
+          title={proposal.title}
+          description={`${companyLabel}${contactLabel !== "—" ? ` — ${contactLabel}` : ""}`}
+          icon={FileText}
+          actions={
+            <Button asChild variant="outline">
+              <Link href={backHref}>{backLabel}</Link>
+            </Button>
+          }
+        />
+      ) : null}
+      {!isClientAudience ? (
+        <PageHeader
+          title={proposal.title}
+          description={`${companyLabel}${contactLabel !== "—" ? ` — ${contactLabel}` : ""}`}
+          icon={FileText}
+          actions={
+            <>
+              <Button asChild variant="outline">
+                <Link href={backHref}>{backLabel}</Link>
+              </Button>
+              {actions}
+            </>
+          }
+          badges={[
+            <Badge key="status" variant={proposalVariant(proposal.status)}>
+              {PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] || UNKNOWN_STATUS_LABEL}
+            </Badge>,
+            <Badge key="value" variant="outline">القيمة: {formatCurrency(proposal.totalPrice)}</Badge>,
+            <Badge key="services" variant="outline">الخدمات: {formatNumber(services.length)}</Badge>,
+            <Badge key="created" variant="outline">الإنشاء: {formatDateTime(proposal.createdAt)}</Badge>,
+          ]}
+        />
+      ) : null}
+
+      {!isClientAudience ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              label: "قيمة العرض",
+              value: formatCurrency(proposal.totalPrice),
+              hint: "القيمة الإجمالية",
+              icon: TrendingUp,
+            },
+            {
+              label: "الحالة",
+              value:
+                PROPOSAL_STATUS_AR[proposal.status as ProposalStatus] ||
+                UNKNOWN_STATUS_LABEL,
+              hint: "مرحلة العرض الحالية",
+              icon: CheckCircle2,
+            },
+            {
+              label: "العميل",
+              value: companyLabel,
+              hint: "الجهة المرتبطة",
+              icon: Users,
+            },
+            {
+              label: "الخدمات",
+              value: formatNumber(services.length),
+              hint: "عدد الخدمات المضمنة",
+              icon: FileText,
+            },
+          ].map((item) => (
+            <Card key={item.label}>
+              <CardContent className="flex items-start justify-between gap-4 p-5">
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {item.label}
+                  </span>
+                  <span className="text-lg font-semibold">{item.value}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {item.hint}
+                  </span>
+                </div>
+                <div className="flex size-10 items-center justify-center  rounded-xl bg-muted text-muted-foreground">
+                  <item.icon />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : null}
+
+      {showClientTab && !isClientAudience ? (
+        <Tabs
+          defaultValue="details"
+          onValueChange={(value) => {
+            if (value === "client") onClientTabSelect?.();
+          }}
+          className="flex flex-col gap-4"
+        >
+          <div className="max-w-full overflow-x-auto pb-1">
+            <TabsList className="min-w-max">
+              <TabsTrigger value="details">تفاصيل العرض</TabsTrigger>
+              <TabsTrigger value="client">العميل</TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="details" className="mt-0">
+            {proposalDetails}
+          </TabsContent>
+          <TabsContent value="client" className="mt-0">
+            {clientTabContent ?? (
+              <EmptyPanel
+                title="لا يوجد عميل مرتبط"
+                description="لا تتوفر لهذا العرض بيانات عميل مرتبطة لعرضها."
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      ) : proposalDetails}
     </div>
   );
 }

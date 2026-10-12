@@ -413,6 +413,7 @@ export const {
   useCreateAdminClientMutation,
   useGetAdminClientsQuery,
   useGetAdminClientByIdQuery,
+  useLazyGetAdminClientByIdQuery,
   useGetAdminClientHistoryQuery,
   useGetAdminClientStatsQuery,
   useGetAdminClientUsersQuery,

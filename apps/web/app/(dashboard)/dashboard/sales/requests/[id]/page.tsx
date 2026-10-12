@@ -39,7 +39,7 @@ export default function SalesRequestDetailPage({
 }) {
   const { id } = use(params);
   const {
-    data: request,
+    currentData: request,
     isLoading,
     isError,
     error,
@@ -117,6 +117,7 @@ export default function SalesRequestDetailPage({
 
   return (
     <SalesRequestWorkspace
+      key={request.id}
       request={request}
       backHref="/dashboard/sales/pipeline"
       backLabel="العودة إلى خط المبيعات"

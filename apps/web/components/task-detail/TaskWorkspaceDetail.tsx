@@ -29,7 +29,9 @@ import {
   type TaskFile,
   type TaskNote,
 } from "@hassad/shared";
-import { ClientProfileCard } from "@/components/client-detail/ClientDetailPattern";
+import { MarketingClientInfoPanel } from "@/components/client-detail/MarketingClientInfoPanel";
+import { PmClientInfoPanel } from "@/components/client-detail/PmClientInfoPanel";
+import { TeamClientInfoPanel } from "@/components/client-detail/TeamClientInfoPanel";
 import { TaskWorkflowStepper } from "@/components/dashboard/pm/TaskWorkflowStepper";
 import { useMarketingTaskExtraTabs } from "@/components/task-detail/MarketingTaskExtras";
 import {
@@ -87,7 +89,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { downloadTaskFile } from "@/lib/downloadFile";
 import {
   marketingErrorMessage,
   pmErrorMessage,
@@ -101,10 +102,6 @@ import {
   TASK_PRIORITY_LABELS,
   TASK_STATUS_LABELS,
 } from "@/lib/utils/task-status";
-import {
-  useGetClientTeamViewQuery,
-  useGetPmClientTeamViewQuery,
-} from "@/features/clients/clientsApi";
 import {
   useAddTaskCommentMutation,
   useApproveTaskMutation,
@@ -126,6 +123,7 @@ import {
   useAddPmTaskCommentMutation,
   useChangePmTaskStatusMutation,
   useLazyGetPmTaskFileDownloadQuery,
+  useLazyGetTaskFileDownloadUrlQuery,
   type TaskWithProject,
 } from "@/features/tasks/tasksApi";
 import {
@@ -336,6 +334,7 @@ export function TaskWorkspaceDetail({
   const [filePurpose, setFilePurpose] = useState<FilePurpose>(
     FilePurpose.DELIVERABLE,
   );
+  const [clientTabEnabled, setClientTabEnabled] = useState(false);
   const marketingTabs = useMarketingTaskExtraTabs({
     taskId,
     canManage: canManageMarketingExtras,
@@ -374,20 +373,27 @@ export function TaskWorkspaceDetail({
     { id: taskId, page: 1, limit: 25 },
     { skip: !teamOwned },
   );
-  const task = (pmTaskQuery.data ??
-    teamTaskQuery.data ??
-    marketingTaskQuery.data ??
-    genericTaskQuery.data) as WorkspaceTask | undefined;
-  const files =
-    pmFilesQuery.data ??
-    teamFilesQuery.data?.items ??
-    marketingFilesQuery.data ??
-    genericFilesQuery.data;
-  const comments =
-    pmCommentsQuery.data ??
-    teamCommentsQuery.data?.items ??
-    marketingCommentsQuery.data ??
-    genericCommentsQuery.data;
+  const task = (pmOwned
+    ? pmTaskQuery.currentData
+    : teamOwned
+      ? teamTaskQuery.currentData
+      : marketingOwned
+        ? marketingTaskQuery.currentData
+        : genericTaskQuery.currentData) as WorkspaceTask | undefined;
+  const files = pmOwned
+    ? pmFilesQuery.currentData
+    : teamOwned
+      ? teamFilesQuery.currentData?.items
+      : marketingOwned
+        ? marketingFilesQuery.currentData
+        : genericFilesQuery.currentData;
+  const comments = pmOwned
+    ? pmCommentsQuery.currentData
+    : teamOwned
+      ? teamCommentsQuery.currentData?.items
+      : marketingOwned
+        ? marketingCommentsQuery.currentData
+        : genericCommentsQuery.currentData;
   const isLoading = pmOwned
     ? pmTaskQuery.isLoading
     : teamOwned
@@ -432,14 +438,6 @@ export function TaskWorkspaceDetail({
         : genericCommentsQuery.error;
 
   const clientId = task?.project?.clientId ?? "";
-  const { data: genericTeamView } = useGetClientTeamViewQuery(clientId, {
-    skip: !clientId || pmOwned || teamOwned || marketingOwned,
-  });
-  const { data: pmTeamView } = useGetPmClientTeamViewQuery(clientId, {
-    skip: !clientId || !pmOwned,
-  });
-  const teamView = pmTeamView ?? genericTeamView;
-
   const [startTask] = useStartTaskMutation();
   const [changePmTaskStatus] = useChangePmTaskStatusMutation();
   const [changeTeamTaskStatus] = useChangeTeamTaskStatusMutation();
@@ -471,6 +469,7 @@ export function TaskWorkspaceDetail({
   const [uploadTeamFile, { isLoading: isUploadingTeamFile }] =
     useUploadTeamTaskFileMutation();
   const [getPmFileDownload] = useLazyGetPmTaskFileDownloadQuery();
+  const [getGenericFileDownload] = useLazyGetTaskFileDownloadUrlQuery();
   const [getTeamFileDownload] = useLazyGetTeamTaskFileDownloadQuery();
   const [getMarketingFileDownload] = useLazyGetMarketingTaskFileDownloadQuery();
   const isUploading =
@@ -674,6 +673,24 @@ export function TaskWorkspaceDetail({
       ) : null}
     </>
   );
+
+  const clientInfoPanel = (() => {
+    if (pmOwned) {
+      return <PmClientInfoPanel clientId={clientId} active={clientTabEnabled} />;
+    }
+    if (teamOwned) {
+      return <TeamClientInfoPanel clientId={clientId} active={clientTabEnabled} />;
+    }
+    if (marketingOwned) {
+      return (
+        <MarketingClientInfoPanel
+          clientId={clientId}
+          active={clientTabEnabled}
+        />
+      );
+    }
+    return null;
+  })();
 
   const tabs: TaskTabItem[] = [
     {
@@ -1025,10 +1042,14 @@ export function TaskWorkspaceDetail({
                                 "noopener,noreferrer",
                               );
                             } else {
-                              await downloadTaskFile(
+                              const result = await getGenericFileDownload({
                                 taskId,
-                                file.id,
-                                file.fileName,
+                                fileId: file.id,
+                              }).unwrap();
+                              window.open(
+                                result.url,
+                                "_blank",
+                                "noopener,noreferrer",
                               );
                             }
                           } catch (error) {
@@ -1068,21 +1089,12 @@ export function TaskWorkspaceDetail({
     },
   ];
 
-  if (teamView) {
+  if (clientId && clientInfoPanel) {
     tabs.push({
       value: "client",
       label: "العميل",
       icon: User,
-      content: (
-        <ClientProfileCard
-          client={teamView.client}
-          profile={teamView.profile}
-          mode="internal"
-          title="بيانات النشاط"
-          description="المعلومات التعريفية والتسويقية المسجلة للعميل."
-          businessOnly
-        />
-      ),
+      content: clientInfoPanel,
     });
   }
 
@@ -1216,7 +1228,13 @@ export function TaskWorkspaceDetail({
         </CardContent>
       </Card>
 
-      <TaskTabsCard defaultValue="overview" tabs={tabs} />
+      <TaskTabsCard
+        defaultValue="overview"
+        tabs={tabs}
+        onValueChange={(value) => {
+          if (value === "client") setClientTabEnabled(true);
+        }}
+      />
     </div>
   );
 }

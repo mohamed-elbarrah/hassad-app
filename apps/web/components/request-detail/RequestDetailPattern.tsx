@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Fragment } from "react";
+import type { ReactNode } from "react";
 import {
   Building2,
   ClipboardList,
@@ -14,7 +15,6 @@ import {
   Users,
 } from "lucide-react";
 import {
-  BUSINESS_TYPE_AR,
   CLIENT_SOURCE_AR,
   ContactLogResult,
   ContactLogType,
@@ -200,25 +200,6 @@ function EmptyPanel({
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
     </Empty>
-  );
-}
-
-function InfoField({
-  label,
-  value,
-  dir,
-}: {
-  label: string;
-  value?: string | null;
-  dir?: "rtl" | "ltr";
-}) {
-  return (
-    <div className="flex flex-col gap-2 rounded-lg border p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium" dir={dir}>
-        {value || "—"}
-      </p>
-    </div>
   );
 }
 
@@ -427,7 +408,7 @@ function ContactLogsTable({ logs }: { logs: RequestContactLogItem[] }) {
     return (
       <EmptyPanel
         title="لا يوجد سجل تواصل بعد"
-        description="سجّل أول مكالمة أو اجتماع أو متابعة حتى يبدأ تتبع نشاط هذا العميل المحتمل."
+        description="سجّل أول مكالمة أو اجتماع أو متابعة حتى يبدأ تتبع نشاط العميل."
       />
     );
   }
@@ -532,6 +513,8 @@ export function RequestDetailView({
   onAddContactLog,
   isUpdatingStage,
   isAddingContactLog,
+  clientTabContent,
+  onClientTabSelect,
 }: {
   request: RequestDetail;
   mode: DetailMode;
@@ -542,6 +525,8 @@ export function RequestDetailView({
   onAddContactLog?: (payload: RequestContactLogPayload) => Promise<void>;
   isUpdatingStage?: boolean;
   isAddingContactLog?: boolean;
+  clientTabContent?: ReactNode;
+  onClientTabSelect?: () => void;
 }) {
   const contactLogs = request.contactLogs ?? [];
   const statusHistory = request.statusHistory ?? [];
@@ -557,40 +542,7 @@ export function RequestDetailView({
     (log) => log.type === ContactLogType.MEETING,
   );
   const sourceLabel = CLIENT_SOURCE_AR[request.source] || request.source;
-  const businessTypeLabel =
-    BUSINESS_TYPE_AR[request.businessType] || request.businessType;
   const stageLabel = REQUEST_STATUS_AR[request.status] || UNKNOWN_STATUS_LABEL;
-
-  const primaryFields = [
-    { label: "اسم جهة الاتصال", value: request.contactName || "—" },
-    {
-      label: "الهاتف / واتساب",
-      value: request.phoneWhatsapp || "—",
-      dir: "ltr" as const,
-    },
-    {
-      label: "البريد الإلكتروني",
-      value: request.email || "—",
-      dir: "ltr" as const,
-    },
-    { label: "المسؤول الحالي", value: request.assignee?.name || "غير محدد" },
-    { label: "تاريخ إنشاء السجل", value: formatDateTime(request.createdAt) },
-    {
-      label: "آخر تواصل",
-      value: request.lastContactAt
-        ? formatDateTime(request.lastContactAt)
-        : "لا يوجد",
-    },
-  ];
-
-  const businessFields = [
-    { label: "اسم الشركة", value: request.companyName || "—" },
-    { label: "اسم النشاط", value: request.businessName || "—" },
-    { label: "نوع النشاط", value: businessTypeLabel || "—" },
-    { label: "المصدر", value: sourceLabel || "—" },
-    { label: "الحالة الحالية", value: stageLabel },
-    { label: "آخر تحديث", value: formatDateTime(request.updatedAt) },
-  ];
 
   return (
     <div className="flex flex-col gap-6   " dir="rtl">
@@ -703,48 +655,119 @@ export function RequestDetailView({
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,4fr)_minmax(16rem,1fr)]">
         <Card>
           <CardHeader className="gap-2">
-            <CardTitle>ملف العميل المحتمل</CardTitle>
+            <CardTitle>العمليات المرتبطة</CardTitle>
             <CardDescription>
-              البيانات الأساسية التي يعتمد عليها الفريق قبل الانتقال إلى العرض
-              والعقد.
+              كل ما يساعد على متابعة الفرصة وإغلاقها من بطاقة واحدة.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <Tabs defaultValue="contact" className="flex flex-col gap-4">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="contact">التواصل</TabsTrigger>
-                <TabsTrigger value="business">الأعمال</TabsTrigger>
-              </TabsList>
+          <CardContent>
+            <Tabs
+              defaultValue="activity"
+              onValueChange={(value) => {
+                if (value === "client") onClientTabSelect?.();
+              }}
+              className="flex flex-col gap-4"
+            >
+              <div className="max-w-full overflow-x-auto pb-1">
+                <TabsList className="h-auto min-w-max justify-start">
+                  <TabsTrigger value="activity">
+                    كل النشاط ({formatNumber(contactLogs.length)})
+                  </TabsTrigger>
+                  <TabsTrigger value="calls">
+                    المكالمات ({formatNumber(calls.length)})
+                  </TabsTrigger>
+                  <TabsTrigger value="meetings">
+                    الاجتماعات ({formatNumber(meetings.length)})
+                  </TabsTrigger>
+                  <TabsTrigger value="workflow">الربط والتحويل</TabsTrigger>
+                  <TabsTrigger value="services">الخدمات</TabsTrigger>
+                  <TabsTrigger value="history">
+                    سجل الحالة ({formatNumber(statusHistory.length)})
+                  </TabsTrigger>
+                  <TabsTrigger value="client">العميل</TabsTrigger>
+                </TabsList>
+              </div>
 
-              <TabsContent value="contact" className="mt-0">
-                <div className="grid gap-4 md:grid-cols-2">
-                  {primaryFields.map((field) => (
-                    <InfoField key={field.label} {...field} />
-                  ))}
-                </div>
+              <TabsContent value="activity" className="mt-0">
+                <ContactLogsTable logs={contactLogs} />
               </TabsContent>
 
-              <TabsContent value="business" className="mt-0">
-                <div className="grid gap-4 md:grid-cols-2">
-                  {businessFields.map((field) => (
-                    <InfoField key={field.label} {...field} />
-                  ))}
-                </div>
+              <TabsContent value="calls" className="mt-0">
+                <ContactLogsTable logs={calls} />
+              </TabsContent>
+
+              <TabsContent value="meetings" className="mt-0">
+                <ContactLogsTable logs={meetings} />
+              </TabsContent>
+
+              <TabsContent value="workflow" className="mt-0">
+                <RelatedRecords
+                  request={{
+                    ...request,
+                    contactLogs,
+                    statusHistory,
+                    services,
+                    proposals,
+                    contracts,
+                  }}
+                  mode={mode}
+                />
+              </TabsContent>
+
+              <TabsContent value="services" className="mt-0">
+                {services.length === 0 ? (
+                  <EmptyPanel
+                    title="لا توجد خدمات مرتبطة"
+                    description="ستظهر هنا الخدمات المطلوبة داخل هذا السجل."
+                  />
+                ) : (
+                  <div className="overflow-hidden rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>الخدمة</TableHead>
+                          <TableHead>الكمية</TableHead>
+                          <TableHead>ملاحظات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {services.map((service) => (
+                          <TableRow key={service.id}>
+                            <TableCell className="font-medium">
+                              {service.service.nameAr || service.service.name}
+                            </TableCell>
+                            <TableCell>
+                              {formatNumber(service.quantity)}
+                            </TableCell>
+                            <TableCell className="max-w-[320px] truncate">
+                              {service.notes?.trim() || "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="history" className="mt-0">
+                <StatusHistoryTable entries={statusHistory} />
+              </TabsContent>
+
+              <TabsContent value="client" className="mt-0">
+                {clientTabContent ?? (
+                  <EmptyPanel
+                    title="لا يوجد عميل مرتبط"
+                    description="لا تتوفر لهذا الطلب بيانات عميل مرتبطة لعرضها."
+                  />
+                )}
               </TabsContent>
             </Tabs>
-
-            <div className="flex flex-col gap-2 rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground">ملاحظات الطلب</p>
-              <p className="text-sm leading-6 text-foreground">
-                {request.notes?.trim() || "لا توجد ملاحظات مسجلة حتى الآن."}
-              </p>
-            </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="gap-2">
             <CardTitle>إدارة القمع</CardTitle>
@@ -802,102 +825,8 @@ export function RequestDetailView({
             })}
           </CardContent>
         </Card>
+
       </div>
-
-      <Card>
-        <CardHeader className="gap-2">
-          <CardTitle>العمليات المرتبطة</CardTitle>
-          <CardDescription>
-            كل ما يساعد على متابعة الفرصة وإغلاقها من بطاقة واحدة.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="activity" className="flex flex-col gap-4">
-            <TabsList className="h-auto w-full justify-start">
-              <TabsTrigger value="activity">
-                كل النشاط ({formatNumber(contactLogs.length)})
-              </TabsTrigger>
-              <TabsTrigger value="calls">
-                المكالمات ({formatNumber(calls.length)})
-              </TabsTrigger>
-              <TabsTrigger value="meetings">
-                الاجتماعات ({formatNumber(meetings.length)})
-              </TabsTrigger>
-              <TabsTrigger value="workflow">الربط والتحويل</TabsTrigger>
-              <TabsTrigger value="services">الخدمات</TabsTrigger>
-              <TabsTrigger value="history">
-                سجل الحالة ({formatNumber(statusHistory.length)})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="activity" className="mt-0">
-              <ContactLogsTable logs={contactLogs} />
-            </TabsContent>
-
-            <TabsContent value="calls" className="mt-0">
-              <ContactLogsTable logs={calls} />
-            </TabsContent>
-
-            <TabsContent value="meetings" className="mt-0">
-              <ContactLogsTable logs={meetings} />
-            </TabsContent>
-
-            <TabsContent value="workflow" className="mt-0">
-              <RelatedRecords
-                request={{
-                  ...request,
-                  contactLogs,
-                  statusHistory,
-                  services,
-                  proposals,
-                  contracts,
-                }}
-                mode={mode}
-              />
-            </TabsContent>
-
-            <TabsContent value="services" className="mt-0">
-              {services.length === 0 ? (
-                <EmptyPanel
-                  title="لا توجد خدمات مرتبطة"
-                  description="ستظهر هنا الخدمات المطلوبة داخل هذا السجل."
-                />
-              ) : (
-                <div className="overflow-hidden rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>الخدمة</TableHead>
-                        <TableHead>الكمية</TableHead>
-                        <TableHead>ملاحظات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {services.map((service) => (
-                        <TableRow key={service.id}>
-                          <TableCell className="font-medium">
-                            {service.service.nameAr || service.service.name}
-                          </TableCell>
-                          <TableCell>
-                            {formatNumber(service.quantity)}
-                          </TableCell>
-                          <TableCell className="max-w-[320px] truncate">
-                            {service.notes?.trim() || "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="history" className="mt-0">
-              <StatusHistoryTable entries={statusHistory} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
     </div>
   );
 }

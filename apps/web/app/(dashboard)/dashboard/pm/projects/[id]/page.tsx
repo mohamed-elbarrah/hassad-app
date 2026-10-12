@@ -22,8 +22,15 @@ import { PmPeriodTabs } from "@/components/dashboard/pm/PmPeriodTabs";
 import { ProjectPeriodWorkspace } from "@/components/project-detail/ProjectPeriodWorkspace";
 import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
 import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
+import { PmClientInfoPanel } from "@/components/client-detail/PmClientInfoPanel";
 import { PmDetailSkeleton } from "@/components/dashboard/pm/shared/PmDetailSkeleton";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   useGetPmProjectByIdQuery,
   useGetPmProjectPeriodsQuery,
@@ -59,26 +66,29 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
+  const [clientTabProjectId, setClientTabProjectId] = useState<string | null>(null);
 
   const {
-    data: project,
+    currentData: project,
     isLoading,
     isError,
     refetch,
   } = useGetPmProjectByIdQuery(id);
-  const { data: periods = [], isLoading: periodsLoading } =
+  const { currentData: periodsData, isLoading: periodsLoading } =
     useGetPmProjectPeriodsQuery(id);
+  const periods = periodsData ?? [];
   const selectedPeriod =
     periods.find((period) => period.id === selectedPeriodId) ??
     periods.find((period) => period.status === "ACTIVE") ??
     periods[0];
-  const { data: selectedPeriodDetail, isLoading: periodDetailLoading, refetch: refetchPeriod } =
+  const { currentData: selectedPeriodDetail, isLoading: periodDetailLoading, refetch: refetchPeriod } =
     useGetPmProjectPeriodQuery(
       { projectId: id, periodId: selectedPeriod?.id ?? "" },
       { skip: !selectedPeriod?.id },
     );
-  const { data: files, isLoading: filesLoading } =
+  const { currentData: files, isLoading: filesLoading } =
     useGetPmProjectFilesQuery(id);
+  const clientTabEnabled = clientTabProjectId === id;
   const [getGroupChat, { isFetching: isLoadingGroupChat }] =
     useLazyGetProjectGroupChatQuery();
   const [uploadFile, { isLoading: isUploading }] =
@@ -121,6 +131,13 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const totalTasks = p.taskStats?.total ?? 0;
   const completedTasks = p.taskStats?.completed ?? 0;
   const overdueTasks = p.taskStats?.overdue ?? 0;
+  const period = selectedPeriodDetail ?? selectedPeriod;
+  const overviewItems = [
+    { label: "المهام المنجزة", value: `${completedTasks}/${totalTasks}` },
+    { label: "المهام المتأخرة", value: String(overdueTasks) },
+    { label: "الوقت المتبقي", value: String(daysUntil(project.endDate) ?? "—") },
+    { label: "الملفات", value: filesLoading ? "…" : String(files?.length ?? 0) },
+  ];
 
   return (
     <div className="page-shell" dir="rtl">
@@ -224,16 +241,19 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         />
       </div>
 
-      {(() => {
-        const period = selectedPeriodDetail ?? selectedPeriod;
-        const overviewItems = [
-          { label: "المهام المنجزة", value: `${completedTasks}/${totalTasks}` },
-          { label: "المهام المتأخرة", value: String(overdueTasks) },
-          { label: "الوقت المتبقي", value: String(daysUntil(project.endDate) ?? "—") },
-          { label: "الملفات", value: filesLoading ? "…" : String(files?.length ?? 0) },
-        ];
-
-        return (
+      <Tabs
+        key={project.id}
+        defaultValue="workspace"
+        onValueChange={(value) => {
+          if (value === "client") setClientTabProjectId(id);
+        }}
+        className="flex flex-col gap-4"
+      >
+        <TabsList className="h-auto w-full justify-start">
+          <TabsTrigger value="workspace">المشروع والفترات</TabsTrigger>
+          <TabsTrigger value="client">العميل</TabsTrigger>
+        </TabsList>
+        <TabsContent value="workspace" className="mt-0" forceMount>
           <ProjectPeriodWorkspace
             role="pm"
             periods={periods}
@@ -244,29 +264,57 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                   <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
                     <dt className="text-xs text-muted-foreground">العميل</dt>
-                    <dd className="truncate font-medium">{p.client?.companyName || "غير محدد"}</dd>
+                    <dd className="truncate font-medium">
+                      {p.client?.companyName || "غير محدد"}
+                    </dd>
                   </div>
                   <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
-                    <dt className="text-xs text-muted-foreground">مدير المشروع</dt>
-                    <dd className="truncate font-medium">{p.manager?.name || "غير محدد"}</dd>
+                    <dt className="text-xs text-muted-foreground">
+                      مدير المشروع
+                    </dt>
+                    <dd className="truncate font-medium">
+                      {p.manager?.name || "غير محدد"}
+                    </dd>
                   </div>
                   <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
-                    <dt className="text-xs text-muted-foreground">حالة المشروع</dt>
-                    <dd><PmStatusBadge domain="project" status={project.status} /></dd>
+                    <dt className="text-xs text-muted-foreground">
+                      حالة المشروع
+                    </dt>
+                    <dd>
+                      <PmStatusBadge
+                        domain="project"
+                        status={project.status}
+                      />
+                    </dd>
                   </div>
                   <div className="flex min-w-0 flex-col gap-1 border-b pb-3">
-                    <dt className="text-xs text-muted-foreground">مدة المشروع</dt>
+                    <dt className="text-xs text-muted-foreground">
+                      مدة المشروع
+                    </dt>
                     <dd className="font-medium">
-                      {formatShortDate(project.startDate)} - {formatShortDate(project.endDate)}
+                      {formatShortDate(project.startDate)} -{" "}
+                      {formatShortDate(project.endDate)}
                     </dd>
                   </div>
                 </dl>
 
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                   {overviewItems.map((item) => (
-                    <div key={item.label} className="flex min-w-0 items-center justify-between gap-2 border-b pb-3">
-                      <dt className="text-xs text-muted-foreground">{item.label}</dt>
-                      <dd className={cn("font-semibold tabular-nums", item.label === "المهام المتأخرة" && overdueTasks > 0 && "text-destructive")}>
+                    <div
+                      key={item.label}
+                      className="flex min-w-0 items-center justify-between gap-2 border-b pb-3"
+                    >
+                      <dt className="text-xs text-muted-foreground">
+                        {item.label}
+                      </dt>
+                      <dd
+                        className={cn(
+                          "font-semibold tabular-nums",
+                          item.label === "المهام المتأخرة" &&
+                            overdueTasks > 0 &&
+                            "text-destructive",
+                        )}
+                      >
                         {item.value}
                       </dd>
                     </div>
@@ -278,15 +326,28 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             {periodsLoading || periodDetailLoading ? (
               <Skeleton className="h-64 w-full" />
             ) : period ? (
-              <PmPeriodTabs key={period.id} projectId={id} period={period} onChanged={() => void refetchPeriod()} />
+              <PmPeriodTabs
+                key={period.id}
+                projectId={id}
+                period={period}
+                onChanged={() => void refetchPeriod()}
+              />
             ) : (
               <div className="border-t pt-5 text-sm text-muted-foreground">
                 لا توجد فترات مرتبطة بهذا المشروع بعد.
               </div>
             )}
           </ProjectPeriodWorkspace>
-        );
-      })()}
+        </TabsContent>
+        <TabsContent value="client" className="mt-0">
+          {clientTabEnabled ? (
+            <PmClientInfoPanel
+              clientId={project.client?.id ?? project.clientId}
+              active={clientTabEnabled}
+            />
+          ) : null}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

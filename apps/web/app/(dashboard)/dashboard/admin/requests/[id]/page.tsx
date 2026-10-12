@@ -12,6 +12,8 @@ import {
   useUpdateAdminRequestStatusMutation,
   type AdminRequestContactLogPayload,
 } from "@/features/admin/adminRequestsApi";
+import { useLazyGetAdminClientByIdQuery } from "@/features/admin/adminClientsApi";
+import { AdminClientInfoPanel } from "@/components/client-detail/AdminClientInfoPanel";
 import {
   RequestDetailLoading,
   RequestDetailView,
@@ -27,15 +29,28 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 
-export default function AdminRequestDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
-  const { data: request, isLoading, isError, error, refetch } = useGetAdminRequestByIdQuery(id);
-  const [updateStatus, { isLoading: isUpdatingStage }] = useUpdateAdminRequestStatusMutation();
-  const [addContactLog, { isLoading: isAddingContactLog }] = useAddAdminRequestContactLogMutation();
+function AdminRequestDetailContent({ id }: { id: string }) {
+  const {
+    currentData: request,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetAdminRequestByIdQuery(id);
+  const clientId = request?.clientId;
+  const [
+    loadClient,
+    {
+      currentData: clientDetail,
+      isFetching: isClientLoading,
+      isError: isClientError,
+      error: clientError,
+    },
+  ] = useLazyGetAdminClientByIdQuery();
+  const [updateStatus, { isLoading: isUpdatingStage }] =
+    useUpdateAdminRequestStatusMutation();
+  const [addContactLog, { isLoading: isAddingContactLog }] =
+    useAddAdminRequestContactLogMutation();
 
   if (isLoading) {
     return <RequestDetailLoading />;
@@ -52,12 +67,12 @@ export default function AdminRequestDetailPage({
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle>تعذر تحميل تفاصيل السجل</EmptyTitle>
-                <EmptyDescription>
-                  {adminErrorMessage(error)}
-                </EmptyDescription>
+                <EmptyDescription>{adminErrorMessage(error)}</EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
-                <Button variant="outline" onClick={() => refetch()}>إعادة المحاولة</Button>
+                <Button variant="outline" onClick={() => refetch()}>
+                  إعادة المحاولة
+                </Button>
                 <Button asChild>
                   <Link href="/dashboard/admin/requests">
                     <ArrowLeft data-icon="inline-start" />
@@ -72,11 +87,27 @@ export default function AdminRequestDetailPage({
     );
   }
 
+  const clientTabContent = (
+    <AdminClientInfoPanel
+      clientId={clientId}
+      client={clientDetail}
+      isLoading={isClientLoading}
+      error={isClientError ? clientError : undefined}
+      onRetry={() => {
+        if (clientId) loadClient(clientId);
+      }}
+    />
+  );
+
   async function handleStageChange(status: RequestStatus) {
     if (status === request.status) return;
 
     try {
-      const result = await updateStatus({ id: request.id, status, reason: "ADMIN_STATUS_UPDATE" }).unwrap();
+      const result = await updateStatus({
+        id: request.id,
+        status,
+        reason: "ADMIN_STATUS_UPDATE",
+      }).unwrap();
       toast.success(adminSuccessMessage(result.code));
     } catch (error) {
       toast.error(adminErrorMessage(error));
@@ -85,7 +116,10 @@ export default function AdminRequestDetailPage({
 
   async function handleAddContactLog(payload: AdminRequestContactLogPayload) {
     try {
-      const result = await addContactLog({ id: request.id, body: payload }).unwrap();
+      const result = await addContactLog({
+        id: request.id,
+        body: payload,
+      }).unwrap();
       toast.success(adminSuccessMessage(result.code));
     } catch (error) {
       toast.error(adminErrorMessage(error));
@@ -108,6 +142,21 @@ export default function AdminRequestDetailPage({
       onAddContactLog={handleAddContactLog}
       isUpdatingStage={isUpdatingStage}
       isAddingContactLog={isAddingContactLog}
+      onClientTabSelect={() => {
+        if (clientId && !clientDetail && !isClientLoading) {
+          loadClient(clientId);
+        }
+      }}
+      clientTabContent={clientTabContent}
     />
   );
+}
+
+export default function AdminRequestDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  return <AdminRequestDetailContent key={id} id={id} />;
 }

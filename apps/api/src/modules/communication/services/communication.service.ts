@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -8,18 +9,16 @@ import { Cron } from "@nestjs/schedule";
 import { PrismaService } from "../../../prisma/prisma.service";
 import {
   AnnouncementAudienceType,
-  AnnouncementPriority,
   AnnouncementStatus,
   IssueStatus,
-  IssueSeverity,
   Prisma,
 } from "@prisma/client";
 import {
-  AssignIssueDto,
   CreateAnnouncementDto,
   CreateIssueMessageDto,
   CreateIssueReportDto,
   UpdateAnnouncementDto,
+  UpdateAnnouncementStatusDto,
   UpdateIssueStatusDto,
 } from "../dto/communication.dto";
 import { StorageService } from "../../../common/storage/storage.service";
@@ -30,6 +29,37 @@ import { extname } from "path";
 
 const ISSUE_MAX_FILES = 5;
 const ISSUE_MAX_TOTAL_SIZE = 50 * 1024 * 1024;
+
+const announcementStatusTransitions = (
+  status: AnnouncementStatus,
+  startsAt?: Date | null,
+  expiresAt?: Date | null,
+  now = new Date(),
+): AnnouncementStatus[] => {
+  if (expiresAt && expiresAt <= now) {
+    if (status === AnnouncementStatus.PUBLISHED) return [AnnouncementStatus.ARCHIVED];
+    if (status === AnnouncementStatus.SCHEDULED) return [AnnouncementStatus.DRAFT];
+    return [];
+  }
+  switch (status) {
+    case AnnouncementStatus.DRAFT:
+      return startsAt && startsAt > now ? [AnnouncementStatus.SCHEDULED] : [AnnouncementStatus.PUBLISHED];
+    case AnnouncementStatus.SCHEDULED:
+      return [AnnouncementStatus.DRAFT];
+    case AnnouncementStatus.PUBLISHED:
+      return [AnnouncementStatus.ARCHIVED];
+    case AnnouncementStatus.ARCHIVED:
+      return [AnnouncementStatus.DRAFT];
+  }
+};
+
+const ISSUE_STATUS_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
+  OPEN: [IssueStatus.IN_PROGRESS, IssueStatus.CLOSED],
+  IN_PROGRESS: [IssueStatus.WAITING_FOR_USER, IssueStatus.RESOLVED, IssueStatus.CLOSED],
+  WAITING_FOR_USER: [IssueStatus.IN_PROGRESS, IssueStatus.RESOLVED, IssueStatus.CLOSED],
+  RESOLVED: [IssueStatus.CLOSED, IssueStatus.IN_PROGRESS],
+  CLOSED: [],
+};
 
 const audienceForRole: Record<string, AnnouncementAudienceType | undefined> = {
   ADMIN: AnnouncementAudienceType.ADMIN,
@@ -61,7 +91,7 @@ export class CommunicationService {
             ...(roleAudience ? [roleAudience] : []),
           ];
     return {
-      status: { in: [AnnouncementStatus.PUBLISHED, AnnouncementStatus.SCHEDULED] },
+      status: AnnouncementStatus.PUBLISHED,
       AND: [
         { OR: [{ startsAt: null }, { startsAt: { lte: new Date() } }] },
         { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
@@ -77,7 +107,10 @@ export class CommunicationService {
     return this.prisma.announcement.findMany({
       where,
       include: { audiences: true },
-      orderBy: [{ priority: "desc" }, { publishedAt: "desc" }],
+      orderBy: [
+        { publishedAt: { sort: "desc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
     });
   }
 
@@ -115,7 +148,10 @@ export class CommunicationService {
     ]);
     return {
       __standardResponse: true as const,
-      data: { data },
+      data: { data: data.map((announcement) => ({
+        ...announcement,
+        availableTransitions: announcementStatusTransitions(announcement.status, announcement.startsAt, announcement.expiresAt),
+      })) },
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
@@ -127,7 +163,6 @@ export class CommunicationService {
         title: dto.title.trim(),
         body: dto.body.trim(),
         type: dto.type,
-        priority: dto.priority,
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
         allowDismissal: dto.allowDismissal ?? true,
@@ -141,45 +176,155 @@ export class CommunicationService {
   }
 
   async updateAnnouncement(id: string, dto: UpdateAnnouncementDto) {
-    const existing = await this.prisma.announcement.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException({ code: "ANNOUNCEMENT_NOT_FOUND" });
-    if (existing.status === AnnouncementStatus.ARCHIVED) {
-      throw new BadRequestException({ code: "ANNOUNCEMENT_ARCHIVED" });
-    }
     this.validateDates(dto.startsAt, dto.expiresAt);
+    const startsAt = dto.startsAt ? new Date(dto.startsAt) : null;
+    const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
+    let shouldNotify = false;
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      await tx.announcementAudience.deleteMany({ where: { announcementId: id } });
-      return tx.announcement.update({
-        where: { id },
-        data: {
-          title: dto.title.trim(),
-          body: dto.body.trim(),
-          type: dto.type,
-          priority: dto.priority,
-          startsAt: dto.startsAt ? new Date(dto.startsAt) : null,
-          expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
-          allowDismissal: dto.allowDismissal ?? true,
-          actionLabel: dto.actionLabel?.trim() || null,
-          actionUrl: this.validateActionUrl(dto.actionUrl) ?? null,
-          status:
-            dto.startsAt && new Date(dto.startsAt) > new Date()
-              ? AnnouncementStatus.SCHEDULED
-              : existing.status === AnnouncementStatus.SCHEDULED
-                ? AnnouncementStatus.PUBLISHED
-                : existing.status,
-          publishedAt:
-            dto.startsAt && new Date(dto.startsAt) > new Date()
-              ? null
-              : existing.status === AnnouncementStatus.SCHEDULED
-                ? new Date()
-                : existing.publishedAt,
-          audiences: { create: dto.audiences.map((audience) => ({ audience })) },
-        },
-        include: { audiences: true },
+    let updated;
+    try {
+      updated = await this.prisma.$transaction(async (tx) => {
+        const locked = await tx.$queryRaw<Array<{
+          id: string;
+          status: AnnouncementStatus;
+          expiresAt: Date | null;
+          publishedAt: Date | null;
+        }>>`
+          SELECT "id", "status", "expires_at" AS "expiresAt", "published_at" AS "publishedAt"
+          FROM "announcements"
+          WHERE "id" = ${id}
+          FOR UPDATE
+        `;
+        const existing = locked[0];
+        if (!existing) throw new NotFoundException({ code: "ANNOUNCEMENT_NOT_FOUND" });
+        if (existing.status === AnnouncementStatus.ARCHIVED) {
+          throw new BadRequestException({ code: "ANNOUNCEMENT_ARCHIVED" });
+        }
+
+        const now = new Date();
+        const hasFutureStart = Boolean(startsAt && startsAt > now);
+        const expirationHasPassed = Boolean(
+          (existing.expiresAt && existing.expiresAt <= now) || (expiresAt && expiresAt <= now),
+        );
+        const shouldArchiveExpired = expirationHasPassed
+          && (existing.status === AnnouncementStatus.PUBLISHED || existing.status === AnnouncementStatus.SCHEDULED);
+        const nextStatus = shouldArchiveExpired
+          ? AnnouncementStatus.ARCHIVED
+          : existing.status === AnnouncementStatus.PUBLISHED
+            ? hasFutureStart ? AnnouncementStatus.SCHEDULED : AnnouncementStatus.PUBLISHED
+            : existing.status === AnnouncementStatus.SCHEDULED
+              ? hasFutureStart ? AnnouncementStatus.SCHEDULED : AnnouncementStatus.DRAFT
+              : hasFutureStart ? AnnouncementStatus.SCHEDULED : AnnouncementStatus.DRAFT;
+        shouldNotify = nextStatus === AnnouncementStatus.PUBLISHED && existing.status !== AnnouncementStatus.PUBLISHED;
+
+        if (shouldNotify) {
+          await tx.announcement.updateMany({
+            where: { status: AnnouncementStatus.PUBLISHED, id: { not: id } },
+            data: { status: AnnouncementStatus.ARCHIVED, archivedAt: now },
+          });
+        }
+        await tx.announcementAudience.deleteMany({ where: { announcementId: id } });
+        return tx.announcement.update({
+          where: { id },
+          data: {
+            title: dto.title.trim(),
+            body: dto.body.trim(),
+            type: dto.type,
+            startsAt,
+            expiresAt,
+            allowDismissal: dto.allowDismissal ?? true,
+            actionLabel: dto.actionLabel?.trim() || null,
+            actionUrl: this.validateActionUrl(dto.actionUrl) ?? null,
+            status: nextStatus,
+            publishedAt: nextStatus === AnnouncementStatus.PUBLISHED
+              ? existing.publishedAt ?? now
+              : nextStatus === AnnouncementStatus.ARCHIVED
+                ? existing.publishedAt
+                : null,
+            archivedAt: nextStatus === AnnouncementStatus.ARCHIVED ? now : null,
+            audiences: { create: dto.audiences.map((audience) => ({ audience })) },
+          },
+          include: { audiences: true },
+        });
       });
-    });
-    if (updated.status === AnnouncementStatus.PUBLISHED && existing.status !== AnnouncementStatus.PUBLISHED) {
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new ConflictException({ code: "ANNOUNCEMENT_ALREADY_ACTIVE" });
+      }
+      throw error;
+    }
+    if (shouldNotify) {
+      await this.notifyAnnouncement(updated.id, updated.audiences.map((item) => item.audience));
+    }
+    return updated;
+  }
+
+  async updateAnnouncementStatus(id: string, dto: UpdateAnnouncementStatusDto) {
+    let shouldNotify = false;
+    let updated;
+    try {
+      updated = await this.prisma.$transaction(async (tx) => {
+        const locked = await tx.$queryRaw<Array<{
+          id: string;
+          status: AnnouncementStatus;
+          startsAt: Date | null;
+          expiresAt: Date | null;
+          publishedAt: Date | null;
+        }>>`
+          SELECT "id", "status", "starts_at" AS "startsAt", "expires_at" AS "expiresAt", "published_at" AS "publishedAt"
+          FROM "announcements"
+          WHERE "id" = ${id}
+          FOR UPDATE
+        `;
+        const existing = locked[0];
+        if (!existing) throw new NotFoundException({ code: "ANNOUNCEMENT_NOT_FOUND" });
+        if (existing.status === dto.status) {
+          return tx.announcement.findUnique({ where: { id }, include: { audiences: true } });
+        }
+
+        const now = new Date();
+        if ((dto.status === AnnouncementStatus.PUBLISHED || dto.status === AnnouncementStatus.SCHEDULED)
+          && existing.expiresAt && existing.expiresAt <= now) {
+          throw new BadRequestException({ code: "ANNOUNCEMENT_EXPIRED" });
+        }
+        const allowed = announcementStatusTransitions(existing.status, existing.startsAt, existing.expiresAt, now);
+        if (!allowed.includes(dto.status)) {
+          throw new BadRequestException({ code: "INVALID_ANNOUNCEMENT_STATUS_TRANSITION" });
+        }
+        if (dto.status === AnnouncementStatus.PUBLISHED && existing.startsAt && existing.startsAt > now) {
+          throw new BadRequestException({ code: "ANNOUNCEMENT_START_DATE_NOT_REACHED" });
+        }
+        if (dto.status === AnnouncementStatus.SCHEDULED && (!existing.startsAt || existing.startsAt <= now)) {
+          throw new BadRequestException({ code: "ANNOUNCEMENT_SCHEDULE_DATE_REQUIRED" });
+        }
+
+        shouldNotify = dto.status === AnnouncementStatus.PUBLISHED;
+        if (shouldNotify) await tx.announcement.updateMany({
+          where: { status: AnnouncementStatus.PUBLISHED, id: { not: id } },
+          data: { status: AnnouncementStatus.ARCHIVED, archivedAt: now },
+        });
+        return tx.announcement.update({
+          where: { id },
+          data: {
+            status: dto.status,
+            publishedAt: dto.status === AnnouncementStatus.PUBLISHED
+              ? now
+              : dto.status === AnnouncementStatus.ARCHIVED
+                ? existing.publishedAt
+                : null,
+            archivedAt: dto.status === AnnouncementStatus.ARCHIVED ? now : null,
+          },
+          include: { audiences: true },
+        });
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new ConflictException({ code: "ANNOUNCEMENT_ALREADY_ACTIVE" });
+      }
+      throw error;
+    }
+
+    if (shouldNotify) {
       await this.notifyAnnouncement(updated.id, updated.audiences.map((item) => item.audience));
     }
     return updated;
@@ -194,44 +339,75 @@ export class CommunicationService {
     if (announcement.status === AnnouncementStatus.PUBLISHED || announcement.status === AnnouncementStatus.SCHEDULED) {
       throw new BadRequestException({ code: "ANNOUNCEMENT_ALREADY_PUBLISHED" });
     }
-    const published = await this.prisma.announcement.update({
-      where: { id },
-      data: {
-        status: announcement.startsAt && announcement.startsAt > new Date()
-          ? AnnouncementStatus.SCHEDULED
-          : AnnouncementStatus.PUBLISHED,
-        publishedAt: announcement.startsAt && announcement.startsAt > new Date() ? null : new Date(),
-      },
-      include: { audiences: true },
-    });
-    if (published.status === AnnouncementStatus.PUBLISHED) {
-      await this.notifyAnnouncement(published.id, published.audiences.map((item) => item.audience));
-    }
-    return published;
+    const targetStatus = announcement.startsAt && announcement.startsAt > new Date()
+      ? AnnouncementStatus.SCHEDULED
+      : AnnouncementStatus.PUBLISHED;
+    return this.updateAnnouncementStatus(id, { status: targetStatus });
   }
 
   @Cron("*/1 * * * *")
   async activateScheduledAnnouncements() {
-    const scheduled = await this.prisma.announcement.findMany({ where: { status: AnnouncementStatus.SCHEDULED, startsAt: { lte: new Date() } }, include: { audiences: true } });
-    for (const announcement of scheduled) {
-      const activated = await this.prisma.announcement.updateMany({ where: { id: announcement.id, status: AnnouncementStatus.SCHEDULED }, data: { status: AnnouncementStatus.PUBLISHED, publishedAt: new Date() } });
-      if (activated.count) await this.notifyAnnouncement(announcement.id, announcement.audiences.map((item) => item.audience));
+    const now = new Date();
+    await this.prisma.announcement.updateMany({
+      where: {
+        status: { in: [AnnouncementStatus.SCHEDULED, AnnouncementStatus.PUBLISHED] },
+        expiresAt: { lte: now },
+      },
+      data: { status: AnnouncementStatus.ARCHIVED, archivedAt: now },
+    });
+
+    // Activate the earliest due item per tick so queued announcements each get a visible interval.
+    const scheduled = await this.prisma.announcement.findFirst({
+      where: {
+        status: AnnouncementStatus.SCHEDULED,
+        startsAt: { lte: now },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      orderBy: [{ startsAt: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      include: { audiences: true },
+    });
+    if (!scheduled) return;
+
+    const activated = await this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<Array<{ id: string; startsAt: Date | null; expiresAt: Date | null }>>`
+        SELECT "id", "starts_at" AS "startsAt", "expires_at" AS "expiresAt"
+        FROM "announcements"
+        WHERE "id" = ${scheduled.id} AND "status" = 'SCHEDULED'::"announcement_statuses"
+        FOR UPDATE
+      `;
+      if (!locked.length) return null;
+
+      const activationTime = new Date();
+      if (locked[0].expiresAt && locked[0].expiresAt <= activationTime) {
+        await tx.announcement.update({ where: { id: scheduled.id }, data: { status: AnnouncementStatus.ARCHIVED, archivedAt: activationTime } });
+        return null;
+      }
+      if (locked[0].startsAt && locked[0].startsAt > activationTime) return null;
+
+      await tx.announcement.updateMany({
+        where: { status: AnnouncementStatus.PUBLISHED, id: { not: scheduled.id } },
+        data: { status: AnnouncementStatus.ARCHIVED, archivedAt: now },
+      });
+      return tx.announcement.update({
+        where: { id: scheduled.id },
+        data: { status: AnnouncementStatus.PUBLISHED, publishedAt: now, archivedAt: null },
+        include: { audiences: true },
+      });
+    });
+    if (activated) {
+      await this.notifyAnnouncement(activated.id, activated.audiences.map((item) => item.audience));
     }
   }
 
   async archiveAnnouncement(id: string) {
-    const result = await this.prisma.announcement.updateMany({
-      where: { id, status: { not: AnnouncementStatus.ARCHIVED } },
-      data: { status: AnnouncementStatus.ARCHIVED, archivedAt: new Date() },
-    });
-    if (!result.count) throw new NotFoundException({ code: "ANNOUNCEMENT_NOT_FOUND" });
-    return { id, status: AnnouncementStatus.ARCHIVED };
+    const announcement = await this.updateAnnouncementStatus(id, { status: AnnouncementStatus.ARCHIVED });
+    return { id: announcement.id, status: announcement.status };
   }
 
   async createIssue(userId: string, source: "DASHBOARD" | "PORTAL", dto: CreateIssueReportDto, files?: Express.Multer.File[]) {
     const issue = await this.prisma.issueReport.create({
       data: {
-        reporterId: userId, source, category: dto.category, severity: dto.severity,
+        reporterId: userId, source, category: dto.category,
         title: dto.title.trim(), description: dto.description.trim(), pagePath: dto.pagePath?.trim(),
         history: { create: { changedBy: userId, eventCode: "ISSUE_REPORTED" } },
       },
@@ -247,33 +423,31 @@ export class CommunicationService {
 
   async getUserIssues(userId: string) {
     return this.prisma.issueReport.findMany({
-      where: { OR: [{ reporterId: userId }, { assignedToId: userId }] },
+      where: { reporterId: userId },
       orderBy: { createdAt: "desc" },
-      include: { assignedTo: { select: { id: true, name: true } }, attachments: true },
+      include: { attachments: true },
     }).then((issues) => Promise.all(issues.map((issue) => this.withAttachmentUrls(issue))));
   }
 
-  async listIssues(query: { page?: number; limit?: number; search?: string; status?: IssueStatus; severity?: IssueSeverity }) {
+  async listIssues(query: { page?: number; limit?: number; search?: string; status?: IssueStatus }) {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 20));
     const where: Prisma.IssueReportWhereInput = {
       ...(query.status ? { status: query.status } : {}),
-      ...(query.severity ? { severity: query.severity } : {}),
       ...(query.search ? { OR: [{ title: { contains: query.search, mode: "insensitive" } }, { description: { contains: query.search, mode: "insensitive" } }] } : {}),
     };
     const [issues, total] = await Promise.all([
-      this.prisma.issueReport.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: [{ status: "asc" }, { createdAt: "desc" }], include: { reporter: { select: { id: true, name: true, email: true } }, assignedTo: { select: { id: true, name: true } }, attachments: true } }),
+      this.prisma.issueReport.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: [{ status: "asc" }, { createdAt: "desc" }], include: { reporter: { select: { id: true, name: true, email: true } }, attachments: true } }),
       this.prisma.issueReport.count({ where }),
     ]);
     return {
       __standardResponse: true as const,
-      data: { data: await Promise.all(issues.map((issue) => this.withAttachmentUrls(issue))) },
+      data: { data: await Promise.all(issues.map(async (issue) => ({
+        ...await this.withAttachmentUrls(issue),
+        availableTransitions: ISSUE_STATUS_TRANSITIONS[issue.status],
+      }))) },
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
-  }
-
-  async searchIssueAssignees(search?: string) {
-    return this.prisma.user.findMany({ where: { isActive: true, role: { name: { not: "CLIENT" } }, ...(search ? { OR: [{ name: { contains: search, mode: "insensitive" } }, { email: { contains: search, mode: "insensitive" } }] } : {}) }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" }, take: 50 });
   }
 
   async getIssue(id: string, userId?: string) {
@@ -281,14 +455,16 @@ export class CommunicationService {
       where: { id },
       include: {
         reporter: { select: { id: true, name: true, email: true } },
-        assignedTo: { select: { id: true, name: true } },
         messages: { orderBy: { createdAt: "asc" }, include: { author: { select: { id: true, name: true } }, attachments: true } },
         attachments: true,
-        history: { orderBy: { createdAt: "asc" } },
+        history: {
+          orderBy: { createdAt: "asc" },
+          select: { id: true, eventCode: true, createdAt: true },
+        },
       },
     });
     if (!issue) throw new NotFoundException({ code: "ISSUE_NOT_FOUND" });
-    if (userId && issue.reporterId !== userId && issue.assignedToId !== userId) {
+    if (userId && issue.reporterId !== userId) {
       throw new ForbiddenException({ code: "PERMISSION_DENIED" });
     }
     const attachments = await this.withAttachmentUrls(issue);
@@ -302,47 +478,32 @@ export class CommunicationService {
   }
 
   async updateIssueStatus(id: string, userId: string, dto: UpdateIssueStatusDto) {
-    const existing = await this.getIssue(id);
-    const allowed: Record<IssueStatus, IssueStatus[]> = {
-      OPEN: [IssueStatus.IN_PROGRESS, IssueStatus.CLOSED],
-      IN_PROGRESS: [IssueStatus.WAITING_FOR_USER, IssueStatus.RESOLVED, IssueStatus.CLOSED],
-      WAITING_FOR_USER: [IssueStatus.IN_PROGRESS, IssueStatus.RESOLVED, IssueStatus.CLOSED],
-      RESOLVED: [IssueStatus.CLOSED, IssueStatus.IN_PROGRESS],
-      CLOSED: [],
-    };
-    if (existing.status !== dto.status && !allowed[existing.status].includes(dto.status)) {
-      throw new BadRequestException({ code: "INVALID_ISSUE_STATUS_TRANSITION" });
-    }
-    const timestamps = {
-      resolvedAt: dto.status === IssueStatus.RESOLVED ? new Date() : null,
-      closedAt: dto.status === IssueStatus.CLOSED ? new Date() : null,
-    };
     return this.prisma.$transaction(async (tx) => {
-      const issue = await tx.issueReport.update({ where: { id }, data: { status: dto.status, ...timestamps } });
-      await tx.issueHistory.create({ data: { issueId: id, changedBy: userId, eventCode: `ISSUE_STATUS_${dto.status}` } });
-      return issue;
-    });
-  }
-
-  async assignIssue(id: string, userId: string, dto: AssignIssueDto) {
-    await this.getIssue(id);
-    if (dto.assignedToId) {
-      const assignee = await this.prisma.user.findFirst({
-        where: { id: dto.assignedToId, isActive: true, role: { name: { not: "CLIENT" } } },
-        select: { id: true },
+      const locked = await tx.$queryRaw<Array<{ id: string; status: IssueStatus }>>`
+        SELECT "id", "status" FROM "issue_reports" WHERE "id" = ${id} FOR UPDATE
+      `;
+      const existing = locked[0];
+      if (!existing) throw new NotFoundException({ code: "ISSUE_NOT_FOUND" });
+      if (existing.status !== dto.status && !ISSUE_STATUS_TRANSITIONS[existing.status].includes(dto.status)) {
+        throw new BadRequestException({ code: "INVALID_ISSUE_STATUS_TRANSITION" });
+      }
+      const now = new Date();
+      const issue = await tx.issueReport.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          resolvedAt: dto.status === IssueStatus.RESOLVED ? now : null,
+          closedAt: dto.status === IssueStatus.CLOSED ? now : null,
+        },
       });
-      if (!assignee) throw new BadRequestException({ code: "INVALID_ISSUE_ASSIGNEE" });
-    }
-    return this.prisma.$transaction(async (tx) => {
-      const issue = await tx.issueReport.update({ where: { id }, data: { assignedToId: dto.assignedToId || null } });
-      await tx.issueHistory.create({ data: { issueId: id, changedBy: userId, eventCode: "ISSUE_ASSIGNED", metadata: { assignedToId: dto.assignedToId ?? null } } });
+      await tx.issueHistory.create({ data: { issueId: id, changedBy: userId, eventCode: `ISSUE_STATUS_${dto.status}` } });
       return issue;
     });
   }
 
   async addIssueMessage(id: string, authorId: string, dto: CreateIssueMessageDto, isAdmin = false, files?: Express.Multer.File[]) {
     const issue = await this.getIssue(id);
-    if (!isAdmin && issue.reporterId !== authorId && issue.assignedToId !== authorId) throw new ForbiddenException({ code: "PERMISSION_DENIED" });
+    if (!isAdmin && issue.reporterId !== authorId) throw new ForbiddenException({ code: "PERMISSION_DENIED" });
     if (issue.status === IssueStatus.CLOSED) throw new BadRequestException({ code: "ISSUE_CLOSED" });
     const message = await this.prisma.issueMessage.create({ data: { issueId: id, authorId, content: dto.content.trim() }, include: { author: { select: { id: true, name: true } } } });
     try {

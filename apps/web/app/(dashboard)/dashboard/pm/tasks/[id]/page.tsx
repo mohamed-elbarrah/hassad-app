@@ -12,6 +12,7 @@ export default function TaskDetailPage({
 
   return (
     <TaskWorkspaceDetail
+      key={id}
       taskId={id}
       listHref="/dashboard/pm/tasks"
       listLabel="المهام"

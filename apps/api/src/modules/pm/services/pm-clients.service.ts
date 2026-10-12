@@ -23,13 +23,16 @@ export class PmClientsService {
     }
   }
 
-  async getFull(clientId: string, userId: string) {
+  private async getPmTeamView(clientId: string, userId: string) {
     await this.assertOwnership(clientId, userId);
     return this.clientProfileService.getTeamView(clientId);
   }
 
-  async getTeamView(clientId: string, userId: string) {
-    await this.assertOwnership(clientId, userId);
-    return this.clientProfileService.getTeamView(clientId);
+  getFull(clientId: string, userId: string) {
+    return this.getPmTeamView(clientId, userId);
+  }
+
+  getTeamView(clientId: string, userId: string) {
+    return this.getPmTeamView(clientId, userId);
   }
 }

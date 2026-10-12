@@ -6,9 +6,12 @@ import {
   Param,
   Body,
   UseGuards,
-  Req,
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import {
+  CurrentUser,
+  type JwtPayload,
+} from "../../../common/decorators/current-user.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { ClientProfileService } from "../services/client-profile.service";
@@ -23,8 +26,11 @@ export class ClientProfileController {
   constructor(private readonly profileService: ClientProfileService) {}
 
   @Get(":id/profile")
-  async getProfile(@Param("id") id: string, @Req() req: any) {
-    return this.profileService.getByClientId(id, req.user);
+  async getProfile(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.profileService.getByClientId(id, user);
   }
 
   /**
@@ -33,11 +39,15 @@ export class ClientProfileController {
    * typed for V2 consumers.
    */
   @Get(":id/profile/v2")
-  async getProfileV2(@Param("id") id: string, @Req() req: any) {
-    return this.profileService.getByClientId(id, req.user);
+  async getProfileV2(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.profileService.getByClientId(id, user);
   }
 
   @Get(":id/team-view")
+  @RequirePermissions("admin.clients.read")
   async getTeamView(@Param("id") id: string) {
     return this.profileService.getTeamView(id);
   }
@@ -46,9 +56,9 @@ export class ClientProfileController {
   async upsertProfile(
     @Param("id") id: string,
     @Body() dto: UpsertClientProfileDto,
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.profileService.upsert(id, dto, req.user);
+    return this.profileService.upsert(id, dto, user);
   }
 
   /**
@@ -60,9 +70,9 @@ export class ClientProfileController {
   async upsertProfileV2(
     @Param("id") id: string,
     @Body() dto: UpsertClientProfileV2Dto,
-    @Req() req: any,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.profileService.upsertV2(id, dto, req.user);
+    return this.profileService.upsertV2(id, dto, user);
   }
 
   @Delete(":id/profile")

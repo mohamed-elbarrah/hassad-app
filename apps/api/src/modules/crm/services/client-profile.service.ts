@@ -16,6 +16,96 @@ interface AuthenticatedUser {
   clientId?: string;
 }
 
+const OPERATIONAL_COMMUNICATION_FIELDS = [
+  "businessName",
+  "businessType",
+  "industry",
+] as const;
+const OPERATIONAL_PROFILE_FIELDS = {
+  productInfo: [
+    "productStory",
+    "detailedDescription",
+    "valueProposition",
+    "advantages",
+    "benefits",
+    "contentDirection",
+  ],
+  brandVoice: [
+    "toneOfVoice",
+    "boundaries",
+    "verbalSlogan",
+    "appearanceMethod",
+  ],
+  customerJourney: ["orderMethods", "followUpTools"],
+  campaignInfo: [
+    "campaignGoal",
+    "campaignDetails",
+    "campaignOffer",
+    "guarantees",
+    "campaignSeason",
+    "competitors",
+  ],
+  visualIdentityInfo: [
+    "hasVisualIdentity",
+    "brandAssets",
+    "pastDesigns",
+    "productPhotos",
+    "visualDirection",
+  ],
+} as const;
+
+function selectRecordFields(
+  value: unknown,
+  fields: readonly string[],
+): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const selected = Object.fromEntries(
+    fields
+      .filter((field) => record[field] !== undefined)
+      .map((field) => [field, record[field]]),
+  );
+  return Object.keys(selected).length > 0 ? selected : null;
+}
+
+function selectOperationalAudienceInfo(value: unknown) {
+  const audienceInfo = selectRecordFields(value, ["customerAnalysis", "faq"]);
+  if (!audienceInfo || !Array.isArray(audienceInfo.faq)) return audienceInfo;
+
+  audienceInfo.faq = audienceInfo.faq
+    .map((item) => selectRecordFields(item, ["question", "answer"]))
+    .filter((item): item is Record<string, unknown> => item !== null);
+  return audienceInfo;
+}
+
+function selectOperationalVisualIdentity(value: unknown) {
+  const visualIdentityInfo = selectRecordFields(
+    value,
+    OPERATIONAL_PROFILE_FIELDS.visualIdentityInfo,
+  );
+  if (visualIdentityInfo && "brandAssets" in visualIdentityInfo) {
+    visualIdentityInfo.brandAssets = selectRecordFields(
+      visualIdentityInfo.brandAssets,
+      ["logoUrl", "brandColors", "fonts", "guidelinesUrl"],
+    );
+  }
+  return visualIdentityInfo;
+}
+
+function omitKeys<T extends object, K extends keyof T>(
+  value: T,
+  keys: readonly K[],
+): Omit<T, K> {
+  const result = { ...value };
+  for (const key of keys) {
+    delete (result as Partial<T>)[key];
+  }
+  return result as Omit<T, K>;
+}
+
 @Injectable()
 export class ClientProfileService {
   constructor(private readonly prisma: PrismaService) {}
@@ -55,18 +145,37 @@ export class ClientProfileService {
   }
 
   /**
-   * Returns a combined, filtered view of a client + profile for team members
-   * (PM, designers, marketers, employees). Sensitive financial fields
-   * (totalContractValue, totalPaid, avgSatisfactionScore, project counters)
-   * are excluded so internal roles only see operational context.
-   * No special permission required — just authentication.
+   * Returns business context for internal task roles. Personal, access,
+   * financial, performance, and legacy profile fields are not selected or
+   * returned; consumers must still enforce their own task ownership.
    */
   async getTeamView(clientId: string) {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
-      include: {
-        manager: { select: { id: true, name: true } },
-        profile: true,
+      select: {
+        id: true,
+        companyName: true,
+        businessName: true,
+        businessType: true,
+        kind: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        profile: {
+          select: {
+            id: true,
+            clientId: true,
+            communicationInfo: true,
+            productInfo: true,
+            audienceInfo: true,
+            brandVoice: true,
+            customerJourney: true,
+            campaignInfo: true,
+            visualIdentityInfo: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
     });
 
@@ -77,27 +186,50 @@ export class ClientProfileService {
       });
     }
 
-    // Return only non-sensitive client fields + full profile
-    const {
-      totalProjects: _tp,
-      activeProjects: _ap,
-      completedProjects: _cp,
-      cancelledProjects: _x,
-      totalContractValue: _tcv,
-      totalInvoiced: _ti,
-      totalPaid: _tpd,
-      avgSatisfactionScore: _as,
-      lastProjectAt: _lp,
-      portalAccessToken: _pat,
-      portalTokenExpiresAt: _pte,
-      userId: _u,
-      intakeCompleted: _ic,
-      ...safeClient
-    } = client;
-
+    const profile = client.profile;
     return {
-      client: safeClient,
-      profile: client.profile ?? null,
+      client: {
+        id: client.id,
+        companyName: client.companyName,
+        businessName: client.businessName,
+        businessType: client.businessType,
+        kind: client.kind,
+        status: client.status,
+        createdAt: client.createdAt,
+        updatedAt: client.updatedAt,
+      },
+      profile: profile
+        ? {
+            id: profile.id,
+            clientId: profile.clientId,
+            communicationInfo: selectRecordFields(
+              profile.communicationInfo,
+              OPERATIONAL_COMMUNICATION_FIELDS,
+            ),
+            productInfo: selectRecordFields(
+              profile.productInfo,
+              OPERATIONAL_PROFILE_FIELDS.productInfo,
+            ),
+            audienceInfo: selectOperationalAudienceInfo(profile.audienceInfo),
+            brandVoice: selectRecordFields(
+              profile.brandVoice,
+              OPERATIONAL_PROFILE_FIELDS.brandVoice,
+            ),
+            customerJourney: selectRecordFields(
+              profile.customerJourney,
+              OPERATIONAL_PROFILE_FIELDS.customerJourney,
+            ),
+            campaignInfo: selectRecordFields(
+              profile.campaignInfo,
+              OPERATIONAL_PROFILE_FIELDS.campaignInfo,
+            ),
+            visualIdentityInfo: selectOperationalVisualIdentity(
+              profile.visualIdentityInfo,
+            ),
+            createdAt: profile.createdAt,
+            updatedAt: profile.updatedAt,
+          }
+        : null,
     };
   }
 
@@ -118,8 +250,8 @@ export class ClientProfileService {
       let result;
 
       if (existing) {
-        const { createdBy: _, ...rest } = plainDto;
-        const updateData = rest as Prisma.ClientProfileUpdateInput;
+        const updateData = omitKeys(plainDto, ["createdBy"] as const) as
+          Prisma.ClientProfileUpdateInput;
 
         result = await tx.clientProfile.update({
           where: { clientId },
@@ -145,16 +277,15 @@ export class ClientProfileService {
       return result;
     });
 
+    const eventType = existing
+      ? "CLIENT_PROFILE_UPDATED"
+      : "CLIENT_PROFILE_CREATED";
     await this.prisma.clientHistoryLog.create({
       data: {
         clientId,
         userId: user.id,
-        eventType: existing
-          ? "CLIENT_PROFILE_UPDATED"
-          : "CLIENT_PROFILE_CREATED",
-        description: existing
-          ? "Client profile updated"
-          : "Client profile created",
+        eventType,
+        description: eventType,
         metadata: { profileId: profile.id },
       },
     });
@@ -238,16 +369,15 @@ export class ClientProfileService {
       return result;
     });
 
+    const eventType = existing
+      ? "CLIENT_PROFILE_UPDATED"
+      : "CLIENT_PROFILE_CREATED";
     await this.prisma.clientHistoryLog.create({
       data: {
         clientId,
         userId: user.id,
-        eventType: existing
-          ? "CLIENT_PROFILE_UPDATED"
-          : "CLIENT_PROFILE_CREATED",
-        description: existing
-          ? "Client profile updated (V2)"
-          : "Client profile created (V2)",
+        eventType,
+        description: eventType,
         metadata: { profileId: profile.id },
       },
     });

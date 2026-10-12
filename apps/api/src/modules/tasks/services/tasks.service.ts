@@ -865,6 +865,56 @@ export class TasksService {
     }));
   }
 
+  async getAuthorizedDownloadUrl(
+    taskId: string,
+    fileId: string,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<string> {
+    let taskWhere: Prisma.TaskWhereInput;
+    switch (userRole) {
+      case UserRole.ADMIN:
+        taskWhere = { id: taskId };
+        break;
+      case UserRole.PM:
+        taskWhere = {
+          id: taskId,
+          archivedAt: null,
+          project: { projectManagerId: userId },
+        };
+        break;
+      case UserRole.TEAM:
+        taskWhere = { id: taskId, archivedAt: null, assignedTo: userId };
+        break;
+      case UserRole.MARKETING:
+        taskWhere = {
+          id: taskId,
+          archivedAt: null,
+          assignedTo: userId,
+          department: { name: TaskDepartment.MARKETING },
+        };
+        break;
+      default:
+        throw new NotFoundException({
+          code: "TASK_NOT_FOUND",
+          details: { taskId },
+        });
+    }
+
+    const task = await this.prisma.task.findFirst({
+      where: taskWhere,
+      select: { id: true },
+    });
+    if (!task) {
+      throw new NotFoundException({
+        code: "TASK_NOT_FOUND",
+        details: { taskId },
+      });
+    }
+
+    return this.getDownloadUrl(taskId, fileId);
+  }
+
   async getDownloadUrl(taskId: string, fileId: string): Promise<string> {
     const file = await this.prisma.taskFile.findFirst({
       where: { id: fileId, taskId },

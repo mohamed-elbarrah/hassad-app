@@ -68,7 +68,8 @@ export type ClientDetailMode =
   | "sales"
   | "portal"
   | "finance"
-  | "internal";
+  | "internal"
+  | "operational";
 
 type NullableString = string | null | undefined;
 
@@ -360,6 +361,15 @@ function getVisibleBusinessSections(mode: ClientDetailMode) {
         "performance",
         "visual",
       ];
+    case "operational":
+      return [
+        "identity",
+        "product",
+        "audience",
+        "journey",
+        "campaign",
+        "visual",
+      ];
     default:
       return [
         "identity",
@@ -497,6 +507,8 @@ export function buildClientPersonalFields(
           "أوقات التواصل",
         ].includes(field.label),
       );
+    case "operational":
+      return [];
     default:
       return fields;
   }
@@ -1604,31 +1616,92 @@ export function ClientProfileOverviewCard({
   profile,
   badges = [],
   stats = [],
+  mode = "admin",
 }: {
   client: ClientDetailEntity;
   profile?: ClientProfile | null;
   badges?: ReactNode[];
   stats?: ClientStatItem[];
+  mode?: ClientDetailMode;
 }) {
-  const personalFields = buildClientPersonalFields(client, profile, "admin");
+  const personalFields = buildClientPersonalFields(client, profile, mode);
+  const operationalFields: ClientInfoFieldItem[] = [
+    {
+      label: "مجال النشاط",
+      value: getClientIndustry(client, profile),
+    },
+    {
+      label: "المنتج أو الخدمة",
+      value:
+        normalizeText(profile?.productInfo?.productStory) ||
+        normalizeText(profile?.productInfo?.detailedDescription),
+    },
+    {
+      label: "الجمهور المستهدف",
+      value: normalizeText(profile?.audienceInfo?.customerAnalysis),
+    },
+    {
+      label: "نبرة العلامة",
+      value: normalizeText(profile?.brandVoice?.toneOfVoice),
+    },
+  ];
+  const overviewFields =
+    mode === "operational" ? operationalFields : personalFields;
   const businessName = getClientBusinessName(client, profile);
-  const businessTypeLabel = BUSINESS_TYPE_AR[client.businessType as keyof typeof BUSINESS_TYPE_AR] || client.businessType;
+  const businessTypeLabel =
+    BUSINESS_TYPE_AR[client.businessType as keyof typeof BUSINESS_TYPE_AR] ||
+    client.businessType;
 
   return (
     <Card>
       <CardHeader className="gap-4">
         <div className="flex items-start gap-4">
-          <Avatar className="size-20"><AvatarImage src={client.user?.avatarUrl ?? undefined} alt={client.companyName} /><AvatarFallback className="text-lg font-semibold">{getInitials(client.companyName)}</AvatarFallback></Avatar>
+          <Avatar className="size-20">
+            <AvatarImage
+              src={client.user?.avatarUrl ?? undefined}
+              alt={client.companyName}
+            />
+            <AvatarFallback className="text-lg font-semibold">
+              {getInitials(client.companyName)}
+            </AvatarFallback>
+          </Avatar>
           <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2"><CardTitle className="text-2xl">{client.companyName}</CardTitle>{client.status ? <Badge variant={statusVariant(client.status)}>{CLIENT_STATUS_AR[client.status as keyof typeof CLIENT_STATUS_AR] || client.status}</Badge> : null}</div>
-            <p className="text-sm text-muted-foreground">{businessName || "لم يتم تحديد اسم النشاط بعد"}</p>
-            <div className="flex flex-wrap gap-2"><Badge variant="outline">{businessTypeLabel}</Badge>{client.hasPortalAccess ? <Badge variant="outline">بوابة العميل مفعلة</Badge> : null}{badges}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle className="text-2xl">{client.companyName}</CardTitle>
+              {client.status ? (
+                <Badge variant={statusVariant(client.status)}>
+                  {CLIENT_STATUS_AR[
+                    client.status as keyof typeof CLIENT_STATUS_AR
+                  ] || client.status}
+                </Badge>
+              ) : null}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {businessName || "لم يتم تحديد اسم النشاط بعد"}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">{businessTypeLabel}</Badge>
+              {mode !== "operational" && client.hasPortalAccess ? (
+                <Badge variant="outline">بوابة العميل مفعلة</Badge>
+              ) : null}
+              {badges}
+            </div>
           </div>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <dl className="grid gap-x-6 sm:grid-cols-2">{personalFields.map((field) => <InfoField key={field.label} {...field} />)}</dl>
-        <div className="border-t pt-2"><ClientStatsGrid stats={stats} compact /></div>
+        {overviewFields.length > 0 ? (
+          <dl className="grid gap-x-6 sm:grid-cols-2">
+            {overviewFields.map((field) => (
+              <InfoField key={field.label} {...field} />
+            ))}
+          </dl>
+        ) : null}
+        {stats.length > 0 ? (
+          <div className="border-t pt-2">
+            <ClientStatsGrid stats={stats} compact />
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

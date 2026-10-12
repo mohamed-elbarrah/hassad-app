@@ -86,7 +86,7 @@ export function RequestContactLogDialog({
         <DialogHeader>
           <DialogTitle>تسجيل تواصل جديد</DialogTitle>
           <DialogDescription>
-            سجّل نوع التواصل ونتيجته مع هذا العميل المحتمل.
+            سجّل نوع التواصل ونتيجته المرتبطة بهذا الطلب.
           </DialogDescription>
         </DialogHeader>
 

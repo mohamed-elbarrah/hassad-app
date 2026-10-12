@@ -17,11 +17,11 @@ import { CurrentUser, type JwtPayload } from "../../../common/decorators/current
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import {
-  AssignIssueDto,
   CreateAnnouncementDto,
   CreateIssueMessageDto,
   CreateIssueReportDto,
   UpdateAnnouncementDto,
+  UpdateAnnouncementStatusDto,
   UpdateIssueStatusDto,
 } from "../dto/communication.dto";
 import { CommunicationListQueryDto } from "../dto/communication-query.dto";
@@ -87,6 +87,10 @@ export class AdminAnnouncementsController {
   @Post()
   @RequirePermissions("communication.announcements.create")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateAnnouncementDto) { return this.service.createAnnouncement(userId, dto); }
+
+  @Patch(":id/status")
+  @RequirePermissions("communication.announcements.update")
+  updateStatus(@Param("id") id: string, @Body() dto: UpdateAnnouncementStatusDto) { return this.service.updateAnnouncementStatus(id, dto); }
 
   @Patch(":id")
   @RequirePermissions("communication.announcements.update")
@@ -174,10 +178,6 @@ export class AdminIssuesController {
   @RequirePermissions("communication.issues.read")
   list(@Query() query: CommunicationListQueryDto) { return this.service.listIssues(query); }
 
-  @Get("assignees")
-  @RequirePermissions("communication.issues.read")
-  assignees(@Query("search") search?: string) { return this.service.searchIssueAssignees(search); }
-
   @Get(":id")
   @RequirePermissions("communication.issues.read")
   get(@Param("id") id: string) { return this.service.getIssue(id); }
@@ -185,10 +185,6 @@ export class AdminIssuesController {
   @Patch(":id/status")
   @RequirePermissions("communication.issues.update")
   status(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: UpdateIssueStatusDto) { return this.service.updateIssueStatus(id, userId, dto); }
-
-  @Patch(":id/assignment")
-  @RequirePermissions("communication.issues.update")
-  assign(@CurrentUser("id") userId: string, @Param("id") id: string, @Body() dto: AssignIssueDto) { return this.service.assignIssue(id, userId, dto); }
 
   @Post(":id/messages")
   @RequirePermissions("communication.issues.update")
