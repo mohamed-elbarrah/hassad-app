@@ -7,13 +7,13 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import type { Prisma } from "@prisma/client";
 import { AdminActionLogService } from "./admin-action-log.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
+import { ProjectPeriodsService } from "../../projects/services/project-periods.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "../../../common/storage/storage.constants";
 import {
   ContractStatus,
   ContractType,
   ProjectStatus,
-  ProjectPeriodStatus,
   TaskPriority,
 } from "@hassad/shared";
 import type {
@@ -30,21 +30,32 @@ export class AdminContractsService {
     private readonly actionLog: AdminActionLogService,
     private readonly storageService: StorageService,
     private readonly projectGroupChatService: ProjectGroupChatService,
+    private readonly projectPeriodsService: ProjectPeriodsService,
   ) {}
 
   async getActorCapabilities(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
-        role: { select: { name: true, permissions: { select: { permission: { select: { name: true } } } } } },
+        role: {
+          select: {
+            name: true,
+            permissions: { select: { permission: { select: { name: true } } } },
+          },
+        },
         permissions: { select: { permission: { select: { name: true } } } },
       },
     });
     const permissions = new Set([
-      ...(user?.role?.permissions.map(({ permission }) => permission.name) ?? []),
+      ...(user?.role?.permissions.map(({ permission }) => permission.name) ??
+        []),
       ...(user?.permissions.map(({ permission }) => permission.name) ?? []),
     ]);
-    return { canIntervene: user?.role?.name === "ADMIN" || permissions.has("admin.contracts.intervene") };
+    return {
+      canIntervene:
+        user?.role?.name === "ADMIN" ||
+        permissions.has("admin.contracts.intervene"),
+    };
   }
 
   async findAll(query: AdminContractsQueryDto) {
@@ -97,8 +108,12 @@ export class AdminContractsService {
         orderBy: { createdAt: "desc" },
       }),
       this.prisma.contract.count({ where }),
-      this.prisma.contract.count({ where: { ...where, status: ContractStatus.ACTIVE } }),
-      this.prisma.contract.count({ where: { ...where, status: ContractStatus.SIGNED } }),
+      this.prisma.contract.count({
+        where: { ...where, status: ContractStatus.ACTIVE },
+      }),
+      this.prisma.contract.count({
+        where: { ...where, status: ContractStatus.SIGNED },
+      }),
       this.prisma.contract.count({ where: { ...where, eSigned: true } }),
       this.prisma.contract.aggregate({ where, _sum: { totalValue: true } }),
     ]);
@@ -160,7 +175,8 @@ export class AdminContractsService {
         },
       },
     });
-    if (!contract) throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
+    if (!contract)
+      throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
 
     const project = await this.prisma.project.findFirst({
       where: { contractId: id },
@@ -203,7 +219,10 @@ export class AdminContractsService {
       createdAt: contract.createdAt.toISOString(),
       currency: contract.currency,
       downPaymentType: contract.downPaymentType,
-      downPaymentValue: contract.downPaymentValue == null ? null : Number(contract.downPaymentValue),
+      downPaymentValue:
+        contract.downPaymentValue == null
+          ? null
+          : Number(contract.downPaymentValue),
       numberOfMonths: contract.numberOfMonths,
       servicesList: contract.servicesList,
       client: contract.client,
@@ -253,25 +272,33 @@ export class AdminContractsService {
       where: { id: contractId },
       select: { filePath: true },
     });
-    if (!contract) throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
+    if (!contract)
+      throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
 
     return {
       fileUrl: await this.resolveContractFileUrl(contract.filePath),
     };
   }
 
-  private resolveContractFileUrl(filePath: string | null): Promise<string | null> {
+  private resolveContractFileUrl(
+    filePath: string | null,
+  ): Promise<string | null> {
     return this.storageService.getPresignedUrlIfExists(
       filePath,
       PRESIGNED_URL_EXPIRY_SECONDS.ADMIN_CONTRACT_DOWNLOAD,
     );
   }
 
-  async cancel(contractId: string, reason: string | undefined, adminId: string) {
+  async cancel(
+    contractId: string,
+    reason: string | undefined,
+    adminId: string,
+  ) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
     });
-    if (!contract) throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
+    if (!contract)
+      throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
 
     const before = { status: contract.status };
     const after = { status: "CANCELLED", reason };
@@ -319,7 +346,8 @@ export class AdminContractsService {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
     });
-    if (!contract) throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
+    if (!contract)
+      throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
 
     const pendingAlert = await this.prisma.contractRenewalAlert.findFirst({
       where: { contractId, isSent: false },
@@ -355,7 +383,8 @@ export class AdminContractsService {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
     });
-    if (!contract) throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
+    if (!contract)
+      throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
 
     const before = { status: contract.status };
     const after = { status, reason };
@@ -406,9 +435,13 @@ export class AdminContractsService {
         client: { select: { id: true, companyName: true, userId: true } },
       },
     });
-    if (!contract) throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
+    if (!contract)
+      throw new NotFoundException({ code: "CONTRACT_NOT_FOUND", details: {} });
     if (contract.status !== ContractStatus.ACTIVE) {
-      throw new BadRequestException({ code: "CONTRACT_MUST_BE_ACTIVE", details: {} });
+      throw new BadRequestException({
+        code: "CONTRACT_MUST_BE_ACTIVE",
+        details: {},
+      });
     }
 
     const existingProject = await this.prisma.project.findFirst({
@@ -416,7 +449,10 @@ export class AdminContractsService {
       select: { id: true },
     });
     if (existingProject) {
-      throw new BadRequestException({ code: "CONTRACT_ALREADY_CONVERTED", details: {} });
+      throw new BadRequestException({
+        code: "CONTRACT_ALREADY_CONVERTED",
+        details: {},
+      });
     }
 
     const projectName =
@@ -427,7 +463,11 @@ export class AdminContractsService {
         where: { id: pmId, isActive: true, role: { name: "PM" } },
         select: { id: true },
       });
-      if (!pm) throw new NotFoundException({ code: "PROJECT_MANAGER_NOT_ELIGIBLE", details: {} });
+      if (!pm)
+        throw new NotFoundException({
+          code: "PROJECT_MANAGER_NOT_ELIGIBLE",
+          details: {},
+        });
     }
 
     const project = await this.prisma.$transaction(async (tx) => {
@@ -441,16 +481,6 @@ export class AdminContractsService {
           priority: TaskPriority.NORMAL,
           startDate: contract.startDate,
           endDate: contract.endDate,
-        },
-      });
-
-      await tx.projectPeriod.create({
-        data: {
-          projectId: created.id,
-          periodNumber: 1,
-          startDate: contract.startDate,
-          endDate: contract.endDate,
-          status: ProjectPeriodStatus.UPCOMING,
         },
       });
 
@@ -479,6 +509,8 @@ export class AdminContractsService {
       return created;
     });
 
+    await this.projectPeriodsService.generatePeriods(project.id, userId);
+
     await this.actionLog.record({
       actorId: userId,
       targetType: "contract",
@@ -486,9 +518,7 @@ export class AdminContractsService {
       actionType: "admin.contracts.convert-to-project",
       afterState: { projectId: project.id, projectName },
     });
-    this.projectGroupChatService
-      .ensure(project.id)
-      .catch(() => undefined);
+    this.projectGroupChatService.ensure(project.id).catch(() => undefined);
 
     return {
       code: "CONTRACT_CONVERTED_TO_PROJECT",

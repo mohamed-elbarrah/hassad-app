@@ -753,9 +753,8 @@ model ProjectMember {
   @@map("project_members")
 }
 
-/// One billing/delivery period (≈ one month) of a retainer project. Belongs to a Project.
-/// Phase 2: lifecycle (UPCOMING→ACTIVE→CLOSED) + PM summary/report + period-scoped work.
-/// Phase 3: links to the recurring invoice issued at close + suspend on overdue.
+/// A project delivery period. Fixed projects have one period spanning their contract dates;
+/// monthly retainers have multiple month-sized periods. Retainer periods can link to recurring invoices.
 model ProjectPeriod {
   id                   String                 @id @default(uuid())
   projectId            String                 @map("project_id")

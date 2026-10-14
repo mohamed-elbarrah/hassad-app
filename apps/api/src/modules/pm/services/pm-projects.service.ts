@@ -317,7 +317,10 @@ export class PmProjectsService {
   async periods(userId: string, projectId: string) {
     const project = await this.prisma.project.findFirst({
       where: { id: projectId, ...this.ownedWhere(userId) },
-      select: { id: true },
+      select: {
+        id: true,
+        contract: { select: { type: true } },
+      },
     });
 
     if (!project) {
@@ -325,6 +328,12 @@ export class PmProjectsService {
         code: "PROJECT_NOT_FOUND",
         details: { projectId },
       });
+    }
+
+    // Repair missing fixed-project period records on the PM-owned read path.
+    // Generation is idempotent and uses the contract's selected date range.
+    if (project.contract?.type === "FIXED_PROJECT") {
+      await this.periodsService.generatePeriods(projectId, userId);
     }
 
     return this.periodsService.listPeriods(projectId);

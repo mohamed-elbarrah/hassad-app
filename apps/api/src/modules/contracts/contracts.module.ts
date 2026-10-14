@@ -13,6 +13,7 @@ import { CrmModule } from "../crm/crm.module";
 import { RequestsModule } from "../requests/requests.module";
 import { FinanceModule } from "../finance/finance.module";
 import { ChatModule } from "../chat/chat.module";
+import { ProjectPeriodsModule } from "../projects/project-periods.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ChatModule } from "../chat/chat.module";
     RequestsModule,
     FinanceModule,
     ChatModule,
+    ProjectPeriodsModule,
     MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [ContractsController, SalesContractsController],

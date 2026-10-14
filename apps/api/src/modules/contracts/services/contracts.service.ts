@@ -46,6 +46,7 @@ import {
 } from "../../requests/request-access";
 import { DirectConversationService } from "../../chat/services/direct-conversation.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
+import { ProjectPeriodsService } from "../../projects/services/project-periods.service";
 import { PmAssignmentService } from "./pm-assignment.service";
 import { ContractPaymentPlanService } from "./contract-payment-plan.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
@@ -82,6 +83,7 @@ export class ContractsService {
     private paymentPlanService: ContractPaymentPlanService,
     private financeService: FinanceService,
     private eventEmitter: EventEmitter2,
+    private projectPeriodsService: ProjectPeriodsService,
   ) {}
 
   // ── Contract status history (RULE 2: history on every state change) ────────
@@ -310,6 +312,26 @@ export class ContractsService {
     return project;
   }
 
+  private async ensureProjectPeriods(
+    contractId: string,
+    actorId: string,
+    supportedTypes: string[] = [ContractType.FIXED_PROJECT],
+  ) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      select: { type: true },
+    });
+    if (!contract || !supportedTypes.includes(contract.type)) return;
+
+    const project = await this.prisma.project.findFirst({
+      where: { contractId },
+      select: { id: true },
+    });
+    if (project) {
+      await this.projectPeriodsService.generatePeriods(project.id, actorId);
+    }
+  }
+
   /**
    * Post-sign orchestration:
    *  - Create the delivery project.
@@ -345,11 +367,7 @@ export class ContractsService {
       await this.createProjectFromSignedContract(
         contractId,
         ProjectStatus.ACTIVE,
-      ).catch((err) => {
-        this.logger.error(
-          `Failed to create project for contract ${contractId}: ${err?.message}`,
-        );
-      });
+      );
       await this.activateContract(
         contractId,
         contract.createdBy,
@@ -362,11 +380,14 @@ export class ContractsService {
     await this.createProjectFromSignedContract(
       contractId,
       ProjectStatus.PENDING_ACTIVATION,
-    ).catch((err) => {
-      this.logger.error(
-        `Failed to create project for contract ${contractId}: ${err?.message}`,
-      );
-    });
+    );
+    await this.ensureProjectPeriods(contractId, contract.createdBy).catch(
+      (error) => {
+        this.logger.error(
+          `Failed to ensure fixed-project period for contract ${contractId}: ${error?.message}`,
+        );
+      },
+    );
 
     // Check if a down-payment invoice was already created at contract creation.
     const existingInvoice = onSignRow?.id
@@ -543,7 +564,13 @@ export class ContractsService {
         details: {},
       });
     }
-    if (contract.status === ContractStatus.ACTIVE) return contract;
+    if (contract.status === ContractStatus.ACTIVE) {
+      await this.ensureProjectPeriods(contractId, userId, [
+        ContractType.FIXED_PROJECT,
+        ContractType.MONTHLY_RETAINER,
+      ]);
+      return contract;
+    }
     if (contract.status !== ContractStatus.SIGNED) {
       throw new BadRequestException({
         code: "INVALID_CONTRACT_STATUS",
@@ -579,6 +606,11 @@ export class ContractsService {
 
       return c;
     });
+
+    await this.ensureProjectPeriods(contractId, userId, [
+      ContractType.FIXED_PROJECT,
+      ContractType.MONTHLY_RETAINER,
+    ]);
 
     const projectManager = await this.prisma.project.findFirst({
       where: { contractId },

@@ -74,15 +74,25 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     isError,
     refetch,
   } = useGetPmProjectByIdQuery(id);
-  const { currentData: periodsData, isLoading: periodsLoading } =
-    useGetPmProjectPeriodsQuery(id);
+  const {
+    currentData: periodsData,
+    isLoading: periodsLoading,
+    isError: periodsError,
+    error: periodsQueryError,
+    refetch: refetchPeriods,
+  } = useGetPmProjectPeriodsQuery(id);
   const periods = periodsData ?? [];
   const selectedPeriod =
     periods.find((period) => period.id === selectedPeriodId) ??
     periods.find((period) => period.status === "ACTIVE") ??
     periods[0];
-  const { currentData: selectedPeriodDetail, isLoading: periodDetailLoading, refetch: refetchPeriod } =
-    useGetPmProjectPeriodQuery(
+  const {
+    currentData: selectedPeriodDetail,
+    isLoading: periodDetailLoading,
+    isError: periodDetailError,
+    error: periodDetailQueryError,
+    refetch: refetchPeriod,
+  } = useGetPmProjectPeriodQuery(
       { projectId: id, periodId: selectedPeriod?.id ?? "" },
       { skip: !selectedPeriod?.id },
     );
@@ -325,6 +335,24 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
           >
             {periodsLoading || periodDetailLoading ? (
               <Skeleton className="h-64 w-full" />
+            ) : periodsError || periodDetailError ? (
+              <div className="flex flex-col items-start gap-3 border-t pt-5 text-sm text-muted-foreground">
+                <p>
+                  {projectErrorMessage(
+                    periodsError ? periodsQueryError : periodDetailQueryError,
+                  )}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (periodsError) void refetchPeriods();
+                    if (periodDetailError) void refetchPeriod();
+                  }}
+                >
+                  إعادة المحاولة
+                </Button>
+              </div>
             ) : period ? (
               <PmPeriodTabs
                 key={period.id}

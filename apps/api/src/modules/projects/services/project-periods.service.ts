@@ -18,11 +18,11 @@ import {
 import type { Prisma } from "@prisma/client";
 
 /**
- * ProjectPeriodsService — the monthly delivery/billing unit (Option 1, Phase 2).
+ * ProjectPeriodsService — project delivery periods and retainer billing units.
  *
- * A retainer project is sliced into `ProjectPeriod`s (~one month each), anchored
- * to the contract start date's day-of-month. Periods drive the client-facing
- * timeline, the PM summary/report, and (Phase 3) recurring invoicing + suspend.
+ * Monthly retainers are split into anniversary-based periods. Fixed projects
+ * receive one period spanning the contract dates. Periods drive the PM
+ * workspace; recurring invoicing remains specific to retainer contracts.
  *
  * Date rule (locked): anniversary-based with end-of-month clamping that RETURNS
  * to the original day. start 31/01 → period 1 = 31/01–28/02, period 2 = 01/03–31/03
@@ -72,10 +72,8 @@ export class ProjectPeriodsService {
   // ── Generation ──────────────────────────────────────────────────────────────
 
   /**
-   * Generate periods for a retainer project.
-   *  - Bounded: `contract.numberOfMonths` (or endDate-derived) → all periods at once.
-   *  - Rolling (indefinite): current + next (roll forward on close — Phase 3 cron).
-   * Idempotent: skips if periods already exist for the project.
+   * Ensure contract-defined periods exist. Fixed projects receive one period
+   * spanning the contract dates; retainers receive monthly periods.
    */
   async generatePeriods(projectId: string, actorId: string) {
     const project = await this.prisma.project.findUnique({
@@ -85,6 +83,7 @@ export class ProjectPeriodsService {
           select: {
             id: true,
             type: true,
+            status: true,
             startDate: true,
             endDate: true,
             numberOfMonths: true,
@@ -92,25 +91,48 @@ export class ProjectPeriodsService {
         },
       },
     });
-    if (!project) throw new NotFoundException("Project not found");
-    if (project.contract?.type !== ContractType.MONTHLY_RETAINER) {
-      // Only retainers get periods. Fixed/one-off projects stay as a single unit.
+    if (!project) {
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId },
+      });
+    }
+    if (!project.contract) return [];
+    if (
+      project.contract.type !== ContractType.MONTHLY_RETAINER &&
+      project.contract.type !== ContractType.FIXED_PROJECT
+    ) {
       return [];
     }
 
-    const existing = await this.prisma.projectPeriod.findFirst({
-      where: { projectId },
-      select: { id: true },
-    });
-    if (existing) return this.listPeriods(projectId);
-
-    const startDate = project.contract?.startDate ?? project.startDate;
-    const originalDay = startDate.getDate();
-    const count = this.resolvePeriodCount(
-      project.contract?.numberOfMonths ?? null,
-      startDate,
-      project.contract?.endDate ?? null,
-    );
+    const startDate = project.contract.startDate;
+    const isFixedProject = project.contract.type === ContractType.FIXED_PROJECT;
+    if (
+      isFixedProject &&
+      (!(["SIGNED", "ACTIVE", "ON_HOLD"] as string[]).includes(
+        project.contract.status,
+      ) ||
+        ["COMPLETED", "CANCELLED"].includes(project.status))
+    ) {
+      return [];
+    }
+    const fixedInitialStatus =
+      project.contract.status === "ON_HOLD" || project.status === "ON_HOLD"
+        ? ProjectPeriodStatus.SUSPENDED
+        : ["SIGNED", "ACTIVE"].includes(project.contract.status) &&
+            ["ACTIVE", "AWAITING_REVIEW", "NEEDS_REVISION"].includes(
+              project.status,
+            ) &&
+            startDate.getTime() <= Date.now()
+          ? ProjectPeriodStatus.ACTIVE
+          : ProjectPeriodStatus.UPCOMING;
+    const count = isFixedProject
+      ? 1
+      : this.resolvePeriodCount(
+          project.contract.numberOfMonths,
+          startDate,
+          project.contract.endDate,
+        );
 
     const now = new Date();
     const periods: {
@@ -121,35 +143,106 @@ export class ProjectPeriodsService {
     }[] = [];
 
     await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT true AS locked FROM (SELECT pg_advisory_xact_lock(hashtext(${projectId}))) AS advisory_lock`;
+      const existing = await tx.projectPeriod.findFirst({
+        where: { projectId },
+        orderBy: { periodNumber: "asc" },
+        select: { id: true, status: true },
+      });
+      if (existing) {
+        const shouldSyncFixedStatus =
+          isFixedProject &&
+          existing.status !== fixedInitialStatus &&
+          ((existing.status === ProjectPeriodStatus.UPCOMING &&
+            fixedInitialStatus !== ProjectPeriodStatus.UPCOMING) ||
+            (existing.status === ProjectPeriodStatus.ACTIVE &&
+              fixedInitialStatus === ProjectPeriodStatus.SUSPENDED) ||
+            (existing.status === ProjectPeriodStatus.SUSPENDED &&
+              fixedInitialStatus === ProjectPeriodStatus.ACTIVE));
+        if (shouldSyncFixedStatus) {
+          await tx.projectPeriod.update({
+            where: { id: existing.id },
+            data: {
+              status: fixedInitialStatus,
+              suspendedAt:
+                fixedInitialStatus === ProjectPeriodStatus.SUSPENDED
+                  ? now
+                  : null,
+              resumedAt:
+                existing.status === ProjectPeriodStatus.SUSPENDED &&
+                fixedInitialStatus === ProjectPeriodStatus.ACTIVE
+                  ? now
+                  : undefined,
+            },
+          });
+          await this.recordPeriodStatusHistory(
+            tx,
+            existing.id,
+            existing.status,
+            fixedInitialStatus,
+            actorId,
+            "FIXED_PROJECT_PERIOD_STATUS_SYNCED",
+          );
+        }
+        return;
+      }
+
       for (let i = 0; i < count; i++) {
-        const start = this.addAnniversaryMonths(startDate, i, originalDay);
-        const nextStart = this.addAnniversaryMonths(
-          startDate,
-          i + 1,
-          originalDay,
-        );
-        const end = this.endOfPreviousDay(nextStart);
+        const periodStart = isFixedProject
+          ? project.contract!.startDate
+          : this.addAnniversaryMonths(startDate, i, startDate.getDate());
+        const periodEnd = isFixedProject
+          ? project.contract!.endDate
+          : this.endOfPreviousDay(
+              this.addAnniversaryMonths(startDate, i + 1, startDate.getDate()),
+            );
+        if (periodEnd < periodStart) {
+          throw new BadRequestException({
+            code: "INVALID_CONTRACT_PERIOD_DATES",
+            details: { projectId },
+          });
+        }
 
         const created = await tx.projectPeriod.create({
           data: {
             projectId,
             periodNumber: i + 1,
-            startDate: start,
-            endDate: end,
-            status: ProjectPeriodStatus.UPCOMING,
+            startDate: periodStart,
+            endDate: periodEnd,
+            status: isFixedProject
+              ? fixedInitialStatus
+              : ProjectPeriodStatus.UPCOMING,
+            suspendedAt:
+              isFixedProject &&
+              fixedInitialStatus === ProjectPeriodStatus.SUSPENDED
+                ? now
+                : undefined,
           },
         });
         periods.push({
           id: created.id,
           periodNumber: created.periodNumber,
-          startDate: start,
-          endDate: end,
+          startDate: periodStart,
+          endDate: periodEnd,
         });
       }
 
-      // Open the first period if its start date has arrived (project just activated).
+      // Fixed-period status mirrors the project/contract lifecycle at creation.
       const first = periods[0];
-      if (first && first.startDate.getTime() <= now.getTime()) {
+      if (
+        isFixedProject &&
+        first &&
+        fixedInitialStatus !== ProjectPeriodStatus.UPCOMING
+      ) {
+        await this.recordPeriodStatusHistory(
+          tx,
+          first.id,
+          ProjectPeriodStatus.UPCOMING,
+          fixedInitialStatus,
+          actorId,
+          "FIXED_PROJECT_PERIOD_INITIALIZED",
+        );
+      } else if (first && first.startDate.getTime() <= now.getTime()) {
         await tx.projectPeriod.update({
           where: { id: first.id },
           data: { status: ProjectPeriodStatus.ACTIVE },
@@ -160,7 +253,7 @@ export class ProjectPeriodsService {
           ProjectPeriodStatus.UPCOMING,
           ProjectPeriodStatus.ACTIVE,
           actorId,
-          "Project activated — period 1 opened",
+          "PROJECT_ACTIVATED_PERIOD_OPENED",
         );
       }
     });
@@ -359,12 +452,18 @@ export class ProjectPeriodsService {
     const period = await this.prisma.projectPeriod.findUnique({
       where: { id: periodId },
     });
-    if (!period) throw new NotFoundException("Period not found");
+    if (!period) {
+      throw new NotFoundException({
+        code: "PROJECT_PERIOD_NOT_FOUND",
+        details: { periodId },
+      });
+    }
     if (period.status === ProjectPeriodStatus.ACTIVE) return period;
     if (period.status !== ProjectPeriodStatus.UPCOMING) {
-      throw new BadRequestException(
-        `Period must be UPCOMING to open (current: ${period.status})`,
-      );
+      throw new BadRequestException({
+        code: "PROJECT_PERIOD_CANNOT_BE_OPENED",
+        details: { status: period.status },
+      });
     }
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.projectPeriod.update({
@@ -377,7 +476,7 @@ export class ProjectPeriodsService {
         ProjectPeriodStatus.UPCOMING,
         ProjectPeriodStatus.ACTIVE,
         actorId,
-        reason ?? "Period opened",
+        reason ?? "PROJECT_PERIOD_OPENED",
       );
       return updated;
     });
@@ -389,43 +488,53 @@ export class ProjectPeriodsService {
    * from the recurring PERIOD_END plan row (Phase 3).
    */
   async closePeriod(periodId: string, actorId: string, reason?: string) {
-    const period = await this.prisma.projectPeriod.findUnique({
-      where: { id: periodId },
-      include: {
-        project: { select: { id: true, contractId: true, name: true } },
-      },
-    });
-    if (!period) throw new NotFoundException("Period not found");
-    if (period.status === ProjectPeriodStatus.CLOSED) return period;
-    if (
-      period.status !== ProjectPeriodStatus.ACTIVE &&
-      period.status !== ProjectPeriodStatus.SUSPENDED
-    ) {
-      throw new BadRequestException(
-        `Period must be ACTIVE or SUSPENDED to close (current: ${period.status})`,
-      );
-    }
-
     const now = new Date();
-    const result = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.projectPeriod.update({
+    let alreadyClosed = false;
+    const period = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT true AS locked FROM (SELECT pg_advisory_xact_lock(hashtext(${periodId}))) AS advisory_lock`;
+      const current = await tx.projectPeriod.findUnique({
+        where: { id: periodId },
+        include: {
+          project: { select: { id: true, contractId: true, name: true } },
+        },
+      });
+      if (!current) {
+        throw new NotFoundException({
+          code: "PROJECT_PERIOD_NOT_FOUND",
+          details: { periodId },
+        });
+      }
+      if (current.status === ProjectPeriodStatus.CLOSED) {
+        alreadyClosed = true;
+        return current;
+      }
+      if (
+        current.status !== ProjectPeriodStatus.ACTIVE &&
+        current.status !== ProjectPeriodStatus.SUSPENDED
+      ) {
+        throw new BadRequestException({
+          code: "PROJECT_PERIOD_CANNOT_BE_CLOSED",
+          details: { status: current.status },
+        });
+      }
+
+      await tx.projectPeriod.update({
         where: { id: periodId },
         data: { status: ProjectPeriodStatus.CLOSED, closedAt: now },
       });
       await this.recordPeriodStatusHistory(
         tx,
         periodId,
-        period.status,
+        current.status,
         ProjectPeriodStatus.CLOSED,
         actorId,
-        reason ?? "Period closed",
+        reason ?? "PROJECT_PERIOD_CLOSED",
       );
 
-      // Open the next period if its start date has arrived.
       const next = await tx.projectPeriod.findFirst({
         where: {
-          projectId: period.project.id,
-          periodNumber: period.periodNumber + 1,
+          projectId: current.project.id,
+          periodNumber: current.periodNumber + 1,
         },
       });
       if (
@@ -443,22 +552,27 @@ export class ProjectPeriodsService {
           ProjectPeriodStatus.UPCOMING,
           ProjectPeriodStatus.ACTIVE,
           actorId,
-          "Auto-opened after previous period closed",
+          "PROJECT_PERIOD_AUTO_OPENED_AFTER_PREVIOUS_CLOSED",
         );
       }
-      return updated;
+
+      return {
+        ...current,
+        status: ProjectPeriodStatus.CLOSED,
+        closedAt: now,
+      };
     });
 
-    // Phase 3: issue period invoice from the recurring PERIOD_END plan row.
+    if (alreadyClosed) return period;
+
     if (period.project.contractId) {
-      await this.issuePeriodInvoice(period, now, actorId).catch((err) => {
+      await this.issuePeriodInvoice(period, now, actorId).catch((error) => {
         this.logger.error(
-          `Failed to issue period invoice for ${periodId}: ${err?.message}`,
+          `Failed to issue period invoice for ${periodId}: ${error?.message}`,
         );
       });
     }
 
-    // Phase 4: notify PM + client that the period closed.
     const projectWithUsers = await this.prisma.project.findUnique({
       where: { id: period.project.id },
       select: { projectManagerId: true, client: { select: { userId: true } } },
@@ -484,11 +598,13 @@ export class ProjectPeriodsService {
         .catch(() => undefined);
     }
 
-    return result;
+    return period;
   }
 
   /** Issue the monthly recurring invoice for a closed period. */
   private async issuePeriodInvoice(period: any, now: Date, actorId: string) {
+    if (period.invoiceId) return;
+
     const contract = await this.prisma.contract.findUnique({
       where: { id: period.project.contractId },
       select: {
@@ -498,7 +614,7 @@ export class ProjectPeriodsService {
         title: true,
       },
     });
-    if (!contract) return;
+    if (!contract || contract.type !== ContractType.MONTHLY_RETAINER) return;
 
     if (
       period.periodNumber === 1 &&
@@ -571,13 +687,19 @@ export class ProjectPeriodsService {
     const period = await this.prisma.projectPeriod.findUnique({
       where: { id: periodId },
     });
-    if (!period) throw new NotFoundException("Period not found");
+    if (!period) {
+      throw new NotFoundException({
+        code: "PROJECT_PERIOD_NOT_FOUND",
+        details: { periodId },
+      });
+    }
     const end = new Date(newEndDate);
     end.setHours(23, 59, 59, 999);
     if (end.getTime() <= period.endDate.getTime()) {
-      throw new BadRequestException(
-        "New end date must be after the current end date",
-      );
+      throw new BadRequestException({
+        code: "PROJECT_PERIOD_END_DATE_MUST_BE_EXTENDED",
+        details: { periodId },
+      });
     }
     return this.prisma.projectPeriod.update({
       where: { id: periodId },
@@ -588,41 +710,55 @@ export class ProjectPeriodsService {
   /** Append a new UPCOMING period after the last one (PM extra period). */
   async createExtraPeriod(projectId: string, _actorId: string) {
     const project = await this.assertProjectExists(projectId);
-    const last = await this.prisma.projectPeriod.findFirst({
-      where: { projectId },
-      orderBy: { periodNumber: "desc" },
-    });
-    if (!last)
-      throw new BadRequestException("No periods exist yet for this project");
+    const contract = project.contractId
+      ? await this.prisma.contract.findUnique({
+          where: { id: project.contractId },
+          select: { type: true, startDate: true },
+        })
+      : null;
+    if (contract?.type === ContractType.FIXED_PROJECT) {
+      throw new BadRequestException({
+        code: "FIXED_PROJECT_PERIOD_LIMIT_REACHED",
+        details: { projectId },
+      });
+    }
 
-    const contract = await this.prisma.contract.findUnique({
-      where: { id: project.contractId ?? undefined },
-      select: { startDate: true },
-    });
-    const baseStart = contract?.startDate ?? project.startDate;
-    const originalDay = baseStart.getDate();
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT true AS locked FROM (SELECT pg_advisory_xact_lock(hashtext(${projectId}))) AS advisory_lock`;
+      const last = await tx.projectPeriod.findFirst({
+        where: { projectId },
+        orderBy: { periodNumber: "desc" },
+      });
+      if (!last) {
+        throw new BadRequestException({
+          code: "PROJECT_PERIOD_NOT_GENERATED",
+          details: { projectId },
+        });
+      }
 
-    // Start = day after the last period's end; preserve the anniversary day-of-month.
-    const nextStart = this.addAnniversaryMonths(
-      baseStart,
-      last.periodNumber,
-      originalDay,
-    );
-    const nextNextStart = this.addAnniversaryMonths(
-      baseStart,
-      last.periodNumber + 1,
-      originalDay,
-    );
-    const end = this.endOfPreviousDay(nextNextStart);
+      const baseStart = contract?.startDate ?? project.startDate;
+      const originalDay = baseStart.getDate();
+      const nextStart = this.addAnniversaryMonths(
+        baseStart,
+        last.periodNumber,
+        originalDay,
+      );
+      const nextNextStart = this.addAnniversaryMonths(
+        baseStart,
+        last.periodNumber + 1,
+        originalDay,
+      );
+      const end = this.endOfPreviousDay(nextNextStart);
 
-    return this.prisma.projectPeriod.create({
-      data: {
-        projectId,
-        periodNumber: last.periodNumber + 1,
-        startDate: nextStart,
-        endDate: end,
-        status: ProjectPeriodStatus.UPCOMING,
-      },
+      return tx.projectPeriod.create({
+        data: {
+          projectId,
+          periodNumber: last.periodNumber + 1,
+          startDate: nextStart,
+          endDate: end,
+          status: ProjectPeriodStatus.UPCOMING,
+        },
+      });
     });
   }
 
@@ -660,7 +796,10 @@ export class ProjectPeriodsService {
       select: { reportFilePath: true },
     });
     if (!period || !period.reportFilePath) {
-      throw new NotFoundException("Report not available for this period");
+      throw new NotFoundException({
+        code: "PROJECT_PERIOD_REPORT_NOT_FOUND",
+        details: { periodId },
+      });
     }
     return this.storageService.getPresignedUrl(period.reportFilePath);
   }
@@ -718,7 +857,12 @@ export class ProjectPeriodsService {
         },
       },
     });
-    if (!period) throw new NotFoundException("Period not found");
+    if (!period) {
+      throw new NotFoundException({
+        code: "PROJECT_PERIOD_NOT_FOUND",
+        details: { periodId },
+      });
+    }
 
     const meeting = await this.prisma.projectMeeting.create({
       data: {
@@ -782,7 +926,12 @@ export class ProjectPeriodsService {
         },
       },
     });
-    if (!existing) throw new NotFoundException("Meeting not found");
+    if (!existing) {
+      throw new NotFoundException({
+        code: "PROJECT_MEETING_NOT_FOUND",
+        details: { meetingId },
+      });
+    }
 
     const wasRescheduled =
       dto.scheduledAt &&
@@ -847,7 +996,11 @@ export class ProjectPeriodsService {
     contractType?: string;
     userId?: string;
   }) {
-    if (payload.contractType !== ContractType.MONTHLY_RETAINER) return;
+    if (
+      payload.contractType !== ContractType.MONTHLY_RETAINER &&
+      payload.contractType !== ContractType.FIXED_PROJECT
+    )
+      return;
     if (!payload.projectId) {
       // Resolve the project for the contract if not provided.
       const project = await this.prisma.project.findFirst({
@@ -880,7 +1033,12 @@ export class ProjectPeriodsService {
       where: { id: projectId },
       select: { id: true, contractId: true, startDate: true, name: true },
     });
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project) {
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId },
+      });
+    }
     return project;
   }
 
@@ -888,7 +1046,12 @@ export class ProjectPeriodsService {
     const period = await this.prisma.projectPeriod.findUnique({
       where: { id: periodId },
     });
-    if (!period) throw new NotFoundException("Period not found");
+    if (!period) {
+      throw new NotFoundException({
+        code: "PROJECT_PERIOD_NOT_FOUND",
+        details: { periodId },
+      });
+    }
     return period;
   }
 
@@ -913,9 +1076,10 @@ export class ProjectPeriodsService {
   private assertMeetingTransition(from: string, to: string) {
     const terminal = ["DONE", "CANCELLED"];
     if (terminal.includes(from) && to !== "SCHEDULED") {
-      throw new BadRequestException(
-        `Meeting is ${from} — only re-scheduling back to SCHEDULED is allowed (current: ${from}, target: ${to}).`,
-      );
+      throw new BadRequestException({
+        code: "PROJECT_MEETING_TRANSITION_NOT_ALLOWED",
+        details: { from, to },
+      });
     }
   }
 }
