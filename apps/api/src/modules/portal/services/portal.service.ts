@@ -563,9 +563,10 @@ export class PortalService {
         completionPercentage: true,
         goals: true,
         tasks: {
-          where: { isVisibleToClient: true, archivedAt: null },
+          where: { archivedAt: null },
           select: {
             id: true,
+            isVisibleToClient: true,
             title: true,
             description: true,
             status: true,
@@ -651,7 +652,9 @@ export class PortalService {
     const allFileKeys = periods
       .flatMap((p) => [
         ...p.files.map((f) => f.filePath),
-        ...p.tasks.flatMap((task) => task.files.map((f) => f.filePath)),
+        ...p.tasks
+          .filter((task) => task.isVisibleToClient)
+          .flatMap((task) => task.files.map((f) => f.filePath)),
       ])
       .filter(Boolean);
     const fileUrlMap =
@@ -689,12 +692,17 @@ export class PortalService {
       const tasks = period.tasks.map((task) => ({
         id: task.id,
         title: task.title,
-        description: task.description,
+        description: task.isVisibleToClient ? task.description : null,
         status: task.status,
-        reviewStage: task.reviewStage,
+        reviewStage: task.isVisibleToClient ? task.reviewStage : null,
         dueDate: task.dueDate,
-        revisionCount: task.revisionCount,
-        progress: this.taskProgress(task.status, task.reviewStage),
+        revisionCount: task.isVisibleToClient ? task.revisionCount : 0,
+        progress: task.isVisibleToClient
+          ? this.taskProgress(task.status, task.reviewStage)
+          : 0,
+        canReview:
+          task.isVisibleToClient &&
+          task.reviewStage === TaskReviewStage.CLIENT_REVIEW,
         assignee: task.assignee
           ? {
               id: task.assignee.id,
@@ -702,17 +710,19 @@ export class PortalService {
               jobTitle: task.assignee.employee?.role ?? null,
             }
           : null,
-        department: task.department?.name ?? null,
-        files: task.files.map((file) => ({
-          id: file.id,
-          fileName: file.fileName,
-          fileType: file.fileType,
-          fileSize: file.fileSize,
-          purpose: file.purpose,
-          uploadedAt: file.uploadedAt,
-          url: fileUrlMap.get(file.filePath) ?? null,
-        })),
-        revisionRequests: task.revisionRequests,
+        department: task.isVisibleToClient ? task.department?.name ?? null : null,
+        files: task.isVisibleToClient
+          ? task.files.map((file) => ({
+              id: file.id,
+              fileName: file.fileName,
+              fileType: file.fileType,
+              fileSize: file.fileSize,
+              purpose: file.purpose,
+              uploadedAt: file.uploadedAt,
+              url: fileUrlMap.get(file.filePath) ?? null,
+            }))
+          : [],
+        revisionRequests: task.isVisibleToClient ? task.revisionRequests : [],
       }));
 
       const upcomingMeeting = period.meetings
@@ -926,12 +936,12 @@ export class PortalService {
         where: {
           projectId,
           periodId: null,
-          isVisibleToClient: true,
           archivedAt: null,
           project: { clientId },
         },
         select: {
           id: true,
+          isVisibleToClient: true,
           title: true,
           description: true,
           status: true,
@@ -977,7 +987,9 @@ export class PortalService {
 
     const fileKeys = [
       ...files.map((file) => file.filePath),
-      ...tasks.flatMap((task) => task.files.map((file) => file.filePath)),
+      ...tasks
+        .filter((task) => task.isVisibleToClient)
+        .flatMap((task) => task.files.map((file) => file.filePath)),
     ];
     const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
     const projectInvoices = Array.from(
@@ -1014,12 +1026,17 @@ export class PortalService {
         tasks: tasks.map((task) => ({
           id: task.id,
           title: task.title,
-          description: task.description,
+          description: task.isVisibleToClient ? task.description : null,
           status: task.status,
-          reviewStage: task.reviewStage,
+          reviewStage: task.isVisibleToClient ? task.reviewStage : null,
           dueDate: task.dueDate,
-          revisionCount: task.revisionCount,
-          progress: this.taskProgress(task.status, task.reviewStage),
+          revisionCount: task.isVisibleToClient ? task.revisionCount : 0,
+          progress: task.isVisibleToClient
+            ? this.taskProgress(task.status, task.reviewStage)
+            : 0,
+          canReview:
+            task.isVisibleToClient &&
+            task.reviewStage === TaskReviewStage.CLIENT_REVIEW,
           assignee: task.assignee
             ? {
                 id: task.assignee.id,
@@ -1027,17 +1044,19 @@ export class PortalService {
                 jobTitle: task.assignee.employee?.role ?? null,
               }
             : null,
-          department: task.department?.name ?? null,
-          files: task.files.map((file) => ({
-            id: file.id,
-            fileName: file.fileName,
-            fileType: file.fileType,
-            fileSize: file.fileSize,
-            purpose: file.purpose,
-            uploadedAt: file.uploadedAt,
-            url: urlMap.get(file.filePath) ?? null,
-          })),
-          revisionRequests: task.revisionRequests,
+          department: task.isVisibleToClient ? task.department?.name ?? null : null,
+          files: task.isVisibleToClient
+            ? task.files.map((file) => ({
+                id: file.id,
+                fileName: file.fileName,
+                fileType: file.fileType,
+                fileSize: file.fileSize,
+                purpose: file.purpose,
+                uploadedAt: file.uploadedAt,
+                url: urlMap.get(file.filePath) ?? null,
+              }))
+            : [],
+          revisionRequests: task.isVisibleToClient ? task.revisionRequests : [],
         })),
       },
     };
@@ -1066,11 +1085,11 @@ export class PortalService {
       where: {
         projectId,
         periodId: periodId ?? null,
-        isVisibleToClient: true,
         archivedAt: null,
       },
       select: {
         id: true,
+        isVisibleToClient: true,
         title: true,
         description: true,
         status: true,
@@ -1113,19 +1132,24 @@ export class PortalService {
       orderBy: { dueDate: "asc" },
     });
 
-    const keys = tasks.flatMap((task) =>
-      task.files.map((file) => file.filePath),
-    );
+    const keys = tasks
+      .filter((task) => task.isVisibleToClient)
+      .flatMap((task) => task.files.map((file) => file.filePath));
     const urlMap = await this.storageService.getMultiplePresignedUrls(keys);
     return tasks.map((task) => ({
       id: task.id,
       title: task.title,
-      description: task.description,
+      description: task.isVisibleToClient ? task.description : null,
       status: task.status,
-      reviewStage: task.reviewStage,
+      reviewStage: task.isVisibleToClient ? task.reviewStage : null,
       dueDate: task.dueDate,
-      revisionCount: task.revisionCount,
-      progress: this.taskProgress(task.status, task.reviewStage),
+      revisionCount: task.isVisibleToClient ? task.revisionCount : 0,
+      progress: task.isVisibleToClient
+        ? this.taskProgress(task.status, task.reviewStage)
+        : 0,
+      canReview:
+        task.isVisibleToClient &&
+        task.reviewStage === TaskReviewStage.CLIENT_REVIEW,
       assignee: task.assignee
         ? {
             id: task.assignee.id,
@@ -1133,17 +1157,19 @@ export class PortalService {
             jobTitle: task.assignee.employee?.role ?? null,
           }
         : null,
-      department: task.department?.name ?? null,
-      files: task.files.map((file) => ({
-        id: file.id,
-        fileName: file.fileName,
-        fileType: file.fileType,
-        fileSize: file.fileSize,
-        purpose: file.purpose,
-        uploadedAt: file.uploadedAt,
-        url: urlMap.get(file.filePath) ?? null,
-      })),
-      revisionRequests: task.revisionRequests,
+      department: task.isVisibleToClient ? task.department?.name ?? null : null,
+      files: task.isVisibleToClient
+        ? task.files.map((file) => ({
+            id: file.id,
+            fileName: file.fileName,
+            fileType: file.fileType,
+            fileSize: file.fileSize,
+            purpose: file.purpose,
+            uploadedAt: file.uploadedAt,
+            url: urlMap.get(file.filePath) ?? null,
+          }))
+        : [],
+      revisionRequests: task.isVisibleToClient ? task.revisionRequests : [],
     }));
   }
 

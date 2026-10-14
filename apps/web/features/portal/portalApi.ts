@@ -596,9 +596,10 @@ export interface PortalProjectWorkspaceTask {
   title: string;
   description: string | null;
   status: TaskStatus;
-  reviewStage: TaskReviewStage;
+  reviewStage: TaskReviewStage | null;
   dueDate: string;
   progress: number;
+  canReview: boolean;
   assignee: {
     id: string;
     name: string;
