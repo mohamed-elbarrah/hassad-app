@@ -60,9 +60,32 @@ export interface AdminTaskFile {
   uploadedAt: string;
 }
 
+export interface TaskAssignmentHistoryEntry {
+  id: string;
+  previousAssignee: { id: string; name: string } | null;
+  newAssignee: { id: string; name: string };
+  changer: { id: string; name: string };
+  reason: string | null;
+  createdAt: string;
+}
+
 export interface AdminTaskActionResult {
   code: string;
 }
+
+export interface AdminTaskEligibleAssignee {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+}
+
+export interface AdminTaskEligibleAssignees {
+  items: AdminTaskEligibleAssignee[];
+  total: number;
+}
+
 export interface AdminTaskActorCapabilities {
   canIntervene: boolean;
 }
@@ -97,6 +120,7 @@ export interface AdminTaskDetail {
   creator: { id: string; name: string };
   department: { name: string } | null;
   availableTransitionTargets: TaskStatus[];
+  assignmentHistory: TaskAssignmentHistoryEntry[];
   statusHistory: Array<{
     id: string;
     fromStatus: string | null;
@@ -160,6 +184,18 @@ export const adminTasksApi = createApi({
       query: (id) => `/admin/tasks/${id}`,
       providesTags: (_result, _error, id) => [{ type: "AdminTask", id }],
     }),
+    getAdminTaskEligibleAssignees: builder.query<
+      AdminTaskEligibleAssignees,
+      { taskId: string; search: string }
+    >({
+      query: ({ taskId, search }) => {
+        const params = new URLSearchParams();
+        if (search.trim()) params.set("search", search.trim());
+        const query = params.toString();
+        return `/admin/tasks/${taskId}/eligible-assignees${query ? `?${query}` : ""}`;
+      },
+      providesTags: (_result, _error, { taskId }) => [{ type: "AdminTask", id: taskId }],
+    }),
     reassignAdminTask: builder.mutation<
       AdminTaskActionResult,
       { id: string; assigneeId: string; reason: string }
@@ -195,6 +231,7 @@ export const {
   useGetAdminTasksQuery,
   useGetAdminTaskStatsQuery,
   useGetAdminTaskByIdQuery,
+  useGetAdminTaskEligibleAssigneesQuery,
   useGetAdminTaskActorCapabilitiesQuery,
   useReassignAdminTaskMutation,
   useForceTransitionAdminTaskMutation,

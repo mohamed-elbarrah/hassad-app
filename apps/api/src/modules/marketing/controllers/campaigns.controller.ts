@@ -37,8 +37,11 @@ export class CampaignsController {
 
   @Get()
   @RequirePermissions("marketing.read")
-  findAll(@Query() query: CampaignQueryDto) {
-    return this.campaignsService.findAll(query);
+  findAll(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: CampaignQueryDto,
+  ) {
+    return this.campaignsService.findAll(query, user.id, user.role);
   }
 
   @Get("my-stats")
@@ -157,6 +160,7 @@ export class CampaignsController {
   }
 }
 
+/** @deprecated Use the Marketing-owned `/marketing/tasks/:taskId/campaigns` route. */
 @Controller("tasks")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TaskCampaignsController {
@@ -165,6 +169,6 @@ export class TaskCampaignsController {
   @Get(":taskId/campaigns")
   @RequirePermissions("marketing.read")
   findByTask(@Param("taskId") taskId: string) {
-    return this.campaignsService.findByTask(taskId);
+    return this.campaignsService.findByTaskForLegacyCompatibility(taskId);
   }
 }

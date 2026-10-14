@@ -1,19 +1,23 @@
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 
 @Injectable()
 export class AdminActionLogService {
   constructor(private prisma: PrismaService) {}
 
-  async record(params: {
-    actorId: string;
-    targetType: string;
-    targetId: string;
-    actionType: string;
-    reason?: string;
-    beforeState?: Record<string, unknown>;
-    afterState?: Record<string, unknown>;
-  }) {
+  async record(
+    params: {
+      actorId: string;
+      targetType: string;
+      targetId: string;
+      actionType: string;
+      reason?: string;
+      beforeState?: Record<string, unknown>;
+      afterState?: Record<string, unknown>;
+    },
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
     const {
       actorId,
       targetType,
@@ -24,7 +28,7 @@ export class AdminActionLogService {
       afterState,
     } = params;
 
-    return this.prisma.adminActionLog.create({
+    return db.adminActionLog.create({
       data: {
         actorId,
         targetType,

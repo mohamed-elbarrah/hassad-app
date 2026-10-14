@@ -37,12 +37,34 @@ export class AdminTasksQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
 }
 
+export class AdminTaskAssigneeQueryDto {
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
+  @IsString()
+  @MaxLength(200)
+  search?: string;
+}
+
 export class AdminReassignTaskDto {
   @IsUUID() assigneeId!: string;
-  @IsString() @IsNotEmpty() @MaxLength(1000) reason!: string;
+  @Transform(({ value }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1000)
+  reason!: string;
 }
 
 export class AdminForceTransitionDto {
   @IsEnum(TaskStatus) status!: TaskStatus;
-  @IsString() @IsNotEmpty() @MaxLength(1000) reason!: string;
+  @Transform(({ value }) =>
+    typeof value === "string" ? value.trim() : value,
+  )
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1000)
+  reason!: string;
 }

@@ -33,6 +33,7 @@ import { MarketingClientInfoPanel } from "@/components/client-detail/MarketingCl
 import { PmClientInfoPanel } from "@/components/client-detail/PmClientInfoPanel";
 import { TeamClientInfoPanel } from "@/components/client-detail/TeamClientInfoPanel";
 import { TaskWorkflowStepper } from "@/components/dashboard/pm/TaskWorkflowStepper";
+import { TaskAssignmentHistory } from "@/components/task-detail/TaskAssignmentHistory";
 import { useMarketingTaskExtraTabs } from "@/components/task-detail/MarketingTaskExtras";
 import {
   buildTaskLifecycleFields,
@@ -175,6 +176,15 @@ type WorkspaceTask = TaskWithProject & {
   isVisibleToClient?: boolean | null;
   reviewStage?: TaskReviewStage;
   statusHistory?: TaskHistoryEntry[];
+  assignmentAccess?: "CURRENT" | "FORMER";
+  assignmentHistory?: Array<{
+    id: string;
+    previousAssignee?: { id: string; name: string } | null;
+    newAssignee?: { id: string; name: string } | null;
+    changer?: { id: string; name: string } | null;
+    reason: string | null;
+    createdAt: string | Date;
+  }>;
 };
 
 interface TaskWorkspaceDetailProps {
@@ -299,7 +309,7 @@ function ErrorState({
               <EmptyDescription>{description}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button asChild>
+              <Button className="min-h-11" asChild>
                 <Link href={listHref}>
                   <ArrowLeft data-icon="inline-start" />
                   العودة إلى {listLabel}
@@ -373,13 +383,15 @@ export function TaskWorkspaceDetail({
     { id: taskId, page: 1, limit: 25 },
     { skip: !teamOwned },
   );
-  const task = (pmOwned
-    ? pmTaskQuery.currentData
-    : teamOwned
-      ? teamTaskQuery.currentData
-      : marketingOwned
-        ? marketingTaskQuery.currentData
-        : genericTaskQuery.currentData) as WorkspaceTask | undefined;
+  const task = (
+    pmOwned
+      ? pmTaskQuery.currentData
+      : teamOwned
+        ? teamTaskQuery.currentData
+        : marketingOwned
+          ? marketingTaskQuery.currentData
+          : genericTaskQuery.currentData
+  ) as WorkspaceTask | undefined;
   const files = pmOwned
     ? pmFilesQuery.currentData
     : teamOwned
@@ -509,6 +521,8 @@ export function TaskWorkspaceDetail({
   }
 
   const taskEntity = mapTaskEntity(task);
+  const isFormerAssignee =
+    (teamOwned || marketingOwned) && task.assignmentAccess === "FORMER";
   const isMarketingTask = task.department?.name === TaskDepartment.MARKETING;
   const commentsData = mapComments(comments);
   const filesData = mapFiles(files);
@@ -517,13 +531,18 @@ export function TaskWorkspaceDetail({
   const isPmReviewer =
     user.role === UserRole.PM || user.role === UserRole.ADMIN;
   const canReview =
+    !isFormerAssignee &&
     isPmReviewer &&
     (task.reviewStage === TaskReviewStage.PM_REVIEW ||
       (!task.reviewStage && task.status === TaskStatus.IN_REVIEW));
   const canStart =
+    !isFormerAssignee &&
     !isPmReviewer &&
     [TaskStatus.TODO, TaskStatus.REVISION].includes(task.status);
-  const canSubmit = !isPmReviewer && task.status === TaskStatus.IN_PROGRESS;
+  const canSubmit =
+    !isFormerAssignee &&
+    !isPmReviewer &&
+    task.status === TaskStatus.IN_PROGRESS;
 
   const stats = buildTaskStats({
     status: task.status,
@@ -647,18 +666,18 @@ export function TaskWorkspaceDetail({
     <>
       {canReview ? (
         <>
-          <Button onClick={() => runStatusAction("approve")}>
+          <Button className="min-h-11" onClick={() => runStatusAction("approve")}>
             <Check data-icon="inline-start" />
             قبول وإرسال للعميل
           </Button>
-          <Button variant="outline" onClick={() => runStatusAction("reject")}>
+          <Button className="min-h-11" variant="outline" onClick={() => runStatusAction("reject")}>
             <X data-icon="inline-start" />
             طلب تعديل
           </Button>
         </>
       ) : null}
       {canStart ? (
-        <Button onClick={() => runStatusAction("start")}>
+        <Button className="min-h-11" onClick={() => runStatusAction("start")}>
           <RotateCcw data-icon="inline-start" />
           {task.status === TaskStatus.REVISION
             ? "بدء العمل مجددًا"
@@ -666,7 +685,7 @@ export function TaskWorkspaceDetail({
         </Button>
       ) : null}
       {canSubmit ? (
-        <Button onClick={() => runStatusAction("submit")}>
+        <Button className="min-h-11" onClick={() => runStatusAction("submit")}>
           <Send data-icon="inline-start" />
           إرسال للمراجعة
         </Button>
@@ -676,10 +695,14 @@ export function TaskWorkspaceDetail({
 
   const clientInfoPanel = (() => {
     if (pmOwned) {
-      return <PmClientInfoPanel clientId={clientId} active={clientTabEnabled} />;
+      return (
+        <PmClientInfoPanel clientId={clientId} active={clientTabEnabled} />
+      );
     }
     if (teamOwned) {
-      return <TeamClientInfoPanel clientId={clientId} active={clientTabEnabled} />;
+      return (
+        <TeamClientInfoPanel clientId={clientId} active={clientTabEnabled} />
+      );
     }
     if (marketingOwned) {
       return (
@@ -826,6 +849,7 @@ export function TaskWorkspaceDetail({
                   />
                   <div className="flex justify-end">
                     <Button
+                      className="min-h-11"
                       onClick={handleAddNote}
                       disabled={isAddingPmNote || !noteText.trim()}
                     >
@@ -863,37 +887,42 @@ export function TaskWorkspaceDetail({
             <TaskCommentsTable comments={commentsData} compact />
           )}
 
-          <Separator />
+          {!isFormerAssignee ? (
+            <>
+              <Separator />
 
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-medium">إضافة تعليق</h3>
-                <p className="text-sm text-muted-foreground">
-                  استخدم التعليقات لتوثيق القرار أو طلب التوضيح.
-                </p>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-medium">إضافة تعليق</h3>
+                    <p className="text-sm text-muted-foreground">
+                      استخدم التعليقات لتوثيق القرار أو طلب التوضيح.
+                    </p>
+                  </div>
+                  <Badge variant="outline">{user.name}</Badge>
+                </div>
+                <Textarea
+                  id="task-comment"
+                  rows={4}
+                  placeholder="اكتب تعليقك هنا..."
+                  aria-label="نص التعليق"
+                  value={commentText}
+                  onChange={(event) => setCommentText(event.target.value)}
+                  disabled={isAddingComment}
+                />
+                <div className="flex justify-end">
+                  <Button
+                    className="min-h-11"
+                    onClick={handleAddComment}
+                    disabled={isAddingComment || !commentText.trim()}
+                  >
+                    <Send data-icon="inline-start" />
+                    {isAddingComment ? "جارٍ الإرسال..." : "إرسال"}
+                  </Button>
+                </div>
               </div>
-              <Badge variant="outline">{user.name}</Badge>
-            </div>
-            <Textarea
-              id="task-comment"
-              rows={4}
-              placeholder="اكتب تعليقك هنا..."
-              aria-label="نص التعليق"
-              value={commentText}
-              onChange={(event) => setCommentText(event.target.value)}
-              disabled={isAddingComment}
-            />
-            <div className="flex justify-end">
-              <Button
-                onClick={handleAddComment}
-                disabled={isAddingComment || !commentText.trim()}
-              >
-                <Send data-icon="inline-start" />
-                {isAddingComment ? "جارٍ الإرسال..." : "إرسال"}
-              </Button>
-            </div>
-          </div>
+            </>
+          ) : null}
         </div>
       ),
     },
@@ -904,53 +933,58 @@ export function TaskWorkspaceDetail({
       badge: String(filesData.length),
       content: (
         <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h3 className="text-sm font-medium">إدارة ملفات المهمة</h3>
-              <p className="text-sm text-muted-foreground">
-                ارفع الملفات المناسبة وحدد نوعها لتسهيل المتابعة.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Select
-                value={filePurpose}
-                onValueChange={(value) => setFilePurpose(value as FilePurpose)}
-              >
-                <SelectTrigger
-                  id="task-file-purpose"
-                  className="w-full sm:w-44"
-                  aria-label="نوع الملف"
+          {!isFormerAssignee ? (
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h3 className="text-sm font-medium">إدارة ملفات المهمة</h3>
+                <p className="text-sm text-muted-foreground">
+                  ارفع الملفات المناسبة وحدد نوعها لتسهيل المتابعة.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Select
+                  value={filePurpose}
+                  onValueChange={(value) =>
+                    setFilePurpose(value as FilePurpose)
+                  }
                 >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(FilePurpose).map((purpose) => (
-                    <SelectItem key={purpose} value={purpose}>
-                      {FILE_PURPOSE_LABELS[purpose]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <label htmlFor="task-file-upload" className="sr-only">
-                ملف المهمة
-              </label>
-              <input
-                id="task-file-upload"
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                <Upload data-icon="inline-start" />
-                {isUploading ? "جارٍ الرفع..." : "رفع ملف"}
-              </Button>
+                  <SelectTrigger
+                    id="task-file-purpose"
+                    className="w-full sm:w-44"
+                    aria-label="نوع الملف"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(FilePurpose).map((purpose) => (
+                      <SelectItem key={purpose} value={purpose}>
+                        {FILE_PURPOSE_LABELS[purpose]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <label htmlFor="task-file-upload" className="sr-only">
+                  ملف المهمة
+                </label>
+                <input
+                  id="task-file-upload"
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  <Upload data-icon="inline-start" />
+                  {isUploading ? "جارٍ الرفع..." : "رفع ملف"}
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {filesLoading ? (
             <div className="flex flex-col gap-3">
@@ -975,7 +1009,9 @@ export function TaskWorkspaceDetail({
                   <EmptyHeader>
                     <EmptyTitle>لا توجد ملفات</EmptyTitle>
                     <EmptyDescription>
-                      ابدأ برفع أول ملف مرتبط بهذه المهمة.
+                      {isFormerAssignee
+                        ? "لا توجد ملفات مرتبطة بهذه المهمة."
+                        : "ابدأ برفع أول ملف مرتبط بهذه المهمة."}
                     </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
@@ -1009,6 +1045,7 @@ export function TaskWorkspaceDetail({
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="min-h-11"
                         onClick={async () => {
                           try {
                             if (teamOwned) {
@@ -1060,10 +1097,11 @@ export function TaskWorkspaceDetail({
                         <Download data-icon="inline-start" />
                         تحميل
                       </Button>
-                      {!teamOwned ? (
+                      {!isFormerAssignee && !teamOwned ? (
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="min-h-11"
                           onClick={() => handleDeleteFile(file.id)}
                           disabled={isDeletingFile}
                         >
@@ -1098,7 +1136,7 @@ export function TaskWorkspaceDetail({
     });
   }
 
-  if (includeMarketingExtras && isMarketingTask) {
+  if (includeMarketingExtras && isMarketingTask && !isFormerAssignee) {
     tabs.splice(1, 0, ...marketingTabs);
   }
 
@@ -1133,6 +1171,15 @@ export function TaskWorkspaceDetail({
           </BreadcrumbList>
         </Breadcrumb>
 
+        {isFormerAssignee ? (
+          <Alert>
+            <AlertTitle>صلاحية قراءة فقط</AlertTitle>
+            <AlertDescription>
+              لم تعد هذه المهمة مكلّفة لك. يمكنك الاطلاع على التفاصيل وسجل
+              الحالة والتعليقات والملفات وتنزيلها، دون إجراء تغييرات.
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <PageHeader
           title={task.title}
           description={
@@ -1173,6 +1220,10 @@ export function TaskWorkspaceDetail({
           ) : null}
         </div>
       </div>
+
+      {task.assignmentHistory?.length ? (
+        <TaskAssignmentHistory entries={task.assignmentHistory} />
+      ) : null}
 
       <Card>
         <CardContent className="grid items-start gap-6 p-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]">

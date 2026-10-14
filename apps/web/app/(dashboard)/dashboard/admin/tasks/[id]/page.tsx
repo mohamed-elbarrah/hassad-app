@@ -16,7 +16,6 @@ import {
   useForceTransitionAdminTaskMutation,
   useGetAdminTaskByIdQuery,
   useGetAdminTaskActorCapabilitiesQuery,
-  useReassignAdminTaskMutation,
   type AdminTaskDetail,
 } from "@/features/admin/adminTasksApi";
 import { useLazyGetAdminClientByIdQuery } from "@/features/admin/adminClientsApi";
@@ -41,6 +40,8 @@ import {
   type TaskTabItem,
 } from "@/components/task-detail/TaskDetailPattern";
 import { AdminClientInfoPanel } from "@/components/client-detail/AdminClientInfoPanel";
+import { AdminTaskReassignmentDialog } from "@/components/dashboard/admin/tasks/AdminTaskReassignmentDialog";
+import { TaskAssignmentHistory } from "@/components/task-detail/TaskAssignmentHistory";
 import { ErrorState } from "@/components/design-system/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -127,13 +129,9 @@ function TaskDetailContent({ id }: { id: string }) {
       data: transitionResult,
     },
   ] = useForceTransitionAdminTaskMutation();
-  const [
-    reassign,
-    { isLoading: isReassigning, error: reassignError, data: reassignResult },
-  ] = useReassignAdminTaskMutation();
   const [nextStatus, setNextStatus] = useState<string>("");
-  const [reason, setReason] = useState("");
-  const [assigneeId, setAssigneeId] = useState("");
+  const [statusReason, setStatusReason] = useState("");
+  const [reassignmentSuccessCode, setReassignmentSuccessCode] = useState<string | null>(null);
   const {
     data: capabilities,
     error: capabilitiesError,
@@ -162,8 +160,10 @@ function TaskDetailContent({ id }: { id: string }) {
               </EmptyHeader>
               <EmptyContent>
                 <div className="flex flex-wrap justify-center gap-2">
-                  <Button onClick={() => refetch()}>إعادة المحاولة</Button>
-                  <Button variant="outline" asChild>
+                  <Button className="min-h-11" onClick={() => refetch()}>
+                    إعادة المحاولة
+                  </Button>
+                  <Button variant="outline" className="min-h-11" asChild>
                     <Link href="/dashboard/admin/tasks">
                       <ArrowLeft data-icon="inline-start" />
                       العودة إلى المهام
@@ -375,7 +375,7 @@ function TaskDetailContent({ id }: { id: string }) {
         ]}
         actions={
           task.project ? (
-            <Button variant="outline" asChild>
+            <Button variant="outline" className="min-h-11" asChild>
               <Link href={`/dashboard/admin/projects/${task.project.id}`}>
                 <ArrowLeft data-icon="inline-start" />
                 المشروع
@@ -386,6 +386,14 @@ function TaskDetailContent({ id }: { id: string }) {
       />
 
       <TaskStatsGrid stats={stats} />
+
+      <TaskAssignmentHistory entries={task.assignmentHistory} />
+
+      {reassignmentSuccessCode ? (
+        <p role="status" className="text-sm text-success-600">
+          {adminSuccessMessage(reassignmentSuccessCode)}
+        </p>
+      ) : null}
 
       {isCapabilitiesError ? (
         <ErrorState
@@ -402,50 +410,49 @@ function TaskDetailContent({ id }: { id: string }) {
                 تتطلب الإجراءات سبباً وتُسجّل في سجل التدقيق.
               </p>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="admin-task-assignee">
-                  معرّف المكلّف الجديد
-                </Label>
-                <Input
-                  id="admin-task-assignee"
-                  value={assigneeId}
-                  onChange={(event) => setAssigneeId(event.target.value)}
-                  placeholder="UUID"
-                />
-              </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <AdminTaskReassignmentDialog
+                taskId={id}
+                currentAssignee={task.assignee}
+                onSuccess={setReassignmentSuccessCode}
+              />
               <div className="flex flex-col gap-2">
                 <Label htmlFor="admin-task-status">الحالة الجديدة</Label>
                 <Select value={nextStatus} onValueChange={setNextStatus}>
-                  <SelectTrigger id="admin-task-status">
+                  <SelectTrigger id="admin-task-status" className="min-h-11">
                     <SelectValue placeholder="اختر الحالة" />
                   </SelectTrigger>
                   <SelectContent>
-                    {task.availableTransitionTargets.map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {TASK_STATUS_AR[value] ?? UNKNOWN_STATUS_LABEL}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      {task.availableTransitionTargets.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {TASK_STATUS_AR[value] ?? UNKNOWN_STATUS_LABEL}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="admin-task-reason">سبب الإجراء</Label>
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <Label htmlFor="admin-task-status-reason">سبب تغيير الحالة</Label>
                 <Input
-                  id="admin-task-reason"
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
+                  className="min-h-11"
+                  id="admin-task-status-reason"
+                  maxLength={1000}
+                  value={statusReason}
+                  onChange={(event) => setStatusReason(event.target.value)}
+                  aria-required="true"
+                  aria-invalid={statusReason.length > 0 && !statusReason.trim()}
+                  aria-describedby="admin-task-status-reason-help"
                 />
+                <p id="admin-task-status-reason-help" className="text-sm text-muted-foreground">
+                  السبب مطلوب قبل تغيير الحالة.
+                </p>
               </div>
             </div>
-            {transitionError || reassignError ? (
+            {transitionError ? (
               <p role="alert" className="text-sm text-destructive">
-                {adminErrorMessage(transitionError || reassignError)}
-              </p>
-            ) : null}
-            {reassignResult ? (
-              <p role="status" className="text-sm text-success-600">
-                {adminSuccessMessage(reassignResult.code)}
+                {adminErrorMessage(transitionError)}
               </p>
             ) : null}
             {transitionResult ? (
@@ -455,27 +462,14 @@ function TaskDetailContent({ id }: { id: string }) {
             ) : null}
             <div className="flex flex-wrap gap-2">
               <Button
-                disabled={
-                  !assigneeId || !reason || isReassigning || isTransitioning
-                }
-                onClick={() => {
-                  void reassign({ id, assigneeId, reason })
-                    .unwrap()
-                    .catch(() => undefined);
-                }}
-              >
-                إعادة تعيين المهمة
-              </Button>
-              <Button
                 variant="outline"
-                disabled={
-                  !nextStatus || !reason || isTransitioning || isReassigning
-                }
+                className="min-h-11"
+                disabled={!nextStatus || !statusReason.trim() || isTransitioning}
                 onClick={() =>
                   void forceTransition({
                     id,
                     status: nextStatus as TaskStatus,
-                    reason,
+                    reason: statusReason.trim(),
                   })
                     .unwrap()
                     .catch(() => undefined)

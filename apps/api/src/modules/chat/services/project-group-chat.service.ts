@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../prisma/prisma.service";
 import {
   ConversationParticipantSource,
@@ -10,7 +11,10 @@ type DbClient = Prisma.TransactionClient | PrismaService;
 
 @Injectable()
 export class ProjectGroupChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   /** Synchronize project-derived membership without affecting manual members. */
   async ensure(projectId: string, db?: DbClient) {
@@ -175,17 +179,93 @@ export class ProjectGroupChatService {
     }
 
     // Only automatic members may be disabled; manual membership is preserved.
-    await (db ?? this.prisma).conversationParticipant.updateMany({
+    const removedParticipants = await (db ?? this.prisma).conversationParticipant.findMany({
       where: {
         conversationId: conversation.id,
         source: ConversationParticipantSource.AUTO,
         userId: { notIn: Array.from(expectedSet) },
         isActive: true,
       },
-      data: { isActive: false },
+      select: { userId: true },
     });
+    if (removedParticipants.length > 0) {
+      await (db ?? this.prisma).conversationParticipant.updateMany({
+        where: {
+          conversationId: conversation.id,
+          source: ConversationParticipantSource.AUTO,
+          userId: { in: removedParticipants.map(({ userId }) => userId) },
+          isActive: true,
+        },
+        data: { isActive: false },
+      });
+      if (!db) {
+        this.publishParticipantRemovalsForConversation(
+          conversation.id,
+          removedParticipants.map(({ userId }) => userId),
+        );
+      }
+    }
 
     return this.find(projectId, db);
+  }
+
+  async syncParticipantsForTaskReassignment(
+    projectId: string,
+    previousAssigneeId: string | null,
+    db?: DbClient,
+  ): Promise<string[]> {
+    const client = db ?? this.prisma;
+    const conversation = await client.conversation.findUnique({
+      where: { projectId },
+      select: { id: true, isActive: true },
+    });
+    if (conversation?.isActive === false) return [];
+
+    const previousAutomaticMembership = previousAssigneeId
+      ? await client.conversationParticipant.findFirst({
+          where: {
+            userId: previousAssigneeId,
+            source: ConversationParticipantSource.AUTO,
+            isActive: true,
+            conversation: { projectId },
+          },
+          select: { id: true },
+        })
+      : null;
+
+    await this.syncParticipants(projectId, db);
+    if (!previousAutomaticMembership) return [];
+
+    const stillActive = await client.conversationParticipant.findFirst({
+      where: { id: previousAutomaticMembership.id, isActive: true },
+      select: { id: true },
+    });
+    return stillActive || !previousAssigneeId ? [] : [previousAssigneeId];
+  }
+
+  async publishParticipantRemovals(projectId: string, userIds: string[]) {
+    if (userIds.length === 0) return;
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { projectId },
+      select: { id: true },
+    });
+    if (conversation)
+      this.publishParticipantRemovalsForConversation(
+        conversation.id,
+        userIds,
+      );
+  }
+
+  private publishParticipantRemovalsForConversation(
+    conversationId: string,
+    userIds: string[],
+  ) {
+    for (const userId of userIds) {
+      this.eventEmitter.emit("chat.participantRemoved", {
+        conversationId,
+        userId,
+      });
+    }
   }
 
   async find(projectId: string, db?: DbClient) {

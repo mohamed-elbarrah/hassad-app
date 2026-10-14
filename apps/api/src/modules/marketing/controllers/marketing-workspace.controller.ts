@@ -83,6 +83,15 @@ export class MarketingWorkspaceController {
     return this.workspace.strategyByTask(userId, taskId);
   }
 
+  @Get("tasks/:taskId/campaigns")
+  @RequirePermissions("marketing.read")
+  taskCampaigns(
+    @CurrentUser("id") userId: string,
+    @Param("taskId") taskId: string,
+  ) {
+    return this.workspace.taskCampaigns(userId, taskId);
+  }
+
   @Get("tasks/:id")
   @RequirePermissions("marketing.read")
   taskDetail(@CurrentUser("id") userId: string, @Param("id") id: string) {

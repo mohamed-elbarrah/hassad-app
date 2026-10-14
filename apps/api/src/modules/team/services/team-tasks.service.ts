@@ -23,15 +23,43 @@ export class TeamTasksService {
     private readonly clientProfileService: ClientProfileService,
   ) {}
 
-  private async ownedTask(userId: string, taskId: string) {
+  private async taskAccess(userId: string, taskId: string) {
     const task = await this.prisma.task.findFirst({
-      where: { id: taskId, assignedTo: userId, archivedAt: null },
-      select: { id: true },
+      where: {
+        id: taskId,
+        OR: [
+          { assignedTo: userId, archivedAt: null },
+          {
+            assignmentHistory: {
+              some: {
+                OR: [
+                  { previousAssigneeId: userId },
+                  { newAssigneeId: userId },
+                ],
+              },
+            },
+          },
+        ],
+      },
+      select: { id: true, assignedTo: true, archivedAt: true },
     });
 
     if (!task)
       throw new NotFoundException({ code: "TEAM_TASK_NOT_FOUND", details: {} });
-    return task;
+    return {
+      ...task,
+      assignmentAccess:
+        task.assignedTo === userId && !task.archivedAt
+          ? ("CURRENT" as const)
+          : ("FORMER" as const),
+    };
+  }
+
+  private async ownedTask(userId: string, taskId: string) {
+    const access = await this.taskAccess(userId, taskId);
+    if (access.assignmentAccess === "FORMER")
+      throw new NotFoundException({ code: "TEAM_TASK_NOT_FOUND", details: {} });
+    return access;
   }
 
   private taskWhere(
@@ -164,12 +192,29 @@ export class TeamTasksService {
   }
 
   async detail(userId: string, taskId: string) {
-    await this.ownedTask(userId, taskId);
+    const access = await this.taskAccess(userId, taskId);
     const task = await this.tasksService.findOne(taskId);
+    const assignmentHistory = await this.prisma.taskAssignmentHistory.findMany({
+      where: {
+        taskId,
+        OR: [
+          { previousAssigneeId: userId },
+          { newAssigneeId: userId },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        previousAssignee: { select: { id: true, name: true } },
+        newAssignee: { select: { id: true, name: true } },
+        changer: { select: { id: true, name: true } },
+      },
+    });
     const { project, ...taskDetails } = task;
 
     return {
       ...taskDetails,
+      assignmentAccess: access.assignmentAccess,
+      assignmentHistory,
       project: project
         ? {
             id: project.id,
@@ -209,7 +254,7 @@ export class TeamTasksService {
   }
 
   async comments(userId: string, taskId: string, page = 1, limit = 25) {
-    await this.ownedTask(userId, taskId);
+    await this.taskAccess(userId, taskId);
     const where = { taskId, isInternal: false };
     const [items, total] = await Promise.all([
       this.prisma.taskComment.findMany({
@@ -225,7 +270,7 @@ export class TeamTasksService {
   }
 
   async files(userId: string, taskId: string, page = 1, limit = 25) {
-    await this.ownedTask(userId, taskId);
+    await this.taskAccess(userId, taskId);
     const [files, total] = await Promise.all([
       this.prisma.taskFile.findMany({
         where: { taskId },
@@ -292,7 +337,7 @@ export class TeamTasksService {
   }
 
   async downloadFile(userId: string, taskId: string, fileId: string) {
-    await this.ownedTask(userId, taskId);
+    await this.taskAccess(userId, taskId);
     return { url: await this.tasksService.getDownloadUrl(taskId, fileId) };
   }
 

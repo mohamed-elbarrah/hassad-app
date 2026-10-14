@@ -10,7 +10,20 @@ import type {
 } from "@hassad/shared";
 import type { OperationalClientInfoView } from "@/features/clients/clientInfo.types";
 
+export interface TaskAssignmentHistoryEntry {
+  id: string;
+  previousAssigneeId: string | null;
+  newAssigneeId: string;
+  reason: string | null;
+  createdAt: string;
+  previousAssignee?: { id: string; name: string } | null;
+  newAssignee?: { id: string; name: string };
+  changer?: { id: string; name: string };
+}
+
 export interface TeamTaskDetail extends Task {
+  assignmentAccess: "CURRENT" | "FORMER";
+  assignmentHistory: TaskAssignmentHistoryEntry[];
   project?: {
     id: string;
     name: string;
@@ -98,12 +111,7 @@ export type TeamFilePage = TeamPage<TaskFile>;
 export const teamApi = createApi({
   reducerPath: "teamApi",
   baseQuery,
-  tagTypes: [
-    "TeamTask",
-    "TeamTaskComments",
-    "TeamTaskFiles",
-    "TeamClientInfo",
-  ],
+  tagTypes: ["TeamTask", "TeamTaskComments", "TeamTaskFiles", "TeamClientInfo"],
   endpoints: (builder) => ({
     getTeamOverview: builder.query<TeamOverview, TeamTasksParams | void>({
       query: (params = {}) => ({

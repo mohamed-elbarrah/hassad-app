@@ -88,6 +88,9 @@ model User {
   notifiedDelays        TaskDelayAlert[]
   uploadedFiles         TaskFile[]
   taskHistory           TaskStatusHistory[]
+  previousTaskAssigneeHistories TaskAssignmentHistory[] @relation("TaskAssignmentHistoryPreviousAssignee")
+  newTaskAssigneeHistories TaskAssignmentHistory[] @relation("TaskAssignmentHistoryNewAssignee")
+  changedTaskAssignments TaskAssignmentHistory[]   @relation("TaskAssignmentHistoryChangedBy")
   approvedTasks         Task[]                    @relation("TaskApprover")
   assignedTasks         Task[]                    @relation("TaskAssignee")
   createdTasks          Task[]                    @relation("TaskCreator")
@@ -869,6 +872,7 @@ model Task {
   delayAlerts         TaskDelayAlert[]
   files               TaskFile[]
   statusHistory       TaskStatusHistory[]
+  assignmentHistory  TaskAssignmentHistory[] @relation("TaskAssignmentHistoryTask")
   revisionRequests    TaskRevisionRequest[]
   reviewHistory       TaskReviewHistory[]
   approver            User?               @relation("TaskApprover", fields: [approvedBy], references: [id])
@@ -931,6 +935,27 @@ model TaskStatusHistory {
 
   @@index([taskId])
   @@map("task_status_history")
+}
+
+model TaskAssignmentHistory {
+  id                String    @id @default(uuid())
+  taskId            String    @map("task_id")
+  previousAssigneeId String?  @map("previous_assignee_id")
+  newAssigneeId     String    @map("new_assignee_id")
+  changedBy         String    @map("changed_by")
+  reason            String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  task              Task      @relation("TaskAssignmentHistoryTask", fields: [taskId], references: [id], onDelete: Cascade)
+  previousAssignee  User?     @relation("TaskAssignmentHistoryPreviousAssignee", fields: [previousAssigneeId], references: [id])
+  newAssignee       User      @relation("TaskAssignmentHistoryNewAssignee", fields: [newAssigneeId], references: [id])
+  changer           User      @relation("TaskAssignmentHistoryChangedBy", fields: [changedBy], references: [id])
+
+  @@index([taskId])
+  @@index([previousAssigneeId])
+  @@index([newAssigneeId])
+  @@index([changedBy])
+  @@index([createdAt])
+  @@map("task_assignment_history")
 }
 
 model TaskFile {

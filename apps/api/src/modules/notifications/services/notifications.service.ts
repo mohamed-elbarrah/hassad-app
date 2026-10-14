@@ -114,6 +114,118 @@ export class NotificationsService {
     return notification;
   }
 
+  async createNotificationInTransaction(
+    tx: Prisma.TransactionClient,
+    params: {
+      entityId: string;
+      entityType: string;
+      eventType: NotificationEventCode;
+      userId: string;
+      metadata?: Prisma.InputJsonValue;
+    },
+  ) {
+    const event = await tx.notificationEvent.create({
+      data: {
+        entityId: params.entityId,
+        entityType: this.normalizeEntityType(params.entityType),
+        eventType: params.eventType.trim(),
+        metadata: params.metadata,
+      },
+    });
+    const notification = await tx.notification.create({
+      data: {
+        eventId: event.id,
+        userId: params.userId,
+        channel: "in-app",
+        sentAt: new Date(),
+      },
+    });
+
+    return {
+      id: notification.id,
+      userId: notification.userId,
+      isRead: notification.isRead,
+      createdAt: notification.sentAt,
+      entityId: params.entityId,
+      entityType: this.normalizeEntityType(params.entityType),
+      eventType: params.eventType.trim(),
+      metadata: params.metadata ?? null,
+    };
+  }
+
+  async createTaskReassignmentNotifications(
+    tx: Prisma.TransactionClient,
+    params: {
+      taskId: string;
+      projectId: string;
+      taskTitle: string;
+      previousAssignee: { id: string; name: string } | null;
+      newAssignee: { id: string; name: string };
+      projectManagerId: string | null;
+      taskCreatorId: string;
+      actorId: string;
+      actorName?: string;
+      reason?: string | null;
+    },
+  ) {
+    const recipients = new Map<
+      string,
+      "previous_assignee" | "new_assignee" | "project_manager" | "task_creator"
+    >();
+    if (params.previousAssignee)
+      recipients.set(params.previousAssignee.id, "previous_assignee");
+    if (!recipients.has(params.newAssignee.id))
+      recipients.set(params.newAssignee.id, "new_assignee");
+    if (
+      params.projectManagerId &&
+      !recipients.has(params.projectManagerId)
+    ) {
+      recipients.set(params.projectManagerId, "project_manager");
+    }
+    if (!recipients.has(params.taskCreatorId))
+      recipients.set(params.taskCreatorId, "task_creator");
+
+    const notifications = [];
+    for (const [userId, recipientRole] of recipients) {
+      notifications.push(
+        await this.createNotificationInTransaction(tx, {
+          entityId: params.taskId,
+          entityType: "task",
+          eventType: "TASK_REASSIGNED",
+          userId,
+          metadata: {
+            taskId: params.taskId,
+            projectId: params.projectId,
+            taskTitle: params.taskTitle,
+            previousAssigneeId: params.previousAssignee?.id ?? null,
+            previousAssigneeName: params.previousAssignee?.name ?? null,
+            newAssigneeId: params.newAssignee.id,
+            newAssigneeName: params.newAssignee.name,
+            changedBy: params.actorId,
+            ...(params.actorName ? { actorName: params.actorName } : {}),
+            recipientRole,
+            ...(params.reason ? { reason: params.reason } : {}),
+          },
+        }),
+      );
+    }
+    return notifications;
+  }
+
+  async publishPersistedNotification(payload: {
+    id: string;
+    userId: string;
+    isRead: boolean;
+    createdAt: Date | null;
+    entityId: string;
+    entityType: string;
+    eventType: string;
+    metadata: Prisma.JsonValue | null;
+  }) {
+    this.eventEmitter.emit("notification.created", payload);
+    await this.emitUnreadCount(payload.userId);
+  }
+
   async findAll(
     userId: string,
     filters: { page?: number; limit?: number; isRead?: boolean },

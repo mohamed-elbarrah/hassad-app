@@ -12,6 +12,8 @@ import {
   KpiSource,
   MarketingStrategyStatus,
   NotificationEventType,
+  TaskDepartment,
+  UserRole,
 } from "@hassad/shared";
 import {
   CreateCampaignDto,
@@ -128,7 +130,33 @@ export class CampaignsService {
     return campaign;
   }
 
-  async findAll(query: CampaignQueryDto) {
+  async findAll(
+    query: CampaignQueryDto,
+    userId: string,
+    role: UserRole | string,
+  ) {
+    if (
+      query.taskId &&
+      role !== UserRole.ADMIN &&
+      role !== "OWNER"
+    ) {
+      const assignedTask = await this.prisma.task.findFirst({
+        where: {
+          id: query.taskId,
+          assignedTo: userId,
+          archivedAt: null,
+          department: { name: TaskDepartment.MARKETING },
+        },
+        select: { id: true },
+      });
+      if (!assignedTask) {
+        throw new NotFoundException({
+          code: "MARKETING_TASK_NOT_FOUND",
+          details: {},
+        });
+      }
+    }
+
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
     const where: Prisma.CampaignWhereInput = { isArchived: false };
@@ -214,17 +242,40 @@ export class CampaignsService {
     return { ...updated, analytics };
   }
 
-  async findByTask(taskId: string) {
+  async findByTask(taskId: string, userId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        assignedTo: userId,
+        archivedAt: null,
+        department: { name: TaskDepartment.MARKETING },
+      },
+      select: { id: true },
+    });
+    if (!task)
+      throw new NotFoundException({
+        code: "MARKETING_TASK_NOT_FOUND",
+        details: {},
+      });
+
+    return this.loadCampaignsByTask(taskId);
+  }
+
+  /** Compatibility adapter for the deprecated generic task-campaign route. */
+  async findByTaskForLegacyCompatibility(taskId: string) {
+    return this.loadCampaignsByTask(taskId);
+  }
+
+  private async loadCampaignsByTask(taskId: string) {
     const campaigns = await this.prisma.campaign.findMany({
       where: { taskId, isArchived: false },
       orderBy: { createdAt: "desc" },
     });
-
     const snapshots = await this.getLatestSnapshots(campaigns.map((c) => c.id));
 
-    return campaigns.map((c) => ({
-      ...c,
-      analytics: snapshots[c.id] ?? this.emptyAnalytics(),
+    return campaigns.map((campaign) => ({
+      ...campaign,
+      analytics: snapshots[campaign.id] ?? this.emptyAnalytics(),
     }));
   }
 

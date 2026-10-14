@@ -255,6 +255,15 @@ export function authErrorMessage(error: unknown): string {
 
 const PROJECT_ERROR_MESSAGES: Record<string, string> = {
   PROJECT_NOT_FOUND: "المشروع غير موجود.",
+  PROJECT_SIGNED_CONTRACT_REQUIRED: "يجب ربط المشروع بعقد موقّع.",
+  PROJECT_CONTRACT_STATUS_INVALID:
+    "لا يمكن إنشاء المشروع قبل توقيع العقد أو تفعيله.",
+  CONTRACT_NOT_FOUND: "العقد غير موجود.",
+  PROJECT_FILE_NOT_FOUND: "ملف المشروع غير موجود.",
+  FILE_REQUIRED: "يجب اختيار ملف قبل الرفع.",
+  REPORT_FILE_REQUIRED: "يجب اختيار ملف التقرير قبل الرفع.",
+  PROJECT_MANAGER_NOT_ELIGIBLE: "مدير المشروع المحدد غير مؤهل.",
+  PROJECT_MANAGER_ALREADY_ASSIGNED: "الموظف المحدد هو مدير المشروع بالفعل.",
   PROJECT_STATUS_UPDATE_FAILED: "تعذر تحديث حالة المشروع.",
   TASK_NOT_FOUND: "المهمة غير موجودة.",
   PERIOD_NOT_FOUND: "الفترة غير موجودة.",
@@ -320,6 +329,19 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
 
   USER_NOT_FOUND: "لم يتم العثور على الموظف.",
   TASK_NOT_FOUND: "لم يتم العثور على المهمة.",
+  TASK_ALREADY_ASSIGNED: "المهمة مسندة بالفعل إلى هذا الموظف.",
+  TASK_ASSIGNMENT_CONFLICT:
+    "تغير إسناد المهمة بالتزامن. حدّث البيانات ثم حاول مجدداً.",
+  TASK_ASSIGNEE_NOT_FOUND: "الموظف المحدد غير موجود.",
+  TASK_ASSIGNEE_INACTIVE: "لا يمكن إسناد المهمة إلى موظف غير نشط.",
+  TASK_ASSIGNEE_DEPARTMENT_MISMATCH:
+    "يجب اختيار موظف من القسم المرتبط بالمهمة.",
+  TASK_ASSIGNEE_ROLE_INVALID: "دور الموظف المحدد غير مؤهل لإسناد المهمة.",
+  TASK_MARKETING_DEPARTMENT_REQUIRED:
+    "يمكن إسناد هذا الدور إلى مهام التسويق فقط.",
+  TASK_INVALID_TRANSITION: "لا يمكن تغيير المهمة إلى هذه الحالة.",
+  TASK_CLIENT_APPROVAL_REQUIRED:
+    "يجب اعتماد المهمة من العميل قبل إتمامها.",
   CLIENT_NOT_FOUND: "لم يتم العثور على العميل.",
   INVALID_ACCOUNT_MANAGER: "مدير الحساب المحدد غير صالح.",
   PHONE_WHATSAPP_REQUIRED: "رقم واتساب مطلوب.",
@@ -1021,6 +1043,10 @@ const NOTIFICATION_PRESENTATIONS: Record<string, NotificationPresentation> = {
     body: "تم نشر إعلان جديد من إدارة المنصة.",
   },
   TASK_ASSIGNED: { title: "تم إسناد مهمة", body: "تم إسناد مهمة جديدة إليك." },
+  TASK_REASSIGNED: {
+    title: "تمت إعادة تعيين المهمة",
+    body: "تمت إعادة تعيين إحدى المهام.",
+  },
   PROJECT_STATUS_CHANGED: {
     title: "تغيرت حالة مشروع",
     body: "تم تحديث حالة أحد مشاريعك.",
@@ -1335,7 +1361,7 @@ export function notificationPresentation(
     typeof metadata?.legacyTitle === "string" ? metadata.legacyTitle : null;
   const legacyBody =
     typeof metadata?.legacyBody === "string" ? metadata.legacyBody : null;
-  if (legacyTitle && legacyBody) {
+  if (eventType !== "TASK_REASSIGNED" && legacyTitle && legacyBody) {
     return { title: legacyTitle, body: legacyBody };
   }
   const ticketNumber =
@@ -1388,7 +1414,32 @@ export function notificationPresentation(
     };
   }
   const taskTitle =
-    typeof metadata?.taskTitle === "string" ? metadata.taskTitle : null;
+    typeof metadata?.taskTitle === "string" ? metadata.taskTitle.trim() : null;
+  const actorName =
+    typeof metadata?.actorName === "string" ? metadata.actorName.trim() : null;
+  const reassignmentReason =
+    typeof metadata?.reason === "string" ? metadata.reason.trim() : null;
+  const recipientRole =
+    typeof metadata?.recipientRole === "string"
+      ? metadata.recipientRole.trim()
+      : null;
+  if (eventType === "TASK_REASSIGNED") {
+    const taskLabel = taskTitle ? ` «${taskTitle}»` : "";
+    const actorLabel = actorName ? ` بواسطة ${actorName}` : "";
+    const reasonLabel = reassignmentReason
+      ? ` السبب: ${reassignmentReason}`
+      : "";
+    const bodyByRole: Record<string, string> = {
+      previous_assignee: `تمت إعادة تعيين المهمة${taskLabel} من مسؤوليتك${actorLabel}.`,
+      new_assignee: `تم إسناد المهمة${taskLabel} إليك${actorLabel}.`,
+      project_manager: `تمت إعادة تعيين المهمة${taskLabel}${actorLabel}.`,
+      task_creator: `تمت إعادة تعيين المهمة${taskLabel}${actorLabel}.`,
+    };
+    return {
+      ...presentation,
+      body: `${bodyByRole[recipientRole ?? ""] ?? `تمت إعادة تعيين المهمة${taskLabel}${actorLabel}.`}${reasonLabel}`,
+    };
+  }
   const meetingTitle =
     typeof metadata?.meetingTitle === "string" ? metadata.meetingTitle : null;
   const assigneeName =

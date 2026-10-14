@@ -1,23 +1,32 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { TaskReviewStage, TaskStatus } from "@hassad/shared";
+import { TaskDepartment, TaskReviewStage, TaskStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
-import { AdminTasksQueryDto } from "../dto/admin-tasks.dto";
+import {
+  AdminTaskAssigneeQueryDto,
+  AdminTasksQueryDto,
+} from "../dto/admin-tasks.dto";
+import { TasksService } from "../../tasks/services/tasks.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 
 @Injectable()
 export class AdminTasksService {
+  private readonly logger = new Logger(AdminTasksService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly actionLog: AdminActionLogService,
     private readonly projectGroupChatService: ProjectGroupChatService,
     private readonly notificationsService: NotificationsService,
+    private readonly tasksService: TasksService,
   ) {}
 
   private buildWhere(query: AdminTasksQueryDto): Prisma.TaskWhereInput {
@@ -183,6 +192,38 @@ export class AdminTasksService {
     }
   }
 
+  async findEligibleAssignees(
+    taskId: string,
+    query: AdminTaskAssigneeQueryDto,
+  ) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        assignedTo: true,
+        department: { select: { name: true } },
+      },
+    });
+    if (!task)
+      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
+
+    const result = await this.tasksService.searchAssignableUsers({
+      dept: task.department.name as TaskDepartment,
+      search: query.search,
+      limit: 20,
+      excludeUserId: task.assignedTo ?? undefined,
+    });
+    return {
+      items: result.items.map(({ id, name, email, role, department }) => ({
+        id,
+        name,
+        email,
+        role,
+        department,
+      })),
+      total: result.total,
+    };
+  }
+
   async findOne(id: string) {
     const task = await this.prisma.task.findUnique({
       where: { id },
@@ -216,6 +257,14 @@ export class AdminTasksService {
           select: {
             id: true,
             periodNumber: true,
+          },
+        },
+        assignmentHistory: {
+          orderBy: { createdAt: "asc" },
+          include: {
+            previousAssignee: { select: { id: true, name: true } },
+            newAssignee: { select: { id: true, name: true } },
+            changer: { select: { id: true, name: true } },
           },
         },
         statusHistory: {
@@ -336,34 +385,79 @@ export class AdminTasksService {
     taskId: string,
     assigneeId: string,
     adminId: string,
-    reason?: string,
+    reason: string,
   ) {
-    const [task, user] = await Promise.all([
-      this.prisma.task.findUnique({ where: { id: taskId } }),
-      this.prisma.user.findUnique({ where: { id: assigneeId } }),
-    ]);
-    if (!task)
-      throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
-    if (!user)
-      throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+    const normalizedReason = reason.trim();
+    if (!normalizedReason) {
+      throw new BadRequestException({
+        code: "VALIDATION_ERROR",
+        details: { fields: { reason: { code: "REQUIRED" } } },
+      });
+    }
 
-    const before = { assignedTo: task.assignedTo };
-    const after = { assignedTo: assigneeId, reason };
-
-    await this.prisma.$transaction([
-      this.prisma.task.update({
+    const result = await this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.findUnique({
         where: { id: taskId },
+        select: {
+          id: true,
+          title: true,
+          projectId: true,
+          assignedTo: true,
+          createdBy: true,
+          departmentId: true,
+          department: { select: { name: true } },
+          project: {
+            select: { projectManagerId: true, isArchived: true },
+          },
+          assignee: { select: { id: true, name: true } },
+        },
+      });
+      if (!task)
+        throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
+      if (task.assignedTo === assigneeId) {
+        throw new BadRequestException({
+          code: "TASK_ALREADY_ASSIGNED",
+          details: { assigneeId },
+        });
+      }
+
+      const nextAssignee = await this.tasksService.resolveAssignableUser(
+        assigneeId,
+        task.departmentId,
+        task.department.name,
+        tx,
+      );
+      const admin = await tx.user.findUnique({
+        where: { id: adminId },
+        select: { name: true },
+      });
+      if (!admin)
+        throw new NotFoundException({ code: "USER_NOT_FOUND", details: {} });
+
+      const update = await tx.task.updateMany({
+        where: { id: taskId, assignedTo: task.assignedTo },
         data: { assignedTo: assigneeId },
-      }),
-      this.prisma.taskStatusHistory.create({
+      });
+      if (update.count !== 1) {
+        throw new ConflictException({
+          code: "TASK_ASSIGNMENT_CONFLICT",
+          details: {},
+        });
+      }
+
+      await tx.taskAssignmentHistory.create({
         data: {
           taskId,
-          fromStatus: task.status,
-          toStatus: task.status,
+          previousAssigneeId: task.assignedTo,
+          newAssigneeId: assigneeId,
           changedBy: adminId,
+          reason: normalizedReason,
         },
-      }),
-      this.prisma.ledger.create({
+      });
+
+      const before = { assignedTo: task.assignedTo };
+      const after = { assignedTo: assigneeId, reason: normalizedReason };
+      await tx.ledger.create({
         data: {
           action: "admin.tasks.reassign",
           entity: "task",
@@ -372,21 +466,76 @@ export class AdminTasksService {
           before,
           after,
         },
-      }),
-    ]);
+      });
+      await this.actionLog.record(
+        {
+          actorId: adminId,
+          targetType: "task",
+          targetId: taskId,
+          actionType: "admin.tasks.reassign",
+          reason: normalizedReason,
+          beforeState: before,
+          afterState: after,
+        },
+        tx,
+      );
 
-    await this.actionLog.record({
-      actorId: adminId,
-      targetType: "task",
-      targetId: taskId,
-      actionType: "admin.tasks.reassign",
-      reason,
-      beforeState: before,
-      afterState: after,
+      const chatParticipantRemovals = task.project.isArchived
+        ? []
+        : await this.projectGroupChatService.syncParticipantsForTaskReassignment(
+            task.projectId,
+            task.assignedTo,
+            tx,
+          );
+
+      const payloads = await this.notificationsService.createTaskReassignmentNotifications(
+        tx,
+        {
+          taskId,
+          projectId: task.projectId,
+          taskTitle: task.title,
+          previousAssignee: task.assignee,
+          newAssignee: { id: assigneeId, name: nextAssignee.name },
+          projectManagerId: task.project.projectManagerId,
+          taskCreatorId: task.createdBy,
+          actorId: adminId,
+          actorName: admin.name,
+          reason: normalizedReason,
+        },
+      );
+
+      return {
+        projectId: task.projectId,
+        chatParticipantRemovals,
+        notificationPayloads: payloads,
+      };
     });
-    this.projectGroupChatService
-      .syncParticipants(task.projectId)
-      .catch(() => undefined);
+
+    try {
+      await this.projectGroupChatService.publishParticipantRemovals(
+        result.projectId,
+        result.chatParticipantRemovals,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to remove reassigned task participant from project chat for task=${taskId}`,
+        error,
+      );
+    }
+
+    const publishResults = await Promise.allSettled(
+      result.notificationPayloads.map((payload) =>
+        this.notificationsService.publishPersistedNotification(payload),
+      ),
+    );
+    publishResults.forEach((publishResult) => {
+      if (publishResult.status === "rejected") {
+        this.logger.error(
+          `Task reassignment notification realtime publish failed for task=${taskId}`,
+          publishResult.reason,
+        );
+      }
+    });
 
     return { code: "TASK_REASSIGNED" };
   }
@@ -397,6 +546,14 @@ export class AdminTasksService {
     reason: string,
     adminId: string,
   ) {
+    const normalizedReason = reason.trim();
+    if (!normalizedReason) {
+      throw new BadRequestException({
+        code: "VALIDATION_ERROR",
+        details: { fields: { reason: { code: "REQUIRED" } } },
+      });
+    }
+
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -435,7 +592,7 @@ export class AdminTasksService {
             : status === TaskStatus.IN_PROGRESS
               ? TaskReviewStage.NOT_SUBMITTED
               : task.reviewStage,
-      reason,
+      reason: normalizedReason,
     };
 
     await this.prisma.$transaction(async (tx) => {
@@ -479,7 +636,7 @@ export class AdminTasksService {
                   : task.reviewStage,
           actorId: adminId,
           actorType: "ADMIN",
-          comment: reason,
+          comment: normalizedReason,
         },
       });
       await tx.ledger.create({
@@ -542,7 +699,7 @@ export class AdminTasksService {
       targetType: "task",
       targetId: taskId,
       actionType: "admin.tasks.force-transition",
-      reason,
+      reason: normalizedReason,
       beforeState: before,
       afterState: after,
     });

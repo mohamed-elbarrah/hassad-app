@@ -46,17 +46,49 @@ export class MarketingWorkspaceService {
     };
   }
 
-  private async ownedTask(userId: string, taskId: string) {
+  private async taskAccess(userId: string, taskId: string) {
     const task = await this.prisma.task.findFirst({
-      where: { id: taskId, ...this.taskScope(userId) },
-      select: { id: true },
+      where: {
+        id: taskId,
+        department: { name: TaskDepartment.MARKETING },
+        OR: [
+          { assignedTo: userId, archivedAt: null },
+          {
+            assignmentHistory: {
+              some: {
+                OR: [
+                  { previousAssigneeId: userId },
+                  { newAssigneeId: userId },
+                ],
+              },
+            },
+          },
+        ],
+      },
+      select: { id: true, assignedTo: true, archivedAt: true },
     });
     if (!task)
       throw new NotFoundException({
         code: "MARKETING_TASK_NOT_FOUND",
         details: {},
       });
-    return task;
+    return {
+      ...task,
+      assignmentAccess:
+        task.assignedTo === userId && !task.archivedAt
+          ? ("CURRENT" as const)
+          : ("FORMER" as const),
+    };
+  }
+
+  private async ownedTask(userId: string, taskId: string) {
+    const access = await this.taskAccess(userId, taskId);
+    if (access.assignmentAccess === "FORMER")
+      throw new NotFoundException({
+        code: "MARKETING_TASK_NOT_FOUND",
+        details: {},
+      });
+    return access;
   }
 
   private async findMarketingTasks(
@@ -209,16 +241,41 @@ export class MarketingWorkspaceService {
     return this.strategies.findByTask(taskId, userId);
   }
 
-  async taskDetail(userId: string, taskId: string) {
+  async taskCampaigns(userId: string, taskId: string) {
     await this.ownedTask(userId, taskId);
+    return this.campaigns.findByTask(taskId, userId);
+  }
+
+  async taskDetail(userId: string, taskId: string) {
+    const access = await this.taskAccess(userId, taskId);
     const task = await this.tasks.findOne(taskId);
+    const assignmentHistory = await this.prisma.taskAssignmentHistory.findMany({
+      where: {
+        taskId,
+        OR: [
+          { previousAssigneeId: userId },
+          { newAssigneeId: userId },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        previousAssignee: { select: { id: true, name: true } },
+        newAssignee: { select: { id: true, name: true } },
+        changer: { select: { id: true, name: true } },
+      },
+    });
     const { project, ...taskDetails } = task;
-    const [strategy, campaigns] = await Promise.all([
-      this.strategies.findByTask(taskId),
-      this.campaigns.findByTask(taskId),
-    ]);
+    const [strategy, campaigns] =
+      access.assignmentAccess === "CURRENT"
+        ? await Promise.all([
+            this.strategies.findByTask(taskId, userId),
+            this.campaigns.findByTask(taskId, userId),
+          ])
+        : [null, []];
     return {
       ...taskDetails,
+      assignmentAccess: access.assignmentAccess,
+      assignmentHistory,
       project: project
         ? {
             id: project.id,
@@ -230,7 +287,9 @@ export class MarketingWorkspaceService {
           }
         : null,
       comments: task.comments.filter((comment) => !comment.isInternal),
-      marketing: { strategy, campaigns },
+      ...(access.assignmentAccess === "CURRENT"
+        ? { marketing: { strategy, campaigns } }
+        : {}),
     };
   }
 
@@ -245,7 +304,7 @@ export class MarketingWorkspaceService {
   }
 
   async taskComments(userId: string, taskId: string) {
-    await this.ownedTask(userId, taskId);
+    await this.taskAccess(userId, taskId);
     return {
       items: (await this.tasks.getComments(taskId)).filter(
         (comment) => !comment.isInternal,
@@ -262,7 +321,7 @@ export class MarketingWorkspaceService {
   }
 
   async taskFiles(userId: string, taskId: string) {
-    await this.ownedTask(userId, taskId);
+    await this.taskAccess(userId, taskId);
     return { items: await this.tasks.getFiles(taskId) };
   }
 
@@ -305,7 +364,7 @@ export class MarketingWorkspaceService {
   }
 
   async downloadTaskFile(userId: string, taskId: string, fileId: string) {
-    await this.ownedTask(userId, taskId);
+    await this.taskAccess(userId, taskId);
     return { url: await this.tasks.getDownloadUrl(taskId, fileId) };
   }
 

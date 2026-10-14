@@ -97,6 +97,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
 import { RequestsModule } from "../requests/requests.module";
 import { CrmModule } from "../crm/crm.module";
 import { SettingsModule } from "../settings/settings.module";
+import { TasksModule } from "../tasks/tasks.module";
 
 @Module({
   imports: [
@@ -113,6 +114,7 @@ import { SettingsModule } from "../settings/settings.module";
     AuthModule,
     StorageModule,
     ServicesModule,
+    TasksModule,
   ],
   controllers: [
     AdminController,

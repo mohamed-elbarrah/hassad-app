@@ -38,8 +38,9 @@ export function resolveEntityUrl(
     if (role === UserRole.TEAM) return `/dashboard/team/tasks/${entityId}`;
     if (role === UserRole.MARKETING)
       return `/dashboard/marketing/tasks/${entityId}`;
-    if (role === UserRole.PM || role === UserRole.ADMIN)
-      return `/dashboard/pm/tasks/${entityId}`;
+    if (role === UserRole.PM) return `/dashboard/pm/tasks/${entityId}`;
+    if (role === UserRole.ADMIN)
+      return `/dashboard/admin/tasks/${entityId}`;
     return `/dashboard/tasks/${entityId}`;
   }
   if (entityType === "project") {

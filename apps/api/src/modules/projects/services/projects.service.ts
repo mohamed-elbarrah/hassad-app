@@ -21,6 +21,7 @@ import { NotificationsService } from "../../notifications/services/notifications
 import { StorageService } from "../../../common/storage/storage.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
+import { TaskAccessPolicyService } from "../../tasks/services/task-access-policy.service";
 
 type TransactionClient = Prisma.TransactionClient | PrismaService;
 
@@ -32,13 +33,15 @@ export class ProjectsService {
     private storageService: StorageService,
     private clientCounterService: ClientCounterService,
     private projectGroupChatService: ProjectGroupChatService,
+    private taskAccessPolicy: TaskAccessPolicyService,
   ) {}
 
   async create(dto: CreateProjectDto) {
     if (!dto.contractId) {
-      throw new BadRequestException(
-        "Project must be linked to a signed contract",
-      );
+      throw new BadRequestException({
+        code: "PROJECT_SIGNED_CONTRACT_REQUIRED",
+        details: {},
+      });
     }
 
     const contract = await this.prisma.contract.findUnique({
@@ -46,18 +49,20 @@ export class ProjectsService {
     });
 
     if (!contract) {
-      throw new NotFoundException(
-        `Contract with ID ${dto.contractId} not found`,
-      );
+      throw new NotFoundException({
+        code: "CONTRACT_NOT_FOUND",
+        details: { contractId: dto.contractId },
+      });
     }
 
     if (
       contract.status !== ContractStatus.SIGNED &&
       contract.status !== ContractStatus.ACTIVE
     ) {
-      throw new BadRequestException(
-        `Contract must be SIGNED or ACTIVE to create a project (current status: ${contract.status})`,
-      );
+      throw new BadRequestException({
+        code: "PROJECT_CONTRACT_STATUS_INVALID",
+        details: { currentStatus: contract.status },
+      });
     }
 
     const createdProject = await this.prisma.$transaction(async (tx) => {
@@ -83,7 +88,86 @@ export class ProjectsService {
     return createdProject;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string, role: UserRole | string) {
+    const scope = await this.taskAccessPolicy.getProjectTaskReadScope(id, {
+      id: userId,
+      role,
+    });
+
+    if (!scope.canViewAllTasks) {
+      const project = await this.prisma.project.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          description: true,
+          clientId: true,
+          projectManagerId: true,
+          createdAt: true,
+          client: { select: { id: true, companyName: true } },
+          manager: { select: { id: true, name: true } },
+          members: {
+            where: { userId },
+            select: {
+              userId: true,
+              role: true,
+              joinedAt: true,
+              user: { select: { id: true, name: true } },
+            },
+          },
+          tasks: {
+            where: scope.taskRelationWhere,
+            include: {
+              assignee: { select: { id: true, name: true } },
+              department: { select: { id: true, name: true } },
+              files: {
+                select: {
+                  id: true,
+                  taskId: true,
+                  uploadedBy: true,
+                  fileName: true,
+                  fileType: true,
+                  fileSize: true,
+                  purpose: true,
+                  uploadedAt: true,
+                },
+              },
+              comments: {
+                where: { isInternal: false },
+                include: { user: { select: { id: true, name: true } } },
+              },
+              assignmentHistory: {
+                where: scope.assignmentHistoryWhere,
+                orderBy: { createdAt: "asc" },
+                include: {
+                  previousAssignee: { select: { id: true, name: true } },
+                  newAssignee: { select: { id: true, name: true } },
+                  changer: { select: { id: true, name: true } },
+                },
+              },
+              statusHistory: {
+                include: { changer: { select: { id: true, name: true } } },
+              },
+            },
+          },
+        },
+      });
+      if (!project)
+        throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
+
+      return {
+        ...project,
+        tasks: project.tasks.map((task) => ({
+          ...task,
+          assignmentAccess:
+            task.assignedTo === userId
+              ? ("CURRENT" as const)
+              : ("FORMER" as const),
+        })),
+      };
+    }
+
     const project = await this.prisma.project.findUnique({
       where: { id },
       include: {
@@ -109,7 +193,10 @@ export class ProjectsService {
     });
 
     if (!project) {
-      throw new NotFoundException(`Project with ID ${id} not found`);
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId: id },
+      });
     }
 
     return project;
@@ -155,7 +242,8 @@ export class ProjectsService {
 
   async addMember(id: string, dto: AddMemberDto, addedBy: string) {
     const project = await this.prisma.project.findUnique({ where: { id } });
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project)
+      throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
 
     const member = await this.prisma.projectMember.create({
       data: {
@@ -296,7 +384,17 @@ export class ProjectsService {
   }
 
   async updateStatus(id: string, status: string, userId?: string) {
-    const project = await this.findOne(id);
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        clientId: true,
+        projectManagerId: true,
+      },
+    });
+    if (!project)
+      throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const project = await tx.project.update({
@@ -368,7 +466,8 @@ export class ProjectsService {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project) throw new NotFoundException("Project not found");
+    if (!project)
+      throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
 
     return this.prisma.projectFile.create({
       data: {
@@ -402,7 +501,8 @@ export class ProjectsService {
     const file = await this.prisma.projectFile.findFirst({
       where: { id: fileId, projectId },
     });
-    if (!file) throw new NotFoundException("File not found");
+    if (!file)
+      throw new NotFoundException({ code: "PROJECT_FILE_NOT_FOUND", details: {} });
 
     await this.storageService.deleteByKey(file.filePath);
     await this.prisma.projectFile.delete({ where: { id: fileId } });
@@ -491,7 +591,10 @@ export class ProjectsService {
     });
 
     if (!project) {
-      throw new NotFoundException(`Project with ID ${projectId} not found`);
+      throw new NotFoundException({
+        code: "PROJECT_NOT_FOUND",
+        details: { projectId },
+      });
     }
 
     // Verify new PM exists and has PM role
@@ -504,14 +607,18 @@ export class ProjectsService {
     });
 
     if (!newPm) {
-      throw new NotFoundException(
-        "مدير المشروع الجديد غير موجود أو غير نشط أو ليس لديه صلاحية مدير مشروع",
-      );
+      throw new NotFoundException({
+        code: "PROJECT_MANAGER_NOT_ELIGIBLE",
+        details: { userId: newPmId },
+      });
     }
 
     // Check if PM is already the same
     if (project.projectManagerId === newPmId) {
-      throw new BadRequestException("المدير المحدد هو بالفعل مدير هذا المشروع");
+      throw new BadRequestException({
+        code: "PROJECT_MANAGER_ALREADY_ASSIGNED",
+        details: { userId: newPmId },
+      });
     }
 
     const oldPmId = project.projectManagerId;

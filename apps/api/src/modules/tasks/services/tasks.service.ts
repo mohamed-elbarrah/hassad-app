@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
@@ -23,6 +24,7 @@ import { FilePurpose, Prisma } from "@prisma/client";
 import { StorageService } from "../../../common/storage/storage.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 import { ProjectPeriodsService } from "../../projects/services/project-periods.service";
+import { TaskAccessPolicyService, TaskAccessUser } from "./task-access-policy.service";
 
 @Injectable()
 export class TasksService {
@@ -34,6 +36,7 @@ export class TasksService {
     private storageService: StorageService,
     private projectGroupChatService: ProjectGroupChatService,
     private projectPeriodsService: ProjectPeriodsService,
+    private taskAccessPolicy: TaskAccessPolicyService,
   ) {}
 
   private toUniqueUserIds(
@@ -172,8 +175,14 @@ export class TasksService {
     dept?: TaskDepartment;
     search?: string;
     limit?: number;
+    excludeUserId?: string;
   }) {
-    const { dept, search, limit = 20 } = params;
+    const { dept, excludeUserId } = params;
+    const search = params.search?.trim();
+    const requestedLimit = Number(params.limit);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(100, Math.max(1, Math.floor(requestedLimit)))
+      : 20;
 
     if (!dept) {
       return {
@@ -194,17 +203,20 @@ export class TasksService {
         }
       : {};
 
-    const roleAndDeptFilter: Prisma.UserWhereInput = {
+    const department = await this.prisma.department.findFirst({
+      where: { name: dept },
+      select: { id: true },
+    });
+    if (!department) {
+      return { items: [], total: 0, page: 1, limit, totalPages: 0 };
+    }
+
+    const eligibleRoleFilter: Prisma.UserWhereInput = {
       OR: [
-        // Anyone explicitly linked to this department
         {
-          departments: {
-            some: {
-              department: { name: dept },
-            },
-          },
+          role: { name: UserRole.TEAM },
+          departments: { some: { departmentId: department.id } },
         },
-        // For marketing, also include users whose role is MARKETING
         ...(dept === TaskDepartment.MARKETING
           ? [{ role: { name: UserRole.MARKETING } }]
           : []),
@@ -213,7 +225,8 @@ export class TasksService {
 
     const where: Prisma.UserWhereInput = {
       isActive: true,
-      AND: [roleAndDeptFilter, searchFilter],
+      id: excludeUserId ? { not: excludeUserId } : undefined,
+      AND: [eligibleRoleFilter, searchFilter],
     };
 
     const [users, total] = await Promise.all([
@@ -240,7 +253,10 @@ export class TasksService {
         email: u.email,
         role: u.role.name,
         isActive: u.isActive,
-        department: deptEntry?.department?.name ?? null,
+        department:
+          u.role.name === UserRole.MARKETING
+            ? dept
+            : (deptEntry?.department?.name ?? null),
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
       };
@@ -255,12 +271,13 @@ export class TasksService {
     };
   }
 
-  private async resolveAssignableUser(
+  async resolveAssignableUser(
     userId: string,
     departmentId: string,
     departmentName?: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const user = await this.prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -301,7 +318,7 @@ export class TasksService {
       const deptName =
         departmentName ??
         (
-          await this.prisma.department.findUnique({
+          await db.department.findUnique({
             where: { id: departmentId },
             select: { name: true },
           })
@@ -410,15 +427,28 @@ export class TasksService {
       where: { id },
       include: {
         project: {
-          include: {
-            client: { select: { id: true, companyName: true, userId: true } },
-            manager: { select: { id: true, name: true, email: true } },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            clientId: true,
+            projectManagerId: true,
+            isArchived: true,
+            client: {
+              select: {
+                id: true,
+                companyName: true,
+                businessType: true,
+                userId: true,
+              },
+            },
+            manager: { select: { id: true, name: true } },
           },
         },
         period: { select: { id: true, periodNumber: true } },
-        assignee: true,
-        creator: true,
-        approver: true,
+        assignee: { select: { id: true, name: true, email: true } },
+        creator: { select: { id: true, name: true } },
+        approver: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
         files: {
           include: {
@@ -434,6 +464,14 @@ export class TasksService {
                 role: { select: { name: true } },
               },
             },
+          },
+        },
+        assignmentHistory: {
+          orderBy: { createdAt: "asc" },
+          include: {
+            previousAssignee: { select: { id: true, name: true } },
+            newAssignee: { select: { id: true, name: true } },
+            changer: { select: { id: true, name: true } },
           },
         },
         statusHistory: {
@@ -700,69 +738,166 @@ export class TasksService {
   }
 
   async assign(id: string, userId: string, dto: AssignTaskDto) {
-    const existingTask = await this.prisma.task.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        title: true,
-        projectId: true,
-        departmentId: true,
-        department: { select: { name: true } },
-        assignedTo: true,
-        createdBy: true,
-      },
+    const assignment = await this.prisma.$transaction(async (tx) => {
+      const existingTask = await tx.task.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          title: true,
+          projectId: true,
+          departmentId: true,
+          department: { select: { name: true } },
+          assignedTo: true,
+          createdBy: true,
+          project: {
+            select: { projectManagerId: true, isArchived: true },
+          },
+          assignee: { select: { id: true, name: true } },
+        },
+      });
+      if (!existingTask) {
+        throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
+      }
+
+      const assigneeInfo = await this.resolveAssignableUser(
+        dto.userId,
+        existingTask.departmentId,
+        existingTask.department.name,
+        tx,
+      );
+
+      if (dto.userId === existingTask.assignedTo) {
+        const unchangedTask = await tx.task.findUnique({ where: { id } });
+        return {
+          existingTask,
+          assigneeInfo,
+          updatedTask: unchangedTask,
+          changed: false,
+          chatParticipantRemovals: [],
+          notificationPayloads: [],
+        };
+      }
+
+      const update = await tx.task.updateMany({
+        where: { id, assignedTo: existingTask.assignedTo },
+        data: { assignedTo: dto.userId },
+      });
+      if (update.count !== 1) {
+        throw new ConflictException({
+          code: "TASK_ASSIGNMENT_CONFLICT",
+          details: {},
+        });
+      }
+
+      await tx.taskAssignmentHistory.create({
+        data: {
+          taskId: id,
+          previousAssigneeId: existingTask.assignedTo,
+          newAssigneeId: dto.userId,
+          changedBy: userId,
+        },
+      });
+
+      const chatParticipantRemovals = existingTask.project.isArchived
+        ? []
+        : await this.projectGroupChatService.syncParticipantsForTaskReassignment(
+            existingTask.projectId,
+            existingTask.assignedTo,
+            tx,
+          );
+
+      let notificationPayloads;
+      if (existingTask.assignedTo) {
+        const actor = await tx.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+        notificationPayloads =
+          await this.notificationsService.createTaskReassignmentNotifications(
+            tx,
+            {
+              taskId: existingTask.id,
+              projectId: existingTask.projectId,
+              taskTitle: existingTask.title,
+              previousAssignee: existingTask.assignee,
+              newAssignee: { id: dto.userId, name: assigneeInfo.name },
+              projectManagerId: existingTask.project.projectManagerId,
+              taskCreatorId: existingTask.createdBy,
+              actorId: userId,
+              actorName: actor?.name,
+            },
+          );
+      } else {
+        const recipients = this.toUniqueUserIds(
+          dto.userId,
+          existingTask.createdBy,
+        );
+        notificationPayloads = [];
+        for (const recipientId of recipients) {
+          notificationPayloads.push(
+            await this.notificationsService.createNotificationInTransaction(
+              tx,
+              {
+                entityId: existingTask.id,
+                entityType: "task",
+                eventType: "TASK_ASSIGNED",
+                userId: recipientId,
+                metadata: {
+                  taskId: existingTask.id,
+                  projectId: existingTask.projectId,
+                  assignedBy: userId,
+                  assigneeDepartment: existingTask.department.name,
+                  taskTitle: existingTask.title,
+                  assigneeName: assigneeInfo.name,
+                },
+              },
+            ),
+          );
+        }
+      }
+
+      const updatedTask = await tx.task.findUnique({ where: { id } });
+      return {
+        existingTask,
+        assigneeInfo,
+        updatedTask,
+        changed: true,
+        chatParticipantRemovals,
+        notificationPayloads,
+      };
     });
 
-    if (!existingTask) {
+    const { existingTask, updatedTask } = assignment;
+    if (!updatedTask) {
       throw new NotFoundException({ code: "TASK_NOT_FOUND", details: {} });
     }
 
-    const assigneeInfo = await this.resolveAssignableUser(
-      dto.userId,
-      existingTask.departmentId,
-      existingTask.department.name,
-    );
-
-    const updatedTask = await this.prisma.task.update({
-      where: { id },
-      data: { assignedTo: dto.userId },
-    });
-
-    if (dto.userId !== existingTask.assignedTo) {
-      const recipients = this.toUniqueUserIds(
-        dto.userId,
-        existingTask.createdBy,
-      );
-
-      this.projectGroupChatService
-        .syncParticipants(existingTask.projectId)
-        .catch(() => undefined);
-
-      if (recipients.length > 0) {
-        const notificationJobs = recipients.map((recipientId) =>
-          this.notificationsService.createNotification({
-            entityId: existingTask.id,
-            entityType: "task",
-            eventType: "TASK_ASSIGNED",
-            userId: recipientId,
-            metadata: {
-              taskId: existingTask.id,
-              projectId: existingTask.projectId,
-              assignedBy: userId,
-              assigneeDepartment: existingTask.department.name,
-              taskTitle: existingTask.title,
-              assigneeName: assigneeInfo.name,
-            },
-          }),
+    if (assignment.changed) {
+      try {
+        await this.projectGroupChatService.publishParticipantRemovals(
+          existingTask.projectId,
+          assignment.chatParticipantRemovals,
         );
-
-        Promise.allSettled(notificationJobs).catch((err) =>
-          this.logger.error(
-            `Failed to create some TASK_ASSIGNED notifications for task=${existingTask.id}`,
-            err,
-          ),
+      } catch (error) {
+        this.logger.error(
+          `Failed to evict task participant from project chat for task=${existingTask.id}`,
+          error,
         );
       }
+
+      const publishResults = await Promise.allSettled(
+        assignment.notificationPayloads.map((payload) =>
+          this.notificationsService.publishPersistedNotification(payload),
+        ),
+      );
+      publishResults.forEach((result) => {
+        if (result.status === "rejected") {
+          this.logger.error(
+            `Task assignment notification publish failed for task=${existingTask.id}`,
+            result.reason,
+          );
+        }
+      });
     }
 
     return updatedTask;
@@ -1005,24 +1140,81 @@ export class TasksService {
     return comment;
   }
 
-  async findByProject(projectId: string) {
-    return this.prisma.task.findMany({
-      where: { projectId },
+  async findByProject(projectId: string, user: TaskAccessUser) {
+    const scope = await this.taskAccessPolicy.getProjectTaskReadScope(
+      projectId,
+      user,
+    );
+    if (scope.canViewAllTasks) {
+      return this.prisma.task.findMany({
+        where: scope.taskWhere,
+        include: {
+          assignee: { select: { id: true, name: true } },
+          files: {
+            include: {
+              uploader: { select: { id: true, name: true } },
+            },
+          },
+          comments: {
+            include: {
+              user: { select: { id: true, name: true } },
+            },
+          },
+          assignmentHistory: {
+            orderBy: { createdAt: "asc" },
+            include: {
+              previousAssignee: { select: { id: true, name: true } },
+              newAssignee: { select: { id: true, name: true } },
+              changer: { select: { id: true, name: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+
+    const tasks = await this.prisma.task.findMany({
+      where: scope.taskWhere,
       include: {
         assignee: { select: { id: true, name: true } },
+        department: { select: { id: true, name: true } },
         files: {
-          include: {
-            uploader: { select: { id: true, name: true } },
+          select: {
+            id: true,
+            taskId: true,
+            uploadedBy: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            purpose: true,
+            uploadedAt: true,
           },
         },
         comments: {
+          where: { isInternal: false },
+          include: { user: { select: { id: true, name: true } } },
+        },
+        assignmentHistory: {
+          where: scope.assignmentHistoryWhere,
+          orderBy: { createdAt: "asc" },
           include: {
-            user: { select: { id: true, name: true } },
+            previousAssignee: { select: { id: true, name: true } },
+            newAssignee: { select: { id: true, name: true } },
+            changer: { select: { id: true, name: true } },
           },
+        },
+        statusHistory: {
+          include: { changer: { select: { id: true, name: true } } },
         },
       },
       orderBy: { createdAt: "desc" },
     });
+
+    return tasks.map((task) => ({
+      ...task,
+      assignmentAccess:
+        task.assignedTo === user.id ? ("CURRENT" as const) : ("FORMER" as const),
+    }));
   }
 
   async findPmTasks(

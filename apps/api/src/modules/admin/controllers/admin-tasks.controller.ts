@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Param,
+  ParseUUIDPipe,
   Body,
   Query,
   UseGuards,
@@ -15,6 +16,7 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import {
   AdminForceTransitionDto,
   AdminReassignTaskDto,
+  AdminTaskAssigneeQueryDto,
   AdminTasksQueryDto,
 } from "../dto/admin-tasks.dto";
 
@@ -41,13 +43,22 @@ export class AdminTasksController {
     return this.service.getActorCapabilities(userId);
   }
 
+  @Get(":id/eligible-assignees")
+  @RequirePermissions("admin.tasks.intervene")
+  findEligibleAssignees(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Query() query: AdminTaskAssigneeQueryDto,
+  ) {
+    return this.service.findEligibleAssignees(id, query);
+  }
+
   @Get(":id") @RequirePermissions("admin.tasks.read") findOne(
     @Param("id") id: string,
   ) {
     return this.service.findOne(id);
   }
   @Post(":id/reassign") @RequirePermissions("admin.tasks.intervene") reassign(
-    @Param("id") id: string,
+    @Param("id", new ParseUUIDPipe()) id: string,
     @Body() body: AdminReassignTaskDto,
     @CurrentUser("id") adminId: string,
   ) {

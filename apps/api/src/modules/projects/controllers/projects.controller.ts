@@ -67,8 +67,8 @@ export class ProjectsController {
 
   @Get(":id")
   @RequirePermissions("projects.read")
-  findOne(@Param("id") id: string) {
-    return this.projectsService.findOne(id);
+  findOne(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.projectsService.findOne(id, user.id, user.role);
   }
 
   @Patch(":id")
@@ -206,7 +206,8 @@ export class ProjectsController {
     @Param("periodId") periodId: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) throw new BadRequestException("Report file is required");
+    if (!file)
+      throw new BadRequestException({ code: "REPORT_FILE_REQUIRED", details: {} });
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.PROJECT_FILE,
       entityId: periodId,
@@ -251,8 +252,11 @@ export class ProjectsController {
 
   @Get(":id/tasks")
   @RequirePermissions("tasks.read")
-  getTasksByProject(@Param("id") projectId: string) {
-    return this.tasksService.findByProject(projectId);
+  getTasksByProject(
+    @Param("id") projectId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.tasksService.findByProject(projectId, user);
   }
 
   @Post(":id/files")
@@ -264,7 +268,7 @@ export class ProjectsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
-      throw new Error("File is required");
+      throw new BadRequestException({ code: "FILE_REQUIRED", details: {} });
     }
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.PROJECT_FILE,

@@ -60,6 +60,17 @@ export interface MarketingKpiHistoryResponse {
   totalPages: number;
 }
 export interface MarketingTask extends Task {
+  assignmentAccess?: "CURRENT" | "FORMER";
+  assignmentHistory?: Array<{
+    id: string;
+    previousAssigneeId: string | null;
+    newAssigneeId: string;
+    reason: string | null;
+    createdAt: string;
+    previousAssignee?: { id: string; name: string } | null;
+    newAssignee?: { id: string; name: string };
+    changer?: { id: string; name: string };
+  }>;
   isOverdue?: boolean;
   project?: {
     id: string;
@@ -263,15 +274,12 @@ export const marketingApi = createApi({
     // ── Campaign Endpoints ───────────────────────────────────────────────
 
     getCampaignsByTask: builder.query<MarketingCampaign[], string>({
-      query: (taskId) => ({
-        url: "marketing/campaigns",
-        params: { taskId, page: 1, limit: 100 },
-      }),
+      query: (taskId) => `/marketing/tasks/${taskId}/campaigns`,
       providesTags: (result, error, taskId) => [
         { type: "TaskCampaigns", id: taskId },
       ],
-      transformResponse: (baseQueryReturnValue: CampaignListResponse) =>
-        (baseQueryReturnValue?.items || []).map(flattenCampaignAnalytics),
+      transformResponse: (campaigns: MarketingCampaign[]) =>
+        campaigns.map(flattenCampaignAnalytics),
     }),
     getCampaign: builder.query<MarketingCampaign, string>({
       query: (id) => `marketing/campaigns/${id}`,
