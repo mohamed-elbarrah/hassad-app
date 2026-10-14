@@ -8,6 +8,7 @@ import type {
   UpdateProjectStatusInput,
 } from "@hassad/shared";
 import type { ProjectStatus } from "@hassad/shared";
+import type { ProjectContractSummary } from "@/features/projects/projectContractTypes";
 import type {
   CreateMeetingInput,
   ProjectMeeting,
@@ -26,6 +27,7 @@ export interface ProjectListItem extends Project {
 
 /** PM project detail relation returned by /pm/projects/:id. */
 export interface PmProjectDetail extends Project {
+  contract?: ProjectContractSummary | null;
   client?: { id: string; companyName: string; userId: string | null };
   taskStats?: {
     total: number;

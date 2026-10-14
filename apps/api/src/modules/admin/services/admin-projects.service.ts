@@ -4,7 +4,8 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { ClientKind } from "@hassad/shared";
+import { StorageService } from "../../../common/storage/storage.service";
+import { ClientKind, ServiceItemSchema } from "@hassad/shared";
 import { AdminActionLogService } from "./admin-action-log.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 import { ProjectStatus, TaskStatus, TaskPriority } from "@hassad/shared";
@@ -15,6 +16,7 @@ export class AdminProjectsService {
     private readonly prisma: PrismaService,
     private readonly actionLog: AdminActionLogService,
     private readonly projectGroupChatService: ProjectGroupChatService,
+    private readonly storageService: StorageService,
   ) {}
 
   async getActorCapabilities(userId: string) {
@@ -139,13 +141,36 @@ export class AdminProjectsService {
     };
   }
 
+  private parseContractServices(value: unknown) {
+    const result = ServiceItemSchema.array().safeParse(value);
+    return result.success ? result.data : [];
+  }
+
+  private async getContractFileUrl(filePath: string | null) {
+    try {
+      return await this.storageService.getPresignedUrlIfExists(filePath);
+    } catch {
+      return null;
+    }
+  }
+
   async findOne(id: string) {
     const project = await this.prisma.project.findUnique({
       where: { id },
       include: {
         client: { select: { id: true, companyName: true } },
         manager: { select: { id: true, name: true, email: true } },
-        contract: { select: { totalValue: true, monthlyValue: true } },
+        contract: {
+          select: {
+            id: true,
+            type: true,
+            totalValue: true,
+            monthlyValue: true,
+            currency: true,
+            servicesList: true,
+            filePath: true,
+          },
+        },
         members: {
           include: { user: { select: { id: true, name: true, email: true } } },
         },
@@ -273,9 +298,13 @@ export class AdminProjectsService {
       // Prisma Decimal values must be converted before the response reaches JSON.
       contract: project.contract
         ? {
-            ...project.contract,
+            id: project.contract.id,
+            type: project.contract.type,
             totalValue: Number(project.contract.totalValue),
             monthlyValue: Number(project.contract.monthlyValue),
+            currency: project.contract.currency,
+            servicesList: this.parseContractServices(project.contract.servicesList),
+            fileUrl: await this.getContractFileUrl(project.contract.filePath),
           }
         : null,
       totalValue: Number(project.contract?.totalValue ?? 0),

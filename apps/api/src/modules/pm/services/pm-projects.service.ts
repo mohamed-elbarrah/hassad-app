@@ -4,9 +4,11 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import { ServiceItemSchema } from "@hassad/shared";
 import { ProjectStatus, TaskPriority, TaskStatus } from "@hassad/shared";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { StorageService } from "../../../common/storage/storage.service";
 import { ProjectsService } from "../../projects/services/projects.service";
 import { ProjectPeriodsService } from "../../projects/services/project-periods.service";
 import type {
@@ -18,7 +20,15 @@ const pmProjectDetailInclude = Prisma.validator<Prisma.ProjectInclude>()({
   client: { select: { id: true, companyName: true, userId: true } },
   manager: { select: { id: true, name: true, email: true } },
   contract: {
-    select: { id: true, type: true, totalValue: true, monthlyValue: true },
+    select: {
+      id: true,
+      type: true,
+      totalValue: true,
+      monthlyValue: true,
+      currency: true,
+      servicesList: true,
+      filePath: true,
+    },
   },
   members: {
     include: { user: { select: { id: true, name: true, email: true } } },
@@ -154,6 +164,7 @@ export class PmProjectsService {
     private readonly prisma: PrismaService,
     private readonly projectsService: ProjectsService,
     private readonly periodsService: ProjectPeriodsService,
+    private readonly storageService: StorageService,
   ) {}
 
   private ownedWhere(userId: string) {
@@ -366,6 +377,19 @@ export class PmProjectsService {
     return this.periodsService.getPeriodDetail(periodId);
   }
 
+  private parseContractServices(value: Prisma.JsonValue | null) {
+    const result = ServiceItemSchema.array().safeParse(value);
+    return result.success ? result.data : [];
+  }
+
+  private async getContractFileUrl(filePath: string | null) {
+    try {
+      return await this.storageService.getPresignedUrlIfExists(filePath);
+    } catch {
+      return null;
+    }
+  }
+
   async workspace(userId: string, id: string) {
     const project = (await this.prisma.project.findFirst({
       where: { id, ...this.ownedWhere(userId) },
@@ -444,8 +468,21 @@ export class PmProjectsService {
     const { invoiceItems: _invoiceItems, ...rest } = project;
     void _invoiceItems;
 
+    const contract = project.contract
+      ? {
+          id: project.contract.id,
+          type: project.contract.type,
+          totalValue: Number(project.contract.totalValue),
+          monthlyValue: Number(project.contract.monthlyValue),
+          currency: project.contract.currency,
+          servicesList: this.parseContractServices(project.contract.servicesList),
+          fileUrl: await this.getContractFileUrl(project.contract.filePath),
+        }
+      : null;
+
     return {
       ...rest,
+      contract,
       workspaceType:
         project.contract?.type ??
         (project.periods?.length ? "MONTHLY_RETAINER" : "ONE_OFF"),
@@ -453,8 +490,8 @@ export class PmProjectsService {
       currentPeriodId:
         project.periods?.find((period) => period.status === "ACTIVE")?.id ??
         null,
-      totalValue: project.contract?.totalValue ?? 0,
-      monthlyValue: project.contract?.monthlyValue ?? 0,
+      totalValue: Number(project.contract?.totalValue ?? 0),
+      monthlyValue: Number(project.contract?.monthlyValue ?? 0),
       taskStats,
       upcomingTasks: upcomingTasks.map((task) => ({
         ...task,

@@ -173,19 +173,8 @@ export class ContractsService {
     const projectName = contract.proposal
       ? `${contract.client.companyName} — ${contract.proposal.title}`
       : `${contract.client.companyName} — ${contract.title}`;
-    const projectDescription = contract.proposal
-      ? [
-          `Auto-created from proposal: ${contract.proposal.title}`,
-          `Services: ${typeof contract.proposal.servicesList === "string" ? contract.proposal.servicesList : JSON.stringify(contract.proposal.servicesList)}`,
-          `Budget: ${contract.proposal.totalPrice} SAR`,
-          `Duration: ${contract.proposal.durationDays} days`,
-          `Client contact: ${contract.client.user?.name ?? "N/A"}`,
-        ].join("\n")
-      : [
-          `Auto-created after signing contract: ${contract.title}`,
-          `Client contact: ${contract.client.user?.name ?? "N/A"}`,
-          "Next step: PM creates and assigns tasks from the project board.",
-        ].join("\n");
+    const projectDescription =
+      contract.proposal?.serviceDescription.trim() || null;
 
     const project = await this.prisma.$transaction(async (tx) => {
       const existingProject = await tx.project.findFirst({

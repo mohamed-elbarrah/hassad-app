@@ -20,6 +20,10 @@ import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PmPeriodTabs } from "@/components/dashboard/pm/PmPeriodTabs";
 import { ProjectPeriodWorkspace } from "@/components/project-detail/ProjectPeriodWorkspace";
+import {
+  ProjectContractFile,
+  ProjectContractServices,
+} from "@/components/project-detail/ProjectContractPanels";
 import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
 import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
 import { PmClientInfoPanel } from "@/components/client-detail/PmClientInfoPanel";
@@ -262,6 +266,8 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         <TabsList className="h-auto w-full justify-start">
           <TabsTrigger value="workspace">المشروع والفترات</TabsTrigger>
           <TabsTrigger value="client">العميل</TabsTrigger>
+          <TabsTrigger value="services">الخدمات</TabsTrigger>
+          <TabsTrigger value="contract">العقد</TabsTrigger>
         </TabsList>
         <TabsContent value="workspace" className="mt-0" forceMount>
           <ProjectPeriodWorkspace
@@ -374,6 +380,15 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
               active={clientTabEnabled}
             />
           ) : null}
+        </TabsContent>
+        <TabsContent value="services" className="mt-0">
+          <ProjectContractServices
+            services={project.contract?.servicesList}
+            currency={project.contract?.currency ?? "SAR"}
+          />
+        </TabsContent>
+        <TabsContent value="contract" className="mt-0">
+          <ProjectContractFile fileUrl={project.contract?.fileUrl} />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import type { ProjectContractSummary } from "@/features/projects/projectContractTypes";
 
 export interface AdminProjectItem {
   id: string;
@@ -167,7 +168,7 @@ export interface AdminProjectDetail {
   requestId: string | null;
   client: { id: string; companyName: string };
   manager: { id: string; name: string; email: string } | null;
-  contract: { totalValue: number; monthlyValue: number } | null;
+  contract: ProjectContractSummary | null;
   members: AdminProjectMember[];
   tasks: AdminProjectTask[];
   files: AdminProjectFile[];
