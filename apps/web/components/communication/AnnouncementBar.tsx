@@ -59,8 +59,8 @@ export function AnnouncementBar({ surface }: { surface: "dashboard" | "portal" }
 
   return (
     <>
-      <div className="h-11 shrink-0" aria-hidden="true" />
-      <div className="absolute inset-x-0 top-0 z-40 h-11 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80" dir="rtl" role="region" aria-label="الإعلانات">
+      {surface === "portal" ? <div className="h-11 shrink-0" aria-hidden="true" /> : null}
+      <div className={`${surface === "dashboard" ? "relative z-40 w-full" : "absolute inset-x-0 top-0 z-40"} h-11 shrink-0 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80`} dir="rtl" role="region" aria-label="الإعلانات">
         <div className="flex h-full w-full items-center gap-2 px-3 lg:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden" aria-live="polite">
             {isLoading ? <Skeleton className="h-4 w-48" /> : current ? <>
