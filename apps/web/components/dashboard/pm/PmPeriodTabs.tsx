@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { FileText, FolderKanban, Kanban, List, Megaphone, Plus, Receipt, Target, Upload, Users } from "lucide-react";
 import type { ProjectPeriod } from "@/features/projects/periodsApi";
+import type { ProjectContractService } from "@/features/projects/projectContractTypes";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
 import { PMGoalEditor, GoalList } from "@/components/dashboard/pm/PMGoalEditor";
@@ -25,8 +26,22 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PmClientInfoPanel } from "@/components/client-detail/PmClientInfoPanel";
+import { ProjectContractFile, ProjectContractServices } from "@/components/project-detail/ProjectContractPanels";
 
-export function PmPeriodTabs({ period, projectId, onChanged }: { period: ProjectPeriod; projectId: string; onChanged?: () => void }) {
+interface PmPeriodTabsProps {
+  period: ProjectPeriod;
+  projectId: string;
+  onChanged?: () => void;
+  clientId?: string;
+  services?: ProjectContractService[] | null;
+  contractFileUrl?: string | null;
+  currency?: string;
+  openTaskForm?: boolean;
+  onTaskFormChange?: (open: boolean) => void;
+}
+
+export function PmPeriodTabs({ period, projectId, onChanged, clientId, services, contractFileUrl, currency = "SAR", openTaskForm = false, onTaskFormChange }: PmPeriodTabsProps) {
   const [editingGoals, setEditingGoals] = useState(false);
   const [goals, setGoals] = useState(period.goals ?? []);
   const [saveGoals, { isLoading: isSavingGoals }] = useSavePmPeriodGoalsMutation();
@@ -34,6 +49,8 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
   const reportInputRef = useRef<HTMLInputElement>(null);
   const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [taskView, setTaskView] = useState<"kanban" | "table">("kanban");
+  const [activeTab, setActiveTab] = useState("goals");
+
 
   const startGoalsEdit = () => {
     setGoals(period.goals ?? []);
@@ -56,8 +73,8 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
   };
 
   return (
-    <Tabs key={period.id} defaultValue="goals" dir="rtl" aria-label="محتوى الفترة المحددة">
-      <TabsList aria-label="أقسام الفترة" className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border bg-muted/60 p-1 shadow-sm sm:grid-cols-7">
+    <Tabs key={period.id} value={activeTab} onValueChange={setActiveTab} dir="rtl" aria-label="أقسام المشروع والفترة المحددة">
+      <TabsList aria-label="أقسام المشروع والفترة" className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl border bg-muted/60 p-1 shadow-sm sm:grid-cols-5 lg:grid-cols-10">
         <TabsTrigger value="tasks" className="min-h-11 gap-2"><FolderKanban className="size-[18px]" /> المهام</TabsTrigger>
         <TabsTrigger value="goals" className="min-h-11 gap-2"><Target className="size-[18px]" /> الأهداف</TabsTrigger>
         <TabsTrigger value="files" className="min-h-11 gap-2"><FileText className="size-[18px]" /> الملفات</TabsTrigger>
@@ -65,7 +82,19 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
         <TabsTrigger value="campaigns" className="min-h-11 gap-2"><Megaphone className="size-[18px]" /> الحملات</TabsTrigger>
         <TabsTrigger value="meetings" className="min-h-11 gap-2"><Users className="size-[18px]" /> الاجتماعات</TabsTrigger>
         <TabsTrigger value="invoices" className="min-h-11 gap-2"><Receipt className="size-[18px]" /> الفواتير</TabsTrigger>
+        <TabsTrigger value="client" className="min-h-11 gap-2">العميل</TabsTrigger>
+        <TabsTrigger value="services" className="min-h-11 gap-2">الخدمات</TabsTrigger>
+        <TabsTrigger value="contract" className="min-h-11 gap-2">العقد</TabsTrigger>
       </TabsList>
+      <TaskForm
+        projectId={projectId}
+        periodId={period.id}
+        open={taskFormOpen || openTaskForm}
+        onOpenChange={(open) => {
+          setTaskFormOpen(open);
+          onTaskFormChange?.(open);
+        }}
+      />
 
       <TabsContent value="tasks" className="mt-6 flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -85,7 +114,6 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
             <Button size="sm" onClick={() => setTaskFormOpen(true)}><Plus data-icon="inline-start" /> مهمة جديدة</Button>
           </div>
         </div>
-        <TaskForm projectId={projectId} periodId={period.id} open={taskFormOpen} onOpenChange={setTaskFormOpen} />
         <TaskKanban projectId={projectId} periodId={period.id} view={taskView} />
       </TabsContent>
 
@@ -207,6 +235,16 @@ export function PmPeriodTabs({ period, projectId, onChanged }: { period: Project
             )}
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="client" className="mt-6">
+        <PmClientInfoPanel clientId={clientId} active={activeTab === "client"} />
+      </TabsContent>
+      <TabsContent value="services" className="mt-6">
+        <ProjectContractServices services={services} currency={currency} />
+      </TabsContent>
+      <TabsContent value="contract" className="mt-6">
+        <ProjectContractFile fileUrl={contractFileUrl} />
       </TabsContent>
     </Tabs>
   );

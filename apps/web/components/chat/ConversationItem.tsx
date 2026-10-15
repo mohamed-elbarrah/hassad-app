@@ -20,20 +20,6 @@ function getLastMessage(conversation: Conversation): Message | null {
   return conversation.lastMessage ?? null;
 }
 
-function getParticipantPreview(
-  conversation: Conversation,
-  currentUserId?: string,
-): string {
-  const others = conversation.participants
-    .filter((p) => p.id !== currentUserId)
-    .map((p) => p.name ?? "")
-    .filter(Boolean);
-
-  if (others.length === 0) return "أنت فقط";
-  if (others.length <= 2) return others.join("، ");
-  return `${others[0]}، ${others[1]} +${others.length - 2}`;
-}
-
 function getDisplayInfo(
   conversation: Conversation,
   currentUserId?: string,
@@ -42,7 +28,7 @@ function getDisplayInfo(
   if (conversation.type === "GROUP") {
     return {
       name: conversation.title || "مجموعة",
-      subtitle: getParticipantPreview(conversation, currentUserId),
+      subtitle: "",
       avatarName: conversation.title || "G",
       meta: `${conversation.participants.length} أعضاء`,
     };
@@ -109,7 +95,7 @@ export function ConversationItem({
       variant="ghost"
       onClick={onClick}
       className={cn(
-        "group relative min-h-11 w-full items-start justify-start gap-3 px-4 py-3.5 text-right transition-all duration-200",
+        "group relative h-auto min-h-11 w-full items-start justify-start gap-3 px-4 py-3.5 text-right transition-all duration-200",
         "hover:bg-primary/5",
         isActive && "bg-primary/10",
         unreadCount > 0 && !isActive && "font-semibold",

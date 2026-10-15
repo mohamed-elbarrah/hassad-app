@@ -1780,6 +1780,7 @@ const PM_SUCCESS_MESSAGES: Record<string, string> = {
   TASK_COMMENT_ADDED: "تمت إضافة التعليق.",
   TASK_NOTE_ADDED: "تم حفظ الملاحظة الخاصة.",
   TASK_CREATED: "تم إنشاء المهمة بنجاح.",
+  PROJECT_UPDATED: "تم تحديث حالة المشروع بنجاح.",
   DISPUTE_ACKNOWLEDGED: "تم بدء المعالجة.",
   DISPUTE_RESOLVED: "تم إرسال الحل للعميل.",
   UNKNOWN_SUCCESS: "تمت العملية بنجاح.",

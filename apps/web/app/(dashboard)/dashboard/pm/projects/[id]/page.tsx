@@ -16,31 +16,26 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
+import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PmPeriodTabs } from "@/components/dashboard/pm/PmPeriodTabs";
 import { ProjectPeriodWorkspace } from "@/components/project-detail/ProjectPeriodWorkspace";
-import {
-  ProjectContractFile,
-  ProjectContractServices,
-} from "@/components/project-detail/ProjectContractPanels";
+import { PmClientInfoPanel } from "@/components/client-detail/PmClientInfoPanel";
+import { ProjectContractFile, ProjectContractServices } from "@/components/project-detail/ProjectContractPanels";
 import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
 import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
-import { PmClientInfoPanel } from "@/components/client-detail/PmClientInfoPanel";
 import { PmDetailSkeleton } from "@/components/dashboard/pm/shared/PmDetailSkeleton";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import {
   useGetPmProjectByIdQuery,
   useGetPmProjectPeriodsQuery,
   useGetPmProjectPeriodQuery,
   useGetPmProjectFilesQuery,
   useUploadPmProjectFileMutation,
+  useUpdatePmProjectStatusMutation,
   type PmProjectDetail,
 } from "@/features/projects/projectsApi";
 import { useLazyGetProjectGroupChatQuery } from "@/features/chat/chatApi";
@@ -48,9 +43,9 @@ import { useAppSelector } from "@/lib/hooks";
 
 import { type ProjectWithMeta } from "@/lib/utils/project-status";
 import { cn } from "@/lib/utils";
-import { ProjectStatus } from "@hassad/shared";
+import { ProjectStatus, PROJECT_STATUS_AR } from "@hassad/shared";
 import { daysUntil, formatShortDate } from "@/lib/format";
-import { chatErrorMessage, projectErrorMessage } from "@/lib/i18n";
+import { chatErrorMessage, pmErrorMessage, pmSuccessMessage, projectErrorMessage } from "@/lib/i18n";
 import { toast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -70,7 +65,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
-  const [clientTabProjectId, setClientTabProjectId] = useState<string | null>(null);
+  const [quickTaskOpen, setQuickTaskOpen] = useState(false);
 
   const {
     currentData: project,
@@ -102,11 +97,11 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     );
   const { currentData: files, isLoading: filesLoading } =
     useGetPmProjectFilesQuery(id);
-  const clientTabEnabled = clientTabProjectId === id;
   const [getGroupChat, { isFetching: isLoadingGroupChat }] =
     useLazyGetProjectGroupChatQuery();
   const [uploadFile, { isLoading: isUploading }] =
     useUploadPmProjectFileMutation();
+  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdatePmProjectStatusMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openGroupChat = async () => {
@@ -166,8 +161,46 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         title={project.name}
         description={project.description || "ملخص واضح للتنفيذ التجاري والتشغيلي لهذا المشروع."}
         icon={FolderKanban}
-        actions={<ProjectForm project={project} currentUserId={user.id} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setQuickTaskOpen(true)}>
+              إنشاء مهمة
+            </Button>
+            <Select
+              value={project.status}
+              onValueChange={async (status) => {
+                try {
+                  await updateStatus({ id, status: status as ProjectStatus }).unwrap();
+                  toast.success(pmSuccessMessage("PROJECT_UPDATED"));
+                  await refetch();
+                } catch (error) {
+                  toast.error(pmErrorMessage(error));
+                }
+              }}
+              disabled={isUpdatingStatus}
+            >
+              <SelectTrigger className="h-9 w-[180px]" aria-label="حالة المشروع">
+                <SelectValue placeholder="حالة المشروع" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(ProjectStatus).map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {PROJECT_STATUS_AR[status]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <ProjectForm project={project} currentUserId={user.id} />
+          </div>
+        }
       />
+      {!selectedPeriod ? (
+        <TaskForm
+          projectId={id}
+          open={quickTaskOpen}
+          onOpenChange={setQuickTaskOpen}
+        />
+      ) : null}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
         <PmStatusBadge domain="project" status={project.status} />
         <span>العميل: {p.client?.companyName || "غير محدد"}</span>
@@ -255,22 +288,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         />
       </div>
 
-      <Tabs
-        key={project.id}
-        defaultValue="workspace"
-        onValueChange={(value) => {
-          if (value === "client") setClientTabProjectId(id);
-        }}
-        className="flex flex-col gap-4"
-      >
-        <TabsList className="h-auto w-full justify-start">
-          <TabsTrigger value="workspace">المشروع والفترات</TabsTrigger>
-          <TabsTrigger value="client">العميل</TabsTrigger>
-          <TabsTrigger value="services">الخدمات</TabsTrigger>
-          <TabsTrigger value="contract">العقد</TabsTrigger>
-        </TabsList>
-        <TabsContent value="workspace" className="mt-0" forceMount>
-          <ProjectPeriodWorkspace
+      <ProjectPeriodWorkspace
             role="pm"
             periods={periods}
             selectedPeriodId={selectedPeriod?.id ?? ""}
@@ -364,33 +382,45 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 key={period.id}
                 projectId={id}
                 period={period}
+                clientId={project.client?.id ?? project.clientId}
+                services={project.contract?.servicesList}
+                contractFileUrl={project.contract?.fileUrl}
+                currency={project.contract?.currency ?? "SAR"}
                 onChanged={() => void refetchPeriod()}
+                openTaskForm={quickTaskOpen}
+                onTaskFormChange={setQuickTaskOpen}
               />
-            ) : (
-              <div className="border-t pt-5 text-sm text-muted-foreground">
-                لا توجد فترات مرتبطة بهذا المشروع بعد.
-              </div>
-            )}
+            ) : null}
           </ProjectPeriodWorkspace>
-        </TabsContent>
-        <TabsContent value="client" className="mt-0">
-          {clientTabEnabled ? (
-            <PmClientInfoPanel
-              clientId={project.client?.id ?? project.clientId}
-              active={clientTabEnabled}
-            />
-          ) : null}
-        </TabsContent>
-        <TabsContent value="services" className="mt-0">
-          <ProjectContractServices
-            services={project.contract?.servicesList}
-            currency={project.contract?.currency ?? "SAR"}
-          />
-        </TabsContent>
-        <TabsContent value="contract" className="mt-0">
-          <ProjectContractFile fileUrl={project.contract?.fileUrl} />
-        </TabsContent>
-      </Tabs>
+      {!periodsLoading && !periodsError && !selectedPeriod ? (
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            لا توجد فترات مرتبطة بهذا المشروع بعد.
+          </p>
+          <Tabs defaultValue="client" dir="rtl">
+            <TabsList className="h-auto w-full flex-wrap justify-start">
+              <TabsTrigger value="client">العميل</TabsTrigger>
+              <TabsTrigger value="services">الخدمات</TabsTrigger>
+              <TabsTrigger value="contract">العقد</TabsTrigger>
+            </TabsList>
+            <TabsContent value="client" className="mt-4">
+              <PmClientInfoPanel
+                clientId={project.client?.id ?? project.clientId}
+                active
+              />
+            </TabsContent>
+            <TabsContent value="services" className="mt-4">
+              <ProjectContractServices
+                services={project.contract?.servicesList}
+                currency={project.contract?.currency ?? "SAR"}
+              />
+            </TabsContent>
+            <TabsContent value="contract" className="mt-4">
+              <ProjectContractFile fileUrl={project.contract?.fileUrl} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      ) : null}
     </div>
   );
 }

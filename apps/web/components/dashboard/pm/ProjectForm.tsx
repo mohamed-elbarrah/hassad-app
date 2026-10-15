@@ -106,7 +106,6 @@ export function ProjectForm({
           id: project.id,
           body: {
             description: values.description || undefined,
-            status: values.status,
             priority: values.priority,
             startDate: values.startDate,
             endDate: values.endDate,
@@ -243,13 +242,15 @@ export function ProjectForm({
               </>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
-              <SelectField
-                form={form}
-                name="status"
-                label="الحالة"
-                values={Object.values(ProjectStatus)}
-                labels={PROJECT_STATUS_LABELS}
-              />
+              {!editing ? (
+                <SelectField
+                  form={form}
+                  name="status"
+                  label="الحالة"
+                  values={Object.values(ProjectStatus)}
+                  labels={PROJECT_STATUS_LABELS}
+                />
+              ) : null}
               <SelectField
                 form={form}
                 name="priority"

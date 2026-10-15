@@ -5,7 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,22 +29,30 @@ import {
   useGetAdminProjectByIdQuery,
   useArchiveAdminProjectMutation,
   useUnarchiveAdminProjectMutation,
+  useForceAdminProjectStatusMutation,
+  useAddAdminProjectTaskMutation,
 } from "@/features/admin/adminProjectsApi";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { adminErrorMessage, adminSuccessMessage } from "@/lib/i18n";
+import { PROJECT_STATUS_AR, ProjectStatus } from "@hassad/shared";
 
 const TABS = [
-  { key: "", label: "الملخص" },
-  { key: "/timeline", label: "التسلسل الزمني" },
-  { key: "/periods", label: "الفترات" },
   { key: "/tasks", label: "المهام" },
-  { key: "/deliverables", label: "التسليمات" },
-  { key: "/team", label: "الفريق" },
-  { key: "/finance", label: "المالية" },
+  { key: "/sections/goals", label: "الأهداف" },
+  { key: "/sections/files", label: "الملفات" },
+  { key: "/sections/reports", label: "التقارير" },
+  { key: "/sections/campaigns", label: "الحملات" },
+  { key: "/sections/meetings", label: "الاجتماعات" },
+  { key: "/finance", label: "الفواتير" },
   { key: "/client", label: "العميل" },
   { key: "/services", label: "الخدمات" },
   { key: "/contract", label: "العقد" },
+  { key: "", label: "الملخص" },
+  { key: "/timeline", label: "التسلسل الزمني" },
+  { key: "/periods", label: "الفترات" },
+  { key: "/deliverables", label: "التسليمات" },
+  { key: "/team", label: "الفريق" },
 ];
 
 export default function ProjectDetailLayout({
@@ -70,11 +81,15 @@ export default function ProjectDetailLayout({
 
   const [archive, { isLoading: isArchiving }] = useArchiveAdminProjectMutation();
   const [unarchive, { isLoading: isUnarchiving }] = useUnarchiveAdminProjectMutation();
+  const [forceStatus, { isLoading: isUpdatingStatus }] = useForceAdminProjectStatusMutation();
+  const [addTask, { isLoading: isAddingTask }] = useAddAdminProjectTaskMutation();
 
   const [actionModal, setActionModal] = useState<{
     type: "archive" | "unarchive";
   } | null>(null);
   const [reason, setReason] = useState("");
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
 
   const currentTab = useMemo(() => {
     for (const tab of TABS) {
@@ -94,6 +109,7 @@ export default function ProjectDetailLayout({
       toast.success(adminSuccessMessage("PROJECT_ACTION_COMPLETED"));
       setActionModal(null);
       setReason("");
+      await refetch();
     } catch (error) {
       toast.error(adminErrorMessage(error));
     }
@@ -141,6 +157,37 @@ export default function ProjectDetailLayout({
             </Link>
           </Button>
         )}
+        {canIntervene ? (
+          <>
+            <Select
+              value={project.status}
+              disabled={isUpdatingStatus}
+              onValueChange={async (status) => {
+                try {
+                  await forceStatus({ id, status: status as ProjectStatus }).unwrap();
+                  toast.success(adminSuccessMessage("PROJECT_ACTION_COMPLETED"));
+                  await refetch();
+                } catch (error) {
+                  toast.error(adminErrorMessage(error));
+                }
+              }}
+            >
+              <SelectTrigger className="h-9 w-[180px]" aria-label="حالة المشروع">
+                <SelectValue placeholder="حالة المشروع" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(ProjectStatus).map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {PROJECT_STATUS_AR[status]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" onClick={() => setTaskDialogOpen(true)}>
+              إنشاء مهمة
+            </Button>
+          </>
+        ) : null}
         {isCapabilitiesError ? (
           <ErrorState
             title="تعذّر تحميل صلاحيات الإدارة"
@@ -168,7 +215,7 @@ export default function ProjectDetailLayout({
       </div>
 
       <Tabs value={currentTab} className="w-full">
-        <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 h-auto">
+        <TabsList aria-label="أقسام المشروع" className="w-full justify-start overflow-x-auto border-b rounded-none bg-transparent p-0 h-auto">
           {TABS.map((tab) => {
             const href = tab.key
               ? `/dashboard/admin/projects/${id}${tab.key}`
@@ -251,6 +298,28 @@ export default function ProjectDetailLayout({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={taskDialogOpen}
+        onOpenChange={(open) => {
+          setTaskDialogOpen(open);
+          if (!open) setTaskTitle("");
+        }}
+      >
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>إنشاء مهمة للمشروع</DialogTitle>
+            <DialogDescription>أدخل عنوان المهمة الجديدة.</DialogDescription>
+          </DialogHeader>
+          <Input id="admin-project-task-title" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} placeholder="عنوان المهمة" aria-label="عنوان المهمة" />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTaskDialogOpen(false)}>إلغاء</Button>
+            <Button disabled={!taskTitle.trim() || isAddingTask} onClick={async () => { try { await addTask({ id, title: taskTitle.trim() }).unwrap(); toast.success(adminSuccessMessage("TASK_CREATED")); setTaskTitle(""); setTaskDialogOpen(false); await refetch(); } catch (error) { toast.error(adminErrorMessage(error)); } }}>
+              {isAddingTask ? "جارٍ الإنشاء..." : "إنشاء المهمة"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

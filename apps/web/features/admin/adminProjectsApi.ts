@@ -1,6 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import type { ProjectContractSummary } from "@/features/projects/projectContractTypes";
+import type { ProjectStatus } from "@hassad/shared";
 
 export interface AdminProjectItem {
   id: string;
@@ -213,7 +214,7 @@ export const adminProjectsApi = createApi({
       invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }, "AdminProjects"],
     }),
 
-    forceAdminProjectStatus: builder.mutation<AdminProjectActionResult, { id: string; status: string; reason?: string }>({
+    forceAdminProjectStatus: builder.mutation<AdminProjectActionResult, { id: string; status: ProjectStatus; reason?: string }>({
       query: ({ id, status, reason }) => ({
         url: `/admin/projects/${id}/force-status`,
         method: "POST",
