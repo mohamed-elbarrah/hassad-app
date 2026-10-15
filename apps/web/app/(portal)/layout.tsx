@@ -66,17 +66,23 @@ export default function PortalLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen dir="rtl" className="overflow-hidden">
-      <PortalSidebar />
-      <SidebarInset>
-        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">
-          <AnnouncementBar surface="portal" />
-          <PortalHeader />
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6">
-            {children}
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <AnnouncementBar surface="portal" />
+      <SidebarProvider
+        defaultOpen
+        dir="rtl"
+        className="!h-auto min-h-0 flex-1 overflow-hidden"
+      >
+        <PortalSidebar />
+        <SidebarInset>
+          <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background">
+            <PortalHeader />
+            <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6">
+              {children}
+            </div>
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   );
 }
