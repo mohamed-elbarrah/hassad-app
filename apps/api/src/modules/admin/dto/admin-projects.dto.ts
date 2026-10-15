@@ -11,7 +11,7 @@ import {
   Max,
   Min,
 } from "class-validator";
-import { ProjectMemberRole, ProjectStatus, TaskPriority, TaskStatus } from "@hassad/shared";
+import { ProjectMemberRole, ProjectStatus, TaskDepartment, TaskPriority, TaskStatus } from "@hassad/shared";
 import { Transform } from "class-transformer";
 
 export class AdminProjectsQueryDto {
@@ -48,12 +48,18 @@ export class AdminProjectMemberDto {
   @IsOptional() @IsString() reason?: string;
 }
 
+export class AdminProjectAssignableUsersQueryDto {
+  @IsEnum(TaskDepartment) dept!: TaskDepartment;
+  @IsOptional() @IsString() search?: string;
+}
+
 export class AdminProjectTaskDto {
-  @IsString() title!: string;
+  @IsString() @IsNotEmpty() title!: string;
+  @IsEnum(TaskDepartment) dept!: TaskDepartment;
+  @IsOptional() @IsString() description?: string;
   @IsOptional() @IsUUID() assigneeId?: string;
   @IsOptional() @IsEnum(TaskPriority) priority?: TaskPriority;
-  @IsOptional() @IsDateString() dueDate?: string;
-  @IsOptional() @IsEnum(TaskStatus) status?: TaskStatus;
+  @IsDateString() dueDate!: string;
 }
 
 export class AdminProjectDeliverablesQueryDto {

@@ -1,7 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import type { ProjectContractSummary } from "@/features/projects/projectContractTypes";
-import type { ProjectStatus } from "@hassad/shared";
+import type { ProjectStatus, TaskDepartment, TaskPriority } from "@hassad/shared";
 
 export interface AdminProjectItem {
   id: string;
@@ -268,9 +268,12 @@ export const adminProjectsApi = createApi({
       query: (id) => `/admin/projects/${id}/team`,
       providesTags: (_result, _error, id) => [{ type: "AdminProject", id }],
     }),
-    addAdminProjectTask: builder.mutation<AdminProjectTask, { id: string; title: string; assigneeId?: string; priority?: string; dueDate?: string; status?: string }>({
+    addAdminProjectTask: builder.mutation<AdminProjectTask, { id: string; title: string; assigneeId?: string; dept: TaskDepartment; description?: string; priority?: TaskPriority; dueDate: string }>({
       query: ({ id, ...body }) => ({ url: `/admin/projects/${id}/tasks`, method: "POST", body }),
       invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }],
+    }),
+    getAdminProjectAssignableUsers: builder.query<{ items: Array<{ id: string; name: string; email: string; role: string; department?: string | null }> }, { id: string; dept: string; search?: string }>({
+      query: ({ id, ...params }) => ({ url: `/admin/projects/${id}/assignable-users`, params }),
     }),
     getAdminProjectTasks: builder.query<PaginatedAdminProjects<AdminProjectTask>, { id: string; page?: number; limit?: number; status?: string; priority?: string }>({
       query: ({ id, page = 1, limit = 20, status, priority }) => ({ url: `/admin/projects/${id}/tasks`, params: { page, limit, ...(status ? { status } : {}), ...(priority ? { priority } : {}) } }),
@@ -300,6 +303,7 @@ export const {
   useGetAdminProjectPeriodsQuery,
   useGetAdminProjectTeamQuery,
   useGetAdminProjectTasksQuery,
+  useGetAdminProjectAssignableUsersQuery,
   useGetAdminProjectDeliverablesQuery,
   useGetAdminProjectTimelineQuery,
 } = adminProjectsApi;

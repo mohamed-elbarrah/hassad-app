@@ -8,7 +8,9 @@ import { StorageService } from "../../../common/storage/storage.service";
 import { ClientKind, ServiceItemSchema } from "@hassad/shared";
 import { AdminActionLogService } from "./admin-action-log.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
-import { ProjectStatus, TaskStatus, TaskPriority } from "@hassad/shared";
+import { TasksService } from "../../tasks/services/tasks.service";
+import { TaskDepartment, TaskPriority } from "@hassad/shared";
+import { ProjectStatus } from "@hassad/shared";
 
 @Injectable()
 export class AdminProjectsService {
@@ -17,6 +19,7 @@ export class AdminProjectsService {
     private readonly actionLog: AdminActionLogService,
     private readonly projectGroupChatService: ProjectGroupChatService,
     private readonly storageService: StorageService,
+    private readonly tasksService: TasksService,
   ) {}
 
   async getActorCapabilities(userId: string) {
@@ -293,6 +296,7 @@ export class AdminProjectsService {
     });
 
     const { invoiceItems, ...rest } = project;
+    void invoiceItems;
     return {
       ...rest,
       // Prisma Decimal values must be converted before the response reaches JSON.
@@ -773,74 +777,70 @@ export class AdminProjectsService {
     return member;
   }
 
+  async searchAssignableUsers(
+    projectId: string,
+    dept: TaskDepartment,
+    search?: string,
+  ) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true },
+    });
+    if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
+    return this.tasksService.searchAssignableUsers({ dept, search, limit: 50 });
+  }
+
   async addTask(
     projectId: string,
     data: {
       title: string;
+      dept: TaskDepartment;
+      description?: string;
       assigneeId?: string;
-      priority?: string;
-      dueDate?: string;
-      status?: string;
+      priority?: TaskPriority;
+      dueDate: string;
     },
-    adminId?: string,
+    adminId: string,
   ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
+      select: { id: true },
     });
     if (!project) throw new NotFoundException({ code: "PROJECT_NOT_FOUND", details: {} });
 
-    let defaultDept = await this.prisma.department.findFirst({
-      orderBy: { createdAt: "asc" },
-    });
-    if (!defaultDept) {
-      defaultDept = await this.prisma.department.create({
-        data: { name: "General" },
-      });
-    }
-
-    const task = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.task.create({
-        data: {
-          projectId,
-          title: data.title,
-          assignedTo: data.assigneeId,
-          createdBy:
-            adminId ??
-            project.projectManagerId ??
-            "00000000-0000-0000-0000-000000000000",
-          departmentId: defaultDept.id,
-          priority: (data.priority as TaskPriority) ?? TaskPriority.NORMAL,
-          dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
-          status: (data.status as TaskStatus) ?? TaskStatus.TODO,
-        },
-      });
-
-      await tx.ledger.create({
-        data: {
-          action: "admin.projects.add-task",
-          entity: "project",
-          entityId: projectId,
-          userId: adminId,
-          after: { taskId: created.id, title: data.title },
-        },
-      });
-
-      return created;
-    });
-
-    if (adminId) {
-      await this.actionLog.record({
-        actorId: adminId,
-        targetType: "project",
-        targetId: projectId,
-        actionType: "admin.projects.add-task",
-        afterState: { taskId: task.id, title: data.title },
-      });
-    }
-    this.projectGroupChatService
-      .syncParticipants(projectId)
-      .catch(() => undefined);
-
+    const task = await this.tasksService.create(
+      adminId,
+      {
+        projectId,
+        title: data.title,
+        dept: data.dept,
+        description: data.description,
+        assignedTo: data.assigneeId,
+        priority: data.priority ?? TaskPriority.NORMAL,
+        dueDate: data.dueDate,
+      },
+      async (tx, createdTask) => {
+        const afterState = { taskId: createdTask.id, title: data.title };
+        await tx.ledger.create({
+          data: {
+            action: "admin.projects.add-task",
+            entity: "project",
+            entityId: projectId,
+            userId: adminId,
+            after: afterState,
+          },
+        });
+        await tx.adminActionLog.create({
+          data: {
+            actorId: adminId,
+            targetType: "project",
+            targetId: projectId,
+            actionType: "admin.projects.add-task",
+            afterState,
+          },
+        });
+      },
+    );
     return task;
   }
 }

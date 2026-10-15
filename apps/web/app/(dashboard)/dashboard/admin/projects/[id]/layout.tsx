@@ -5,9 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { TaskCreationForm } from "@/components/tasks/TaskCreationForm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
@@ -82,14 +81,13 @@ export default function ProjectDetailLayout({
   const [archive, { isLoading: isArchiving }] = useArchiveAdminProjectMutation();
   const [unarchive, { isLoading: isUnarchiving }] = useUnarchiveAdminProjectMutation();
   const [forceStatus, { isLoading: isUpdatingStatus }] = useForceAdminProjectStatusMutation();
-  const [addTask, { isLoading: isAddingTask }] = useAddAdminProjectTaskMutation();
+  const [addTask] = useAddAdminProjectTaskMutation();
 
   const [actionModal, setActionModal] = useState<{
     type: "archive" | "unarchive";
   } | null>(null);
   const [reason, setReason] = useState("");
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [taskTitle, setTaskTitle] = useState("");
 
   const currentTab = useMemo(() => {
     for (const tab of TABS) {
@@ -299,27 +297,27 @@ export default function ProjectDetailLayout({
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog
+      <TaskCreationForm
+        projectId={id}
+        assigneePortal="admin"
+        creatorLabel="الإدارة"
         open={taskDialogOpen}
-        onOpenChange={(open) => {
-          setTaskDialogOpen(open);
-          if (!open) setTaskTitle("");
+        onOpenChange={setTaskDialogOpen}
+        onCreate={async (values) => {
+          await addTask({
+            id,
+            title: values.title,
+            assigneeId: values.assignedTo,
+            dept: values.dept,
+            priority: values.priority,
+            dueDate: values.dueDate.toISOString(),
+            description: values.description,
+          }).unwrap();
+          await refetch();
         }}
-      >
-        <DialogContent dir="rtl">
-          <DialogHeader>
-            <DialogTitle>إنشاء مهمة للمشروع</DialogTitle>
-            <DialogDescription>أدخل عنوان المهمة الجديدة.</DialogDescription>
-          </DialogHeader>
-          <Input id="admin-project-task-title" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} placeholder="عنوان المهمة" aria-label="عنوان المهمة" />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTaskDialogOpen(false)}>إلغاء</Button>
-            <Button disabled={!taskTitle.trim() || isAddingTask} onClick={async () => { try { await addTask({ id, title: taskTitle.trim() }).unwrap(); toast.success(adminSuccessMessage("TASK_CREATED")); setTaskTitle(""); setTaskDialogOpen(false); await refetch(); } catch (error) { toast.error(adminErrorMessage(error)); } }}>
-              {isAddingTask ? "جارٍ الإنشاء..." : "إنشاء المهمة"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        successMessage={() => adminSuccessMessage("TASK_CREATED")}
+        errorMessage={adminErrorMessage}
+      />
     </div>
   );
 }

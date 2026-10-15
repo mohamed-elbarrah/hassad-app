@@ -21,6 +21,7 @@ import {
   AdminProjectsQueryDto,
   AdminProjectStatusDto,
   AdminProjectTaskDto,
+  AdminProjectAssignableUsersQueryDto,
   AdminProjectTasksQueryDto,
 } from "../dto/admin-projects.dto";
 
@@ -131,6 +132,15 @@ export class AdminProjectsController {
     @CurrentUser("id") adminId: string,
   ) {
     return this.service.addMember(id, body.userId, body.role, adminId, body.reason);
+  }
+
+  @Get(":id/assignable-users")
+  @RequirePermissions("admin.projects.intervene")
+  assignableUsers(
+    @Param("id") id: string,
+    @Query() query: AdminProjectAssignableUsersQueryDto,
+  ) {
+    return this.service.searchAssignableUsers(id, query.dept, query.search);
   }
 
   @Post(":id/tasks")

@@ -98,6 +98,7 @@ import { RequestsModule } from "../requests/requests.module";
 import { CrmModule } from "../crm/crm.module";
 import { SettingsModule } from "../settings/settings.module";
 import { ProjectPeriodsModule } from "../projects/project-periods.module";
+import { TasksModule } from "../tasks/tasks.module";
 
 @Module({
   imports: [
@@ -115,6 +116,7 @@ import { ProjectPeriodsModule } from "../projects/project-periods.module";
     StorageModule,
     ServicesModule,
     ProjectPeriodsModule,
+    TasksModule,
   ],
   controllers: [
     AdminController,

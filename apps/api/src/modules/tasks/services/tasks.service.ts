@@ -190,6 +190,7 @@ export class TasksService {
           OR: [
             { name: { contains: search, mode: "insensitive" as const } },
             { email: { contains: search, mode: "insensitive" as const } },
+            { role: { name: { contains: search, mode: "insensitive" as const } } },
           ],
         }
       : {};
@@ -213,6 +214,7 @@ export class TasksService {
 
     const where: Prisma.UserWhereInput = {
       isActive: true,
+      role: { name: { in: [UserRole.TEAM, UserRole.MARKETING] } },
       AND: [roleAndDeptFilter, searchFilter],
     };
 
@@ -322,7 +324,11 @@ export class TasksService {
     return user;
   }
 
-  async create(userId: string, dto: CreateTaskDto) {
+  async create(
+    userId: string,
+    dto: CreateTaskDto,
+    onCreated?: (tx: Prisma.TransactionClient, task: { id: string; title: string }) => Promise<void>,
+  ) {
     const department = await this.prisma.department.findFirst({
       where: { name: dto.dept },
     });
@@ -371,6 +377,7 @@ export class TasksService {
       });
 
       await this.recalculateProjectProgress(dto.projectId, tx);
+      await onCreated?.(tx, createdTask);
 
       return createdTask;
     });

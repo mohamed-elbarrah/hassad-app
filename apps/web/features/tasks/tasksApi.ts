@@ -125,6 +125,15 @@ export const tasksApi = createApi({
           : [{ type: "Task", id: `PROJECT_${projectId}` }],
     }),
 
+    getPmProjectAssignableUsers: builder.query<{
+      items: Array<{ id: string; name: string; email: string; role: string; department?: string | null }>;
+    }, { projectId: string; dept: TaskDepartment; search?: string }>({
+      query: ({ projectId, ...params }) => ({
+        url: `/pm/projects/${projectId}/assignable-users`,
+        params,
+      }),
+    }),
+
     /** POST /v1/pm/projects/:projectId/tasks — PM-owned task creation */
     createPmProjectTask: builder.mutation<
       Task,
@@ -563,6 +572,7 @@ export const {
   useGetTaskByIdQuery,
   useCreateTaskMutation,
   useCreatePmProjectTaskMutation,
+  useGetPmProjectAssignableUsersQuery,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
   useGetMyTasksQuery,
