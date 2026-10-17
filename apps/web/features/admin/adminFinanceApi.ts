@@ -369,17 +369,32 @@ export const adminFinanceApi = createApi({
       providesTags: ["AdminGateways"],
     }),
 
+    testAdminTapGatewayConnection: builder.mutation<
+      { connected: boolean },
+      void
+    >({
+      query: () => ({
+        url: "/admin/finance/gateways/tap/test",
+        method: "POST",
+      }),
+    }),
+
     updateAdminGateway: builder.mutation<
-      void,
+      {
+        id: string;
+        name: string;
+        type: string;
+        isActive: boolean;
+        configJson: { fields: Record<string, boolean>; isConfigured: boolean };
+        createdAt: string;
+        updatedAt: string;
+      },
       {
         name: string;
         isActive?: boolean;
         secretKey?: string;
         webhookSecret?: string;
         publishableKey?: string;
-        publicKey?: string;
-        merchantId?: string;
-        sourceId?: string;
         webhookUrl?: string;
       }
     >({
@@ -507,6 +522,7 @@ export const {
   useRefundInvoiceMutation,
   useGetAdminGatewaysQuery,
   useUpdateAdminGatewayMutation,
+  useTestAdminTapGatewayConnectionMutation,
   useDeleteAdminGatewayMutation,
   useGetAdminBankAccountsQuery,
   useCreateAdminBankAccountMutation,

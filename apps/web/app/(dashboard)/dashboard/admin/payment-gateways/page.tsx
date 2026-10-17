@@ -24,6 +24,7 @@ import {
   useGetAdminGatewaysQuery,
   useUpdateAdminBankAccountMutation,
   useUpdateAdminGatewayMutation,
+  useTestAdminTapGatewayConnectionMutation,
 } from "@/features/admin/adminFinanceApi";
 import { formatDateTime, formatNumber } from "@/lib/format";
 import { adminErrorMessage } from "@/lib/i18n";
@@ -109,9 +110,6 @@ type StripeFormState = {
 
 type TapFormState = {
   secretKey: string;
-  publicKey: string;
-  merchantId: string;
-  sourceId: string;
   webhookUrl: string;
   isActive: boolean;
 };
@@ -422,16 +420,20 @@ function TapDialog({
   onOpenChange,
   onChange,
   onSubmit,
+  onTest,
   isSaving,
-  isConfigured,
+  isTesting,
+  hasSavedSecret,
 }: {
   open: boolean;
   form: TapFormState;
   onOpenChange: (open: boolean) => void;
   onChange: (patch: Partial<TapFormState>) => void;
   onSubmit: () => void;
+  onTest: () => void;
   isSaving: boolean;
-  isConfigured: boolean;
+  isTesting: boolean;
+  hasSavedSecret: boolean;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -439,7 +441,7 @@ function TapDialog({
         <DialogHeader className="text-right">
           <DialogTitle>إعداد Tap Payments</DialogTitle>
           <DialogDescription>
-            أدخل مفاتيح Tap من لوحة Tap ثم فعّل البوابة لإظهارها للعملاء.
+            أدخل مفتاح Secret API واحفظه أولاً، ثم اختبر الاتصال قبل تفعيل البوابة.
           </DialogDescription>
         </DialogHeader>
 
@@ -447,13 +449,13 @@ function TapDialog({
           <div className="rounded-lg border px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="grid gap-1 text-right">
-                <p className="text-sm font-medium">حالة الإعداد</p>
+                <p className="text-sm font-medium">حالة حفظ المفتاح</p>
                 <p className="text-xs text-muted-foreground">
                   مفتاح Secret API مطلوب للدفع عبر صفحة Tap المستضافة.
                 </p>
               </div>
-              <Badge variant={isConfigured ? "default" : "secondary"}>
-                {isConfigured ? "مكتمل" : "غير مكتمل"}
+              <Badge variant={hasSavedSecret ? "default" : "secondary"}>
+                {hasSavedSecret ? "المفتاح محفوظ" : "لا يوجد مفتاح محفوظ"}
               </Badge>
             </div>
           </div>
@@ -467,36 +469,9 @@ function TapDialog({
               onChange={(event) => onChange({ secretKey: event.target.value })}
               placeholder="sk_test_... أو sk_live_..."
             />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="tap-public-key">Public API Key (اختياري)</Label>
-            <Input
-              id="tap-public-key"
-              value={form.publicKey}
-              onChange={(event) => onChange({ publicKey: event.target.value })}
-              placeholder="pk_test_... أو pk_live_..."
-            />
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="tap-merchant-id">Merchant ID (اختياري)</Label>
-              <Input
-                id="tap-merchant-id"
-                value={form.merchantId}
-                onChange={(event) => onChange({ merchantId: event.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="tap-source-id">Source ID</Label>
-              <Input
-                id="tap-source-id"
-                value={form.sourceId}
-                onChange={(event) => onChange({ sourceId: event.target.value })}
-                placeholder="src_all"
-              />
-            </div>
+            <p className="text-xs text-muted-foreground">
+              اترك الحقل فارغاً للاحتفاظ بالمفتاح المحفوظ مسبقاً.
+            </p>
           </div>
 
           <div className="grid gap-2">
@@ -508,9 +483,13 @@ function TapDialog({
               placeholder="https://api.example.com/v1/webhooks/tap"
             />
             <p className="text-xs text-muted-foreground">
-              يجب أن يكون رابطاً عاماً يصل إليه Tap ويشير إلى مسار webhook في API.
+              رابط webhook العام لتحديث حالة المدفوعات. يمكن تركه فارغاً إذا ضبطه مسؤول النظام في الخادم.
             </p>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            يستخدم الدفع المستضاف مصدر Tap الافتراضي <span dir="ltr">src_all</span>.
+          </p>
 
           <div className="flex items-center justify-between rounded-lg border px-4 py-3">
             <div className="grid gap-1 text-right">
@@ -527,15 +506,24 @@ function TapDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:justify-start">
-          <Button onClick={onSubmit} disabled={isSaving}>
+          <Button onClick={onSubmit} disabled={isSaving || isTesting}>
             {isSaving ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
             حفظ إعدادات Tap
           </Button>
           <Button
             type="button"
             variant="outline"
+            onClick={onTest}
+            disabled={isSaving || isTesting || !hasSavedSecret}
+          >
+            {isTesting ? <Loader2 className="animate-spin" data-icon="inline-start" /> : null}
+            اختبار الاتصال
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isSaving}
+            disabled={isSaving || isTesting}
           >
             إلغاء
           </Button>
@@ -555,6 +543,8 @@ export default function AdminPaymentGatewaysPage() {
 
   const [updateGateway, { isLoading: savingGateway }] =
     useUpdateAdminGatewayMutation();
+  const [testTapGateway, { isLoading: testingTapGateway }] =
+    useTestAdminTapGatewayConnectionMutation();
   const [createBankAccount, { isLoading: creatingBankAccount }] =
     useCreateAdminBankAccountMutation();
   const [updateBankAccount, { isLoading: updatingBankAccount }] =
@@ -568,9 +558,6 @@ export default function AdminPaymentGatewaysPage() {
   const [tapDialogOpen, setTapDialogOpen] = useState(false);
   const [tapForm, setTapForm] = useState<TapFormState>({
     secretKey: "",
-    publicKey: "",
-    merchantId: "",
-    sourceId: "",
     webhookUrl: "",
     isActive: false,
   });
@@ -655,9 +642,6 @@ export default function AdminPaymentGatewaysPage() {
   const openTapDialog = () => {
     setTapForm({
       secretKey: "",
-      publicKey: "",
-      merchantId: "",
-      sourceId: "",
       webhookUrl: "",
       isActive: tapGateway?.isActive ?? false,
     });
@@ -705,14 +689,23 @@ export default function AdminPaymentGatewaysPage() {
       await updateGateway({
         name: "tap",
         isActive: tapForm.isActive,
-        secretKey: tapForm.secretKey || undefined,
-        publicKey: tapForm.publicKey || undefined,
-        merchantId: tapForm.merchantId || undefined,
-        sourceId: tapForm.sourceId || undefined,
-        webhookUrl: tapForm.webhookUrl || undefined,
+        secretKey: tapForm.secretKey.trim() || undefined,
+        webhookUrl: tapForm.webhookUrl.trim() || undefined,
       }).unwrap();
       toast.success("تم حفظ إعدادات Tap");
-      setTapDialogOpen(false);
+    } catch (error) {
+      toast.error(adminErrorMessage(error));
+    }
+  };
+
+  const handleTapTest = async () => {
+    try {
+      const result = await testTapGateway().unwrap();
+      if (result.connected) {
+        toast.success("تم اختبار الاتصال بـ Tap بنجاح");
+      } else {
+        toast.error("تعذر الاتصال بـ Tap");
+      }
     } catch (error) {
       toast.error(adminErrorMessage(error));
     }
@@ -1047,7 +1040,9 @@ export default function AdminPaymentGatewaysPage() {
                         </div>
                         {item.error ? (
                           <p className="mt-3 text-sm text-destructive">
-                            {item.error}
+                            {adminErrorMessage({
+                              data: { error: { code: item.error } },
+                            })}
                           </p>
                         ) : null}
                       </div>
@@ -1178,8 +1173,10 @@ export default function AdminPaymentGatewaysPage() {
           setTapForm((current) => ({ ...current, ...patch }))
         }
         onSubmit={handleTapSubmit}
+        onTest={handleTapTest}
         isSaving={savingGateway}
-        isConfigured={tapGateway?.configJson?.isConfigured ?? false}
+        isTesting={testingTapGateway}
+        hasSavedSecret={tapGateway?.configJson?.fields.secretKey ?? false}
       />
 
       <BankAccountDialog

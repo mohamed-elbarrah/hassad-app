@@ -161,6 +161,12 @@ export class TapProvider implements PaymentProvider {
     return this.mapPayment(response);
   }
 
+  async testConnection(): Promise<void> {
+    // Tap documents this authenticated, non-transactional endpoint for listing charges.
+    // It verifies API access without creating a payment.
+    await this.request<unknown>("/charges/list", { limit: "1" });
+  }
+
   async verifyWebhook(payload: unknown, signature: string): Promise<TapCharge> {
     if (!signature) {
       throw new BadRequestException({
@@ -271,6 +277,12 @@ export class TapProvider implements PaymentProvider {
     }
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new BadRequestException({
+          code: "PAYMENT_GATEWAY_CREDENTIALS_REJECTED",
+          details: { gateway: "tap", status: response.status },
+        });
+      }
       throw new BadGatewayException({
         code: "PAYMENT_PROVIDER_REQUEST_FAILED",
         details: { gateway: "tap", status: response.status },

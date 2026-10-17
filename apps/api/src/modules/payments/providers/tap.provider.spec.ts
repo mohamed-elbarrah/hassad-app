@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TapProvider } from "./tap.provider";
 
 type TapTestEvent = {
@@ -22,6 +22,40 @@ function signature(event: TapTestEvent, secret: string) {
     `x_created${event.transaction.created}`;
   return createHmac("sha256", secret).update(input).digest("hex");
 }
+
+describe("TapProvider connection verification", () => {
+  it("uses Tap's non-transactional charge-list endpoint", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ charges: [] }), { status: 200 }),
+    );
+    const provider = new TapProvider({ secretKey: "tap_test_secret" });
+
+    await expect(provider.testConnection()).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.tap.company/v2/charges/list",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ limit: "1" }),
+      }),
+    );
+    vi.restoreAllMocks();
+  });
+
+  it("reports rejected Tap credentials without treating them as app session errors", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({}), { status: 401 }),
+    );
+    const provider = new TapProvider({ secretKey: "invalid_key" });
+
+    await expect(provider.testConnection()).rejects.toMatchObject({
+      status: 400,
+      response: {
+        code: "PAYMENT_GATEWAY_CREDENTIALS_REJECTED",
+      },
+    });
+    vi.restoreAllMocks();
+  });
+});
 
 describe("TapProvider webhook verification", () => {
   const secret = "tap_test_secret";

@@ -174,6 +174,10 @@ export class AdminFinanceService {
     return this.paymentsService.updateGatewayConfig(name, dto);
   }
 
+  async testTapGatewayConnection() {
+    return this.paymentsService.testTapGatewayConnection();
+  }
+
   async deleteGateway(name: string) {
     return this.paymentsService.deleteGateway(name);
   }

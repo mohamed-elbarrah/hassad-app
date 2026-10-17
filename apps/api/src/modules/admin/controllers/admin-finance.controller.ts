@@ -146,6 +146,12 @@ export class AdminFinanceController {
     return this.service.getGateways();
   }
 
+  @Post("gateways/tap/test")
+  @RequirePermissions("admin.finance.intervene")
+  testTapGatewayConnection() {
+    return this.service.testTapGatewayConnection();
+  }
+
   @Post("gateways/:name")
   @RequirePermissions("admin.finance.intervene")
   updateGateway(@Param("name") name: string, @Body() dto: UpdateGatewayDto) {

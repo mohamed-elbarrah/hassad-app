@@ -391,6 +391,10 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   SETTINGS_ENCRYPTION_KEY_REQUIRED: "لا يمكن حفظ المفاتيح بأمان حالياً.",
   SETTINGS_ENCRYPTION_KEY_MISSING: "إعداد تشفير المفاتيح غير متاح حالياً.",
   SETTINGS_ENCRYPTION_KEY_INVALID: "إعداد تشفير المفاتيح غير صالح.",
+  PAYMENT_GATEWAY_CREDENTIALS_REJECTED:
+    "رفضت Tap بيانات الدخول. تحقق من المفتاح وبيئة الحساب.",
+  PAYMENT_PROVIDER_REQUEST_FAILED: "تعذر الاتصال ببوابة الدفع.",
+  PAYMENT_PROVIDER_UNAVAILABLE: "تعذر الوصول إلى Tap حالياً. حاول مرة أخرى لاحقاً.",
   UNKNOWN_ERROR: "حدث خطأ. يرجى المحاولة مرة أخرى.",
 };
 
@@ -1606,6 +1610,7 @@ export function portalErrorMessage(error: unknown): string {
     PAYMENT_GATEWAY_UNAVAILABLE: "بوابة الدفع غير متاحة حالياً.",
     PAYMENT_GATEWAY_UNSUPPORTED: "بوابة الدفع غير مدعومة.",
     PAYMENT_GATEWAY_CONFIG_INVALID: "إعدادات بوابة الدفع غير صالحة.",
+    PAYMENT_GATEWAY_CREDENTIALS_REJECTED: "رفضت Tap بيانات الدخول. تحقق من المفتاح وبيئة الحساب.",
     REFUND_NOT_ALLOWED: "لا يمكن استرداد هذه الفاتورة حالياً.",
     WEBHOOK_LOG_NOT_FOUND: "لم يتم العثور على سجل العملية.",
     WEBHOOK_ALREADY_PROCESSED: "تمت معالجة العملية مسبقاً.",

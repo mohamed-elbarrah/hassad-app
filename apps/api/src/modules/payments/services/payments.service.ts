@@ -715,7 +715,7 @@ export class PaymentsService implements OnModuleInit {
       where: { id: invoiceId, client: { userId: clientUserId } },
       include: {
         payments: { include: { gateway: { select: { name: true } } } },
-      }
+      },
     });
     if (!invoice) {
       throw new NotFoundException({ code: "INVOICE_NOT_FOUND", details: {} });
@@ -1687,7 +1687,12 @@ export class PaymentsService implements OnModuleInit {
         if (config[key]) fields[key] = true;
       }
       return {
-        ...g,
+        id: g.id,
+        name: g.name,
+        type: g.type,
+        isActive: g.isActive,
+        createdAt: g.createdAt,
+        updatedAt: g.updatedAt,
         configJson: {
           fields,
           isConfigured:
@@ -1728,7 +1733,7 @@ export class PaymentsService implements OnModuleInit {
     };
     const hasConfigFields = Object.values(providedConfig).some(Boolean);
 
-    return this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       const updateData: any = {};
       if (isActive !== undefined) updateData.isActive = isActive;
 
@@ -1787,7 +1792,7 @@ export class PaymentsService implements OnModuleInit {
         }
       }
 
-      return tx.paymentGateway.upsert({
+      await tx.paymentGateway.upsert({
         where: { name },
         update: updateData,
         create: {
@@ -1803,6 +1808,28 @@ export class PaymentsService implements OnModuleInit {
         },
       });
     });
+
+    return (await this.getGateways()).find((gateway) => gateway.name === name);
+  }
+
+  async testTapGatewayConnection() {
+    const gateway = await this.prisma.paymentGateway.findUnique({
+      where: { name: "tap" },
+      select: { configJson: true },
+    });
+    const config = this.parseGatewayConfig(gateway?.configJson ?? null);
+    const secretKey =
+      typeof config.secretKey === "string" ? config.secretKey.trim() : "";
+    if (!secretKey) {
+      throw new BadRequestException({
+        code: "PAYMENT_GATEWAY_CONFIG_INVALID",
+        details: { gateway: "tap", missing: "secretKey" },
+      });
+    }
+
+    const provider = new TapProvider({ secretKey });
+    await provider.testConnection();
+    return { connected: true };
   }
 
   async deleteGateway(name: string) {
